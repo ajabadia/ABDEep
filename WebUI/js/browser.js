@@ -122,7 +122,7 @@ async function loadAllFactoryBanksNatively() {
             }
         } else {
             try {
-                const response = await fetch(`./resources/Factory%20Banks%20V1.1.2/Synth%20Bank%20${letter}.syx`);
+                const response = await fetch(`./resources/Banks/Factory%20Banks%20V1.1.2/Synth%20Bank%20${letter}.syx`);
                 if (response.ok) {
                     const arrayBuffer = await response.arrayBuffer();
                     bytes = new Uint8Array(arrayBuffer);
