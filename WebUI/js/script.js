@@ -265,42 +265,58 @@ function initUIControls() {
     if (window.dualMidiBridge) {
         window.dualMidiBridge.onParameterChanged((paramId, val) => {
             // 1. Sincronizar Faders
-            let sliderUnit = document.querySelector(`[data-param="${paramId}"] .v-slider`);
+            let sliderUnits = Array.from(document.querySelectorAll(`[data-param="${paramId}"] .v-slider`));
             
-            if (!sliderUnit) {
-                const activeAtkParam = document.getElementById('env-ctrl-attack')?.getAttribute('data-param');
-                const activeDcyParam = document.getElementById('env-ctrl-decay')?.getAttribute('data-param');
-                const activeSusParam = document.getElementById('env-ctrl-sustain')?.getAttribute('data-param');
-                const activeRelParam = document.getElementById('env-ctrl-release')?.getAttribute('data-param');
-                
-                if (paramId === activeAtkParam) sliderUnit = document.querySelector('#env-ctrl-attack .v-slider');
-                else if (paramId === activeDcyParam) sliderUnit = document.querySelector('#env-ctrl-decay .v-slider');
-                else if (paramId === activeSusParam) sliderUnit = document.querySelector('#env-ctrl-sustain .v-slider');
-                else if (paramId === activeRelParam) sliderUnit = document.querySelector('#env-ctrl-release .v-slider');
+            const activeAtkParam = document.getElementById('env-ctrl-attack')?.getAttribute('data-param');
+            const activeDcyParam = document.getElementById('env-ctrl-decay')?.getAttribute('data-param');
+            const activeSusParam = document.getElementById('env-ctrl-sustain')?.getAttribute('data-param');
+            const activeRelParam = document.getElementById('env-ctrl-release')?.getAttribute('data-param');
+            
+            if (paramId === activeAtkParam) {
+                const el = document.querySelector('#env-ctrl-attack .v-slider');
+                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
+            }
+            if (paramId === activeDcyParam) {
+                const el = document.querySelector('#env-ctrl-decay .v-slider');
+                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
+            }
+            if (paramId === activeSusParam) {
+                const el = document.querySelector('#env-ctrl-sustain .v-slider');
+                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
+            }
+            if (paramId === activeRelParam) {
+                const el = document.querySelector('#env-ctrl-release .v-slider');
+                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
             }
 
-            if (!sliderUnit) {
-                const activePitchModParam = document.getElementById('osc-ctrl-pitchmod')?.getAttribute('data-param');
-                const activePwmToneParam = document.getElementById('osc-ctrl-pwm-tone')?.getAttribute('data-param');
-                
-                if (paramId === activePitchModParam) sliderUnit = document.querySelector('#osc-ctrl-pitchmod .v-slider');
-                else if (paramId === activePwmToneParam) sliderUnit = document.querySelector('#osc-ctrl-pwm-tone .v-slider');
+            const activePitchModParam = document.getElementById('osc-ctrl-pitchmod')?.getAttribute('data-param');
+            const activePwmToneParam = document.getElementById('osc-ctrl-pwm-tone')?.getAttribute('data-param');
+            
+            if (paramId === activePitchModParam) {
+                const el = document.querySelector('#osc-ctrl-pitchmod .v-slider');
+                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
+            }
+            if (paramId === activePwmToneParam) {
+                const el = document.querySelector('#osc-ctrl-pwm-tone .v-slider');
+                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
             }
 
-            if (sliderUnit) {
+            sliderUnits.forEach(sliderUnit => {
                 const handle = sliderUnit.querySelector('.handle');
-                const rect = sliderUnit.getBoundingClientRect();
-                const height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
-                const handleHeight = 16;
-                const pos = (1.0 - val) * (height - handleHeight);
-                handle.style.top = pos + 'px';
-            }
+                if (handle) {
+                    const rect = sliderUnit.getBoundingClientRect();
+                    const height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
+                    const handleHeight = 16;
+                    const pos = (1.0 - val) * (height - handleHeight);
+                    handle.style.top = pos + 'px';
+                }
+            });
 
             // 2. Sincronizar LEDs/Botones y Toggles Especiales
-            const ledUnit = document.querySelector(`[data-param="${paramId}"] .led`);
-            if (ledUnit) {
+            const ledUnits = document.querySelectorAll(`[data-param="${paramId}"] .led`);
+            ledUnits.forEach(ledUnit => {
                 ledUnit.classList.toggle('active', val > 0.5);
-            }
+            });
 
             if (paramId === "hpf_boost_enable") {
                 const boostBtn = document.getElementById('hpf-boost-btn');
