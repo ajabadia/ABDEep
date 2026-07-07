@@ -28,6 +28,95 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Engine de parpadeo a tempo (BPM) para botones ARP y SEQ en el frontal
+    const arpBtnEl = document.getElementById('programmer-arp-btn');
+    const seqBtnEl = document.getElementById('programmer-seq-btn');
+    
+    let lastTime = 0;
+    let accumTime = 0;
+    let blinkState = false;
+
+    function runBlinkLoop(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const delta = timestamp - lastTime;
+        lastTime = timestamp;
+
+        // Recuperar BPM de la cache de parámetros, por defecto 120
+        let bpm = 120;
+        if (window.dualMidiBridge && window.dualMidiBridge.parameterCache) {
+            const arpRateVal = window.dualMidiBridge.parameterCache["arp_rate"];
+            if (typeof arpRateVal !== 'undefined') {
+                // Rango arp_rate es 20.0f a 240.0f BPM
+                bpm = 20 + arpRateVal * 220;
+            }
+        }
+        
+        const periodMs = 60000 / bpm;
+        accumTime += delta;
+        
+        if (accumTime >= periodMs / 2) {
+            blinkState = !blinkState;
+            accumTime %= (periodMs / 2);
+        }
+
+        // Leer estados de activación desde la cache
+        let isArpOn = false;
+        let isSeqOn = false;
+        if (window.dualMidiBridge && window.dualMidiBridge.parameterCache) {
+            isArpOn = window.dualMidiBridge.parameterCache["arp_enable"] > 0.5;
+            isSeqOn = window.dualMidiBridge.parameterCache["seq_enable"] > 0.5;
+        }
+
+        // Aplicar estilos para ARP
+        if (arpBtnEl) {
+            if (isArpOn) {
+                if (blinkState) {
+                    arpBtnEl.style.background = 'rgba(255, 153, 0, 0.4)';
+                    arpBtnEl.style.borderColor = '#ff9900';
+                    arpBtnEl.style.boxShadow = '0 0 12px #ff9900';
+                    arpBtnEl.style.color = '#ff9900';
+                } else {
+                    arpBtnEl.style.background = 'rgba(255, 153, 0, 0.1)';
+                    arpBtnEl.style.borderColor = 'rgba(255, 153, 0, 0.4)';
+                    arpBtnEl.style.boxShadow = 'none';
+                    arpBtnEl.style.color = 'rgba(255, 153, 0, 0.7)';
+                }
+            } else {
+                // Estilo por defecto cuando está apagado
+                arpBtnEl.style.background = 'rgba(255, 153, 0, 0.2)';
+                arpBtnEl.style.borderColor = 'var(--brand-accent)';
+                arpBtnEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)';
+                arpBtnEl.style.color = 'var(--brand-accent)';
+            }
+        }
+
+        // Aplicar estilos para SEQ
+        if (seqBtnEl) {
+            if (isSeqOn) {
+                if (blinkState) {
+                    seqBtnEl.style.background = 'rgba(255, 0, 204, 0.4)';
+                    seqBtnEl.style.borderColor = '#ff00cc';
+                    seqBtnEl.style.boxShadow = '0 0 12px #ff00cc';
+                    seqBtnEl.style.color = '#ff00cc';
+                } else {
+                    seqBtnEl.style.background = 'rgba(255, 0, 204, 0.1)';
+                    seqBtnEl.style.borderColor = 'rgba(255, 0, 204, 0.4)';
+                    seqBtnEl.style.boxShadow = 'none';
+                    seqBtnEl.style.color = 'rgba(255, 0, 204, 0.7)';
+                }
+            } else {
+                // Estilo por defecto cuando está apagado
+                seqBtnEl.style.background = 'rgba(255, 0, 204, 0.2)';
+                seqBtnEl.style.borderColor = '#ff00cc';
+                seqBtnEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)';
+                seqBtnEl.style.color = '#ff00cc';
+            }
+        }
+
+        requestAnimationFrame(runBlinkLoop);
+    }
+    requestAnimationFrame(runBlinkLoop);
 });
 
 // 1. INICIALIZACIÓN DE SLIDERS, KNOBS Y LEDS

@@ -277,7 +277,10 @@ function initSequencerModal() {
     if (presetsList) {
         presetsList.querySelectorAll('.preset-item').forEach(item => {
             item.addEventListener('click', () => {
-                presetsList.querySelectorAll('.preset-item').forEach(i => i.style.background = 'transparent');
+                presetsList.querySelectorAll('.preset-item').forEach(i => {
+                    i.style.background = 'transparent';
+                    i.classList.remove('selected');
+                });
                 item.style.background = 'rgba(255, 0, 204, 0.2)';
                 item.classList.add('selected');
             });
