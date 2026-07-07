@@ -1859,6 +1859,7 @@ function initDetailEditPanel() {
                 }
             });
         }
+        bindPanelSliders();
     }
 
     // Escuchar cambios de parámetros en tiempo real para refrescar faders del panel si se mueven
@@ -2181,6 +2182,84 @@ function initDetailEditPanel() {
                     }
                 }
             }
+        });
+    }
+
+    function bindPanelSliders() {
+        const sliders = container.querySelectorAll('.v-slider');
+        sliders.forEach(slider => {
+            const handle = slider.querySelector('.handle');
+            if (!handle) return;
+            const ctrlUnit = slider.closest('[data-param]');
+            if (!ctrlUnit) return;
+            const paramId = ctrlUnit.getAttribute('data-param');
+            if (!paramId) return;
+
+            // Set initial position from cache
+            if (window.dualMidiBridge) {
+                const cachedVal = window.dualMidiBridge.parameterCache[paramId];
+                if (cachedVal !== undefined) {
+                    const updatePos = () => {
+                        const rect = slider.getBoundingClientRect();
+                        if (rect.height > 0) {
+                            const handleHeight = 16;
+                            const pos = (1.0 - cachedVal) * (rect.height - handleHeight);
+                            handle.style.top = pos + 'px';
+                        } else {
+                            setTimeout(updatePos, 50);
+                        }
+                    };
+                    updatePos();
+                }
+            }
+
+            let isDragging = false;
+            const updateVal = (clientY) => {
+                const rect = slider.getBoundingClientRect();
+                let pct = 1.0 - (clientY - rect.top) / rect.height;
+                pct = Math.max(0, Math.min(1, pct));
+                
+                const handleHeight = 16;
+                const pos = (1.0 - pct) * (rect.height - handleHeight);
+                handle.style.top = pos + 'px';
+                
+                if (window.dualMidiBridge) {
+                    window.dualMidiBridge.setParameter(paramId, pct);
+                    window.dualMidiBridge.handleParameterChangeFromBackend(paramId, pct);
+                }
+            };
+
+            slider.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                updateVal(e.clientY);
+                e.preventDefault();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    updateVal(e.clientY);
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            slider.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                updateVal(e.touches[0].clientY);
+                e.preventDefault();
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (isDragging) {
+                    updateVal(e.touches[0].clientY);
+                }
+            });
+
+            window.addEventListener('touchend', () => {
+                isDragging = false;
+            });
         });
     }
 }
