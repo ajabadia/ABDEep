@@ -60,6 +60,7 @@ function initSequencerModal() {
         
         // Indicador numérico encima
         const numIndicator = document.createElement('div');
+        numIndicator.className = 'seq-step-val';
         numIndicator.style.fontSize = '7px';
         numIndicator.style.color = '#777';
         numIndicator.style.marginBottom = '2px';
@@ -68,14 +69,27 @@ function initSequencerModal() {
 
         // Contenedor de la barra
         const barContainer = document.createElement('div');
+        barContainer.className = 'seq-step-bar-container';
         barContainer.style.width = '8px';
         barContainer.style.height = '70px';
         barContainer.style.background = '#1a1a22';
         barContainer.style.position = 'relative';
         barContainer.style.borderRadius = '1px';
         
+        // Línea central de cero bipolar
+        const zeroLine = document.createElement('div');
+        zeroLine.style.position = 'absolute';
+        zeroLine.style.left = '0';
+        zeroLine.style.right = '0';
+        zeroLine.style.bottom = '50%';
+        zeroLine.style.height = '1px';
+        zeroLine.style.background = 'rgba(255, 255, 255, 0.15)';
+        zeroLine.style.zIndex = '1';
+        barContainer.appendChild(zeroLine);
+        
         // La barra de relleno bipolar (origen en el centro)
         const fillBar = document.createElement('div');
+        fillBar.className = 'seq-step-fill-bar';
         fillBar.style.width = '100%';
         fillBar.style.position = 'absolute';
         fillBar.style.background = 'var(--brand-accent)';
@@ -135,11 +149,29 @@ function initSequencerModal() {
     function updateStepVisual(index) {
         const stepUnit = stepsGrid.children[index];
         if (!stepUnit) return;
-        const numIndicator = stepUnit.querySelector('div');
-        const fillBar = stepUnit.querySelector('div > div');
+        const numIndicator = stepUnit.querySelector('.seq-step-val');
+        const fillBar = stepUnit.querySelector('.seq-step-fill-bar');
+        const barContainer = stepUnit.querySelector('.seq-step-bar-container');
         const val = seqStepsValues[index];
 
-        if (numIndicator) numIndicator.innerText = val;
+        // Determinar si este paso está activo según el selector de longitud
+        const selectLength = document.getElementById('modal-seq-length-select');
+        // El valor de selectLength es el índice (0-30), que corresponde a la longitud (2-32)
+        const activeLength = selectLength ? (parseInt(selectLength.value) + 2) : 16;
+        const isActive = index < activeLength;
+
+        if (numIndicator) {
+            numIndicator.innerText = val;
+            numIndicator.style.color = isActive ? 'var(--brand-accent)' : '#444';
+        }
+
+        if (stepUnit) {
+            stepUnit.style.background = isActive ? '#0e0e12' : '#050507';
+        }
+
+        if (barContainer) {
+            barContainer.style.background = isActive ? '#1c1c24' : '#111116';
+        }
 
         if (fillBar) {
             // Rango -128 a 127
@@ -147,12 +179,12 @@ function initSequencerModal() {
                 const pct = (val / 127) * 50;
                 fillBar.style.bottom = '50%';
                 fillBar.style.height = pct + '%';
-                fillBar.style.background = '#ff00cc'; // Seq active theme
+                fillBar.style.background = isActive ? '#ff00cc' : 'rgba(255, 0, 204, 0.2)'; // Seq active/inactive theme
             } else {
                 const pct = (Math.abs(val) / 128) * 50;
                 fillBar.style.bottom = (50 - pct) + '%';
                 fillBar.style.height = pct + '%';
-                fillBar.style.background = '#8800aa'; // Bipolar negativo
+                fillBar.style.background = isActive ? '#8800aa' : 'rgba(136, 0, 170, 0.2)'; // Bipolar negativo active/inactive
             }
         }
     }
@@ -177,6 +209,9 @@ function initSequencerModal() {
     if (selectLength) {
         selectLength.addEventListener('change', () => {
             if (window.dualMidiBridge) window.dualMidiBridge.setParameter("seq_length", parseInt(selectLength.value) / 30.0);
+            for (let i = 0; i < 32; i++) {
+                updateStepVisual(i);
+            }
         });
     }
 
@@ -324,7 +359,12 @@ function initSequencerModal() {
             if (backdrop.style.display === 'none') return;
             if (paramId === "seq_enable" && seqBox) seqBox.classList.toggle('active', val > 0.5);
             if (paramId === "seq_clock" && selectClock) selectClock.value = Math.round(val * 10.0);
-            if (paramId === "seq_length" && selectLength) selectLength.value = Math.round(val * 30.0);
+            if (paramId === "seq_length" && selectLength) {
+                selectLength.value = Math.round(val * 30.0);
+                for (let i = 0; i < 32; i++) {
+                    updateStepVisual(i);
+                }
+            }
             if (paramId === "seq_key_loop" && selectKeyLoop) selectKeyLoop.value = Math.round(val * 2.0);
             if (paramId === "seq_swing" || paramId === "seq_slew_rate") {
                 const sliderEl = backdrop.querySelector(`[data-param="${paramId}"] .v-slider`);
