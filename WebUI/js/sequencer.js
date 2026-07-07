@@ -58,12 +58,19 @@ function initSequencerModal() {
         stepUnit.style.background = '#0a0a0d';
         stepUnit.style.borderLeft = '1px solid #141419';
         
-        // Indicador numérico encima
+        // Indicador numérico encima (estilo caja de la app original)
         const numIndicator = document.createElement('div');
         numIndicator.className = 'seq-step-val';
-        numIndicator.style.fontSize = '7px';
-        numIndicator.style.color = '#777';
-        numIndicator.style.marginBottom = '2px';
+        numIndicator.style.fontSize = '8px';
+        numIndicator.style.fontWeight = 'bold';
+        numIndicator.style.color = '#ccc';
+        numIndicator.style.background = '#1a1a22';
+        numIndicator.style.border = '1px solid #2d2d38';
+        numIndicator.style.borderRadius = '2px';
+        numIndicator.style.padding = '2px 4px';
+        numIndicator.style.minWidth = '20px';
+        numIndicator.style.textAlign = 'center';
+        numIndicator.style.marginBottom = '4px';
         numIndicator.innerText = '0';
         stepUnit.appendChild(numIndicator);
 
@@ -162,7 +169,10 @@ function initSequencerModal() {
 
         if (numIndicator) {
             numIndicator.innerText = val;
-            numIndicator.style.color = isActive ? 'var(--brand-accent)' : '#444';
+            numIndicator.style.color = isActive ? 'var(--brand-accent)' : '#555';
+            numIndicator.style.background = isActive ? '#1c1d24' : '#0e0e12';
+            numIndicator.style.borderColor = isActive ? 'var(--brand-accent)' : '#222';
+            numIndicator.style.opacity = isActive ? '1.0' : '0.4';
         }
 
         if (stepUnit) {
@@ -330,6 +340,15 @@ function initSequencerModal() {
         ];
 
         sliders.forEach(sliderInfo => {
+            // Actualizar valor en el indicador numérico
+            if (sliderInfo.id === "seq_swing") {
+                const txt = document.getElementById('modal-seq-swing-val');
+                if (txt) txt.innerText = Math.round(50 + sliderInfo.val * 9);
+            } else if (sliderInfo.id === "seq_slew_rate") {
+                const txt = document.getElementById('modal-seq-slew-val');
+                if (txt) txt.innerText = Math.round(sliderInfo.val * 255);
+            }
+
             const sliderEl = backdrop.querySelector(`[data-param="${sliderInfo.id}"] .v-slider`);
             if (sliderEl) {
                 const handle = sliderEl.querySelector('.handle');
@@ -367,6 +386,15 @@ function initSequencerModal() {
             }
             if (paramId === "seq_key_loop" && selectKeyLoop) selectKeyLoop.value = Math.round(val * 2.0);
             if (paramId === "seq_swing" || paramId === "seq_slew_rate") {
+                // Actualizar valor en el indicador numérico
+                if (paramId === "seq_swing") {
+                    const txt = document.getElementById('modal-seq-swing-val');
+                    if (txt) txt.innerText = Math.round(50 + val * 9);
+                } else if (paramId === "seq_slew_rate") {
+                    const txt = document.getElementById('modal-seq-slew-val');
+                    if (txt) txt.innerText = Math.round(val * 255);
+                }
+
                 const sliderEl = backdrop.querySelector(`[data-param="${paramId}"] .v-slider`);
                 if (sliderEl) {
                     const handle = sliderEl.querySelector('.handle');
