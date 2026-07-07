@@ -364,7 +364,16 @@ function triggerMidiDump(patch) {
 
         "unison_detune": patch.unpackedBytes[87] / 255.0,
         "arp_rate": patch.unpackedBytes[157] / 255.0,
-        "arp_gate": patch.unpackedBytes[160] / 255.0
+        "arp_gate": patch.unpackedBytes[160] / 255.0,
+        
+        "arp_enable": patch.unpackedBytes[109],
+        "arp_hold": patch.unpackedBytes[110],
+        "arp_key_sync": patch.unpackedBytes[111],
+        "seq_enable": patch.unpackedBytes[119],
+        "vca_mode": patch.unpackedBytes[58],
+        "hpf_boost_enable": patch.unpackedBytes[52],
+        "chord_enable": patch.unpackedBytes[105],
+        "poly_chord_enable": patch.unpackedBytes[106]
     };
 
     Object.keys(mappings).forEach(paramId => {

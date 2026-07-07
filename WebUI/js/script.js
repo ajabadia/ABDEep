@@ -29,19 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Engine de parpadeo a tempo (BPM) para botones ARP y SEQ en el frontal
+    // Engine de parpadeo a tempo (BPM) para botones ARP, SEQ y CHORD en el frontal
     const arpBtnEl = document.getElementById('programmer-arp-btn');
     const seqBtnEl = document.getElementById('programmer-seq-btn');
+    const chordBtnEl = document.getElementById('programmer-chord-btn');
     
-    let lastTime = 0;
-    let accumTime = 0;
-    let blinkState = false;
-
     function runBlinkLoop(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const delta = timestamp - lastTime;
-        lastTime = timestamp;
-
         // Recuperar BPM de la cache de parámetros, por defecto 120
         let bpm = 120;
         if (window.dualMidiBridge && window.dualMidiBridge.parameterCache) {
@@ -53,25 +46,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const periodMs = 60000 / bpm;
-        accumTime += delta;
-        
-        if (accumTime >= periodMs / 2) {
-            blinkState = !blinkState;
-            accumTime %= (periodMs / 2);
-        }
+        // Calcular estados de parpadeo matemáticamente limpios (sin acumuladores)
+        const blinkStateSlow = Math.floor(timestamp / (periodMs / 2)) % 2 === 0;
+        const blinkStateFast = Math.floor(timestamp / (periodMs / 4)) % 2 === 0;
 
         // Leer estados de activación desde la cache
         let isArpOn = false;
         let isSeqOn = false;
+        let isChordMemOn = false;
+        let isPolyChordOn = false;
+
         if (window.dualMidiBridge && window.dualMidiBridge.parameterCache) {
             isArpOn = window.dualMidiBridge.parameterCache["arp_enable"] > 0.5;
             isSeqOn = window.dualMidiBridge.parameterCache["seq_enable"] > 0.5;
+            isChordMemOn = window.dualMidiBridge.parameterCache["chord_enable"] > 0.5;
+            isPolyChordOn = window.dualMidiBridge.parameterCache["poly_chord_enable"] > 0.5;
         }
 
         // Aplicar estilos para ARP
         if (arpBtnEl) {
             if (isArpOn) {
-                if (blinkState) {
+                if (blinkStateSlow) {
                     arpBtnEl.style.background = 'rgba(255, 153, 0, 0.4)';
                     arpBtnEl.style.borderColor = '#ff9900';
                     arpBtnEl.style.boxShadow = '0 0 12px #ff9900';
@@ -83,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     arpBtnEl.style.color = 'rgba(255, 153, 0, 0.7)';
                 }
             } else {
-                // Estilo por defecto cuando está apagado
                 arpBtnEl.style.background = 'rgba(255, 153, 0, 0.2)';
                 arpBtnEl.style.borderColor = 'var(--brand-accent)';
                 arpBtnEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)';
@@ -94,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Aplicar estilos para SEQ
         if (seqBtnEl) {
             if (isSeqOn) {
-                if (blinkState) {
+                if (blinkStateSlow) {
                     seqBtnEl.style.background = 'rgba(255, 0, 204, 0.4)';
                     seqBtnEl.style.borderColor = '#ff00cc';
                     seqBtnEl.style.boxShadow = '0 0 12px #ff00cc';
@@ -106,11 +100,60 @@ document.addEventListener('DOMContentLoaded', () => {
                     seqBtnEl.style.color = 'rgba(255, 0, 204, 0.7)';
                 }
             } else {
-                // Estilo por defecto cuando está apagado
                 seqBtnEl.style.background = 'rgba(255, 0, 204, 0.2)';
                 seqBtnEl.style.borderColor = '#ff00cc';
                 seqBtnEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)';
                 seqBtnEl.style.color = '#ff00cc';
+            }
+        }
+
+        // Aplicar estilos para CHORD (combinaciones de Chord Memory y Poly Chord)
+        if (chordBtnEl) {
+            if (isChordMemOn && isPolyChordOn) {
+                // Ambos activos: Parpadeo rápido (Blink x2) en color Cian/Teal
+                if (blinkStateFast) {
+                    chordBtnEl.style.background = 'rgba(0, 255, 204, 0.4)';
+                    chordBtnEl.style.borderColor = '#00ffcc';
+                    chordBtnEl.style.boxShadow = '0 0 12px #00ffcc';
+                    chordBtnEl.style.color = '#00ffcc';
+                } else {
+                    chordBtnEl.style.background = 'rgba(0, 255, 204, 0.1)';
+                    chordBtnEl.style.borderColor = 'rgba(0, 255, 204, 0.4)';
+                    chordBtnEl.style.boxShadow = 'none';
+                    chordBtnEl.style.color = 'rgba(0, 255, 204, 0.7)';
+                }
+            } else if (isChordMemOn) {
+                // Chord Memory solo: Parpadeo lento (Blink x1) en color Verde
+                if (blinkStateSlow) {
+                    chordBtnEl.style.background = 'rgba(0, 204, 102, 0.4)';
+                    chordBtnEl.style.borderColor = '#00cc66';
+                    chordBtnEl.style.boxShadow = '0 0 12px #00cc66';
+                    chordBtnEl.style.color = '#00cc66';
+                } else {
+                    chordBtnEl.style.background = 'rgba(0, 204, 102, 0.1)';
+                    chordBtnEl.style.borderColor = 'rgba(0, 204, 102, 0.4)';
+                    chordBtnEl.style.boxShadow = 'none';
+                    chordBtnEl.style.color = 'rgba(0, 204, 102, 0.7)';
+                }
+            } else if (isPolyChordOn) {
+                // Poly Chord solo: Parpadeo lento (Blink x1) en color Azul
+                if (blinkStateSlow) {
+                    chordBtnEl.style.background = 'rgba(0, 153, 255, 0.4)';
+                    chordBtnEl.style.borderColor = '#0099ff';
+                    chordBtnEl.style.boxShadow = '0 0 12px #0099ff';
+                    chordBtnEl.style.color = '#0099ff';
+                } else {
+                    chordBtnEl.style.background = 'rgba(0, 153, 255, 0.1)';
+                    chordBtnEl.style.borderColor = 'rgba(0, 153, 255, 0.4)';
+                    chordBtnEl.style.boxShadow = 'none';
+                    chordBtnEl.style.color = 'rgba(0, 153, 255, 0.7)';
+                }
+            } else {
+                // Ninguno activo: Color verde sólido por defecto (sin parpadeo)
+                chordBtnEl.style.background = 'rgba(0, 204, 102, 0.2)';
+                chordBtnEl.style.borderColor = '#00cc66';
+                chordBtnEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)';
+                chordBtnEl.style.color = '#00cc66';
             }
         }
 
