@@ -1859,7 +1859,64 @@ function initDetailEditPanel() {
                 }
             });
         }
-        bindPanelSliders();
+
+        // Post-pass: Sobrescribir UI con los valores reales del cache de parámetros si existen
+        if (window.dualMidiBridge) {
+            container.querySelectorAll('.v-slider').forEach(slider => {
+                const ctrlUnit = slider.closest('[data-param]');
+                if (!ctrlUnit) return;
+                const paramId = ctrlUnit.getAttribute('data-param');
+                if (!paramId) return;
+                const val = window.dualMidiBridge.parameterCache[paramId];
+                if (val !== undefined) {
+                    const handle = slider.querySelector('.handle');
+                    if (handle) {
+                        const updatePos = () => {
+                            const rect = slider.getBoundingClientRect();
+                            if (rect.height > 0) {
+                                const handleHeight = 16;
+                                const pos = (1.0 - val) * (rect.height - handleHeight);
+                                handle.style.top = pos + 'px';
+                            } else {
+                                setTimeout(updatePos, 50);
+                            }
+                        };
+                        updatePos();
+                    }
+                }
+            });
+
+            // Sincronizar select dropdowns
+            container.querySelectorAll('select[data-param]').forEach(sel => {
+                const paramId = sel.getAttribute('data-param');
+                const val = window.dualMidiBridge.parameterCache[paramId];
+                if (val !== undefined) {
+                    const optionsCount = sel.options.length;
+                    sel.value = Math.round(val * (optionsCount - 1));
+                }
+            });
+
+            // Sincronizar toggle boxes
+            container.querySelectorAll('.toggle-box[data-param]').forEach(box => {
+                const paramId = box.getAttribute('data-param');
+                const val = window.dualMidiBridge.parameterCache[paramId];
+                if (val !== undefined) {
+                    box.classList.toggle('active', val > 0.5);
+                }
+            });
+
+            // Sincronizar shape / trigger leds
+            container.querySelectorAll('.shape-led-row[data-param]').forEach(row => {
+                const paramId = row.getAttribute('data-param');
+                const val = window.dualMidiBridge.parameterCache[paramId];
+                if (val !== undefined) {
+                    const maxVal = row.hasAttribute('data-shape') ? 6.0 : 4.0;
+                    const activeIndex = Math.round(val * maxVal);
+                    const currentIdx = parseInt(row.getAttribute('data-shape') || row.getAttribute('data-trig') || '0');
+                    row.classList.toggle('active', currentIdx === activeIndex);
+                }
+            });
+        }
     }
 
     // Escuchar cambios de parámetros en tiempo real para refrescar faders del panel si se mueven
@@ -2182,84 +2239,6 @@ function initDetailEditPanel() {
                     }
                 }
             }
-        });
-    }
-
-    function bindPanelSliders() {
-        const sliders = container.querySelectorAll('.v-slider');
-        sliders.forEach(slider => {
-            const handle = slider.querySelector('.handle');
-            if (!handle) return;
-            const ctrlUnit = slider.closest('[data-param]');
-            if (!ctrlUnit) return;
-            const paramId = ctrlUnit.getAttribute('data-param');
-            if (!paramId) return;
-
-            // Set initial position from cache
-            if (window.dualMidiBridge) {
-                const cachedVal = window.dualMidiBridge.parameterCache[paramId];
-                if (cachedVal !== undefined) {
-                    const updatePos = () => {
-                        const rect = slider.getBoundingClientRect();
-                        if (rect.height > 0) {
-                            const handleHeight = 16;
-                            const pos = (1.0 - cachedVal) * (rect.height - handleHeight);
-                            handle.style.top = pos + 'px';
-                        } else {
-                            setTimeout(updatePos, 50);
-                        }
-                    };
-                    updatePos();
-                }
-            }
-
-            let isDragging = false;
-            const updateVal = (clientY) => {
-                const rect = slider.getBoundingClientRect();
-                let pct = 1.0 - (clientY - rect.top) / rect.height;
-                pct = Math.max(0, Math.min(1, pct));
-                
-                const handleHeight = 16;
-                const pos = (1.0 - pct) * (rect.height - handleHeight);
-                handle.style.top = pos + 'px';
-                
-                if (window.dualMidiBridge) {
-                    window.dualMidiBridge.setParameter(paramId, pct);
-                    window.dualMidiBridge.handleParameterChangeFromBackend(paramId, pct);
-                }
-            };
-
-            slider.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                updateVal(e.clientY);
-                e.preventDefault();
-            });
-
-            window.addEventListener('mousemove', (e) => {
-                if (isDragging) {
-                    updateVal(e.clientY);
-                }
-            });
-
-            window.addEventListener('mouseup', () => {
-                isDragging = false;
-            });
-
-            slider.addEventListener('touchstart', (e) => {
-                isDragging = true;
-                updateVal(e.touches[0].clientY);
-                e.preventDefault();
-            });
-
-            window.addEventListener('touchmove', (e) => {
-                if (isDragging) {
-                    updateVal(e.touches[0].clientY);
-                }
-            });
-
-            window.addEventListener('touchend', () => {
-                isDragging = false;
-            });
         });
     }
 }
