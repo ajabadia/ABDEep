@@ -457,3 +457,56 @@ function initUIControls() {
         });
     }
 }
+
+function updateSliderPosition(sliderUnit, val) {
+    if (!sliderUnit) return;
+    const handle = sliderUnit.querySelector('.handle');
+    if (!handle) return;
+    const rect = sliderUnit.getBoundingClientRect();
+    const height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
+    const handleHeight = 16;
+    const pos = (1.0 - val) * (height - handleHeight);
+    handle.style.top = pos + 'px';
+}
+
+window.updateEnvSlidersFromCurrentPreset = function() {
+    if (!window.dualMidiBridge) return;
+    const cache = window.dualMidiBridge.parameterCache;
+    const ids = ['env-ctrl-attack', 'env-ctrl-decay', 'env-ctrl-sustain', 'env-ctrl-release'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const paramId = el.getAttribute('data-param');
+        if (!paramId) return;
+        const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
+        updateSliderPosition(el.querySelector('.v-slider'), val);
+    });
+};
+
+window.updateLfoSlidersFromCurrentPreset = function() {
+    if (!window.dualMidiBridge) return;
+    const cache = window.dualMidiBridge.parameterCache;
+    const ids = ['lfo-ctrl-rate', 'lfo-ctrl-delay'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const paramId = el.getAttribute('data-param');
+        if (!paramId) return;
+        const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
+        updateSliderPosition(el.querySelector('.v-slider'), val);
+    });
+};
+
+window.updateOscSlidersFromCurrentPreset = function() {
+    if (!window.dualMidiBridge) return;
+    const cache = window.dualMidiBridge.parameterCache;
+    const ids = ['osc-ctrl-pitchmod', 'osc-ctrl-pwm-tone', 'osc-ctrl-pitch', 'osc-ctrl-level'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const paramId = el.getAttribute('data-param');
+        if (!paramId) return;
+        const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
+        updateSliderPosition(el.querySelector('.v-slider'), val);
+    });
+};
