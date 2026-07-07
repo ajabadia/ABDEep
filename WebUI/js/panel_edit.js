@@ -2255,6 +2255,9 @@ function initDetailEditPanel() {
         const h = canvas.height;
         ctx.clearRect(0, 0, w, h);
 
+        // Obtener color activo de la marca desde CSS variables de forma segura para Canvas
+        const brandColor = getComputedStyle(document.documentElement).getPropertyValue('--brand-accent').trim() || '#ff9900';
+
         // Dibujar cuadrícula de fondo retro (CRT)
         ctx.strokeStyle = 'rgba(255, 153, 0, 0.04)';
         ctx.lineWidth = 1;
@@ -2276,7 +2279,6 @@ function initDetailEditPanel() {
 
         if (currentPanelMode === 'ENV' || currentPanelMode === 'VCA') {
             // --- DIBUJAR ENVOLVENTE ADSR ---
-            // Determinar qué envolvente está activa (1=VCA, 2=VCF, 3=MOD)
             const envNum = currentPanelMode === 'VCA' ? 1 : panelActiveEnv;
             const prefix = `env${envNum}_`;
 
@@ -2291,7 +2293,7 @@ function initDetailEditPanel() {
             const startX = padding;
             const startY = h - padding;
 
-            const totalTime = a + d + 1.0 + r; // 1.0 es el espacio estático para Sustain
+            const totalTime = a + d + 1.0 + r;
             const aW = (a / totalTime) * graphW;
             const dW = (d / totalTime) * graphW;
             const sW = (1.0 / totalTime) * graphW;
@@ -2309,7 +2311,6 @@ function initDetailEditPanel() {
             const p4x = p3x + rW;
             const p4y = startY;
 
-            // Relleno bajo la envolvente
             ctx.fillStyle = 'rgba(255, 153, 0, 0.08)';
             ctx.beginPath();
             ctx.moveTo(startX, startY);
@@ -2320,8 +2321,7 @@ function initDetailEditPanel() {
             ctx.lineTo(startX, startY);
             ctx.fill();
 
-            // Línea principal de envolvente (Naranja / Ámbar)
-            ctx.strokeStyle = 'var(--brand-accent)';
+            ctx.strokeStyle = brandColor;
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(startX, startY);
@@ -2331,8 +2331,7 @@ function initDetailEditPanel() {
             ctx.lineTo(p4x, p4y);
             ctx.stroke();
 
-            // Nodos interactivos
-            ctx.fillStyle = '#ff9900';
+            ctx.fillStyle = brandColor;
             [[p1x, p1y], [p2x, p2y], [p3x, p3y]].forEach(pt => {
                 ctx.beginPath();
                 ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2);
@@ -2344,7 +2343,7 @@ function initDetailEditPanel() {
             const prefix = `lfo${panelActiveLfo}_`;
             const shapeVal = typeof cache[prefix + 'shape'] !== 'undefined' ? Math.round(cache[prefix + 'shape'] * 6) : 1;
 
-            ctx.strokeStyle = 'var(--brand-accent)';
+            ctx.strokeStyle = brandColor;
             ctx.lineWidth = 2;
             ctx.beginPath();
 
@@ -2355,26 +2354,26 @@ function initDetailEditPanel() {
 
             for (let x = 0; x < graphW; x++) {
                 const pct = x / graphW;
-                const angle = pct * Math.PI * 4; // 2 ciclos
+                const angle = pct * Math.PI * 4;
                 let yVal = 0;
 
-                if (shapeVal === 0) { // Sine
+                if (shapeVal === 0) {
                     yVal = Math.sin(angle);
-                } else if (shapeVal === 1) { // Triangle
+                } else if (shapeVal === 1) {
                     const mod = angle % (Math.PI * 2);
                     yVal = mod < Math.PI ? (1.0 - (mod / (Math.PI / 2))) : (-1.0 + ((mod - Math.PI) / (Math.PI / 2)));
-                } else if (shapeVal === 2) { // Square
+                } else if (shapeVal === 2) {
                     yVal = (angle % (Math.PI * 2)) < Math.PI ? 1.0 : -1.0;
-                } else if (shapeVal === 3) { // Ramp Up
+                } else if (shapeVal === 3) {
                     yVal = -1.0 + 2.0 * ((angle % (Math.PI * 2)) / (Math.PI * 2));
-                } else if (shapeVal === 4) { // Ramp Down
+                } else if (shapeVal === 4) {
                     yVal = 1.0 - 2.0 * ((angle % (Math.PI * 2)) / (Math.PI * 2));
-                } else { // Sample & Hold y Sample & Glide
+                } else {
                     const steps = 8;
                     const stepIdx = Math.floor(pct * steps);
                     const randVals = [0.2, -0.6, 0.7, -0.2, -0.8, 0.4, -0.1, 0.5];
                     yVal = randVals[stepIdx % randVals.length];
-                    if (shapeVal === 6) { // Glide interpolation
+                    if (shapeVal === 6) {
                         const nextVal = randVals[(stepIdx + 1) % randVals.length];
                         const interp = (pct * steps) % 1.0;
                         yVal = yVal + (nextVal - yVal) * interp;
@@ -2400,7 +2399,7 @@ function initDetailEditPanel() {
                 cutoff = typeof cache['hpf_cutoff'] !== 'undefined' ? cache['hpf_cutoff'] : 0.2;
             }
 
-            ctx.strokeStyle = 'var(--brand-accent)';
+            ctx.strokeStyle = brandColor;
             ctx.lineWidth = 2;
             ctx.beginPath();
 
@@ -2425,7 +2424,7 @@ function initDetailEditPanel() {
                         const peak = resonance * 1.8;
                         gain = (1.0 + peak) / (1.0 + (dist * 12.0) * (dist * 12.0));
                     }
-                } else { // HPF
+                } else {
                     if (freq > cutoff) {
                         gain = 1.0;
                     } else {
@@ -2448,7 +2447,7 @@ function initDetailEditPanel() {
             const sqEn = typeof cache['osc1_square_enable'] !== 'undefined' ? cache['osc1_square_enable'] > 0.5 : false;
             const osc2Lvl = typeof cache['osc2_level'] !== 'undefined' ? cache['osc2_level'] : 0.5;
 
-            ctx.strokeStyle = 'var(--brand-accent)';
+            ctx.strokeStyle = brandColor;
             ctx.lineWidth = 2;
             ctx.beginPath();
 
@@ -2480,7 +2479,7 @@ function initDetailEditPanel() {
 
         } else if (currentPanelMode === 'ARP') {
             // --- DIBUJAR ARPEGIO RETRO ---
-            ctx.strokeStyle = 'var(--brand-accent)';
+            ctx.strokeStyle = brandColor;
             ctx.lineWidth = 2;
             const padding = 10;
             const graphW = w - padding * 2;
