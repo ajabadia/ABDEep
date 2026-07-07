@@ -95,6 +95,8 @@ class DualMidiBridge {
         } else {
             // Enviar mensaje MIDI directo usando la especificación de parámetros
             this.sendWebMidiParameter(paramId, normalizedValue);
+            // Sincronizar localmente la UI en modo navegador
+            this.handleParameterChangeFromBackend(paramId, normalizedValue);
         }
     }
 
