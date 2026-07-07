@@ -1,0 +1,48 @@
+/* --- EXTENSIONES DE ESTILO PARA EL BANK MANAGER --- */
+
+.manager-toolbar {
+    padding: 10px 20px;
+    background: #101114;
+    border-bottom: 1.5px solid #2e313a;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.manager-btn {
+    background: #23252a;
+    border: 1px solid #444854;
+    color: #c5c6c7;
+    padding: 5px 12px;
+    font-size: 10px;
+    font-weight: bold;
+    border-radius: 3px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+}
+
+.manager-btn:hover {
+    background: var(--brand-accent);
+    color: #000;
+    border-color: var(--brand-accent);
+}
+
+.manager-btn.danger:hover {
+    background: #e74c3c;
+    color: #fff;
+    border-color: #e74c3c;
+}
+
+/* Edición inline de nombres de banco */
+.bank-name-input {
+    background: #1c1d22;
+    border: 1px solid var(--brand-accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 5px;
+    width: 90%;
+    border-radius: 2px;
+    outline: none;
+}

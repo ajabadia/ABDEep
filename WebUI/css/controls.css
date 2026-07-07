@@ -1,0 +1,88 @@
+/* Sliders Verticales (Faders) */
+.v-slider {
+    width: 32px;
+    height: var(--slider-height);
+    background: url('../assets/slider_slot.png') no-repeat center center;
+    background-size: contain;
+    position: relative;
+    cursor: ns-resize;
+}
+
+.track {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    width: 4px;
+    left: 14px;
+    background: transparent;
+}
+
+.handle {
+    position: absolute;
+    width: 32px;
+    height: 16px;
+    left: 0;
+    background: url('../assets/slider_cap.png') no-repeat center center;
+    background-size: contain;
+    pointer-events: none;
+}
+
+/* Aplicación de filtros según el tema de color */
+body[data-theme="expanded-red"] .handle {
+    filter: hue-rotate(330deg) saturate(2) brightness(1.2);
+}
+
+body[data-theme="expanded-blue"] .handle {
+    filter: hue-rotate(200deg) saturate(2) brightness(1.2);
+}
+
+/* Knobs */
+.knob-ring {
+    width: var(--knob-size);
+    height: var(--knob-size);
+    background: url('../assets/knob.png') no-repeat center center;
+    background-size: contain;
+    position: relative;
+    cursor: ns-resize;
+}
+
+.knob-pointer {
+    position: absolute;
+    width: 2px;
+    height: 7px;
+    background: var(--white);
+    left: calc(50% - 1px);
+    top: 5px;
+    transform-origin: 50% 13px; /* Pivote de rotación correcto para los knobs normales/efectos (30px/36px) */
+    border-radius: 1px;
+}
+
+/* Pivote específico para los knobs grandes del panel frontal de performance (Porta y Volume) */
+.performance-matrix-panel .knob-pointer {
+    height: 9px;
+    top: 4px;
+    transform-origin: 50% 21px;
+}
+
+/* LEDs */
+.led {
+    width: 14px;
+    height: 14px;
+    background: url('../assets/led_off.png') no-repeat center center;
+    background-size: contain;
+    border-radius: 50%;
+}
+
+.led.active {
+    background-image: url('../assets/led_on.png');
+    box-shadow: var(--brand-accent-glow);
+}
+
+/* Cambiar el tono del LED dinámicamente con filtros CSS */
+body[data-theme="expanded-red"] .led.active {
+    filter: hue-rotate(330deg) saturate(2) brightness(1.2);
+}
+
+body[data-theme="expanded-blue"] .led.active {
+    filter: hue-rotate(200deg) saturate(2) brightness(1.2);
+}

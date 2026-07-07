@@ -1,0 +1,65 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-synth);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    user-select: none;
+}
+
+/* Contenedor Principal del Chasis del Sintetizador */
+#synth-app {
+    width: 1200px;
+    height: 768px;
+    background: radial-gradient(circle at center, #1b1c20 0%, #0c0d0f 100%);
+    border: 3px solid #3a3b40;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+    overflow: hidden;
+}
+
+/* Paneles de Control y Filas */
+.control-grid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    margin-top: 10px; /* Evita físicamente el solapamiento con la top-bar superior */
+    gap: 15px;
+}
+
+.row {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    height: 250px;
+}
+
+/* Modulos Generales */
+.module {
+    background: #121316;
+    border: 1px solid #23252a;
+    border-radius: 6px;
+    padding: 10px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.module-header {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: var(--brand-accent);
+    letter-spacing: 1.5px;
+    border-bottom: 1.5px solid #23252a;
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+}

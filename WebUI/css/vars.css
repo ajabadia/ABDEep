@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+:root {
+    /* Paleta DeepMind Clásica (Modo Ámbar) */
+    --deep-orange: #ff9900;
+    --deep-orange-glow: 0 0 12px rgba(255, 153, 0, 0.8), 0 0 4px #ffffff;
+    --deep-grey-labels: #a0a5b0;
+    --bg-synth-chassis: #161616;
+    
+    /* Configuración por Defecto del Tema Activo */
+    --brand-accent: var(--deep-orange);
+    --brand-accent-glow: var(--deep-orange-glow);
+    --text-labels: var(--deep-grey-labels);
+    --bg-synth: var(--bg-synth-chassis);
+    
+    --metal-dark: #101010;
+    --metal-highlight: #202020;
+    --white: #ffffff;
+    --black: #000000;
+    
+    /* Dimensiones Base */
+    --slider-height: 125px;
+    --knob-size: 50px;
+
+    /* Envelopes and Octave Shift Colors */
+    --color-env-vca: #ff9900; /* Naranja */
+    --color-env-vcf: #00cc66; /* Verde */
+    --color-env-mod: #ff00cc; /* Rosa/Magenta */
+    --color-oct-3: #00ccff;   /* Azul Cián */
+}
+
+/* TEMA CUSTOM / COMPATIBLE EXTENDIDO (ej. Luces Rojas o Azules) */
+body[data-theme="expanded-red"] {
+    --brand-accent: #ff2233;
+    --brand-accent-glow: 0 0 12px rgba(255, 34, 51, 0.8), 0 0 4px #ffffff;
+    --color-env-vca: #ff2233;
+    --color-env-vcf: #ff0055;
+    --color-env-mod: #ff00aa;
+    --color-oct-3: #ffff00;
+}
+
+body[data-theme="expanded-blue"] {
+    --brand-accent: #0088ff;
+    --brand-accent-glow: 0 0 12px rgba(0, 136, 255, 0.8), 0 0 4px #ffffff;
+    --color-env-vca: #0088ff;
+    --color-env-vcf: #00ffaa;
+    --color-env-mod: #aa00ff;
+    --color-oct-3: #ff00aa;
+}

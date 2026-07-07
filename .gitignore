@@ -1,0 +1,22 @@
+# CMake build directories
+/build/
+/cmake-build-*/
+/out/
+
+# IDE files
+/.vs/
+/.idea/
+/*.user
+/*.suo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Codebase memory / AI agent files
+/.codebase-memory/
+.aider*
+/brain/
+
+# Resources
+/resources/

@@ -1,0 +1,161 @@
+/* --- PANEL DE EDICIÓN DESLIZABLE DE ALTO RENDIMIENTO (LOOK & FEEL ANÁLOGO) --- */
+
+.slide-edit-panel {
+    position: absolute;
+    top: 32px; /* Alineado justo debajo del top-bar */
+    left: -320px; /* Escondido por defecto a la izquierda */
+    width: 310px;
+    height: calc(100% - 32px - 160px); /* Ajustado para que acabe exactamente donde empieza la keyboard-container (teclado + ruedas) */
+    background: #111215;
+    border-right: 2px solid #2e313a;
+    border-bottom: 2px solid #2e313a;
+    box-shadow: 15px 0 35px rgba(0,0,0,0.85);
+    z-index: 4000 !important;
+    display: flex;
+    flex-direction: column;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.slide-edit-panel.active {
+    left: 0; /* Desliza y se posiciona a la izquierda */
+}
+
+.slide-edit-panel .panel-header {
+    background: #18191d;
+    padding: 10px 15px;
+    border-bottom: 1.5px solid #2e313a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.slide-edit-panel .panel-header h3 {
+    margin: 0;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--brand-accent);
+}
+
+.slide-edit-panel .panel-content {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* SUBCOMPONENTES DE DISEÑO PARA CONTROLES DE EDICIÓN */
+
+.panel-row {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-section-title {
+    font-size: 8px;
+    font-weight: 900;
+    color: #888;
+    text-transform: uppercase;
+    border-bottom: 1px dashed #2e313a;
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+}
+
+/* Selector de ondas: Filas de leds horizontales */
+.shape-selector-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: #090a0c;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #1f2228;
+    width: 100%;
+}
+
+.shape-led-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 6px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.1s;
+}
+
+.shape-led-row:hover {
+    background: rgba(255, 153, 0, 0.05);
+}
+
+.shape-led-row.active {
+    background: rgba(255, 153, 0, 0.1);
+}
+
+.shape-led-row .led-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #444;
+    transition: all 0.2s;
+    box-shadow: none;
+}
+
+.shape-led-row.active .led-dot {
+    background: var(--brand-accent);
+    box-shadow: var(--brand-accent-glow);
+}
+
+.shape-led-row .shape-name {
+    font-size: 8px;
+    font-weight: bold;
+    color: #999;
+    text-transform: uppercase;
+}
+
+.shape-led-row.active .shape-name {
+    color: #fff;
+}
+
+/* Switch análogo en caja */
+.toggle-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #0c0d10;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #1f2228;
+    cursor: pointer;
+    flex: 1;
+}
+
+.toggle-box .toggle-label {
+    font-size: 8px;
+    font-weight: bold;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.toggle-box .toggle-led {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #444;
+    transition: all 0.2s;
+}
+
+.toggle-box.active .toggle-led {
+    background: var(--brand-accent);
+    box-shadow: var(--brand-accent-glow);
+}
+
+.toggle-box.active .toggle-label {
+    color: #fff;
+}

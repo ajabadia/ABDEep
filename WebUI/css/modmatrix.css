@@ -1,0 +1,134 @@
+/* --- MODULATION MATRIX STYLES --- */
+
+.modmatrix-slot {
+    background: #191b20;
+    border: 1px solid #2e313a;
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+}
+
+.modmatrix-slot-title {
+    font-size: 8px;
+    font-weight: bold;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.modmatrix-selector-row {
+    display: flex;
+    gap: 8px;
+}
+
+.modmatrix-selector-btn {
+    flex: 1;
+    background: #121316;
+    border: 1px solid #3a3b40;
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 10px;
+    color: #fff;
+    cursor: pointer;
+    text-align: center;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.15s ease;
+}
+
+.modmatrix-selector-btn:hover {
+    border-color: #00ccff;
+    background: rgba(0, 204, 255, 0.05);
+}
+
+.modmatrix-selector-btn::after {
+    content: '▼';
+    font-size: 7px;
+    color: #666;
+    margin-left: 6px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Bipolar Slider Area */
+.modmatrix-depth-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0f1013;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #23252a;
+}
+
+.modmatrix-h-slider {
+    flex: 1;
+    height: 16px;
+    position: relative;
+    cursor: ew-resize;
+    background: linear-gradient(to right, transparent 49%, #444 49%, #444 51%, transparent 51%);
+}
+
+.modmatrix-h-slider .track {
+    position: absolute;
+    top: 7px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #2c2d33;
+}
+
+.modmatrix-h-slider .handle {
+    position: absolute;
+    width: 10px;
+    height: 16px;
+    background: #00ccff;
+    border-radius: 2px;
+    top: 0;
+    transform: translateX(-50%);
+    box-shadow: 0 0 6px rgba(0,204,255,0.6);
+}
+
+.modmatrix-depth-value {
+    width: 44px;
+    background: #15161b;
+    border: 1px solid #333;
+    color: #ffcc00;
+    font-family: monospace;
+    font-size: 11px;
+    text-align: center;
+    padding: 2px 0;
+    border-radius: 3px;
+}
+
+/* Dropdown list modal override */
+.modmatrix-dropdown-list {
+    position: absolute;
+    background: #111215;
+    border: 1.5px solid #00ccff;
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 99999;
+    display: none;
+}
+
+.modmatrix-dropdown-item {
+    padding: 6px 12px;
+    font-size: 10px;
+    color: #ccc;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.modmatrix-dropdown-item:hover {
+    background: #00ccff;
+    color: #000;
+    font-weight: bold;
+}

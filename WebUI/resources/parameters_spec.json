@@ -1,0 +1,166 @@
+{
+  "parameters": [
+    {
+      "id": "osc1_saw_enable",
+      "name": "OSC1 Saw Enable",
+      "block": "oscilador",
+      "type": "bool",
+      "midi_cc": 15,
+      "default": true,
+      "description": "Activa/desactiva la forma de onda diente de sierra para el oscilador 1"
+    },
+    {
+      "id": "osc1_square_enable",
+      "name": "OSC1 Square Enable",
+      "block": "oscilador",
+      "type": "bool",
+      "midi_cc": 16,
+      "default": false,
+      "description": "Activa/desactiva la forma de onda cuadrada/pulso para el oscilador 1"
+    },
+    {
+      "id": "osc1_pwm_amount",
+      "name": "OSC1 PWM Amount",
+      "block": "oscilador",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "midi_cc": 17,
+      "description": "Cantidad de modulación de ancho de pulso para OSC1"
+    },
+    {
+      "id": "osc1_range",
+      "name": "OSC1 Range",
+      "block": "oscilador",
+      "type": "enum",
+      "options": ["16'", "8'", "4'"],
+      "default": "8'",
+      "midi_cc": 18,
+      "description": "Rango de octavas para OSC1"
+    },
+    {
+      "id": "osc2_tone_mod",
+      "name": "OSC2 Tone Mod",
+      "block": "oscilador",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.0,
+      "midi_cc": 19,
+      "description": "Modificación tímbrica de la forma cuadrada de OSC2"
+    },
+    {
+      "id": "osc2_pitch",
+      "name": "OSC2 Pitch",
+      "block": "oscilador",
+      "type": "float",
+      "min": -12.0,
+      "max": 12.0,
+      "default": 0.0,
+      "midi_cc": 20,
+      "description": "Afinación fina de OSC2 en semitonos"
+    },
+    {
+      "id": "osc2_level",
+      "name": "OSC2 Level",
+      "block": "oscilador",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.5,
+      "midi_cc": 21,
+      "description": "Nivel de mezcla para OSC2"
+    },
+    {
+      "id": "osc_sync_enable",
+      "name": "OSC Hard Sync",
+      "block": "oscilador",
+      "type": "bool",
+      "midi_cc": 22,
+      "default": false,
+      "description": "Sincronización dura (hard sync) de OSC2 con OSC1"
+    },
+    {
+      "id": "vcf_cutoff",
+      "name": "VCF Cutoff",
+      "block": "filtro",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 1.0,
+      "midi_cc": 23,
+      "description": "Frecuencia de corte del filtro paso bajo"
+    },
+    {
+      "id": "vcf_resonance",
+      "name": "VCF Resonance",
+      "block": "filtro",
+      "type": "float",
+      "min": 0.0,
+      "max": 1.0,
+      "default": 0.0,
+      "midi_cc": 24,
+      "description": "Resonancia del filtro paso bajo"
+    },
+    {
+      "id": "vcf_pole_mode",
+      "name": "VCF Pole Mode",
+      "block": "filtro",
+      "type": "enum",
+      "options": ["2-Pole (12dB)", "4-Pole (24dB)"],
+      "default": "4-Pole (24dB)",
+      "midi_cc": 25,
+      "description": "Pendiente del filtro"
+    },
+    {
+      "id": "vcf_env_depth",
+      "name": "VCF Envelope Depth",
+      "block": "filtro",
+      "type": "float",
+      "min": -1.0,
+      "max": 1.0,
+      "default": 0.0,
+      "midi_cc": 26,
+      "description": "Profundidad de la envolvente sobre el filtro (bipolar)"
+    },
+    {
+      "id": "hpf_cutoff",
+      "name": "HPF Cutoff",
+      "block": "filtro",
+      "type": "float",
+      "min": 20.0,
+      "max": 2000.0,
+      "default": 20.0,
+      "midi_cc": 27,
+      "description": "Frecuencia de corte del HPF global posterior"
+    },
+    {
+      "id": "hpf_boost_enable",
+      "name": "HPF Bass Boost",
+      "block": "filtro",
+      "type": "bool",
+      "midi_cc": 28,
+      "default": false,
+      "description": "Activa el circuito analógico Bass Boost"
+    },
+    {
+      "id": "slot_a_type",
+      "name": "Slot A Osc Type",
+      "block": "custom",
+      "type": "enum",
+      "options": ["OSC1_Style", "OSC2_Style"],
+      "default": "OSC1_Style",
+      "description": "Configura el motor asignado al Slot A del emulador"
+    },
+    {
+      "id": "slot_b_type",
+      "name": "Slot B Osc Type",
+      "block": "custom",
+      "type": "enum",
+      "options": ["OSC1_Style", "OSC2_Style"],
+      "default": "OSC2_Style",
+      "description": "Configura el motor asignado al Slot B del emulador"
+    }
+  ]
+}
