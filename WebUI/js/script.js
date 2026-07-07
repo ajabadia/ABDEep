@@ -418,16 +418,8 @@ function initUIControls() {
     const hpfBoostBtn = document.getElementById('hpf-boost-btn');
     if (hpfBoostBtn) {
         hpfBoostBtn.addEventListener('click', () => {
-            let active = false;
-            if (typeof currentActivePatchIndex !== 'undefined' && currentActivePatchIndex !== -1) {
-                const activeBank = loadedBanks[currentActiveBank];
-                if (activeBank && activeBank[currentActivePatchIndex]) {
-                    const patch = activeBank[currentActivePatchIndex];
-                    active = patch.unpackedBytes[52] > 0.5;
-                }
-            } else {
-                active = hpfBoostBtn.innerText.includes("ON");
-            }
+            const cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache["hpf_boost_enable"] : 0.0;
+            const active = cacheVal > 0.5;
             const nextVal = active ? 0.0 : 1.0;
             if (window.dualMidiBridge) {
                 window.dualMidiBridge.setParameter("hpf_boost_enable", nextVal);
@@ -439,16 +431,8 @@ function initUIControls() {
     const vcaModeBtn = document.getElementById('vca-mode-btn');
     if (vcaModeBtn) {
         vcaModeBtn.addEventListener('click', () => {
-            let active = false;
-            if (typeof currentActivePatchIndex !== 'undefined' && currentActivePatchIndex !== -1) {
-                const activeBank = loadedBanks[currentActiveBank];
-                if (activeBank && activeBank[currentActivePatchIndex]) {
-                    const patch = activeBank[currentActivePatchIndex];
-                    active = patch.unpackedBytes[58] > 0.5;
-                }
-            } else {
-                active = vcaModeBtn.innerText.includes("BALLSY");
-            }
+            const cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache["vca_mode"] : 0.0;
+            const active = cacheVal > 0.5;
             const nextVal = active ? 0.0 : 1.0;
             if (window.dualMidiBridge) {
                 window.dualMidiBridge.setParameter("vca_mode", nextVal);
