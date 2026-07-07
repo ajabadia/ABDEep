@@ -35,3 +35,14 @@
     color: var(--text-labels);
     letter-spacing: 0.5px;
 }
+
+/* LED Button Rect active feedback styling */
+.led-button-rect {
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s;
+}
+.led-button-rect.active {
+    background: rgba(255, 153, 0, 0.2) !important;
+    border-color: var(--brand-accent) !important;
+    color: var(--brand-accent) !important;
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.4);
+}
