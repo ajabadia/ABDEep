@@ -2245,258 +2245,258 @@ function initDetailEditPanel() {
             drawPanelGraphic();
         });
     }
-}
 
-// Función global para redibujar la pantalla gráfica en tiempo real (CRT retro style)
-function drawPanelGraphic() {
-    const canvas = document.getElementById('panel-graphic-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
+    // Función local para redibujar la pantalla gráfica en tiempo real (CRT retro style)
+    function drawPanelGraphic() {
+        const canvas = document.getElementById('panel-graphic-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
 
-    // Dibujar cuadrícula de fondo retro (CRT)
-    ctx.strokeStyle = 'rgba(255, 153, 0, 0.04)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < w; x += 20) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-    }
-    for (let y = 0; y < h; y += 20) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-    }
-
-    if (!window.dualMidiBridge || !window.dualMidiBridge.parameterCache) return;
-    const cache = window.dualMidiBridge.parameterCache;
-
-    if (currentPanelMode === 'ENV' || currentPanelMode === 'VCA') {
-        // --- DIBUJAR ENVOLVENTE ADSR ---
-        // Determinar qué envolvente está activa (1=VCA, 2=VCF, 3=MOD)
-        const envNum = currentPanelMode === 'VCA' ? 1 : panelActiveEnv;
-        const prefix = `env${envNum}_`;
-
-        const a = typeof cache[prefix + 'attack'] !== 'undefined' ? cache[prefix + 'attack'] : 0.2;
-        const d = typeof cache[prefix + 'decay'] !== 'undefined' ? cache[prefix + 'decay'] : 0.3;
-        const s = typeof cache[prefix + 'sustain'] !== 'undefined' ? cache[prefix + 'sustain'] : 0.5;
-        const r = typeof cache[prefix + 'release'] !== 'undefined' ? cache[prefix + 'release'] : 0.4;
-
-        const padding = 10;
-        const graphW = w - padding * 2;
-        const graphH = h - padding * 2;
-        const startX = padding;
-        const startY = h - padding;
-
-        const totalTime = a + d + 1.0 + r; // 1.0 es el espacio estático para Sustain
-        const aW = (a / totalTime) * graphW;
-        const dW = (d / totalTime) * graphW;
-        const sW = (1.0 / totalTime) * graphW;
-        const rW = (r / totalTime) * graphW;
-
-        const p1x = startX + aW;
-        const p1y = padding;
-
-        const p2x = p1x + dW;
-        const p2y = startY - s * graphH;
-
-        const p3x = p2x + sW;
-        const p3y = p2y;
-
-        const p4x = p3x + rW;
-        const p4y = startY;
-
-        // Relleno bajo la envolvente
-        ctx.fillStyle = 'rgba(255, 153, 0, 0.08)';
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(p1x, p1y);
-        ctx.lineTo(p2x, p2y);
-        ctx.lineTo(p3x, p3y);
-        ctx.lineTo(p4x, p4y);
-        ctx.lineTo(startX, startY);
-        ctx.fill();
-
-        // Línea principal de envolvente (Naranja / Ámbar)
-        ctx.strokeStyle = 'var(--brand-accent)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(p1x, p1y);
-        ctx.lineTo(p2x, p2y);
-        ctx.lineTo(p3x, p3y);
-        ctx.lineTo(p4x, p4y);
-        ctx.stroke();
-
-        // Nodos interactivos
-        ctx.fillStyle = '#ff9900';
-        [[p1x, p1y], [p2x, p2y], [p3x, p3y]].forEach(pt => {
+        // Dibujar cuadrícula de fondo retro (CRT)
+        ctx.strokeStyle = 'rgba(255, 153, 0, 0.04)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < w; x += 20) {
             ctx.beginPath();
-            ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2);
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx.stroke();
+        }
+        for (let y = 0; y < h; y += 20) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+        }
+
+        if (!window.dualMidiBridge || !window.dualMidiBridge.parameterCache) return;
+        const cache = window.dualMidiBridge.parameterCache;
+
+        if (currentPanelMode === 'ENV' || currentPanelMode === 'VCA') {
+            // --- DIBUJAR ENVOLVENTE ADSR ---
+            // Determinar qué envolvente está activa (1=VCA, 2=VCF, 3=MOD)
+            const envNum = currentPanelMode === 'VCA' ? 1 : panelActiveEnv;
+            const prefix = `env${envNum}_`;
+
+            const a = typeof cache[prefix + 'attack'] !== 'undefined' ? cache[prefix + 'attack'] : 0.2;
+            const d = typeof cache[prefix + 'decay'] !== 'undefined' ? cache[prefix + 'decay'] : 0.3;
+            const s = typeof cache[prefix + 'sustain'] !== 'undefined' ? cache[prefix + 'sustain'] : 0.5;
+            const r = typeof cache[prefix + 'release'] !== 'undefined' ? cache[prefix + 'release'] : 0.4;
+
+            const padding = 10;
+            const graphW = w - padding * 2;
+            const graphH = h - padding * 2;
+            const startX = padding;
+            const startY = h - padding;
+
+            const totalTime = a + d + 1.0 + r; // 1.0 es el espacio estático para Sustain
+            const aW = (a / totalTime) * graphW;
+            const dW = (d / totalTime) * graphW;
+            const sW = (1.0 / totalTime) * graphW;
+            const rW = (r / totalTime) * graphW;
+
+            const p1x = startX + aW;
+            const p1y = padding;
+
+            const p2x = p1x + dW;
+            const p2y = startY - s * graphH;
+
+            const p3x = p2x + sW;
+            const p3y = p2y;
+
+            const p4x = p3x + rW;
+            const p4y = startY;
+
+            // Relleno bajo la envolvente
+            ctx.fillStyle = 'rgba(255, 153, 0, 0.08)';
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(p1x, p1y);
+            ctx.lineTo(p2x, p2y);
+            ctx.lineTo(p3x, p3y);
+            ctx.lineTo(p4x, p4y);
+            ctx.lineTo(startX, startY);
             ctx.fill();
-        });
 
-    } else if (currentPanelMode === 'LFO') {
-        // --- DIBUJAR ONDA LFO ---
-        const prefix = `lfo${panelActiveLfo}_`;
-        const shapeVal = typeof cache[prefix + 'shape'] !== 'undefined' ? Math.round(cache[prefix + 'shape'] * 6) : 1;
+            // Línea principal de envolvente (Naranja / Ámbar)
+            ctx.strokeStyle = 'var(--brand-accent)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(p1x, p1y);
+            ctx.lineTo(p2x, p2y);
+            ctx.lineTo(p3x, p3y);
+            ctx.lineTo(p4x, p4y);
+            ctx.stroke();
 
-        ctx.strokeStyle = 'var(--brand-accent)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
+            // Nodos interactivos
+            ctx.fillStyle = '#ff9900';
+            [[p1x, p1y], [p2x, p2y], [p3x, p3y]].forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
 
-        const padding = 10;
-        const graphW = w - padding * 2;
-        const graphH = h - padding * 2;
-        const centerY = h / 2;
+        } else if (currentPanelMode === 'LFO') {
+            // --- DIBUJAR ONDA LFO ---
+            const prefix = `lfo${panelActiveLfo}_`;
+            const shapeVal = typeof cache[prefix + 'shape'] !== 'undefined' ? Math.round(cache[prefix + 'shape'] * 6) : 1;
 
-        for (let x = 0; x < graphW; x++) {
-            const pct = x / graphW;
-            const angle = pct * Math.PI * 4; // 2 ciclos
-            let yVal = 0;
+            ctx.strokeStyle = 'var(--brand-accent)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
 
-            if (shapeVal === 0) { // Sine
-                yVal = Math.sin(angle);
-            } else if (shapeVal === 1) { // Triangle
-                const mod = angle % (Math.PI * 2);
-                yVal = mod < Math.PI ? (1.0 - (mod / (Math.PI / 2))) : (-1.0 + ((mod - Math.PI) / (Math.PI / 2)));
-            } else if (shapeVal === 2) { // Square
-                yVal = (angle % (Math.PI * 2)) < Math.PI ? 1.0 : -1.0;
-            } else if (shapeVal === 3) { // Ramp Up
-                yVal = -1.0 + 2.0 * ((angle % (Math.PI * 2)) / (Math.PI * 2));
-            } else if (shapeVal === 4) { // Ramp Down
-                yVal = 1.0 - 2.0 * ((angle % (Math.PI * 2)) / (Math.PI * 2));
-            } else { // Sample & Hold y Sample & Glide
-                const steps = 8;
-                const stepIdx = Math.floor(pct * steps);
-                const randVals = [0.2, -0.6, 0.7, -0.2, -0.8, 0.4, -0.1, 0.5];
-                yVal = randVals[stepIdx % randVals.length];
-                if (shapeVal === 6) { // Glide interpolation
-                    const nextVal = randVals[(stepIdx + 1) % randVals.length];
-                    const interp = (pct * steps) % 1.0;
-                    yVal = yVal + (nextVal - yVal) * interp;
-                }
-            }
+            const padding = 10;
+            const graphW = w - padding * 2;
+            const graphH = h - padding * 2;
+            const centerY = h / 2;
 
-            const canvasX = padding + x;
-            const canvasY = centerY - yVal * (graphH / 2);
+            for (let x = 0; x < graphW; x++) {
+                const pct = x / graphW;
+                const angle = pct * Math.PI * 4; // 2 ciclos
+                let yVal = 0;
 
-            if (x === 0) ctx.moveTo(canvasX, canvasY);
-            else ctx.lineTo(canvasX, canvasY);
-        }
-        ctx.stroke();
-
-    } else if (currentPanelMode === 'VCF' || currentPanelMode === 'HPF') {
-        // --- DIBUJAR CURVA DE FILTRO ---
-        let cutoff = 0.5;
-        let resonance = 0.0;
-        if (currentPanelMode === 'VCF') {
-            cutoff = typeof cache['vcf_cutoff'] !== 'undefined' ? cache['vcf_cutoff'] : 0.5;
-            resonance = typeof cache['vcf_resonance'] !== 'undefined' ? cache['vcf_resonance'] : 0.0;
-        } else {
-            cutoff = typeof cache['hpf_cutoff'] !== 'undefined' ? cache['hpf_cutoff'] : 0.2;
-        }
-
-        ctx.strokeStyle = 'var(--brand-accent)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-
-        const padding = 10;
-        const graphW = w - padding * 2;
-        const graphH = h - padding * 2;
-        const startY = h - padding;
-
-        for (let x = 0; x < graphW; x++) {
-            const freq = x / graphW;
-            let gain = 1.0;
-
-            if (currentPanelMode === 'VCF') {
-                if (freq < cutoff) {
-                    const dist = cutoff - freq;
-                    if (dist < 0.1) {
-                        const peak = resonance * 1.8 * (1.0 - dist / 0.1);
-                        gain = 1.0 + peak;
+                if (shapeVal === 0) { // Sine
+                    yVal = Math.sin(angle);
+                } else if (shapeVal === 1) { // Triangle
+                    const mod = angle % (Math.PI * 2);
+                    yVal = mod < Math.PI ? (1.0 - (mod / (Math.PI / 2))) : (-1.0 + ((mod - Math.PI) / (Math.PI / 2)));
+                } else if (shapeVal === 2) { // Square
+                    yVal = (angle % (Math.PI * 2)) < Math.PI ? 1.0 : -1.0;
+                } else if (shapeVal === 3) { // Ramp Up
+                    yVal = -1.0 + 2.0 * ((angle % (Math.PI * 2)) / (Math.PI * 2));
+                } else if (shapeVal === 4) { // Ramp Down
+                    yVal = 1.0 - 2.0 * ((angle % (Math.PI * 2)) / (Math.PI * 2));
+                } else { // Sample & Hold y Sample & Glide
+                    const steps = 8;
+                    const stepIdx = Math.floor(pct * steps);
+                    const randVals = [0.2, -0.6, 0.7, -0.2, -0.8, 0.4, -0.1, 0.5];
+                    yVal = randVals[stepIdx % randVals.length];
+                    if (shapeVal === 6) { // Glide interpolation
+                        const nextVal = randVals[(stepIdx + 1) % randVals.length];
+                        const interp = (pct * steps) % 1.0;
+                        yVal = yVal + (nextVal - yVal) * interp;
                     }
-                } else {
-                    const dist = freq - cutoff;
-                    const peak = resonance * 1.8;
-                    gain = (1.0 + peak) / (1.0 + (dist * 12.0) * (dist * 12.0));
                 }
-            } else { // HPF
-                if (freq > cutoff) {
-                    gain = 1.0;
-                } else {
-                    const dist = cutoff - freq;
-                    gain = 1.0 / (1.0 + (dist * 15.0) * (dist * 15.0));
+
+                const canvasX = padding + x;
+                const canvasY = centerY - yVal * (graphH / 2);
+
+                if (x === 0) ctx.moveTo(canvasX, canvasY);
+                else ctx.lineTo(canvasX, canvasY);
+            }
+            ctx.stroke();
+
+        } else if (currentPanelMode === 'VCF' || currentPanelMode === 'HPF') {
+            // --- DIBUJAR CURVA DE FILTRO ---
+            let cutoff = 0.5;
+            let resonance = 0.0;
+            if (currentPanelMode === 'VCF') {
+                cutoff = typeof cache['vcf_cutoff'] !== 'undefined' ? cache['vcf_cutoff'] : 0.5;
+                resonance = typeof cache['vcf_resonance'] !== 'undefined' ? cache['vcf_resonance'] : 0.0;
+            } else {
+                cutoff = typeof cache['hpf_cutoff'] !== 'undefined' ? cache['hpf_cutoff'] : 0.2;
+            }
+
+            ctx.strokeStyle = 'var(--brand-accent)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            const padding = 10;
+            const graphW = w - padding * 2;
+            const graphH = h - padding * 2;
+            const startY = h - padding;
+
+            for (let x = 0; x < graphW; x++) {
+                const freq = x / graphW;
+                let gain = 1.0;
+
+                if (currentPanelMode === 'VCF') {
+                    if (freq < cutoff) {
+                        const dist = cutoff - freq;
+                        if (dist < 0.1) {
+                            const peak = resonance * 1.8 * (1.0 - dist / 0.1);
+                            gain = 1.0 + peak;
+                        }
+                    } else {
+                        const dist = freq - cutoff;
+                        const peak = resonance * 1.8;
+                        gain = (1.0 + peak) / (1.0 + (dist * 12.0) * (dist * 12.0));
+                    }
+                } else { // HPF
+                    if (freq > cutoff) {
+                        gain = 1.0;
+                    } else {
+                        const dist = cutoff - freq;
+                        gain = 1.0 / (1.0 + (dist * 15.0) * (dist * 15.0));
+                    }
                 }
+
+                const canvasX = padding + x;
+                const canvasY = startY - gain * (graphH * 0.7);
+
+                if (x === 0) ctx.moveTo(canvasX, canvasY);
+                else ctx.lineTo(canvasX, canvasY);
             }
+            ctx.stroke();
 
-            const canvasX = padding + x;
-            const canvasY = startY - gain * (graphH * 0.7);
+        } else if (currentPanelMode === 'OSC') {
+            // --- DIBUJAR COMBINACIÓN OSCILADORES ---
+            const sawEn = typeof cache['osc1_saw_enable'] !== 'undefined' ? cache['osc1_saw_enable'] > 0.5 : true;
+            const sqEn = typeof cache['osc1_square_enable'] !== 'undefined' ? cache['osc1_square_enable'] > 0.5 : false;
+            const osc2Lvl = typeof cache['osc2_level'] !== 'undefined' ? cache['osc2_level'] : 0.5;
 
-            if (x === 0) ctx.moveTo(canvasX, canvasY);
-            else ctx.lineTo(canvasX, canvasY);
-        }
-        ctx.stroke();
+            ctx.strokeStyle = 'var(--brand-accent)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
 
-    } else if (currentPanelMode === 'OSC') {
-        // --- DIBUJAR COMBINACIÓN OSCILADORES ---
-        const sawEn = typeof cache['osc1_saw_enable'] !== 'undefined' ? cache['osc1_saw_enable'] > 0.5 : true;
-        const sqEn = typeof cache['osc1_square_enable'] !== 'undefined' ? cache['osc1_square_enable'] > 0.5 : false;
-        const osc2Lvl = typeof cache['osc2_level'] !== 'undefined' ? cache['osc2_level'] : 0.5;
+            const padding = 10;
+            const graphW = w - padding * 2;
+            const graphH = h - padding * 2;
+            const centerY = h / 2;
 
-        ctx.strokeStyle = 'var(--brand-accent)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
+            for (let x = 0; x < graphW; x++) {
+                const pct = x / graphW;
+                const angle = pct * Math.PI * 4;
+                let yVal = 0;
 
-        const padding = 10;
-        const graphW = w - padding * 2;
-        const graphH = h - padding * 2;
-        const centerY = h / 2;
+                if (sawEn) {
+                    yVal += -0.5 + ((angle % (Math.PI * 2)) / (Math.PI * 2));
+                }
+                if (sqEn) {
+                    yVal += (angle % (Math.PI * 2)) < Math.PI ? 0.35 : -0.35;
+                }
+                yVal += osc2Lvl * 0.3 * Math.sin(angle * 2.0);
 
-        for (let x = 0; x < graphW; x++) {
-            const pct = x / graphW;
-            const angle = pct * Math.PI * 4;
-            let yVal = 0;
+                const canvasX = padding + x;
+                const canvasY = centerY - yVal * (graphH / 2);
 
-            if (sawEn) {
-                yVal += -0.5 + ((angle % (Math.PI * 2)) / (Math.PI * 2));
+                if (x === 0) ctx.moveTo(canvasX, canvasY);
+                else ctx.lineTo(canvasX, canvasY);
             }
-            if (sqEn) {
-                yVal += (angle % (Math.PI * 2)) < Math.PI ? 0.35 : -0.35;
+            ctx.stroke();
+
+        } else if (currentPanelMode === 'ARP') {
+            // --- DIBUJAR ARPEGIO RETRO ---
+            ctx.strokeStyle = 'var(--brand-accent)';
+            ctx.lineWidth = 2;
+            const padding = 10;
+            const graphW = w - padding * 2;
+            const graphH = h - padding * 2;
+            const centerY = h / 2;
+            
+            ctx.beginPath();
+            const steps = 8;
+            const stepW = graphW / steps;
+            for (let i = 0; i <= steps; i++) {
+                const x = padding + i * stepW;
+                const y = centerY + (i % 4 - 2) * (graphH / 4);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
             }
-            yVal += osc2Lvl * 0.3 * Math.sin(angle * 2.0);
-
-            const canvasX = padding + x;
-            const canvasY = centerY - yVal * (graphH / 2);
-
-            if (x === 0) ctx.moveTo(canvasX, canvasY);
-            else ctx.lineTo(canvasX, canvasY);
+            ctx.stroke();
         }
-        ctx.stroke();
-
-    } else if (currentPanelMode === 'ARP') {
-        // --- DIBUJAR ARPEGIO RETRO ---
-        ctx.strokeStyle = 'var(--brand-accent)';
-        ctx.lineWidth = 2;
-        const padding = 10;
-        const graphW = w - padding * 2;
-        const graphH = h - padding * 2;
-        const centerY = h / 2;
-        
-        ctx.beginPath();
-        const steps = 8;
-        const stepW = graphW / steps;
-        for (let i = 0; i <= steps; i++) {
-            const x = padding + i * stepW;
-            const y = centerY + (i % 4 - 2) * (graphH / 4);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
     }
 }
