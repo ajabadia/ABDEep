@@ -335,15 +335,7 @@ function initSettingsAndModals() {
             });
         }
 
-        settingsCloseBtn.addEventListener('click', () => {
-            settingsModal.style.display = 'none';
-        });
 
-        settingsModal.addEventListener('click', (e) => {
-            if (e.target === settingsModal) {
-                settingsModal.style.display = 'none';
-            }
-        });
 
         const tabBtns = document.querySelectorAll('.btn[data-tab]');
         const panels = document.querySelectorAll('.settings-panel-view');
