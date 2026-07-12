@@ -1,6 +1,6 @@
 # 📋 Plan de Cobertura — Tests WebUI JS
 
-**Estado actual:** 3,494 tests · 53 test files · 52 source files · 47 con test · 4 sin test
+**Estado actual:** 3,542 tests · 54 test files · 52 source files · 48 con test · 3 sin test
 
 ---
 
@@ -38,6 +38,7 @@
 | `panel_graphics.js` | ~500 | `panelGraphics.test.js` | 68 |
 | `panel_oscilloscope.js` | ~200 | `panelOscilloscope.test.js` | 37 |
 | `panel_controls_binder.js` | 208 | `panelControlsBinder.test.js` | 39 |
+| `panel_controls_env_voice.js` | 170 | `panelControlsEnvVoice.test.js` | 48 |
 | `panel_templates.js` | ~200 | `panelTemplates.test.js` | 32 |
 | `script.js` | 1109 | `scriptCore.test.js`, `globalSettings.test.js`, `lcdSafeUpdate.test.js` | — |
 | `script_bar_generators.js` | ~50 | `barGenerators.test.js` | — |
@@ -93,11 +94,11 @@
 |---|---------|-----|-----------|------------|
 | ~~1~~ | ~~`browser_packer.js`~~ | ~~85~~ | ~~`unpack7to8()`, `pack8to7()`, `extractNameFromRawSysex()`, `buildSingleSysex()`~~ | ~~Puro — sin DOM. Testear bit-packing 7↔8, nombres, padding~~ ✅ Ahora en `browserPacker.test.js` + `browserCore.test.js` |
 | 2 | `panel_controls_arp_seq_mod.js` | 643 | `bindPanelArpControls()`, `bindPanelChordControls()`, `bindPanelPolyChordControls()`, `bindPanelSeqControls()`, `bindPanelChordAndPolyCommon()` | DOM mock + bridge stub. ARP/Chord/SEQ binding logic |
-| 3 | `panel_controls_env_voice.js` | 170 | `bindPanelEnvControls()`, `bindPanelPolyControls()`, `bindPanelPortaControls()` | DOM + bridge. ENV triggers, Poly mode/priority, Porta |
+| ~~3~~ | ~~`panel_controls_env_voice.js`~~ | ~~170~~ | ~~`bindPanelEnvControls()`, `bindPanelPolyControls()`, `bindPanelPortaControls()`~~ | ~~DOM + bridge. ENV triggers, Poly mode/priority, Porta~~ ✅ Ahora en `panelControlsEnvVoice.test.js` |
 | 4 | `panel_controls_lfo_vca.js` | 145 | `bindPanelLfoControls()`, `bindPanelVcaControls()` | DOM + bridge. LFO shape selectors, VCA mode buttons |
 | 5 | `panel_controls_osc_vcf.js` | 300 | `bindPanelOscControls()`, `bindPanelHpfControls()`, `bindPanelVcfControls()` | DOM + bridge. OSC1/2 range, HPF boost, VCF pole/polarity |
 
-**Total LOC sin test:** 1,258 líneas · **% cubierto:** 90% de archivos, ~95% de LOC
+**Total LOC sin test:** 1,088 líneas · **% cubierto:** 92% de archivos, ~96% de LOC
 
 ### ℹ️ Excluido intencionalmente
 
@@ -113,6 +114,7 @@
 | 2026-07-12 | 51 | 3,403 | +1,529 | 52 | 24 |
 | 2026-07-12 | 52 | 3,442 | +1,568 | 52 | 24 |
 | 2026-07-12 | 53 | 3,494 | +1,620 | 52 | 24 |
+| 2026-07-12 | 54 | 3,542 | +1,668 | 52 | 24 |
 
 ---
 

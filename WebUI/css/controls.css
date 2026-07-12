@@ -55,6 +55,10 @@ body[data-theme="light"] .handle {
     filter: hue-rotate(200deg) saturate(1.8) brightness(1.3);
 }
 
+body[data-theme="juno-106"] .handle {
+    filter: hue-rotate(330deg) saturate(2) brightness(1.2);
+}
+
 /* Knobs */
 .knob-ring {
     width: var(--knob-size);
@@ -123,4 +127,8 @@ body[data-theme="midnight"] .led.active {
 
 body[data-theme="light"] .led.active {
     filter: hue-rotate(200deg) saturate(1.8) brightness(1.3);
+}
+
+body[data-theme="juno-106"] .led.active {
+    filter: hue-rotate(330deg) saturate(2) brightness(1.2);
 }

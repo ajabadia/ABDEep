@@ -283,4 +283,103 @@ body[data-theme="light"] {
     box-shadow: 0 0 12px rgba(0, 204, 255, 0.8), 0 0 4px #ffffff !important;
 }
 
+/* ===============================================================
+   TEMA: JUNO-106 (Classic Analog Aesthetic)
+   Homenaje al legendario sintetizador analógico de Roland de 1984
+   =============================================================== */
+body[data-theme="juno-106"] {
+    /* ── Fondos metálicos oscuros ── */
+    --bg-deepest:  #090a0f;   /* Gris/azul oscuro de metal */
+    --bg-surface:  #14161d;
+    --bg-elevated: #1a1d26;
+    --bg-header:   #222633;
+    --bg-hover:    #2e3345;
+
+    /* ── Bordes estructurados ── */
+    --border-dim:    #11131a;
+    --border:        #2d3244;
+    --border-strong: #4a5270;
+
+    /* ── Tipografía clara de alto contraste ── */
+    --text-primary:   #ffffff;
+    --text-secondary: #c5cdd8;
+    --text-dim:       #8a94a6;
+    --text-faint:     #555d6e;
+
+    /* ── Acentos Juno 106 ── */
+    --accent-primary: #ea212d;   /* Rojo Roland */
+    --accent-blue:    #2a6bcc;   /* Azul Roland */
+    --accent-green:   #00ff66;
+    --accent-teal:    #00ffcc;
+    --accent-pink:    #ff00cc;
+    --accent-red:     #ea212d;
+
+    --color-danger: #ea212d;
+    --color-gold:   #ff9900;
+
+    --brand-accent:       var(--accent-primary);
+    --brand-accent-glow:  0 0 10px rgba(234, 33, 45, 0.6);
+
+    /* Borde estándar de las cajas */
+    --module-border: #2d3244;
+}
+
+/* Colores específicos de las cabeceras por sección para emular las tiras clásicas */
+body[data-theme="juno-106"] lfo-section .module {
+    --module-header-bg: #2a6bcc; /* Azul */
+    --module-header-text: #ffffff;
+    --module-header-padding: 3px 8px;
+    --module-header-radius: var(--radius-sm);
+}
+
+body[data-theme="juno-106"] osc-section .module {
+    --module-header-bg: #ea212d; /* Rojo */
+    --module-header-text: #ffffff;
+    --module-header-padding: 3px 8px;
+    --module-header-radius: var(--radius-sm);
+}
+
+body[data-theme="juno-106"] vcf-section .module {
+    --module-header-bg: #2a6bcc; /* Azul */
+    --module-header-text: #ffffff;
+    --module-header-padding: 3px 8px;
+    --module-header-radius: var(--radius-sm);
+}
+
+body[data-theme="juno-106"] hpf-section .module {
+    --module-header-bg: #ea212d; /* Rojo */
+    --module-header-text: #ffffff;
+    --module-header-padding: 3px 8px;
+    --module-header-radius: var(--radius-sm);
+}
+
+body[data-theme="juno-106"] vca-section .module {
+    --module-header-bg: #4a5270; /* Gris */
+    --module-header-text: #ffffff;
+    --module-header-padding: 3px 8px;
+    --module-header-radius: var(--radius-sm);
+}
+
+body[data-theme="juno-106"] env-section .module {
+    --module-header-bg: #ea212d; /* Rojo */
+    --module-header-text: #ffffff;
+    --module-header-padding: 3px 8px;
+    --module-header-radius: var(--radius-sm);
+}
+
+body[data-theme="juno-106"] arp-seq-section .module {
+    --module-header-bg: #2a6bcc; /* Azul */
+    --module-header-text: #ffffff;
+    --module-header-padding: 3px 8px;
+    --module-header-radius: var(--radius-sm);
+}
+
+body[data-theme="juno-106"] poly-section .module {
+    --module-header-bg: #4a5270; /* Gris */
+    --module-header-text: #ffffff;
+    --module-header-padding: 3px 8px;
+    --module-header-radius: var(--radius-sm);
+}
+
+
 

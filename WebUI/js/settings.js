@@ -808,7 +808,8 @@ function initSettingsAndModals() {
             'menu-theme-green': 'green',
             'menu-theme-midnight': 'midnight',
             'menu-theme-dark-v2': 'dark-v2',
-            'menu-theme-light': 'light'
+            'menu-theme-light': 'light',
+            'menu-theme-juno': 'juno-106'
         };
 
         document.addEventListener('click', (e) => {
