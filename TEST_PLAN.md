@@ -1,6 +1,6 @@
 # 📋 Plan de Cobertura — Tests WebUI JS
 
-**Estado actual:** 3,442 tests · 52 test files · 52 source files · 46 con test · 5 sin test
+**Estado actual:** 3,494 tests · 53 test files · 52 source files · 47 con test · 4 sin test
 
 ---
 
@@ -17,6 +17,7 @@
 | `browser_io.js` | 85 | `browserIo.test.js` | 42 |
 | `browser_mapper.js` | 85 | `browserMapper.test.js` | 118 |
 | `browser_persistence.js` | 103 | `browserPersistence.test.js` | 31 |
+| `browser_packer.js` | 85 | `browserCore.test.js`, `browserPacker.test.js` | 52 |
 | `byte-map.js` | ~250 | `byteMap.test.js`, `browserMapper.test.js` | 118 |
 | `edit_actions.js` | 116 | `editActions.test.js` | 22 |
 | `edit_cache_mapper.js` | 278 | `editCacheMapper.test.js` | 68 |
@@ -90,13 +91,13 @@
 
 | # | Archivo | LOC | Funciones | Estrategia |
 |---|---------|-----|-----------|------------|
-| 1 | `browser_packer.js` | 85 | `unpack7to8()`, `pack8to7()`, `extractNameFromRawSysex()`, `buildSingleSysex()` | Puro — sin DOM. Testear bit-packing 7↔8, nombres, padding |
+| ~~1~~ | ~~`browser_packer.js`~~ | ~~85~~ | ~~`unpack7to8()`, `pack8to7()`, `extractNameFromRawSysex()`, `buildSingleSysex()`~~ | ~~Puro — sin DOM. Testear bit-packing 7↔8, nombres, padding~~ ✅ Ahora en `browserPacker.test.js` + `browserCore.test.js` |
 | 2 | `panel_controls_arp_seq_mod.js` | 643 | `bindPanelArpControls()`, `bindPanelChordControls()`, `bindPanelPolyChordControls()`, `bindPanelSeqControls()`, `bindPanelChordAndPolyCommon()` | DOM mock + bridge stub. ARP/Chord/SEQ binding logic |
 | 3 | `panel_controls_env_voice.js` | 170 | `bindPanelEnvControls()`, `bindPanelPolyControls()`, `bindPanelPortaControls()` | DOM + bridge. ENV triggers, Poly mode/priority, Porta |
 | 4 | `panel_controls_lfo_vca.js` | 145 | `bindPanelLfoControls()`, `bindPanelVcaControls()` | DOM + bridge. LFO shape selectors, VCA mode buttons |
 | 5 | `panel_controls_osc_vcf.js` | 300 | `bindPanelOscControls()`, `bindPanelHpfControls()`, `bindPanelVcfControls()` | DOM + bridge. OSC1/2 range, HPF boost, VCF pole/polarity |
 
-**Total LOC sin test:** 1,343 líneas · **% cubierto:** 88% de archivos, ~95% de LOC
+**Total LOC sin test:** 1,258 líneas · **% cubierto:** 90% de archivos, ~95% de LOC
 
 ### ℹ️ Excluido intencionalmente
 
@@ -111,6 +112,7 @@
 | 2026-07-11 | 23 | 1,874 | — | 76 | — |
 | 2026-07-12 | 51 | 3,403 | +1,529 | 52 | 24 |
 | 2026-07-12 | 52 | 3,442 | +1,568 | 52 | 24 |
+| 2026-07-12 | 53 | 3,494 | +1,620 | 52 | 24 |
 
 ---
 

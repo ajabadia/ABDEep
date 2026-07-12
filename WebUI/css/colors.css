@@ -242,3 +242,45 @@ body[data-theme="light"] {
     --brand-accent-glow:  0 0 8px rgba(2, 132, 199, 0.4);
 }
 
+/* ===============================================================
+   EFECTOS (Aislados del cambio de tema para emular clones de HW)
+   =============================================================== */
+#fx-modal-backdrop {
+    --bg-deepest:  #070709 !important;
+    --bg-surface:  #0f1013 !important;
+    --bg-elevated: #141518 !important;
+    --bg-header:   #1c1d22 !important;
+    --bg-hover:    #23252a !important;
+
+    --border-dim:    #1f2228 !important;
+    --border:        #2e313a !important;
+    --border-strong: #444854 !important;
+
+    --text-primary:   #ffffff !important;
+    --text-secondary: #c5c6c7 !important;
+    --text-dim:       #888888 !important;
+    --text-faint:     #555555 !important;
+
+    --accent-primary: #ff9900 !important;
+    --accent-blue:    #00ccff !important;
+    --accent-green:   #00ff66 !important;
+    --accent-teal:    #00ffcc !important;
+    --accent-pink:    #ff00cc !important;
+    --accent-red:     #ff0066 !important;
+    --color-danger:   #e74c3c !important;
+    --color-gold:     #ffcc00 !important;
+
+    --brand-accent:       var(--accent-blue) !important;
+    --brand-accent-glow:  0 0 12px rgba(0, 204, 255, 0.8) !important;
+}
+
+#fx-modal-backdrop .handle {
+    filter: none !important;
+}
+
+#fx-modal-backdrop .led.active {
+    filter: none !important;
+    box-shadow: 0 0 12px rgba(0, 204, 255, 0.8), 0 0 4px #ffffff !important;
+}
+
+
