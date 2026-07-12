@@ -37,7 +37,8 @@
 | 27 | `factorySeqPresets.test.js` | 14 | 2026-07-12 |
 | 28 | `panelOscilloscope.test.js` | 37 | 2026-07-12 |
 | 29 | `panelTemplates.test.js` | 32 | 2026-07-12 |
-| **Total** | | **1411 nuevos tests** | |
+| 30 | `browserMapper.test.js` | 118 | 2026-07-12 |
+| **Total** | | **1529 nuevos tests** | |
 
 ---
 

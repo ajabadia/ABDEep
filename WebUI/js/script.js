@@ -63,12 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (learnBtn) learnBtn.addEventListener('click', toggleLearn);
-        if (menuItem) {
-            menuItem.addEventListener('click', function (e) {
-                e.preventDefault();
-                toggleLearn();
-            });
-        }
+
 
         if (typeof bridge.onMidiLearnChange === 'function') {
             bridge.onMidiLearnChange(function (active, targetParam) {

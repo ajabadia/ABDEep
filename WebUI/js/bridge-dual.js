@@ -447,6 +447,51 @@ class DualMidiBridge {
         }
     }
 
+    pianoNoteOn(note, velocity) {
+        if (this.isJuce) {
+            if (window.juce && typeof window.juce.pianoNoteOn === 'function') {
+                window.juce.pianoNoteOn(note, velocity || 100);
+            }
+        } else {
+            velocity = velocity === undefined ? 100 : velocity;
+            console.log(`[Bridge Web-MIDI] Note On: ${note} (vel=${velocity})`);
+            if (this.midiOutput) {
+                var channel = (this.midiChannel ? this.midiChannel - 1 : 0) & 0x0F;
+                this.midiOutput.send([0x90 | channel, note, velocity]);
+                this._signalMidiActivity();
+            }
+        }
+    }
+
+    pianoNoteOff(note) {
+        if (this.isJuce) {
+            if (window.juce && typeof window.juce.pianoNoteOff === 'function') {
+                window.juce.pianoNoteOff(note);
+            }
+        } else {
+            console.log(`[Bridge Web-MIDI] Note Off: ${note}`);
+            if (this.midiOutput) {
+                var channel = (this.midiChannel ? this.midiChannel - 1 : 0) & 0x0F;
+                this.midiOutput.send([0x80 | channel, note, 0]);
+                this._signalMidiActivity();
+            }
+        }
+    }
+
+    async getVoiceState() {
+        if (this.isJuce && window.juce && typeof window.juce.getVoiceState === 'function') {
+            return await window.juce.getVoiceState();
+        }
+        return null;
+    }
+
+    async getAudioWaveform() {
+        if (this.isJuce && window.juce && typeof window.juce.getAudioWaveform === 'function') {
+            return await window.juce.getAudioWaveform();
+        }
+        return null;
+    }
+
     getHardwareInfo() {
         return this._hardwareInfo;
     }
