@@ -1,6 +1,6 @@
 # 📋 Plan de Cobertura — Tests WebUI JS
 
-**Estado actual:** 3,403 tests · 51 test files · 52 source files · 45 con test · 6 sin test
+**Estado actual:** 3,442 tests · 52 test files · 52 source files · 46 con test · 5 sin test
 
 ---
 
@@ -36,6 +36,7 @@
 | `panel_edit.js` | 731 | `panelEdit.test.js` | — |
 | `panel_graphics.js` | ~500 | `panelGraphics.test.js` | 68 |
 | `panel_oscilloscope.js` | ~200 | `panelOscilloscope.test.js` | 37 |
+| `panel_controls_binder.js` | 208 | `panelControlsBinder.test.js` | 39 |
 | `panel_templates.js` | ~200 | `panelTemplates.test.js` | 32 |
 | `script.js` | 1109 | `scriptCore.test.js`, `globalSettings.test.js`, `lcdSafeUpdate.test.js` | — |
 | `script_bar_generators.js` | ~50 | `barGenerators.test.js` | — |
@@ -85,18 +86,17 @@
 
 ---
 
-## ❌ Sin Test Directo: 6 archivos
+## ❌ Sin Test Directo: 5 archivos
 
 | # | Archivo | LOC | Funciones | Estrategia |
 |---|---------|-----|-----------|------------|
 | 1 | `browser_packer.js` | 85 | `unpack7to8()`, `pack8to7()`, `extractNameFromRawSysex()`, `buildSingleSysex()` | Puro — sin DOM. Testear bit-packing 7↔8, nombres, padding |
 | 2 | `panel_controls_arp_seq_mod.js` | 643 | `bindPanelArpControls()`, `bindPanelChordControls()`, `bindPanelPolyChordControls()`, `bindPanelSeqControls()`, `bindPanelChordAndPolyCommon()` | DOM mock + bridge stub. ARP/Chord/SEQ binding logic |
-| 3 | `panel_controls_binder.js` | 208 | `updatePanelFromState()`, `syncDetailPanelControls()`, `initDynamicSliders()` | DOM mock. Slider/toggle/select position sync |
-| 4 | `panel_controls_env_voice.js` | 170 | `bindPanelEnvControls()`, `bindPanelPolyControls()`, `bindPanelPortaControls()` | DOM + bridge. ENV triggers, Poly mode/priority, Porta |
-| 5 | `panel_controls_lfo_vca.js` | 145 | `bindPanelLfoControls()`, `bindPanelVcaControls()` | DOM + bridge. LFO shape selectors, VCA mode buttons |
-| 6 | `panel_controls_osc_vcf.js` | 300 | `bindPanelOscControls()`, `bindPanelHpfControls()`, `bindPanelVcfControls()` | DOM + bridge. OSC1/2 range, HPF boost, VCF pole/polarity |
+| 3 | `panel_controls_env_voice.js` | 170 | `bindPanelEnvControls()`, `bindPanelPolyControls()`, `bindPanelPortaControls()` | DOM + bridge. ENV triggers, Poly mode/priority, Porta |
+| 4 | `panel_controls_lfo_vca.js` | 145 | `bindPanelLfoControls()`, `bindPanelVcaControls()` | DOM + bridge. LFO shape selectors, VCA mode buttons |
+| 5 | `panel_controls_osc_vcf.js` | 300 | `bindPanelOscControls()`, `bindPanelHpfControls()`, `bindPanelVcfControls()` | DOM + bridge. OSC1/2 range, HPF boost, VCF pole/polarity |
 
-**Total LOC sin test:** 1,551 líneas · **% cubierto:** 87% de archivos, ~94% de LOC
+**Total LOC sin test:** 1,343 líneas · **% cubierto:** 88% de archivos, ~95% de LOC
 
 ### ℹ️ Excluido intencionalmente
 
@@ -110,6 +110,7 @@
 |-------|-----------|-------|-------------|-------------|-------------|
 | 2026-07-11 | 23 | 1,874 | — | 76 | — |
 | 2026-07-12 | 51 | 3,403 | +1,529 | 52 | 24 |
+| 2026-07-12 | 52 | 3,442 | +1,568 | 52 | 24 |
 
 ---
 

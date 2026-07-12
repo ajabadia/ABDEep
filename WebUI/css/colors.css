@@ -196,3 +196,43 @@ body[data-theme="dark-v2"] {
     --border:        #181922;
     --border-strong: #252733;
 }
+
+/* ===============================================================
+   TEMA: CLARO (Light Theme)
+   Estética premium limpia, clara y de alto contraste
+   =============================================================== */
+body[data-theme="light"] {
+    /* ── Fondos claros ── */
+    --bg-deepest:  #e2e8f0;   /* Gris claro frío */
+    --bg-surface:  #ffffff;   /* Blanco puro para paneles y tarjetas */
+    --bg-elevated: #f8fafc;   /* Blanco ligeramente grisáceo para modales */
+    --bg-header:   #f1f5f9;   /* Gris muy claro para cabeceras y toolbars */
+    --bg-hover:    #cbd5e1;   /* Gris medio para hover y botones activos */
+
+    /* ── Bordes oscurecidos para contraste ── */
+    --border-dim:    #e2e8f0;
+    --border:        #cbd5e1;   /* Gris definido */
+    --border-strong: #94a3b8;   /* Gris más oscuro */
+
+    /* ── Texto oscuro de alto contraste ── */
+    --text-primary:   #0f172a;   /* Azul pizarra oscuro */
+    --text-secondary: #334155;   /* Gris oscuro */
+    --text-dim:       #64748b;   /* Gris medio */
+    --text-faint:     #94a3b8;   /* Gris suave */
+
+    /* ── Colores de acento ajustados para fondo claro ── */
+    --accent-primary: #0284c7;   /* Azul cielo profundo */
+    --accent-blue:    #0369a1;   /* Azul oscuro */
+    --accent-green:   #15803d;   /* Verde botella para leds activos */
+    --accent-teal:    #0f766e;   /* Verde azulado oscuro */
+    --accent-pink:    #be185d;   /* Rosa intenso oscuro */
+    --accent-red:     #b91c1c;   /* Rojo oscuro */
+
+    /* ── Semánticos ── */
+    --color-danger: #d32f2f;
+    --color-gold:   #d97706;   /* Ámbar oscuro/miel */
+
+    --brand-accent:       var(--accent-primary);
+    --brand-accent-glow:  0 0 8px rgba(2, 132, 199, 0.4);
+}
+
