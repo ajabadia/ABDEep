@@ -12,16 +12,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.initEditActions === 'function') window.initEditActions();
 
     // Configurar botón de Debug: Unison
-    const debugMenuBtn = document.getElementById('menu-debug-unison');
-    if (debugMenuBtn) {
-        debugMenuBtn.addEventListener('click', (e) => {
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('#menu-debug-unison')) {
             e.preventDefault();
             const debugModal = document.querySelector('debug-modal');
             if (debugModal && typeof debugModal.show === 'function') {
                 debugModal.show();
             }
-        });
-    }
+        }
+    });
 
     // ── MIDI LEARN ──
     function initMidiLearn () {
@@ -33,12 +32,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         var learnBtn = document.getElementById('programmer-midi-learn-btn');
-        var menuItem = document.getElementById('menu-midi-learn');
 
         function toggleLearn () {
             if (!bridge) return;
             bridge.toggleMidiLearn();
         }
+
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#menu-midi-learn')) {
+                e.preventDefault();
+                toggleLearn();
+            }
+        });
 
         function updateButtonStyle (active, targetParam) {
             if (!learnBtn) return;
@@ -243,13 +248,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    var kbShortcutsMenuItem = document.getElementById('menu-keyboard-shortcuts');
-    if (kbShortcutsMenuItem) {
-        kbShortcutsMenuItem.addEventListener('click', function(e) {
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('#menu-keyboard-shortcuts')) {
             e.preventDefault();
             showKeyboardShortcuts();
-        });
-    }
+        }
+    });
 
     var kbShortcutsIcon = document.getElementById('keyboard-shortcuts-icon');
     if (kbShortcutsIcon) {
@@ -269,15 +273,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const dumpMidiBtn = document.getElementById('menu-dump-midi');
-    if (dumpMidiBtn) {
-        dumpMidiBtn.addEventListener('click', () => {
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('#menu-dump-midi')) {
+            e.preventDefault();
             if (window.dualMidiBridge) {
                 window.dualMidiBridge.requestMidiDump("edit");
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
                     const html = `<span style="font-size:10px; opacity:0.6;">REQUESTING...</span><br><strong>MIDI DUMP</strong><br><span style="font-size:11px; color:var(--color-gold);">EDIT BUFFER REQ</span>`;
-                    window.lcdSafeUpdate(lcdText, html)
+                    window.lcdSafeUpdate(lcdText, html);
+                }
+            }
+        }
+    });
                 }
             }
         });

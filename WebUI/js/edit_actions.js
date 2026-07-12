@@ -14,19 +14,23 @@ function initEditActions() {
         window.initEditPersistence();
     }
 
-    const menuUndo = document.getElementById('menu-undo');
-    if (menuUndo) menuUndo.addEventListener('click', () => {
-        if (typeof window.triggerUndo === 'function') window.triggerUndo();
-    });
+    // Delegación de eventos para la barra de navegación superior (mitiga race conditions de carga)
+    document.addEventListener('click', (e) => {
+        // Undo
+        if (e.target.closest('#menu-undo')) {
+            e.preventDefault();
+            if (typeof window.triggerUndo === 'function') window.triggerUndo();
+        }
 
-    const menuRedo = document.getElementById('menu-redo');
-    if (menuRedo) menuRedo.addEventListener('click', () => {
-        if (typeof window.triggerRedo === 'function') window.triggerRedo();
-    });
+        // Redo
+        if (e.target.closest('#menu-redo')) {
+            e.preventDefault();
+            if (typeof window.triggerRedo === 'function') window.triggerRedo();
+        }
 
-    const menuCopy = document.getElementById('menu-copy-preset');
-    if (menuCopy) {
-        menuCopy.addEventListener('click', () => {
+        // Copy
+        if (e.target.closest('#menu-copy-preset')) {
+            e.preventDefault();
             const activeBank = window.loadedBanks[window.currentActiveBank];
             if (!activeBank || window.currentActivePatchIndex === -1) {
                 alert("Selecciona primero un preset del Bank Manager para copiar.");
@@ -39,12 +43,11 @@ function initEditActions() {
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) lcdText.innerHTML = `<strong>COPIED</strong><br><span style="font-size:11px;">${patch.name.toUpperCase()}</span>`;
             }
-        });
-    }
+        }
 
-    const menuPaste = document.getElementById('menu-paste-preset');
-    if (menuPaste) {
-        menuPaste.addEventListener('click', () => {
+        // Paste
+        if (e.target.closest('#menu-paste-preset')) {
+            e.preventDefault();
             if (!globalClipboardBytes) {
                 alert("El portapapeles está vacío. Copia un preset primero.");
                 return;
@@ -80,8 +83,8 @@ function initEditActions() {
                     window._saveUserBanksToStorage();
                 }
             }
-        });
-    }
+        }
+    });
 
     window.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey) {

@@ -357,7 +357,6 @@ function initBankManager() {
         window.loadAllFactoryBanksNatively();
     }
 
-    const menuBankBtn = document.getElementById('menu-bank-manager');
     const browserModal = document.getElementById('browser-modal-backdrop');
     
     const showBrowser = () => {
@@ -369,7 +368,13 @@ function initBankManager() {
         }
     };
     
-    if (menuBankBtn) menuBankBtn.addEventListener('click', showBrowser);
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('#menu-bank-manager')) {
+            e.preventDefault();
+            showBrowser();
+        }
+    });
+
     const progMngrBtn = document.getElementById('programmer-bank-mngr-btn');
     if (progMngrBtn) progMngrBtn.addEventListener('click', showBrowser);
 

@@ -4,80 +4,80 @@
  */
 
 function initSettingsAndModals() {
-    const settingsMenuBtn = document.getElementById('menu-properties');
-    const settingsModal = document.getElementById('settings-modal-backdrop');
-    const settingsCloseBtn = document.getElementById('settings-modal-close-btn');
-
-    const aboutMenuBtn = document.getElementById('menu-about');
-    const aboutModal = document.getElementById('about-modal-backdrop');
-    const aboutCloseBtn = document.getElementById('about-modal-close-btn');
-
-    // ABOUT MODAL
-    if (aboutMenuBtn && aboutModal && aboutCloseBtn) {
-        aboutMenuBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            aboutModal.style.display = 'flex';
-        });
-        aboutCloseBtn.addEventListener('click', () => {
-            aboutModal.style.display = 'none';
-        });
-        aboutModal.addEventListener('click', (e) => {
-            if (e.target === aboutModal) {
-                aboutModal.style.display = 'none';
+    function _requestGlobalDumpAndUpdate(statusElId) {
+        if (!window.dualMidiBridge || !window.dualMidiBridge._connected) return;
+        
+        statusElId = statusElId || 'settings-global-dump-status';
+        var statusEl = document.getElementById(statusElId);
+        if (statusEl) {
+            if (statusEl._hideTimer) {
+                clearTimeout(statusEl._hideTimer);
+                statusEl._hideTimer = null;
             }
-        });
+            statusEl.style.display = '';
+            void statusEl.offsetWidth;
+            statusEl.classList.add('visible', 'spinner');
+        }
+        
+        window.dualMidiBridge.requestMidiDump('global', 3000, 1)
+            .then(function(globalResp) {
+                if (globalResp && globalResp.length >= 30) {
+                    window.dualMidiBridge._parseGlobalDump(globalResp);
+                    _updateSettingsHardwareInfo();
+                }
+                if (statusEl) {
+                    statusEl.classList.remove('visible', 'spinner');
+                    statusEl._hideTimer = setTimeout(function() {
+                        statusEl.style.display = 'none';
+                        statusEl._hideTimer = null;
+                    }, 350);
+                }
+            }).catch(function() {
+                if (statusEl) {
+                    statusEl.classList.remove('visible', 'spinner');
+                    statusEl._hideTimer = setTimeout(function() {
+                        statusEl.style.display = 'none';
+                        statusEl._hideTimer = null;
+                    }, 350);
+                }
+            });
     }
 
-    // SETTINGS MODAL
-    if (settingsMenuBtn && settingsModal && settingsCloseBtn) {
-        function _requestGlobalDumpAndUpdate(statusElId) {
-            if (!window.dualMidiBridge || !window.dualMidiBridge._connected) return;
-            
-            statusElId = statusElId || 'settings-global-dump-status';
-            var statusEl = document.getElementById(statusElId);
-            if (statusEl) {
-                if (statusEl._hideTimer) {
-                    clearTimeout(statusEl._hideTimer);
-                    statusEl._hideTimer = null;
-                }
-                statusEl.style.display = '';
-                void statusEl.offsetWidth;
-                statusEl.classList.add('visible', 'spinner');
+    // ABOUT & SETTINGS MODALS (Event Delegation to prevent custom element race conditions)
+    document.addEventListener('click', (e) => {
+        // Open Settings
+        if (e.target.closest('#menu-properties')) {
+            e.preventDefault();
+            const modal = document.getElementById('settings-modal-backdrop');
+            if (modal) {
+                modal.style.display = 'flex';
+                populateMidiPortsLists();
+                _updateSettingsHardwareInfo();
+                _ensureGlobalDumpButton();
+                _wireGlobalDumpButton();
+                _requestGlobalDumpAndUpdate();
             }
-            
-            window.dualMidiBridge.requestMidiDump('global', 3000, 1)
-                .then(function(globalResp) {
-                    if (globalResp && globalResp.length >= 30) {
-                        window.dualMidiBridge._parseGlobalDump(globalResp);
-                        _updateSettingsHardwareInfo();
-                    }
-                    if (statusEl) {
-                        statusEl.classList.remove('visible', 'spinner');
-                        statusEl._hideTimer = setTimeout(function() {
-                            statusEl.style.display = 'none';
-                            statusEl._hideTimer = null;
-                        }, 350);
-                    }
-                }).catch(function() {
-                    if (statusEl) {
-                        statusEl.classList.remove('visible', 'spinner');
-                        statusEl._hideTimer = setTimeout(function() {
-                            statusEl.style.display = 'none';
-                            statusEl._hideTimer = null;
-                        }, 350);
-                    }
-                });
+        }
+        
+        // Open About
+        if (e.target.closest('#menu-about')) {
+            e.preventDefault();
+            const modal = document.getElementById('about-modal-backdrop');
+            if (modal) modal.style.display = 'flex';
         }
 
-        settingsMenuBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            settingsModal.style.display = 'flex';
-            populateMidiPortsLists();
-            _updateSettingsHardwareInfo();
-            _ensureGlobalDumpButton();
-            _wireGlobalDumpButton();
-            _requestGlobalDumpAndUpdate();
-        });
+        // Close About
+        if (e.target.closest('#about-modal-close-btn') || e.target.id === 'about-modal-backdrop') {
+            const modal = document.getElementById('about-modal-backdrop');
+            if (modal) modal.style.display = 'none';
+        }
+
+        // Close Settings
+        if (e.target.closest('#settings-modal-close-btn') || e.target.id === 'settings-modal-backdrop') {
+            const modal = document.getElementById('settings-modal-backdrop');
+            if (modal) modal.style.display = 'none';
+        }
+    });
 
         function populateMidiPortsLists() {
             const inputsContainer = document.getElementById('settings-midi-inputs-list');
@@ -818,13 +818,12 @@ function initSettingsAndModals() {
             'menu-theme-dark-v2': 'dark-v2'
         };
 
-        Object.keys(themeMap).forEach(id => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.addEventListener('click', (e) => {
+        document.addEventListener('click', (e) => {
+            const target = e.target.closest('.theme-option');
+            if (target && target.id && themeMap[target.id]) {
                 e.preventDefault();
-                setActiveTheme(themeMap[id]);
-            });
+                setActiveTheme(themeMap[target.id]);
+            }
         });
     }
     initNavbarThemeSelector();
@@ -834,14 +833,17 @@ function initSettingsAndModals() {
     }
 
     const globalBtn = document.getElementById('programmer-global-btn');
-    if (globalBtn && settingsModal) {
+    if (globalBtn) {
         globalBtn.addEventListener('click', () => {
-            settingsModal.style.display = 'flex';
-            populateMidiPortsLists();
-            _updateSettingsHardwareInfo();
-            _ensureGlobalDumpButton();
-            _wireGlobalDumpButton();
-            _requestGlobalDumpAndUpdate();
+            const settingsModal = document.getElementById('settings-modal-backdrop');
+            if (settingsModal) {
+                settingsModal.style.display = 'flex';
+                populateMidiPortsLists();
+                _updateSettingsHardwareInfo();
+                _ensureGlobalDumpButton();
+                _wireGlobalDumpButton();
+                _requestGlobalDumpAndUpdate();
+            }
         });
     }
 

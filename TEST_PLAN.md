@@ -36,7 +36,8 @@
 | 26 | `scriptControllers.test.js` | 57 | 2026-07-12 |
 | 27 | `factorySeqPresets.test.js` | 14 | 2026-07-12 |
 | 28 | `panelOscilloscope.test.js` | 37 | 2026-07-12 |
-| **Total** | | **1379 nuevos tests** | |
+| 29 | `panelTemplates.test.js` | 32 | 2026-07-12 |
+| **Total** | | **1411 nuevos tests** | |
 
 ---
 
@@ -67,8 +68,7 @@
 
 | # | Archivo | LOC | Observación |
 |---|---|---|---|
-| 14 | **panel_templates.js** | 484 | Plantillas HTML — más fixture que lógica |
-| 15 | **edit_persistence.js** | 225 | Persistencia de ediciones |
+| 14 | **edit_persistence.js** | 225 | Persistencia de ediciones |
 | 17 | **sequencer_editor.js** | 280 | 32-step grid interactivo |
 | 18 | **effects_presets.js** | 162 | FX preset CRUD en localStorage |
 | 19 | **settings_curves.js** | 331 | Curvas configurables |
