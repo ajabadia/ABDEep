@@ -72,19 +72,82 @@ body[data-theme="juno-106"] .handle {
 .knob-pointer {
     position: absolute;
     width: 2px;
-    height: 5px;
+    height: var(--knob-pointer-height, 5px);
     background: var(--knob-pointer-color, #e5e7eb);
     left: calc(50% - 1px);
-    top: 7px;
-    transform-origin: 50% 11px; /* Pivote de rotación correcto para los knobs normales/efectos (30px/36px) */
+    top: var(--knob-pointer-top, 7px);
+    transform-origin: 50% var(--knob-pointer-pivot, 11px);
     border-radius: 1px;
 }
 
-/* Pivote específico para los knobs grandes del panel frontal de performance (Porta y Volume) */
+/* --- Posicionamiento y dimensiones responsivas del puntero según el diámetro del Knob --- */
+
+/* Knobs normales/grandes por defecto (50px) */
+.knob-ring {
+    --knob-pointer-height: 5px;
+    --knob-pointer-top: 7px;
+    --knob-pointer-pivot: 18px; /* Centro en Y=25px (7 + 18) */
+}
+
+/* Porta/Volume Frontal (50px especial) */
 .performance-matrix-panel .knob-pointer {
-    height: 6px;
-    top: 11px;
-    transform-origin: 50% 14px;
+    --knob-pointer-height: 6px;
+    --knob-pointer-top: 11px;
+    --knob-pointer-pivot: 14px; /* Centro en Y=25px (11 + 14) */
+}
+
+/* 36px */
+.knob-ring[style*="width: 36px"], .knob-ring[style*="width:36px"] {
+    --knob-pointer-height: 4px;
+    --knob-pointer-top: 5px;
+    --knob-pointer-pivot: 13px; /* Centro en Y=18px (5 + 13) */
+}
+
+/* 26px */
+.knob-ring[style*="width: 26px"], .knob-ring[style*="width:26px"] {
+    --knob-pointer-height: 3px;
+    --knob-pointer-top: 3px;
+    --knob-pointer-pivot: 10px; /* Centro en Y=13px (3 + 10) */
+}
+
+/* 24px */
+.knob-ring[style*="width: 24px"], .knob-ring[style*="width:24px"] {
+    --knob-pointer-height: 3px;
+    --knob-pointer-top: 2.5px;
+    --knob-pointer-pivot: 9.5px; /* Centro en Y=12px (2.5 + 9.5) */
+}
+
+/* 22px */
+.knob-ring[style*="width: 22px"], .knob-ring[style*="width:22px"] {
+    --knob-pointer-height: 2.5px;
+    --knob-pointer-top: 2px;
+    --knob-pointer-pivot: 9px; /* Centro en Y=11px (2 + 9) */
+}
+
+/* 20px */
+.knob-ring[style*="width: 20px"], .knob-ring[style*="width:20px"] {
+    --knob-pointer-height: 2.5px;
+    --knob-pointer-top: 2px;
+    --knob-pointer-pivot: 8px; /* Centro en Y=10px (2 + 8) */
+}
+
+/* 18px */
+.knob-ring[style*="width: 18px"], .knob-ring[style*="width:18px"] {
+    --knob-pointer-height: 2px;
+    --knob-pointer-top: 1.5px;
+    --knob-pointer-pivot: 7.5px; /* Centro en Y=9px (1.5 + 7.5) */
+}
+
+/* --- Vectorización de los knobs de Efectos (sin bitmap PNG) --- */
+#fx-modal-backdrop .knob-ring {
+    background: var(--fx-knob-bg, #24252c) !important;
+    border: 1px solid var(--fx-knob-border, #434552) !important;
+    border-radius: 50% !important;
+    box-shadow: inset 0 1.5px 3px rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.6) !important;
+}
+
+#fx-modal-backdrop .knob-pointer {
+    background: #ffffff !important; /* Puntero siempre brillante en rack de efectos */
 }
 
 /* LEDs */
