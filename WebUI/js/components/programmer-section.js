@@ -19,7 +19,7 @@
                             <button class="btn btn-xs sysex-copy-btn" id="sysex-export-btn" data-ctrl-tooltip="Download current SysEx data as .syx file" style="color:var(--accent-pink);border-color:var(--accent-pink)">💾 .SYX</button>
                         </div>
                     </div>
-                    <div class="sysex-hex-grid styled-scroll" id="sysex-hex-log" style="min-height:38px;max-height:90px;font-size:var(--text-xs);line-height:1.2">Select a patch from Bank Manager to display SysEx hex stream data...</div>
+                    <div class="sysex-hex-grid styled-scroll" id="sysex-hex-log" style="min-height:25px;max-height:42px;font-size:var(--text-xs);line-height:1.2">Select a patch from Bank Manager to display SysEx hex stream data...</div>
                     <div class="sysex-selection-info" id="sysex-selection-info">Click a hex byte to select it. Shift+click to select range. Ctrl+click to toggle.</div>
                     <div id="sysex-active-patch-label" class="text-bold text-accent text-uppercase" style="font-size:var(--text-xs);border-top:1px solid var(--border-dim);padding-top:3px;margin-top:3px;display:none">LOADED PATCH: -</div>
                     <div class="flex-row justify-between items-center" style="font-size:var(--text-2xs);color:var(--text-dim);padding:2px 0;margin-top:2px;border-top:1px solid var(--border-dim)">
