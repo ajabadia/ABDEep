@@ -1003,7 +1003,6 @@ function initSettingsAndModals() {
                 if (typeof window.renderPatchesForBank === 'function') window.renderPatchesForBank(window.currentActiveBank);
             }
         });
-    }
 }
 
 window.initSettingsAndModals = initSettingsAndModals;

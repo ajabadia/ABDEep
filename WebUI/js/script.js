@@ -286,10 +286,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-                }
-            }
-        });
-    }
 
     // Blink tempo loop for panels
     const arpBtnEl = document.getElementById('programmer-arp-btn');
