@@ -88,8 +88,8 @@ env-section {
 
 /* Modulos Generales */
 .module {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
+    background: var(--module-bg, var(--bg-elevated));
+    border: 1px solid var(--module-border, var(--border));
     border-radius: var(--radius-md);
     padding: 10px;
     position: relative;
@@ -104,9 +104,11 @@ env-section {
     font-size: var(--text-md);
     font-weight: 900;
     text-transform: uppercase;
-    color: var(--brand-accent);
+    color: var(--module-header-text, var(--brand-accent));
     letter-spacing: 1.5px;
-    border-bottom: 1.5px solid var(--border);
-    padding-bottom: 4px;
+    border-bottom: 1.5px solid var(--module-header-border, var(--border));
+    background: var(--module-header-bg, transparent);
+    padding: var(--module-header-padding, 0 0 4px 0);
     margin-bottom: 10px;
+    border-radius: var(--module-header-radius, 0);
 }

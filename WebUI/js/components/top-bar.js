@@ -42,7 +42,7 @@
                         <li id="menu-theme-green" class="theme-option"><span class="theme-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#00ff66;margin-right:8px;vertical-align:middle"></span>Neón</li>
                         <li id="menu-theme-midnight" class="theme-option"><span class="theme-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#7744ff;margin-right:8px;vertical-align:middle"></span>Midnight</li>
                         <li id="menu-theme-dark-v2" class="theme-option"><span class="theme-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#9933ff;margin-right:8px;vertical-align:middle"></span>Dark V2</li>
-                        <li id="menu-theme-light" class="theme-option"><span class="theme-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0284c7;margin-right:8px;vertical-align:middle"></span>Claro</li>
+                        <li id="menu-theme-light" class="theme-option"><span class="theme-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0284c7;margin-right:8px;vertical-align:middle"></span>Snow</li>
                         <li class="divider"></li>
                         <li id="menu-debug-unison">Debug: Unison Stacking...</li>
                         <li class="divider"></li>

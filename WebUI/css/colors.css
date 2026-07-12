@@ -202,12 +202,18 @@ body[data-theme="dark-v2"] {
    Estética premium limpia, clara y de alto contraste
    =============================================================== */
 body[data-theme="light"] {
-    /* ── Fondos claros ── */
-    --bg-deepest:  #e2e8f0;   /* Gris claro frío */
-    --bg-surface:  #ffffff;   /* Blanco puro para paneles y tarjetas */
-    --bg-elevated: #f8fafc;   /* Blanco ligeramente grisáceo para modales */
-    --bg-header:   #f1f5f9;   /* Gris muy claro para cabeceras y toolbars */
-    --bg-hover:    #cbd5e1;   /* Gris medio para hover y botones activos */
+    /* ── Fondos claros (Inspirados en Virus TI Snow) ── */
+    --bg-deepest:  #f8fafc;   /* Blanco nieve para el canvas general */
+    --bg-surface:  #ffffff;   /* Blanco puro para paneles contenedores */
+    --bg-elevated: #f1f5f9;   /* Fondo de modales y diálogos */
+    --bg-header:   #e2e8f0;   /* Cabeceras y inputs */
+    --bg-hover:    #cbd5e1;   /* Hover de botones */
+
+    /* ── Cajas de módulos (LFO, VCF, etc.) diferenciadas ── */
+    --module-bg:      #eef2f6;   /* Gris claro nieve para las cajas */
+    --module-border:  #e2e8f0;   /* Borde suave para las cajas */
+    --module-header-text: #0369a1; /* Azul pizarra oscuro para las etiquetas */
+    --module-header-border: #cbd5e1;
 
     /* ── Bordes oscurecidos para contraste ── */
     --border-dim:    #e2e8f0;
