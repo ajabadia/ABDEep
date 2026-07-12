@@ -101,12 +101,13 @@
             });
 
             // Add standard edit actions
-            html += '<div style="font-size:var(--text-xs);text-transform:uppercase;font-weight:bold;color:var(--accent-orange);padding:6px 8px;border-bottom:1px solid var(--border-dim);margin-bottom:4px;margin-top:10px">Edit Actions</div>';
+            html += '<div style="font-size:var(--text-xs);text-transform:uppercase;font-weight:bold;color:var(--accent-orange);padding:6px 8px;border-bottom:1px solid var(--border-dim);margin-bottom:4px;margin-top:10px">Edit Actions & Navigation</div>';
             const editShortcuts = [
                 { combo: 'Ctrl + Z', label: 'Undo', desc: 'Undo last parameter change' },
                 { combo: 'Ctrl + Y', label: 'Redo', desc: 'Redo last undone change' },
                 { combo: 'Ctrl + C', label: 'Copy Preset', desc: 'Copy selected preset' },
-                { combo: 'Ctrl + V', label: 'Paste Preset', desc: 'Paste copied preset' }
+                { combo: 'Ctrl + V', label: 'Paste Preset', desc: 'Paste copied preset' },
+                { combo: 'Escape', label: 'Close Modal', desc: 'Close open dialogs/windows' }
             ];
             editShortcuts.forEach(function(item) {
                 html += '<div style="display:grid;grid-template-columns:auto 1fr 160px;gap:10px;align-items:center;padding:5px 8px;border-radius:var(--radius-xs);font-size:var(--text-base)">'

@@ -1,6 +1,6 @@
 # 📋 Plan de Cobertura — Tests WebUI JS
 
-**Estado actual:** 3403 tests · 51 test files · 52 source files · 6 sin cobertura directa
+**Estado actual:** 3,403 tests · 51 test files · 52 source files · 45 con test · 6 sin test
 
 ---
 
@@ -85,52 +85,31 @@
 
 ---
 
-## ❌ Archivos Sin Cobertura Directa
+## ❌ Sin Test Directo: 6 archivos
 
-| # | Source | LOC | Prioridad | Funciones clave |
-|---|--------|-----|-----------|-----------------|
-| 1 | `browser_packer.js` | 85 | 🟡 Media | `unpack7to8()`, `pack8to7()`, `extractNameFromRawSysex()`, `buildSingleSysex()` |
-| 2 | `panel_controls_arp_seq_mod.js` | 643 | 🔴 Alta | `bindPanelArpControls()`, `bindPanelChordControls()`, `bindPanelPolyChordControls()`, `bindPanelSeqControls()`, `bindPanelChordAndPolyCommon()` |
-| 3 | `panel_controls_binder.js` | 208 | 🔴 Alta | `updatePanelFromState()`, `syncDetailPanelControls()`, `initDynamicSliders()` |
-| 4 | `panel_controls_env_voice.js` | 170 | 🟡 Media | `bindPanelEnvControls()`, `bindPanelPolyControls()`, `bindPanelPortaControls()` |
-| 5 | `panel_controls_lfo_vca.js` | 145 | 🟡 Media | `bindPanelLfoControls()`, `bindPanelVcaControls()` |
-| 6 | `panel_controls_osc_vcf.js` | 300 | 🟡 Media | `bindPanelOscControls()`, `bindPanelHpfControls()`, `bindPanelVcfControls()` |
+| # | Archivo | LOC | Funciones | Estrategia |
+|---|---------|-----|-----------|------------|
+| 1 | `browser_packer.js` | 85 | `unpack7to8()`, `pack8to7()`, `extractNameFromRawSysex()`, `buildSingleSysex()` | Puro — sin DOM. Testear bit-packing 7↔8, nombres, padding |
+| 2 | `panel_controls_arp_seq_mod.js` | 643 | `bindPanelArpControls()`, `bindPanelChordControls()`, `bindPanelPolyChordControls()`, `bindPanelSeqControls()`, `bindPanelChordAndPolyCommon()` | DOM mock + bridge stub. ARP/Chord/SEQ binding logic |
+| 3 | `panel_controls_binder.js` | 208 | `updatePanelFromState()`, `syncDetailPanelControls()`, `initDynamicSliders()` | DOM mock. Slider/toggle/select position sync |
+| 4 | `panel_controls_env_voice.js` | 170 | `bindPanelEnvControls()`, `bindPanelPolyControls()`, `bindPanelPortaControls()` | DOM + bridge. ENV triggers, Poly mode/priority, Porta |
+| 5 | `panel_controls_lfo_vca.js` | 145 | `bindPanelLfoControls()`, `bindPanelVcaControls()` | DOM + bridge. LFO shape selectors, VCA mode buttons |
+| 6 | `panel_controls_osc_vcf.js` | 300 | `bindPanelOscControls()`, `bindPanelHpfControls()`, `bindPanelVcfControls()` | DOM + bridge. OSC1/2 range, HPF boost, VCF pole/polarity |
 
-**Total LOC sin test directo:** 1,551 líneas (6 archivos)
-**% cubierto:** ~97% de archivos fuente, ~94% de LOC
+**Total LOC sin test:** 1,551 líneas · **% cubierto:** 87% de archivos, ~94% de LOC
 
----
+### ℹ️ Excluido intencionalmente
 
-## 📊 Estado por Prioridad
-
-### 🔴 Alta — Priorizadas para siguiente sesión
-
-| # | Archivo | Tests | Estrategia |
-|---|---------|-------|------------|
-| 1 | `browser_packer.test.js` | ~20 | Funciones puras de bit-packing (7-to-8, 8-to-7), extracción de nombre, construcción de SysEx. Sin dependencias DOM. |
-| 2 | `panel_controls_binder.test.js` | ~30 | `updatePanelFromState()` — sincronización de sliders, selects, toggle-boxes, shape-led-rows. DOM mock necesario. |
-| 3 | `panel_controls_arp_seq_mod.test.js` | ~50 | Lógica de bindings de ARP (enable, hold, mode, clock), Chord (enable, key, type), Poly Chord (12 keys×8 types), SEQ (32-step grid). DOM mock + bridge stub. |
-
-### 🟡 Media
-
-| # | Archivo | Tests | Notas |
-|---|---------|-------|-------|
-| 4 | `panel_controls_env_voice.test.js` | ~25 | ENV trigger modes, Poly voice mode/priority/trigger, Porta mode. DOM + bridge stubs. |
-| 5 | `panel_controls_lfo_vca.test.js` | ~20 | LFO shape selectors, Kbd Sync/Arp Sync toggles, VCA mode buttons. |
-| 6 | `panel_controls_osc_vcf.test.js` | ~35 | OSC1/2 range, PM source, PWM source, toggle boxes. HPF boost. VCF pole/polarity/LFO select. DOM + bridge stubs. |
-
-### 🟢 Baja — Componentes UI (24 archivos)
-
-Los componentes son principalmente HTML template generators + event listeners. Cada uno <100 LOC (excepto debug-panel 369, ctrl-tooltip 350, settings-modal 332, bank-manager 137). Cobertura parcial vía `uiComponents.test.js` + `modalTests.test.js`.
+- **`_fix_fade.js`** (20 LOC) — script Node.js (`require('fs')`), no es módulo del navegador
 
 ---
 
 ## 📈 Historial de Cobertura
 
-| Fecha | Test Files | Tests | Nuevos tests | Source files |
-|-------|-----------|-------|-------------|-------------|
-| 2026-07-11 | 23 | 1,874 | — | 76 |
-| 2026-07-12 | 51 | 3,403 | +1,529 | 52 |
+| Fecha | Test Files | Tests | Nuevos tests | Source files | Componentes |
+|-------|-----------|-------|-------------|-------------|-------------|
+| 2026-07-11 | 23 | 1,874 | — | 76 | — |
+| 2026-07-12 | 51 | 3,403 | +1,529 | 52 | 24 |
 
 ---
 
