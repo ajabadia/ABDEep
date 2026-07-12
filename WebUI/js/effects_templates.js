@@ -31,6 +31,8 @@ function renderActiveEffectParams() {
     if (!typeSelect) return;
     const effectType = parseInt(typeSelect.value);
 
+    const offsetStart = selectedSlot === 1 ? 167 : (selectedSlot === 2 ? 180 : (selectedSlot === 3 ? 193 : 206));
+
     if (activeSlotLabel) {
         const offsetGain = selectedSlot === 1 ? 218 : (selectedSlot === 2 ? 219 : (selectedSlot === 3 ? 220 : 221));
         const gainVal = _readFxParamValue(`fx${selectedSlot}_gain`, offsetGain, 1.0);
@@ -48,7 +50,6 @@ function renderActiveEffectParams() {
         activeSlotLabel.innerText = `Slot: FX${selectedSlot} (${displayName})`;
     }
 
-    const offsetStart = selectedSlot === 1 ? 167 : (selectedSlot === 2 ? 180 : (selectedSlot === 3 ? 193 : 206));
     let pVals = Array(8).fill(0.5);
     for (let i = 0; i < 8; i++) {
         pVals[i] = _readFxParamValue(`fx${selectedSlot}_param${i+1}`, offsetStart + i, 0.5);
