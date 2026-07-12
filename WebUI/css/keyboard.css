@@ -11,6 +11,19 @@
     box-shadow: inset 0 8px 10px -5px rgba(0, 0, 0, 0.4); /* Sombra interna hacia abajo para dar efecto de profundidad */
 }
 
+/* Superposición de degradado de sombra sobre las teclas para dar efecto de profundidad */
+.keyboard-container::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 12px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 100%);
+    pointer-events: none;
+    z-index: 100; /* Asegura estar por encima de las teclas blancas y negras */
+}
+
 #ivory-keys-bed {
     display: flex;
     position: absolute;
