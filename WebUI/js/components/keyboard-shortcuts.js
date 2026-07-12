@@ -100,6 +100,22 @@
                 });
             });
 
+            // Add standard edit actions
+            html += '<div style="font-size:var(--text-xs);text-transform:uppercase;font-weight:bold;color:var(--accent-orange);padding:6px 8px;border-bottom:1px solid var(--border-dim);margin-bottom:4px;margin-top:10px">Edit Actions</div>';
+            const editShortcuts = [
+                { combo: 'Ctrl + Z', label: 'Undo', desc: 'Undo last parameter change' },
+                { combo: 'Ctrl + Y', label: 'Redo', desc: 'Redo last undone change' },
+                { combo: 'Ctrl + C', label: 'Copy Preset', desc: 'Copy selected preset' },
+                { combo: 'Ctrl + V', label: 'Paste Preset', desc: 'Paste copied preset' }
+            ];
+            editShortcuts.forEach(function(item) {
+                html += '<div style="display:grid;grid-template-columns:auto 1fr 160px;gap:10px;align-items:center;padding:5px 8px;border-radius:var(--radius-xs);font-size:var(--text-base)">'
+                    + '<kbd style="display:inline-block;background:var(--bg-deepest);border:1px solid var(--border);border-radius:3px;padding:2px 7px;font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-primary);min-width:100px;text-align:center">' + item.combo + '</kbd>'
+                    + '<span style="color:var(--text-primary)">' + item.label + '</span>'
+                    + '<span style="color:var(--text-dim);font-size:var(--text-sm);text-align:right">' + item.desc + '</span>'
+                    + '</div>';
+            });
+
             container.innerHTML = html || '<div class="text-dim text-center" style="padding:20px;font-size:var(--text-sm)">No shortcuts configured.</div>';
         }
 

@@ -41,7 +41,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', (e) => {
             if (e.target.closest('#menu-midi-learn')) {
                 e.preventDefault();
-                toggleLearn();
+                const settingsModal = document.getElementById('settings-modal-backdrop');
+                if (settingsModal) {
+                    settingsModal.style.display = 'flex';
+                    if (typeof populateMidiPortsLists === 'function') populateMidiPortsLists();
+                    if (typeof _updateSettingsHardwareInfo === 'function') _updateSettingsHardwareInfo();
+                    
+                    const tabBtn = document.querySelector('.btn[data-tab="midilearn"]');
+                    if (tabBtn) tabBtn.click();
+                }
             }
         });
 
