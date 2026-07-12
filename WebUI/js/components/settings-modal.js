@@ -24,7 +24,7 @@
                     </div>
 
                     <div id="settings-tab-content" style="min-height:250px">
-                        <div class="flex-col gap-15" id="settings-view-connections" style="display:flex">
+                        <div class="settings-panel-view flex-col gap-15" id="settings-view-connections" style="display:flex">
                             <div class="text-center text-uppercase border-bottom text-dim" style="font-size:var(--text-md);padding-bottom:4px">Connection</div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
                                 <div class="flex-col bg-surface" style="border:1px solid var(--border);border-radius:var(--radius);padding:10px">

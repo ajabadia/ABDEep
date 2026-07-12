@@ -549,6 +549,7 @@ class DualMidiBridge {
     _updateConnectionUI() {
         const indicator = document.getElementById('midi-connection-indicator');
         const statusBtn = document.getElementById('settings-connection-status');
+        const reconnectBtn = document.getElementById('reconnect-hw-btn');
         const connected = this._connected && (this.isJuce || (this.midiOutput && this.midiInput));
 
         if (indicator) {
@@ -559,6 +560,42 @@ class DualMidiBridge {
             statusBtn.textContent = connected ? 'Connected' : 'Disconnected';
             statusBtn.style.color = connected ? 'var(--accent-green)' : 'var(--text-primary)';
             statusBtn.style.border = connected ? '1px solid var(--accent-green)' : '1px solid var(--color-danger)';
+        }
+        if (reconnectBtn) {
+            reconnectBtn.style.display = connected ? 'none' : 'inline-block';
+            if (!reconnectBtn._wired) {
+                reconnectBtn._wired = true;
+                reconnectBtn.addEventListener('click', async () => {
+                    reconnectBtn.textContent = 'CONNECTING...';
+                    reconnectBtn.disabled = true;
+                    try {
+                        const ok = await this.resetMidiConnection();
+                        if (!ok) {
+                            throw new Error('Reconnection failed');
+                        }
+                    } catch (e) {
+                        console.warn('[Bridge] Reconnection failed, opening settings:', e.message);
+                        const modal = document.getElementById('settings-modal-backdrop');
+                        if (modal) {
+                            modal.style.display = 'flex';
+                            if (typeof window.populateMidiPortsLists === 'function') {
+                                window.populateMidiPortsLists();
+                            }
+                            if (typeof window._updateSettingsHardwareInfo === 'function') {
+                                window._updateSettingsHardwareInfo();
+                            }
+                            const connTabBtn = document.querySelector('.btn[data-tab="connections"]');
+                            if (connTabBtn) {
+                                connTabBtn.click();
+                            }
+                        }
+                    } finally {
+                        reconnectBtn.textContent = 'RE-CONNECT HARDWARE';
+                        reconnectBtn.disabled = false;
+                        this._updateConnectionUI();
+                    }
+                });
+            }
         }
     }
 

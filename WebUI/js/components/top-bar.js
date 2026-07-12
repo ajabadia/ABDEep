@@ -81,6 +81,7 @@
             </div>
             <div id="keyboard-shortcuts-icon" style="width:16px;height:16px;border-radius:3px;background:var(--bg-hover);border:1px solid var(--border-dim);color:var(--text-faint);font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all 0.15s ease;margin:0 4px;line-height:1" data-ctrl-tooltip="Keyboard Shortcuts">⌨</div>
             <div id="midi-activity-led" style="width:6px;height:6px;border-radius:50%;background:var(--accent-green);margin:0;opacity:0.15;flex-shrink:0;transition:opacity 0.05s linear, box-shadow 0.05s linear;box-shadow:none" data-ctrl-tooltip="MIDI Activity"></div>
+            <button id="reconnect-hw-btn" style="display:none;font-size:8.5px;font-weight:bold;padding:1px 6px;border-radius:3px;border:1px solid var(--accent-red);background:rgba(234,33,45,0.12);color:var(--accent-red);cursor:pointer;margin:0 4px;height:16px;line-height:1;box-shadow:0 0 5px rgba(234,33,45,0.2);animation:heartbeat-pulse 1.2s infinite ease-in-out;flex-shrink:0" data-ctrl-tooltip="Hardware Synth disconnected. Click to re-connect.">RE-CONNECT HARDWARE</button>
             <div id="midi-connection-indicator" style="width:10px;height:10px;border-radius:50%;background:var(--color-danger);margin:0 6px 0 4px;transition:all 0.3s ease;box-shadow:0 0 4px var(--color-danger);flex-shrink:0" data-ctrl-tooltip="MIDI: Disconnected"></div>
         </header>
     `;
