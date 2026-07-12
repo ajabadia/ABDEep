@@ -20,7 +20,7 @@
     --shadow-chassis: 0 30px 60px rgba(0,0,0,0.8);
     --shadow-modal:   0 15px 50px rgba(0,0,0,0.8);
     --shadow-dropdown: 0 10px 25px rgba(0,0,0,0.6);
-    --shadow-panel:   15px 0 35px rgba(0,0,0,0.85);
+    --shadow-panel:   8px 0 20px rgba(0,0,0,0.4);
     --shadow-inset:   inset 0 0 10px rgba(0,0,0,0.8);
     --shadow-float:   0 10px 30px rgba(0,0,0,0.9);
     --shadow-zoomed:  0 20px 45px rgba(0,0,0,0.9);

@@ -8,7 +8,7 @@
     display: flex;
     flex-direction: row;
     border-top: 4px solid var(--bg-elevated);
-    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.15); /* Sombra sutil hacia arriba */
+    box-shadow: inset 0 8px 10px -5px rgba(0, 0, 0, 0.4); /* Sombra interna hacia abajo para dar efecto de profundidad */
 }
 
 #ivory-keys-bed {
