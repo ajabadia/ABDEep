@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "DSP/SynthEngine.h"
 
 class ABDEepAudioProcessor : public juce::AudioProcessor
 {
@@ -32,6 +33,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
+    ABD::SynthEngine& getSynthEngine() { return synthEngine; }
 
     void queueMidiMessage (const juce::MidiMessage& msg)
     {
@@ -43,5 +45,6 @@ private:
     juce::AudioProcessorValueTreeState apvts;
     juce::MidiBuffer midiQueue;
     juce::CriticalSection midiQueueLock;
+    ABD::SynthEngine synthEngine;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ABDEepAudioProcessor)
 };

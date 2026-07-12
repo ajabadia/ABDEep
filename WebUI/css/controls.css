@@ -28,12 +28,27 @@
 }
 
 /* Aplicación de filtros según el tema de color */
+body[data-theme="red"] .handle,
 body[data-theme="expanded-red"] .handle {
     filter: hue-rotate(330deg) saturate(2) brightness(1.2);
 }
 
+body[data-theme="blue"] .handle,
 body[data-theme="expanded-blue"] .handle {
     filter: hue-rotate(200deg) saturate(2) brightness(1.2);
+}
+
+body[data-theme="green"] .handle,
+body[data-theme="expanded-green"] .handle {
+    filter: hue-rotate(120deg) saturate(1.5) brightness(1.1);
+}
+
+body[data-theme="dark-v2"] .handle {
+    filter: hue-rotate(260deg) saturate(1.8) brightness(1.1);
+}
+
+body[data-theme="midnight"] .handle {
+    filter: hue-rotate(240deg) saturate(1.8) brightness(1.1);
 }
 
 /* Knobs */
@@ -50,7 +65,7 @@ body[data-theme="expanded-blue"] .handle {
     position: absolute;
     width: 2px;
     height: 7px;
-    background: var(--white);
+    background: var(--text-primary);
     left: calc(50% - 1px);
     top: 5px;
     transform-origin: 50% 13px; /* Pivote de rotación correcto para los knobs normales/efectos (30px/36px) */
@@ -79,10 +94,25 @@ body[data-theme="expanded-blue"] .handle {
 }
 
 /* Cambiar el tono del LED dinámicamente con filtros CSS */
+body[data-theme="red"] .led.active,
 body[data-theme="expanded-red"] .led.active {
     filter: hue-rotate(330deg) saturate(2) brightness(1.2);
 }
 
+body[data-theme="blue"] .led.active,
 body[data-theme="expanded-blue"] .led.active {
     filter: hue-rotate(200deg) saturate(2) brightness(1.2);
+}
+
+body[data-theme="green"] .led.active,
+body[data-theme="expanded-green"] .led.active {
+    filter: hue-rotate(120deg) saturate(1.5) brightness(1.1);
+}
+
+body[data-theme="dark-v2"] .led.active {
+    filter: hue-rotate(260deg) saturate(1.8) brightness(1.1);
+}
+
+body[data-theme="midnight"] .led.active {
+    filter: hue-rotate(240deg) saturate(1.8) brightness(1.1);
 }

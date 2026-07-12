@@ -1,0 +1,355 @@
+/* --- DEBUG PANEL: Unison Voice Monitor --- */
+
+.debug-panel {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.debug-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 0;
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Summary row */
+.debug-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    background: var(--bg-deepest);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    border: 1px solid var(--border-dim);
+}
+
+.debug-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+}
+
+.debug-label {
+    font-size: var(--text-2xs);
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.debug-value {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text-secondary);
+}
+
+.debug-value-accent {
+    color: var(--brand-accent);
+}
+
+/* Voice Grid */
+.debug-voice-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.debug-no-stack {
+    text-align: center;
+    padding: 16px 8px;
+    font-size: var(--text-xs);
+    color: var(--text-faint);
+    background: var(--bg-deepest);
+    border-radius: var(--radius);
+    border: 1px dashed var(--border-dim);
+    font-style: italic;
+}
+
+.debug-voice-slot {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    padding: 4px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.debug-voice-slot:hover {
+    border-color: var(--border-strong);
+    background: var(--bg-header);
+}
+
+.debug-voice-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.debug-voice-idx {
+    font-size: var(--text-2xs);
+    font-weight: 900;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    min-width: 20px;
+}
+
+.debug-voice-detune {
+    font-size: var(--text-2xs);
+    font-weight: 700;
+    font-family: 'Share Tech Mono', monospace;
+    min-width: 60px;
+    text-align: right;
+}
+
+.debug-voice-pan {
+    font-size: var(--text-2xs);
+    font-weight: 700;
+    font-family: 'Share Tech Mono', monospace;
+    min-width: 50px;
+    text-align: right;
+    margin-left: auto;
+}
+
+/* Visual bars */
+.debug-voice-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.debug-bar-track {
+    height: 4px;
+    background: var(--bg-deepest);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+}
+
+.debug-bar-track-pan {
+    height: 3px;
+}
+
+.debug-bar-fill {
+    height: 100%;
+    position: absolute;
+    top: 0;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.debug-bar-center {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: var(--border-strong);
+    opacity: 0.5;
+}
+
+/* Legend */
+.debug-legend {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    padding: 4px 0;
+}
+
+.debug-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--text-2xs);
+    color: var(--text-faint);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.debug-legend-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.debug-note {
+    font-size: var(--text-2xs);
+    color: var(--text-faint);
+    text-align: center;
+    padding: 6px 8px;
+    background: var(--bg-deepest);
+    border-radius: var(--radius);
+    border: 1px dashed var(--border-dim);
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* --- Debug Panel: VU Meter --- */
+
+.debug-vumeter {
+    background: var(--bg-deepest);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    border: 1px solid var(--border-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.debug-vumeter-title {
+    font-size: var(--text-2xs);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-faint);
+    margin-bottom: 2px;
+}
+
+.debug-vumeter-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 20px;
+}
+
+.debug-vumeter-track {
+    flex: 1;
+    height: 16px;
+    background: var(--bg-elevated);
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.debug-vumeter-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.05s linear, background 0.1s;
+    min-width: 0px;
+}
+
+/* CLIP indicator — hidden by default, shows briefly when peak > 0.9 */
+.debug-vumeter-clip {
+    position: absolute;
+    right: 2px;
+    top: 2px;
+    font-size: 7px;
+    font-weight: 900;
+    color: #fff;
+    background: var(--color-danger);
+    padding: 0 3px;
+    border-radius: 2px;
+    line-height: 12px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 2;
+}
+
+/* Zone markers (optional segments overlay) */
+.debug-vumeter-segments {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* --- Debug Panel: MIDI Controllers --- */
+
+.debug-controllers {
+    background: var(--bg-deepest);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    border: 1px solid var(--border-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.debug-controllers-title {
+    font-size: var(--text-2xs);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-faint);
+    margin-bottom: 2px;
+}
+
+.debug-controller-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 16px;
+}
+
+.debug-ctrl-label {
+    font-size: var(--text-2xs);
+    font-weight: 800;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    min-width: 28px;
+    text-align: right;
+    letter-spacing: 0.3px;
+}
+
+.debug-ctrl-track {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-elevated);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.debug-ctrl-fill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 3px;
+    transition: all 0.08s linear;
+}
+
+.debug-ctrl-center {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: var(--border-strong);
+    opacity: 0.6;
+}
+
+.debug-ctrl-value {
+    font-size: var(--text-2xs);
+    font-weight: 700;
+    font-family: 'Share Tech Mono', monospace;
+    min-width: 36px;
+    text-align: right;
+    color: var(--text-secondary);
+    transition: color 0.1s;
+}
+
+/* Custom scrollbar */
+.debug-content::-webkit-scrollbar {
+    width: 4px;
+}
+.debug-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+.debug-content::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 2px;
+}

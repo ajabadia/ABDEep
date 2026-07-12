@@ -1,0 +1,124 @@
+/* ===============================================================
+   modals.css — Sistema de modales unificado
+   ===============================================================
+   Extraído y consolidado de browser.css para todos los modales.
+   =============================================================== */
+
+/* ── BACKDROP (fondo oscuro) ── */
+.modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 11, 13, 0.96);
+    backdrop-filter: blur(5px);
+    z-index: 9999;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ── VENTANA MODAL ── */
+.modal {
+    width: 800px;
+    max-height: 90vh;
+    background: var(--bg-elevated);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-modal);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 10000;
+}
+
+/* ── CABECERA ── */
+.modal-header {
+    background: var(--bg-header);
+    padding: 12px 18px;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+.modal-header h2 {
+    margin: 0;
+    font-size: var(--text-xl);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent-primary);
+}
+.modal-header .close-btn {
+    color: var(--text-dim);
+    font-size: var(--text-2xl);
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+.modal-header .close-btn:hover {
+    color: var(--text-primary);
+}
+
+/* ── CUERPO ── */
+.modal-body {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* ── FOOTER ── */
+.modal-footer {
+    background: var(--bg-header);
+    border-top: 1.5px solid var(--border);
+    padding: 10px 15px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+/* ── MODAL CON BORDE COLOREADO (variantes) ── */
+.modal[data-accent="orange"] { border-color: var(--accent-primary); }
+.modal[data-accent="orange"] .modal-header { border-bottom-color: var(--accent-primary); }
+.modal[data-accent="orange"] .modal-header h2 { color: var(--accent-primary); }
+.modal[data-accent="blue"]   { border-color: var(--accent-blue); }
+.modal[data-accent="blue"]   .modal-header { border-bottom-color: var(--accent-blue); }
+.modal[data-accent="blue"]   .modal-header h2 { color: var(--accent-blue); }
+.modal[data-accent="green"]  { border-color: var(--accent-green); }
+.modal[data-accent="green"]  .modal-header { border-bottom-color: var(--accent-green); }
+.modal[data-accent="green"]  .modal-header h2 { color: var(--accent-green); }
+.modal[data-accent="pink"]   { border-color: var(--accent-pink); }
+.modal[data-accent="pink"]   .modal-header { border-bottom-color: var(--accent-pink); }
+.modal[data-accent="pink"]   .modal-header h2 { color: var(--accent-pink); }
+.modal[data-accent="red"]    { border-color: var(--accent-red); }
+.modal[data-accent="red"]    .modal-header { border-bottom-color: var(--accent-red); }
+.modal[data-accent="red"]    .modal-header h2 { color: var(--accent-red); }
+
+/* ── SELECT ESTILO DEEPMIND (inputs en modales) ── */
+.modal-select {
+    background: var(--bg-header);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    padding: 3px;
+}
+.modal-input {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--text-lg);
+    padding: 6px 10px;
+    outline: none;
+}
+.modal-input:focus {
+    border-color: var(--accent-primary);
+}

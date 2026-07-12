@@ -14,9 +14,9 @@
 
 .wheel-slot {
     flex: 1;
-    background: #09090b;
-    border: 2px solid #18191c;
-    border-radius: 3px;
+    background: var(--bg-deepest);
+    border: 2px solid var(--bg-hover);
+    border-radius: var(--radius-sm);
     position: relative;
     cursor: ns-resize;
     box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.9);
@@ -26,9 +26,9 @@
     position: absolute;
     width: 100%;
     height: 40px;
-    background: linear-gradient(to bottom, #222326 0%, #4a4d54 50%, #222326 100%);
-    border-radius: 2px;
-    border: 1px solid #111;
+    background: linear-gradient(to bottom, var(--bg-header) 0%, var(--border-strong) 50%, var(--bg-header) 100%);
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--bg-deepest);
     left: 0;
     bottom: 55px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
@@ -65,7 +65,7 @@
     height: 35px;
     justify-content: space-between;
     padding-top: 5px;
-    border-top: 1px solid #1c1d22;
+    border-top: 1px solid var(--bg-header);
 }
 
 .matrix-cell {

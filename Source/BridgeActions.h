@@ -30,4 +30,20 @@ void readFactoryBankFile (ABDEepAudioProcessor& audioProcessor,
                          const juce::Array<juce::var>& args,
                          juce::WebBrowserComponent::NativeFunctionCompletion completion);
 
+void pianoNoteOn (ABDEepAudioProcessor& audioProcessor,
+                 const juce::Array<juce::var>& args,
+                 juce::WebBrowserComponent::NativeFunctionCompletion completion);
+
+void pianoNoteOff (ABDEepAudioProcessor& audioProcessor,
+                  const juce::Array<juce::var>& args,
+                  juce::WebBrowserComponent::NativeFunctionCompletion completion);
+
+void getVoiceState (ABDEepAudioProcessor& audioProcessor,
+                    const juce::Array<juce::var>& args,
+                    juce::WebBrowserComponent::NativeFunctionCompletion completion);
+
+void getAudioWaveform (ABDEepAudioProcessor& audioProcessor,
+                       const juce::Array<juce::var>& args,
+                       juce::WebBrowserComponent::NativeFunctionCompletion completion);
+
 } // namespace BridgeActions

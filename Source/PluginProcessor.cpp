@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "ParametersSpec.h"
+#include <iostream>
 
 ABDEepAudioProcessor::ABDEepAudioProcessor()
     : AudioProcessor (BusesProperties()
@@ -8,6 +9,39 @@ ABDEepAudioProcessor::ABDEepAudioProcessor()
                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
       apvts (*this, nullptr, "Parameters", ParametersSpec::createLayout())
 {
+#if JucePlugin_Build_Standalone
+    // Check for --run-unit-tests flag
+    auto args = juce::JUCEApplication::getCommandLineParameterArray();
+    for (const auto& arg : args)
+    {
+        if (arg == "--run-unit-tests" || arg == "-t")
+        {
+            juce::UnitTestRunner runner;
+            runner.setAssertOnFailure (false);
+            std::cout << "\n=== ABD Eep Unit Tests ===\n\n";
+            runner.runAllTests();
+            
+            auto totalTests = runner.getNumResults();
+            int passed = 0, failed = 0;
+            for (int i = 0; i < totalTests; ++i)
+                if (auto* result = runner.getResult (i))
+                {
+                    passed += result->passes;
+                    failed += result->failures;
+                }
+            
+            std::cout << "\n=== Summary: " << passed << " passed, " << failed << " failed (" << totalTests << " suites) ===\n";
+            
+            if (failed > 0)
+                std::_Exit (1);  // Immediate exit with failure code
+            
+            if (auto* app = juce::JUCEApplication::getInstance())
+                app->systemRequestedQuit();
+            
+            return;
+        }
+    }
+#endif
 }
 
 ABDEepAudioProcessor::~ABDEepAudioProcessor()
@@ -64,6 +98,7 @@ void ABDEepAudioProcessor::changeProgramName (int index, const juce::String& new
 
 void ABDEepAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    synthEngine.prepare (sampleRate, samplesPerBlock);
 }
 
 void ABDEepAudioProcessor::releaseResources()
@@ -72,8 +107,8 @@ void ABDEepAudioProcessor::releaseResources()
 
 bool ABDEepAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
-    if (layouts.getMainOutput() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutput() != juce::AudioChannelSet::stereo())
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
+     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
 
     return true;
@@ -97,6 +132,12 @@ void ABDEepAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
             midiQueue.clear();
         }
     }
+
+    // Actualizar parámetros de control y síntesis
+    synthEngine.updateParameters (apvts);
+
+    // Renderizar audio a través del motor polifónico
+    synthEngine.processBlock (buffer, midiMessages);
 }
 
 bool ABDEepAudioProcessor::hasEditor() const

@@ -2,15 +2,15 @@
 
 #top-bar {
     height: 32px;
-    background: #121316;
-    border-bottom: 2.5px solid #23252a;
+    background: var(--bg-elevated);
+    border-bottom: 2.5px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 20px;
-    font-size: 11px;
+    font-size: var(--text-base);
     font-weight: bold;
-    color: #bbb;
+    color: var(--text-secondary);
     user-select: none;
     position: relative;
     z-index: 99999 !important;
@@ -39,14 +39,14 @@
     position: absolute;
     top: 100%;
     left: 0;
-    background: #18191d;
-    border: 1.5px solid #2e313a;
-    border-radius: 4px;
+    background: var(--bg-header);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
     width: 190px;
     display: none;
     flex-direction: column;
     z-index: 9999999 !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--shadow-dropdown);
     padding: 5px 0;
     margin: 0;
     list-style: none;
@@ -56,20 +56,20 @@
 .dropdown li {
     padding: 8px 16px;
     list-style: none;
-    color: #c5c6c7;
+    color: var(--text-secondary);
     transition: background 0.1s, color 0.1s;
-    font-size: 11px;
+    font-size: var(--text-base);
 }
 
 .dropdown li:hover {
     background: var(--brand-accent);
-    color: #000000;
+    color: #000;
     font-weight: bold;
 }
 
 .dropdown .divider {
     height: 1px;
-    background: #2e313a;
+    background: var(--border);
     margin: 5px 0;
     pointer-events: none;
 }
@@ -80,6 +80,75 @@
 
 #app-title-mini {
     font-weight: 900;
-    color: #555860;
+    color: var(--text-faint);
     letter-spacing: 0.5px;
+}
+
+/* --- Controller Overlay Permanente (Top Bar) --- */
+
+#ctrl-overlay {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 8px;
+    flex-shrink: 0;
+}
+
+.ctrl-overlay-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ctrl-overlay-label {
+    font-size: 7px;
+    font-weight: 900;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 16px;
+    text-align: right;
+}
+
+.ctrl-overlay-track {
+    width: 48px;
+    height: 6px;
+    background: var(--bg-header);
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+/* Mono-directional track (Mod Wheel, Aftertouch) */
+.ctrl-overlay-track-mono {
+    width: 36px;
+}
+
+.ctrl-overlay-fill {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.06s linear, left 0.06s linear, background 0.1s;
+}
+
+.ctrl-overlay-center {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: var(--border-strong);
+    opacity: 0.5;
+}
+
+.ctrl-overlay-value {
+    font-size: 7px;
+    font-weight: 700;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text-faint);
+    min-width: 28px;
+    text-align: left;
+    transition: color 0.1s;
 }

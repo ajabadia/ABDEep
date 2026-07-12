@@ -1,22 +1,60 @@
+/* --- BANK MANAGER: Botones y rejilla de patches --- */
+
+/* Rejilla de Patches (migrado de browser.css) */
+.patches-grid {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 32px;
+    gap: 6px;
+}
+
+.patch-item {
+    background: var(--bg-header);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.1s;
+}
+.patch-item:hover {
+    border-color: var(--brand-accent);
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--accent-primary) 5%, transparent);
+}
+.patch-item.active {
+    background: var(--brand-accent);
+    color: #000;
+    font-weight: bold;
+    border-color: var(--brand-accent);
+}
+
 /* --- EXTENSIONES DE ESTILO PARA EL BANK MANAGER --- */
 
 .manager-toolbar {
     padding: 10px 20px;
-    background: #101114;
-    border-bottom: 1.5px solid #2e313a;
+    background: var(--bg-surface);
+    border-bottom: 1.5px solid var(--border);
     display: flex;
     gap: 10px;
     align-items: center;
 }
 
 .manager-btn {
-    background: #23252a;
-    border: 1px solid #444854;
-    color: #c5c6c7;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
     padding: 5px 12px;
-    font-size: 10px;
+    font-size: var(--text-md);
     font-weight: bold;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     text-transform: uppercase;
     transition: all 0.15s ease;
@@ -29,20 +67,38 @@
 }
 
 .manager-btn.danger:hover {
-    background: #e74c3c;
+    background: var(--color-danger);
     color: #fff;
-    border-color: #e74c3c;
+    border-color: var(--color-danger);
+}
+
+/* Category badge on patch items */
+.cat-badge {
+    font-size: 7px;
+    background: color-mix(in srgb, var(--brand-accent) 20%, transparent);
+    color: var(--brand-accent);
+    border: 1px solid color-mix(in srgb, var(--brand-accent) 40%, transparent);
+    border-radius: 3px;
+    padding: 0 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.patch-item .cat-badge {
+    float: right;
+    margin-top: 1px;
 }
 
 /* Edición inline de nombres de banco */
 .bank-name-input {
-    background: #1c1d22;
+    background: var(--bg-header);
     border: 1px solid var(--brand-accent);
-    color: #fff;
-    font-size: 11px;
+    color: var(--text-primary);
+    font-size: var(--text-base);
     font-weight: bold;
     padding: 2px 5px;
     width: 90%;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
     outline: none;
 }

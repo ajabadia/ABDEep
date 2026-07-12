@@ -38,7 +38,11 @@ function initKnobs() {
 
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
-                    lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">PERFORMANCE</span><br><strong>${paramId.toUpperCase()}</strong><br><span style="font-size:15px; color:#ffb700;">${baseValue.toFixed(2)}</span>`;
+                    var displayVal = typeof window.formatParamValue === 'function' ? window.formatParamValue(paramId, baseValue) : baseValue.toFixed(2);
+                    lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">PERFORMANCE</span><br><strong>${paramId.toUpperCase()}</strong><br><span style="font-size:15px; color:var(--color-gold);">${displayVal}</span>`;
+                    if (typeof window.setLcdParamDisplayTimer === 'function') {
+                        window.setLcdParamDisplayTimer(lcdText);
+                    }
                 }
             }
         });

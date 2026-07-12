@@ -1,11 +1,6 @@
 /**
  * @purpose Gestor interactivo del secuenciador de control (Control Sequencer) central y editor de valores bipolares de 32 pasos.
  * @purpose_en Interactive manager for the central Control Sequencer and 32-step bipolar value editor.
- * @refactorable false
- * @classification UI Controller Service
- * @complexity Medium
- * @fingerprint exports:1,imports:1,sig:1q9t02p
- * @lastUpdated 2026-07-04T17:55:00.000Z
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -21,185 +16,68 @@ function initSequencerModal() {
 
     if (!seqBtn || !backdrop || !closeBtn || !stepsGrid || !stepsLabels) return;
 
-    // Estado local para los 32 pasos del secuenciador (valores bipolares -128 a 127)
-    let seqStepsValues = Array(32).fill(0); 
+    let _modalActiveStep = -1;
+    window._modalActiveStep = _modalActiveStep;
+    let _modalActiveSkip = false;
+    window._modalActiveSkip = _modalActiveSkip;
 
-    // Mostrar modal
+    if (typeof window.initSequencerEditor === 'function') {
+        window.initSequencerEditor();
+    }
+    if (typeof window.initSequencerPresets === 'function') {
+        window.initSequencerPresets();
+    }
+
     seqBtn.addEventListener('click', (e) => {
         e.preventDefault();
         backdrop.style.display = 'flex';
+        _updateSeqModalModeBadge();
         syncSeqModalUI();
+        if (window.dualMidiBridge) {
+            var curStep = window.dualMidiBridge.parameterCache['seq_current_step'];
+            if (curStep !== undefined) {
+                _modalActiveStep = Math.round(curStep);
+                window._modalActiveStep = _modalActiveStep;
+                _modalActiveSkip = (window.dualMidiBridge.parameterCache['seq_current_step_skip'] || 0) > 0.5;
+                window._modalActiveSkip = _modalActiveSkip;
+                _modalLastPolledStep = _modalActiveStep;
+                if (typeof window.updateStepVisual === 'function') {
+                    window.updateStepVisual(_modalActiveStep);
+                }
+            }
+        }
     });
 
-    // Ocultar modal
-    closeBtn.addEventListener('click', () => {
+    function _hideSeqModal() {
         backdrop.style.display = 'none';
-    });
+        _stopModalPolling();
+        _clearModalActiveHighlight();
+    }
+
+    closeBtn.addEventListener('click', _hideSeqModal);
 
     backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) {
-            backdrop.style.display = 'none';
+            _hideSeqModal();
         }
     });
 
-    // Generar dinámicamente los 32 pasos interactivos (Faders verticales bipolares)
-    stepsGrid.innerHTML = '';
-    stepsLabels.innerHTML = '';
-    
-    for (let i = 0; i < 32; i++) {
-        const stepUnit = document.createElement('div');
-        stepUnit.style.display = 'flex';
-        stepUnit.style.flexDirection = 'column';
-        stepUnit.style.justifyContent = 'center';
-        stepUnit.style.alignItems = 'center';
-        stepUnit.style.height = '100%';
-        stepUnit.style.cursor = 'ns-resize';
-        stepUnit.style.position = 'relative';
-        stepUnit.style.background = '#0a0a0d';
-        stepUnit.style.borderLeft = '1px solid #141419';
-        
-        // Indicador numérico encima (estilo caja de la app original)
-        const numIndicator = document.createElement('div');
-        numIndicator.className = 'seq-step-val';
-        numIndicator.style.fontSize = '8px';
-        numIndicator.style.fontWeight = 'bold';
-        numIndicator.style.color = '#ccc';
-        numIndicator.style.background = '#1a1a22';
-        numIndicator.style.border = '1px solid #2d2d38';
-        numIndicator.style.borderRadius = '2px';
-        numIndicator.style.padding = '2px 4px';
-        numIndicator.style.minWidth = '20px';
-        numIndicator.style.textAlign = 'center';
-        numIndicator.style.marginBottom = '4px';
-        numIndicator.innerText = '0';
-        stepUnit.appendChild(numIndicator);
-
-        // Contenedor de la barra
-        const barContainer = document.createElement('div');
-        barContainer.className = 'seq-step-bar-container';
-        barContainer.style.width = '8px';
-        barContainer.style.height = '70px';
-        barContainer.style.background = '#1a1a22';
-        barContainer.style.position = 'relative';
-        barContainer.style.borderRadius = '1px';
-        
-        // Línea central de cero bipolar
-        const zeroLine = document.createElement('div');
-        zeroLine.style.position = 'absolute';
-        zeroLine.style.left = '0';
-        zeroLine.style.right = '0';
-        zeroLine.style.bottom = '50%';
-        zeroLine.style.height = '1px';
-        zeroLine.style.background = 'rgba(255, 255, 255, 0.15)';
-        zeroLine.style.zIndex = '1';
-        barContainer.appendChild(zeroLine);
-        
-        // La barra de relleno bipolar (origen en el centro)
-        const fillBar = document.createElement('div');
-        fillBar.className = 'seq-step-fill-bar';
-        fillBar.style.width = '100%';
-        fillBar.style.position = 'absolute';
-        fillBar.style.background = 'var(--brand-accent)';
-        fillBar.style.bottom = '50%'; // empieza en el centro
-        fillBar.style.height = '0%';
-        barContainer.appendChild(fillBar);
-        stepUnit.appendChild(barContainer);
-
-        // Lógica de arrastre táctil/ratón para modificar el valor bipolar
-        let isEditing = false;
-        
-        const updateValFromY = (clientY) => {
-            const rect = barContainer.getBoundingClientRect();
-            const height = rect.height;
-            // Calcular posición relativa al centro (0.5 es el centro)
-            let relY = (clientY - rect.top) / height;
-            relY = Math.max(0, Math.min(1, relY));
-            // Invertir ya que clientY crece hacia abajo
-            const normVal = 1.0 - relY; // 0.0 a 1.0
-            // Convertir a rango bipolar -128 a 127
-            const bipolarVal = Math.round((normVal * 255) - 128);
-            seqStepsValues[i] = bipolarVal;
-            
-            // Actualizar visualmente
-            updateStepVisual(i);
-
-            // Informar en el LCD
-            const lcdText = document.getElementById('lcd-text');
-            if (lcdText) {
-                lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">CONTROL SEQ</span><br><strong>STEP ${i+1} VALUE</strong><br><span style="font-size:15px; color:#ff00cc;">${bipolarVal}</span>`;
-            }
-        };
-
-        stepUnit.addEventListener('mousedown', (e) => {
-            isEditing = true;
-            updateValFromY(e.clientY);
-            e.preventDefault();
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (isEditing) updateValFromY(e.clientY);
-        });
-
-        window.addEventListener('mouseup', () => {
-            isEditing = false;
-        });
-
-        stepsGrid.appendChild(stepUnit);
-        
-        // Etiquetas de números 1-32
-        const label = document.createElement('span');
-        label.innerText = i + 1;
-        stepsLabels.appendChild(label);
-    }
-
-    // Función interna para actualizar el render de un paso
-    function updateStepVisual(index) {
-        const stepUnit = stepsGrid.children[index];
-        if (!stepUnit) return;
-        const numIndicator = stepUnit.querySelector('.seq-step-val');
-        const fillBar = stepUnit.querySelector('.seq-step-fill-bar');
-        const barContainer = stepUnit.querySelector('.seq-step-bar-container');
-        const val = seqStepsValues[index];
-
-        // Determinar si este paso está activo según el selector de longitud
-        const selectLength = document.getElementById('modal-seq-length-select');
-        // El valor de selectLength es el índice (0-30), que corresponde a la longitud (2-32)
-        const activeLength = selectLength ? (parseInt(selectLength.value) + 2) : 16;
-        const isActive = index < activeLength;
-
-        if (numIndicator) {
-            numIndicator.innerText = val;
-            numIndicator.style.color = isActive ? 'var(--brand-accent)' : '#555';
-            numIndicator.style.background = isActive ? '#1c1d24' : '#0e0e12';
-            numIndicator.style.borderColor = isActive ? 'var(--brand-accent)' : '#222';
-            numIndicator.style.opacity = isActive ? '1.0' : '0.4';
-        }
-
-        if (stepUnit) {
-            stepUnit.style.background = isActive ? '#0e0e12' : '#050507';
-        }
-
-        if (barContainer) {
-            barContainer.style.background = isActive ? '#1c1c24' : '#111116';
-        }
-
-        if (fillBar) {
-            // Rango -128 a 127
-            if (val >= 0) {
-                const pct = (val / 127) * 50;
-                fillBar.style.bottom = '50%';
-                fillBar.style.height = pct + '%';
-                fillBar.style.background = isActive ? '#ff00cc' : 'rgba(255, 0, 204, 0.2)'; // Seq active/inactive theme
-            } else {
-                const pct = (Math.abs(val) / 128) * 50;
-                fillBar.style.bottom = (50 - pct) + '%';
-                fillBar.style.height = pct + '%';
-                fillBar.style.background = isActive ? '#8800aa' : 'rgba(136, 0, 170, 0.2)'; // Bipolar negativo active/inactive
+    function _clearModalActiveHighlight() {
+        for (var ci = 0; ci < 32; ci++) {
+            var child = stepsGrid.children[ci];
+            if (child) {
+                child.style.outline = '';
+                child.style.boxShadow = '';
+                var numEl = child.querySelector('.seq-step-val');
+                if (numEl) numEl.style.boxShadow = '';
+                var rawEl = child.querySelector('.seq-step-raw');
+                if (rawEl) rawEl.style.color = '';
             }
         }
+        _modalActiveStep = -1;
+        window._modalActiveStep = -1;
     }
 
-    // Configurar listeners de controles dentro del modal
     const seqBox = document.getElementById('modal-seq-enable-box');
     if (seqBox) {
         seqBox.addEventListener('click', () => {
@@ -211,16 +89,16 @@ function initSequencerModal() {
     const selectClock = document.getElementById('modal-seq-clock-select');
     if (selectClock) {
         selectClock.addEventListener('change', () => {
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter("seq_clock", parseInt(selectClock.value) / 10.0);
+            if (window.dualMidiBridge) window.dualMidiBridge.setParameter("seq_clock", parseInt(selectClock.value) / 15.0);
         });
     }
 
     const selectLength = document.getElementById('modal-seq-length-select');
     if (selectLength) {
         selectLength.addEventListener('change', () => {
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter("seq_length", parseInt(selectLength.value) / 30.0);
+            if (window.dualMidiBridge) window.dualMidiBridge.setParameter("seq_length", parseInt(selectLength.value) / 31.0);
             for (let i = 0; i < 32; i++) {
-                updateStepVisual(i);
+                if (typeof window.updateStepVisual === 'function') window.updateStepVisual(i);
             }
         });
     }
@@ -232,7 +110,6 @@ function initSequencerModal() {
         });
     }
 
-    // Configurar listeners de faders en el modal (Swing y Slew)
     backdrop.querySelectorAll('.v-slider').forEach(slider => {
         const ctrlUnit = slider.closest('[data-param]');
         if (!ctrlUnit) return;
@@ -255,64 +132,90 @@ function initSequencerModal() {
             }
         };
 
+        function onSliderMove(e) {
+            if (isDragging) updateSliderPos(e.clientY);
+        }
+        function onSliderEnd() {
+            isDragging = false;
+            window.removeEventListener('mousemove', onSliderMove);
+            window.removeEventListener('mouseup', onSliderEnd);
+        }
         slider.addEventListener('mousedown', (e) => {
             isDragging = true;
             updateSliderPos(e.clientY);
             e.preventDefault();
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (isDragging) updateSliderPos(e.clientY);
-        });
-
-        window.addEventListener('mouseup', () => {
-            isDragging = false;
+            window.addEventListener('mousemove', onSliderMove);
+            window.addEventListener('mouseup', onSliderEnd);
         });
     });
 
-    // Gestión de presets locales del secuenciador
-    const loadPresetBtn = document.getElementById('modal-seq-load-preset');
-    const presetsList = document.getElementById('modal-seq-presets-list');
-
-    if (presetsList) {
-        presetsList.querySelectorAll('.preset-item').forEach(item => {
-            item.addEventListener('click', () => {
-                presetsList.querySelectorAll('.preset-item').forEach(i => {
-                    i.style.background = 'transparent';
-                    i.classList.remove('selected');
-                });
-                item.style.background = 'rgba(255, 0, 204, 0.2)';
-                item.classList.add('selected');
-            });
-        });
-    }
-
-    if (loadPresetBtn) {
-        loadPresetBtn.addEventListener('click', () => {
-            const selected = presetsList.querySelector('.selected');
-            if (selected) {
-                const text = selected.innerText;
-                if (text.includes("Staircase")) {
-                    seqStepsValues = Array(32).fill(0).map((_, i) => Math.round((i / 31) * 255 - 128));
-                } else if (text.includes("Triangle")) {
-                    seqStepsValues = Array(32).fill(0).map((_, i) => {
-                        const phase = (i / 16) % 2.0;
-                        const val = phase < 1.0 ? phase : 2.0 - phase;
-                        return Math.round((val * 255) - 128);
-                    });
-                } else {
-                    seqStepsValues = Array(32).fill(0).map(() => Math.round(Math.random() * 255 - 128));
-                }
-                
-                // Reflejar cambios visuales
-                for (let i = 0; i < 32; i++) {
-                    updateStepVisual(i);
-                }
+    var openPanelBtn = document.getElementById('modal-seq-open-panel-btn');
+    if (openPanelBtn) {
+        openPanelBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof window.openSeqPanel === 'function') {
+                window.openSeqPanel();
             }
         });
     }
 
-    // Registrar actualizador global
+    var resetBtn = document.getElementById('modal-seq-reset-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            var bridge = window.dualMidiBridge;
+            if (!bridge || !bridge._seqEngine) return;
+            
+            var wasRunning = bridge._seqEngine.running;
+            bridge._seqEngine.stop();
+            bridge._seqEngine.stepIndex = 0;
+            bridge._seqEngine.heldNotes = [];
+            bridge._seqEngine._forcedFreeRunning = false;
+            for (var si = 0; si < bridge._seqEngine.previousValues.length; si++) {
+                bridge._seqEngine.previousValues[si] = 0;
+            }
+            _clearModalActiveHighlight();
+            _modalLastPolledStep = -1;
+            
+            if (wasRunning || (bridge.parameterCache['seq_enable'] || 0) > 0.5) {
+                bridge._updateSeqEngine();
+            }
+            
+            window._seqLastResetTime = Date.now();
+            window._seqResetCount++;
+            var _sNotes_ = bridge._seqEngine.heldNotes.length;
+            var _sStep_ = bridge._seqEngine.stepIndex;
+            var _sLen_ = Math.round((bridge.parameterCache['seq_length'] || 0) * 31) + 2;
+            var _sBar_ = window._genPosBar(Math.round((_sStep_ / Math.max(_sLen_ - 1, 1)) * 18), 18);
+            var _lcdText_ = document.getElementById('lcd-text');
+            if (_lcdText_) {
+                var _seqHtml_ = window._genLcdBarHtml('seq', {
+                    header: 'SEQUENCER RESET (manual) #' + window._seqResetCount,
+                    stepInfo: 'Step ' + _sStep_ + ' \u00B7 ' + _sNotes_ + ' notes \u00B7 ' + _sLen_ + ' steps',
+                    bar: _sBar_
+                });
+                window.lcdSafeUpdate(_lcdText_, _seqHtml_, 'seq_reset');
+            }
+            
+            var _rBtn_ = this;
+            _rBtn_.style.transition = 'background 60ms ease-out, box-shadow 60ms ease-out';
+            _rBtn_.style.background = 'color-mix(in srgb, var(--color-danger) 70%, transparent)';
+            _rBtn_.style.boxShadow = '0 0 16px var(--color-danger)';
+            _rBtn_.style.borderColor = 'var(--color-danger)';
+            _rBtn_.style.color = 'var(--color-danger)';
+            setTimeout(function() {
+                _rBtn_.style.transition = 'background 300ms ease-out, box-shadow 300ms ease-out, border-color 300ms ease-out, color 300ms ease-out';
+                _rBtn_.style.background = '';
+                _rBtn_.style.boxShadow = '';
+                _rBtn_.style.borderColor = '';
+                _rBtn_.style.color = '';
+                setTimeout(function() {
+                    _rBtn_.style.transition = '';
+                }, 320);
+            }, 60);
+        });
+    }
+
     window.syncSeqModalUIFromState = () => {
         if (backdrop.style.display !== 'none') {
             syncSeqModalUI();
@@ -320,16 +223,16 @@ function initSequencerModal() {
     };
     
     function syncSeqModalUI() {
-        if (typeof currentActivePatchIndex === 'undefined' || currentActivePatchIndex === -1) return;
-        const activeBank = loadedBanks[currentActiveBank];
+        if (typeof window.currentActivePatchIndex === 'undefined' || window.currentActivePatchIndex === -1) return;
+        const activeBank = window.loadedBanks[window.currentActiveBank];
         if (!activeBank) return;
-        const patch = activeBank[currentActivePatchIndex];
+        const patch = activeBank[window.currentActivePatchIndex];
         if (!patch || !patch.unpackedBytes) return;
 
-        const seqEn = patch.unpackedBytes[119] > 0.5;
-        const clockVal = patch.unpackedBytes[120] || 0;
-        const lengthVal = patch.unpackedBytes[121] || 0;
-        const keyloopVal = patch.unpackedBytes[122] || 0;
+        const seqEn = patch.unpackedBytes[117] > 0.5;
+        const clockVal = patch.unpackedBytes[118] || 0;
+        const lengthVal = patch.unpackedBytes[119] || 0;
+        const keyloopVal = patch.unpackedBytes[121] || 0;
 
         if (seqBox) seqBox.classList.toggle('active', seqEn);
 
@@ -338,12 +241,11 @@ function initSequencerModal() {
         if (selectKeyLoop) selectKeyLoop.value = Math.round(keyloopVal);
 
         const sliders = [
-            { id: "seq_swing", val: patch.unpackedBytes[123] / 100.0 },
-            { id: "seq_slew_rate", val: patch.unpackedBytes[124] / 255.0 }
+            { id: "seq_swing", val: patch.unpackedBytes[120] / 25.0 },
+            { id: "seq_slew_rate", val: patch.unpackedBytes[122] / 255.0 }
         ];
 
         sliders.forEach(sliderInfo => {
-            // Actualizar valor en el indicador numérico
             if (sliderInfo.id === "seq_swing") {
                 const txt = document.getElementById('modal-seq-swing-val');
                 if (txt) txt.innerText = Math.round(50 + sliderInfo.val * 9);
@@ -369,27 +271,168 @@ function initSequencerModal() {
             }
         });
 
-        // Inicializar los faders bipolares
         for (let i = 0; i < 32; i++) {
-            updateStepVisual(i);
+            const rawByte = patch.unpackedBytes[123 + i];
+            window.seqStepsRaw[i] = rawByte;
+            window.seqStepsValues[i] = rawByte === 0 ? 0 : rawByte - 128;
+            if (typeof window.updateStepVisual === 'function') window.updateStepVisual(i);
         }
     }
 
-    // Escuchar cambios de parámetros del secuenciador
+    function _updateSeqModalModeBadge() {
+        var badgeEl = document.getElementById('modal-seq-mode-badge');
+        if (!badgeEl) return;
+        var bridge = window.dualMidiBridge;
+        if (!bridge) return;
+        var keyLoopNorm = bridge.parameterCache['seq_key_loop'] || 0;
+        var keyLoopVal = Math.round(keyLoopNorm * 2);
+        var forcedMode = bridge._seqEngine && bridge._seqEngine._forcedFreeRunning;
+        var label = '', color = '';
+        if (forcedMode) {
+            label = 'FREE*';
+            color = 'var(--accent-yellow)';
+        } else if (keyLoopVal === 0) {
+            label = 'FREE';
+            color = 'var(--accent-green)';
+        } else if (keyLoopVal === 1) {
+            label = 'KEY';
+            color = 'var(--accent-blue)';
+        } else {
+            label = 'LOOP';
+            color = 'var(--accent-teal)';
+        }
+        var tooltip = '';
+        if (label === 'FREE*') {
+            tooltip = ' title="Key Sync desactivado automáticamente — no había teclas presionadas al activar SEQ"';
+        }
+        var cursorStyle = label === 'FREE*' ? ';cursor:help' : '';
+        badgeEl.innerHTML = '<span style="color:' + color + ';font-weight:bold;border:1px solid ' + color + ';padding:0 6px;border-radius:3px;font-size:10px' + cursorStyle + '"' + tooltip + '>' + label + '</span>';
+    }
+
+    let _modalPollTimer = null;
+    let _modalLastPolledStep = -1;
+
+    function _startModalPolling() {
+        _stopModalPolling();
+        _modalPollTimer = setInterval(function() {
+            if (backdrop.style.display === 'none') {
+                _stopModalPolling();
+                return;
+            }
+            var bridge = window.dualMidiBridge;
+            if (!bridge) return;
+            
+            var currentStep = bridge.parameterCache['seq_current_step'];
+            var seqEn = bridge.parameterCache['seq_enable'] || 0;
+            
+            if (seqEn < 0.5) {
+                if (_modalActiveStep !== -1) {
+                    _clearModalActiveHighlight();
+                }
+                _modalLastPolledStep = -1;
+                return;
+            }
+            
+            if (currentStep === undefined || currentStep === null) {
+                if (_modalActiveStep !== -1) {
+                    _clearModalActiveHighlight();
+                }
+                _modalLastPolledStep = -1;
+                return;
+            }
+            
+            _updateSeqModalModeBadge();
+            
+            var stepIdx = Math.round(currentStep);
+            var isSkip = (bridge.parameterCache['seq_current_step_skip'] || 0) > 0.5;
+            
+            if (stepIdx !== _modalLastPolledStep || isSkip !== _modalActiveSkip) {
+                if (_modalActiveStep >= 0 && _modalActiveStep < 32) {
+                    var prevEl = stepsGrid.children[_modalActiveStep];
+                    if (prevEl) {
+                        prevEl.style.outline = '';
+                        prevEl.style.boxShadow = '';
+                        var prevNum = prevEl.querySelector('.seq-step-val');
+                        if (prevNum) prevNum.style.boxShadow = '';
+                    }
+                }
+                _modalActiveStep = stepIdx;
+                window._modalActiveStep = _modalActiveStep;
+                _modalActiveSkip = isSkip;
+                window._modalActiveSkip = _modalActiveSkip;
+                _modalLastPolledStep = stepIdx;
+                if (typeof window.updateStepVisual === 'function') window.updateStepVisual(stepIdx);
+            }
+        }, 100);
+    }
+
+    function _stopModalPolling() {
+        if (_modalPollTimer) {
+            clearInterval(_modalPollTimer);
+            _modalPollTimer = null;
+        }
+    }
+
+    window.addEventListener('beforeunload', _stopModalPolling);
+
+    var _modalObserver = new MutationObserver(function() {
+        if (backdrop.style.display === 'flex') {
+            _clearModalActiveHighlight();
+            _startModalPolling();
+        } else if (backdrop.style.display === 'none') {
+            _stopModalPolling();
+            _clearModalActiveHighlight();
+        }
+    });
+    _modalObserver.observe(backdrop, { attributes: true, attributeFilter: ['style'] });
+
     if (window.dualMidiBridge) {
         window.dualMidiBridge.onParameterChanged((paramId, val) => {
             if (backdrop.style.display === 'none') return;
-            if (paramId === "seq_enable" && seqBox) seqBox.classList.toggle('active', val > 0.5);
-            if (paramId === "seq_clock" && selectClock) selectClock.value = Math.round(val * 10.0);
+            
+            if (paramId === "seq_enable" && seqBox) {
+                seqBox.classList.toggle('active', val > 0.5);
+                if (val < 0.5) {
+                    _clearModalActiveHighlight();
+                }
+                if (val > 0.5 && window.dualMidiBridge._seqEngine) {
+                    var _sNotes_ = window.dualMidiBridge._seqEngine.heldNotes.length;
+                    var _sStep_ = window.dualMidiBridge._seqEngine.stepIndex;
+                    var _sLen_ = Math.round((window.dualMidiBridge.parameterCache['seq_length'] || 0) * 31) + 2;
+                    window._seqLastResetTime = Date.now();
+                    window._seqResetCount++;
+                    var _sBar_ = window._genPosBar(Math.round((_sStep_ / Math.max(_sLen_ - 1, 1)) * 18), 18);
+                    var _lcdText_ = document.getElementById('lcd-text');
+                    if (_lcdText_) {
+                        var _seqHtml_ = window._genLcdBarHtml('seq', {
+                            header: 'SEQUENCER RESET #' + window._seqResetCount,
+                            stepInfo: 'Step ' + _sStep_ + ' \u00B7 ' + _sNotes_ + ' notes \u00B7 ' + _sLen_ + ' steps',
+                            bar: _sBar_
+                        });
+                        window.lcdSafeUpdate(_lcdText_, _seqHtml_, 'seq_enable');
+                    }
+                }
+            }
+            if (paramId === "seq_clock" && selectClock) selectClock.value = Math.round(val * 15.0);
             if (paramId === "seq_length" && selectLength) {
-                selectLength.value = Math.round(val * 30.0);
+                selectLength.value = Math.round(val * 31.0);
                 for (let i = 0; i < 32; i++) {
-                    updateStepVisual(i);
+                    if (typeof window.updateStepVisual === 'function') window.updateStepVisual(i);
                 }
             }
             if (paramId === "seq_key_loop" && selectKeyLoop) selectKeyLoop.value = Math.round(val * 2.0);
+            if (paramId && paramId.startsWith('seq_step_')) {
+                const stepIdx = parseInt(paramId.split('_')[2]) - 1;
+                if (stepIdx >= 0 && stepIdx < 32) {
+                    const rawByte = Math.round(val * 255);
+                    window.seqStepsRaw[stepIdx] = rawByte;
+                    window.seqStepsValues[stepIdx] = rawByte === 0 ? 0 : rawByte - 128;
+                    if (typeof window.updateStepVisual === 'function') window.updateStepVisual(stepIdx);
+                }
+                return;
+            }
+            
             if (paramId === "seq_swing" || paramId === "seq_slew_rate") {
-                // Actualizar valor en el indicador numérico
                 if (paramId === "seq_swing") {
                     const txt = document.getElementById('modal-seq-swing-val');
                     if (txt) txt.innerText = Math.round(50 + val * 9);

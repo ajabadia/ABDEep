@@ -22,3 +22,25 @@ Thumbs.db
 /resources/
 
 .vercel
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Logs & temp
+*.log
+webview_log.txt
+
+# Agent configurations
+.agents/
+/WebUI/nul
+/nul
+/WebUItestspanelEdit.test.js

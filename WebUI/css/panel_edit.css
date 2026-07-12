@@ -6,10 +6,10 @@
     left: -320px; /* Escondido por defecto a la izquierda */
     width: 310px;
     height: calc(100% - 32px - 160px); /* Ajustado para que acabe exactamente donde empieza la keyboard-container (teclado + ruedas) */
-    background: #111215;
-    border-right: 2px solid #2e313a;
-    border-bottom: 2px solid #2e313a;
-    box-shadow: 15px 0 35px rgba(0,0,0,0.85);
+    background: var(--bg-surface);
+    border-right: 2px solid var(--border);
+    border-bottom: 2px solid var(--border);
+    box-shadow: var(--shadow-panel);
     z-index: 4000 !important;
     display: flex;
     flex-direction: column;
@@ -22,9 +22,9 @@
 }
 
 .slide-edit-panel .panel-header {
-    background: #18191d;
+    background: var(--bg-header);
     padding: 10px 15px;
-    border-bottom: 1.5px solid #2e313a;
+    border-bottom: 1.5px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -32,7 +32,7 @@
 
 .slide-edit-panel .panel-header h3 {
     margin: 0;
-    font-size: 11px;
+    font-size: var(--text-base);
     text-transform: uppercase;
     letter-spacing: 1px;
     color: var(--brand-accent);
@@ -58,11 +58,11 @@
 }
 
 .panel-section-title {
-    font-size: 8px;
+    font-size: var(--text-xs);
     font-weight: 900;
-    color: #888;
+    color: var(--text-dim);
     text-transform: uppercase;
-    border-bottom: 1px dashed #2e313a;
+    border-bottom: 1px dashed var(--border);
     padding-bottom: 3px;
     margin-bottom: 5px;
 }
@@ -72,10 +72,10 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    background: #090a0c;
+    background: var(--bg-deepest);
     padding: 8px;
-    border-radius: 4px;
-    border: 1px solid #1f2228;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-dim);
     width: 100%;
 }
 
@@ -86,23 +86,23 @@
     align-items: center;
     padding: 3px 6px;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
     transition: background 0.1s;
 }
 
 .shape-led-row:hover {
-    background: rgba(255, 153, 0, 0.05);
+    background: color-mix(in srgb, var(--accent-primary) 5%, transparent);
 }
 
 .shape-led-row.active {
-    background: rgba(255, 153, 0, 0.1);
+    background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
 }
 
 .shape-led-row .led-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #444;
+    background: var(--border-strong);
     transition: all 0.2s;
     box-shadow: none;
 }
@@ -113,14 +113,13 @@
 }
 
 .shape-led-row .shape-name {
-    font-size: 8px;
+    font-size: var(--text-xs);
     font-weight: bold;
-    color: #999;
+    color: var(--text-dim);
     text-transform: uppercase;
 }
-
 .shape-led-row.active .shape-name {
-    color: #fff;
+    color: var(--text-primary);
 }
 
 /* Switch análogo en caja */
@@ -128,18 +127,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #0c0d10;
+    background: var(--bg-deepest);
     padding: 6px 10px;
-    border-radius: 4px;
-    border: 1px solid #1f2228;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-dim);
     cursor: pointer;
     flex: 1;
 }
 
 .toggle-box .toggle-label {
-    font-size: 8px;
+    font-size: var(--text-xs);
     font-weight: bold;
-    color: #888;
+    color: var(--text-dim);
     text-transform: uppercase;
 }
 
@@ -147,7 +146,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #444;
+    background: var(--border-strong);
     transition: all 0.2s;
 }
 
@@ -157,5 +156,87 @@
 }
 
 .toggle-box.active .toggle-label {
-    color: #fff;
+    color: var(--text-primary);
+}
+
+/* Radio-style selector buttons used in OSC range, pitch mode, VCF poles, etc. */
+.env-type-btn {
+    background: var(--bg-deepest);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-dim);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    font-family: 'Share Tech Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 5px 2px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.env-type-btn:hover {
+    background: color-mix(in srgb, var(--accent-primary) 7%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary) 40%, transparent);
+    color: var(--text-secondary);
+}
+.env-type-btn.active {
+    background: color-mix(in srgb, var(--accent-primary) 18%, transparent);
+    border-color: var(--brand-accent);
+    color: var(--brand-accent);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+}
+
+/* Custom scrollbar for sliding edit panel content */
+.slide-edit-panel .panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+.slide-edit-panel .panel-content::-webkit-scrollbar-track {
+    background: var(--bg-surface);
+}.slide-edit-panel .panel-content::-webkit-scrollbar-thumb        { background: var(--brand-accent); border-radius: var(--radius-sm); }
+.slide-edit-panel .panel-content::-webkit-scrollbar-thumb:hover  { background: color-mix(in srgb, var(--accent-primary) 88%, #000); }
+
+/* Collapse/Expand toggle button for the graphic screen */
+#panel-graphic-toggle {
+    display: block;
+    transition: color 0.2s, background 0.2s;
+}
+#panel-graphic-toggle:hover {
+    color: var(--brand-accent) !important;
+    background: var(--bg-elevated) !important;
+}
+
+/* ── SCOPE TOOLBAR ── */
+.scope-btn {
+    background: var(--bg-deepest);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-xs);
+    color: var(--text-dim);
+    font-size: 8px;
+    padding: 1px 4px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    line-height: 1.6;
+    transition: all 0.12s;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.scope-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+.scope-btn.active {
+    background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
+    border-color: var(--brand-accent);
+    color: var(--brand-accent);
+    box-shadow: 0 0 4px color-mix(in srgb, var(--accent-primary) 20%, transparent);
+}
+.scope-btn .scope-color-indicator {
+    font-size: 10px;
+    line-height: 1;
+    filter: drop-shadow(0 0 2px currentColor);
+}
+.scope-zoom-btn {
+    font-size: 7px;
+    padding: 1px 3px;
 }

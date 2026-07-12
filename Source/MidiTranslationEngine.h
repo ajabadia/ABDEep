@@ -27,15 +27,20 @@ public:
                 }
                 else if (spec.midiNRPN >= 0)
                 {
-                    // Convertir el valor normalizado a rango MIDI de 7 bits (0-127)
-                    int midiValue = juce::jlimit (0, 127, juce::roundToInt (normalizedValue * 127.0f));
-                    // Secuencia NRPN para Behringer DeepMind 12:
+                    // Convertir el valor normalizado a rango de 8 bits del hardware (0-255)
+                    int raw8 = juce::jlimit (0, 255, juce::roundToInt (normalizedValue * 255.0f));
+                    // Dividir en mensajes NRPN de 14 bits (CC6 = Data MSB, CC38 = Data LSB)
+                    int dataMsb = (raw8 >> 7) & 0x7F;  // bits 7 (0 ó 1 para valores de 8 bits)
+                    int dataLsb = raw8 & 0x7F;          // bits 0-6
+                    // Secuencia NRPN completa:
                     // 1. CC 99 (NRPN MSB) = 0
                     // 2. CC 98 (NRPN LSB) = spec.midiNRPN
-                    // 3. CC 38 (LSB Data Entry) = midiValue
+                    // 3. CC  6 (Data Entry MSB) = dataMsb
+                    // 4. CC 38 (Data Entry LSB) = dataLsb
                     messages.push_back (juce::MidiMessage::controllerEvent (midiChannel, 99, 0));
                     messages.push_back (juce::MidiMessage::controllerEvent (midiChannel, 98, spec.midiNRPN));
-                    messages.push_back (juce::MidiMessage::controllerEvent (midiChannel, 38, midiValue));
+                    messages.push_back (juce::MidiMessage::controllerEvent (midiChannel, 6, dataMsb));
+                    messages.push_back (juce::MidiMessage::controllerEvent (midiChannel, 38, dataLsb));
                 }
                 break;
             }
@@ -52,36 +57,46 @@ public:
             int ccNumber = message.getControllerNumber();
             int ccValue = message.getControllerValue();
 
-            if (ccNumber == 98) // NRPN LSB
+            if (ccNumber == 98) // NRPN LSB (dirección del parámetro)
             {
                 nrpnNum = ccValue;
                 return { {}, 0.0f };
             }
-            else if (ccNumber == 38) // NRPN Value LSB
+            else if (ccNumber == 99) // NRPN MSB (dirección del parámetro)
             {
-                nrpnVal = ccValue;
-                if (nrpnNum >= 0)
+                return { {}, 0.0f };
+            }
+            else if (ccNumber == 6) // NRPN Value MSB (bits 7-13 del valor)
+            {
+                nrpnValMsb = ccValue;
+                return { {}, 0.0f };
+            }
+            else if (ccNumber == 38) // NRPN Value LSB (bits 0-6 del valor)
+            {
+                nrpnValLsb = ccValue;
+                // Combinar MSB+LSB en un valor de 14 bits (0-16383)
+                // El hardware DeepMind 12 usa internamente 8 bits (0-255),
+                // así que normalizamos contra 255.
+                if (nrpnNum >= 0 && nrpnValMsb >= 0)
                 {
-                    int paramNRPN = nrpnNum;
-                    float normalizedValue = static_cast<float> (nrpnVal) / 127.0f;
+                    int raw14 = (nrpnValMsb << 7) | nrpnValLsb;
+                    float normalizedValue = static_cast<float> (raw14) / 255.0f;
                     
+                    int paramNRPN = nrpnNum;
                     // Resetear el estado temporal
                     nrpnNum = -1;
-                    nrpnVal = -1;
+                    nrpnValMsb = -1;
+                    nrpnValLsb = -1;
 
                     auto specs = ParametersSpec::getSpecs();
                     for (const auto& spec : specs)
                     {
                         if (spec.midiNRPN == paramNRPN)
                         {
-                            return { spec.id, normalizedValue };
+                            return { spec.id, juce::jlimit (0.0f, 1.0f, normalizedValue) };
                         }
                     }
                 }
-                return { {}, 0.0f };
-            }
-            else if (ccNumber == 99) // NRPN MSB
-            {
                 return { {}, 0.0f };
             }
             else
@@ -132,7 +147,7 @@ public:
     static juce::MemoryBlock unpackDeepMindSysEx (const uint8_t* packedData, size_t packedLength)
     {
         juce::MemoryBlock out;
-        out.ensureStorageAllocated ((packedLength * 7) / 8);
+        out.ensureSize ((packedLength * 7) / 8, false);
 
         for (size_t i = 0; i + 7 < packedLength; i += 8)
         {
@@ -149,6 +164,7 @@ public:
     }
 
 private:
-    inline static int nrpnNum = -1;
-    inline static int nrpnVal = -1;
+    inline static int nrpnNum = -1;    // Último NRPN LSB recibido (CC98)
+    inline static int nrpnValMsb = -1;  // Último NRPN Data MSB recibido (CC6)
+    inline static int nrpnValLsb = -1;  // Último NRPN Data LSB recibido (CC38)
 };

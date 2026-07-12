@@ -91,12 +91,16 @@ function initModMatrix() {
                     <button class="modmatrix-selector-btn" id="mod-dest-btn-${slot}" data-type="dest">Dest: None</button>
                 </div>
                 <div class="modmatrix-depth-row">
-                    <span class="label" style="font-size: 7px; color:#888;">DEPTH</span>
+                    <span class="label" style="font-size: 7px; color:var(--text-dim);">DEPTH</span>
                     <div class="modmatrix-h-slider" id="mod-depth-slider-${slot}">
                         <div class="track"></div>
                         <div class="handle" style="left: 50%;"></div>
                     </div>
                     <div class="modmatrix-depth-value" id="mod-depth-txt-${slot}">0</div>
+                </div>
+                <div class="modmatrix-slot-info" style="display:flex;justify-content:space-between;margin-top:2px;gap:4px">
+                    <span style="font-size:var(--text-2xs);color:var(--text-faint)">NRPN: ${93+(slot-1)*3}/${94+(slot-1)*3}/${95+(slot-1)*3}</span>
+                    <span class="mod-slot-active-badge" id="mod-active-badge-${slot}" style="font-size:var(--text-2xs);color:var(--text-faint)">OFF</span>
                 </div>
             </div>
         `;
@@ -143,7 +147,7 @@ function initModMatrix() {
                     dropdownList.style.display = 'none';
 
                     const paramId = isSource ? `mod_matrix_slot${slot}_src` : `mod_matrix_slot${slot}_dest`;
-                    const maxVal = isSource ? 24.0 : 132.0;
+                    const maxVal = isSource ? 22.0 : 129.0; // manual: src 0-22, dest 0-129
 
                     if (window.dualMidiBridge) {
                         window.dualMidiBridge.setParameter(paramId, selectedIdx / maxVal);
@@ -198,33 +202,43 @@ function initModMatrix() {
     // Función de Sincronización al Abrir Modal o Cargar Preset
     window.syncModMatrixUIFromState = () => {
         if (!window.dualMidiBridge) return;
-
-        // Si tenemos un preset activo cargado en el browser, leemos sus bytes directamente
-        let activePatchBytes = null;
-        if (typeof currentActivePatchIndex !== 'undefined' && currentActivePatchIndex !== -1) {
-            const activeBank = loadedBanks[currentActiveBank];
-            if (activeBank) {
-                const patch = activeBank[currentActivePatchIndex];
-                if (patch && patch.unpackedBytes) activePatchBytes = patch.unpackedBytes;
-            }
-        }
+        const cache = window.dualMidiBridge.parameterCache;
 
         for (let slot = 1; slot <= 8; slot++) {
-            let srcVal = 0;
-            let destVal = 0;
-            let depthVal = 0.5; // 0.5 es central (bipolar 0.0)
+            // Leer desde cache (o desde bytes de preset activo como fallback)
+            // Offsets correctos del manual: src=93+(slot-1)*3, dest=94+(slot-1)*3, depth=95+(slot-1)*3
+            let srcCache = cache[`mod_matrix_slot${slot}_src`];
+            let destCache = cache[`mod_matrix_slot${slot}_dest`];
+            let depthCache = cache[`mod_matrix_slot${slot}_depth`];
 
-            if (activePatchBytes) {
-                // Leer bytes directos: src (89-96), dest (97-104), depth (73-80)
-                srcVal = activePatchBytes[88 + slot]; // offset 89 para slot 1
-                destVal = activePatchBytes[96 + slot]; // offset 97 para slot 1
-                depthVal = activePatchBytes[72 + slot] / 255.0; // offset 73 para slot 1
+            // Fallback: leer bytes directos del preset activo
+            if (srcCache === undefined || destCache === undefined || depthCache === undefined) {
+                if (typeof currentActivePatchIndex !== 'undefined' && currentActivePatchIndex !== -1) {
+                    const activeBank = loadedBanks[currentActiveBank];
+                    if (activeBank) {
+                        const patch = activeBank[currentActivePatchIndex];
+                        if (patch && patch.unpackedBytes) {
+                            const b = patch.unpackedBytes;
+                            const srcByte = 93 + (slot - 1) * 3;
+                            const destByte = 94 + (slot - 1) * 3;
+                            const depthByte = 95 + (slot - 1) * 3;
+                            if (srcCache === undefined) srcCache = b[srcByte] ? Math.min(1, b[srcByte] / 22.0) : 0;
+                            if (destCache === undefined) destCache = b[destByte] ? Math.min(1, b[destByte] / 129.0) : 0;
+                            if (depthCache === undefined) depthCache = b[depthByte] / 255.0;
+                        }
+                    }
+                }
             }
+
+            // Defaults
+            srcCache = srcCache || 0;
+            destCache = destCache || 0;
+            depthCache = (depthCache !== undefined && depthCache !== null) ? depthCache : 0.5;
 
             // Sync Source
             const srcBtn = document.getElementById(`mod-src-btn-${slot}`);
             if (srcBtn) {
-                const srcIdx = Math.round(srcVal);
+                const srcIdx = Math.round(srcCache * 22.0);
                 const srcName = MOD_SOURCES[srcIdx] || "None";
                 srcBtn.innerText = `Source: ${srcName}`;
             }
@@ -232,7 +246,7 @@ function initModMatrix() {
             // Sync Dest
             const destBtn = document.getElementById(`mod-dest-btn-${slot}`);
             if (destBtn) {
-                const destIdx = Math.round(destVal);
+                const destIdx = Math.round(destCache * 129.0);
                 const destName = FULL_MOD_DESTINATIONS[destIdx] || "None";
                 destBtn.innerText = `Dest: ${destName}`;
             }
@@ -242,9 +256,18 @@ function initModMatrix() {
             const handle = slider.querySelector('.handle');
             const txtVal = document.getElementById(`mod-depth-txt-${slot}`);
             if (slider && handle && txtVal) {
-                handle.style.left = (depthVal * 100) + '%';
-                const bipolar = (depthVal * 2.0) - 1.0;
+                handle.style.left = (depthCache * 100) + '%';
+                const bipolar = (depthCache * 2.0) - 1.0;
                 txtVal.innerText = Math.round(bipolar * 128);
+            }
+
+            // Mostrar badge de activo si hay ruta activa
+            const badge = document.getElementById(`mod-active-badge-${slot}`);
+            if (badge) {
+                const srcIdx = Math.round(srcCache * 22.0);
+                const isActive = srcIdx > 0;
+                badge.innerText = isActive ? 'ON' : 'OFF';
+                badge.style.color = isActive ? 'var(--accent-green)' : 'var(--text-faint)';
             }
         }
     };
@@ -260,13 +283,13 @@ function initModMatrix() {
                 if (type === "src") {
                     const srcBtn = document.getElementById(`mod-src-btn-${slot}`);
                     if (srcBtn) {
-                        const idx = Math.round(val * 24.0);
+                        const idx = Math.round(val * 22.0); // manual: src 0-22
                         srcBtn.innerText = `Source: ${MOD_SOURCES[idx] || "None"}`;
                     }
                 } else if (type === "dest") {
                     const destBtn = document.getElementById(`mod-dest-btn-${slot}`);
                     if (destBtn) {
-                        const idx = Math.round(val * 132.0);
+                        const idx = Math.round(val * 129.0); // manual: dest 0-129
                         destBtn.innerText = `Dest: ${FULL_MOD_DESTINATIONS[idx] || "None"}`;
                     }
                 } else if (type === "depth") {

@@ -113,9 +113,11 @@ void readFactoryBankFile (ABDEepAudioProcessor& audioProcessor,
     {
         juce::String bankLetter = args[0].toString().toUpperCase();
         juce::File currentFile (__FILE__);
-        juce::File resourcesDir = currentFile.getParentDirectory().getParentDirectory().getChildFile ("resources");
+        juce::File resourcesDir = currentFile.getParentDirectory().getParentDirectory().getChildFile ("resources").getChildFile ("banks");
         juce::File factoryDir = resourcesDir.getChildFile ("Factory Banks V1.1.2");
         juce::File syxFile = factoryDir.getChildFile ("Synth Bank " + bankLetter + ".syx");
+        
+        DBG("[readFactoryBankFile] Bank=" + bankLetter + " Path=" + syxFile.getFullPathName() + " Exists=" + juce::String((int)syxFile.existsAsFile()));
         
         if (syxFile.existsAsFile())
         {
@@ -129,6 +131,53 @@ void readFactoryBankFile (ABDEepAudioProcessor& audioProcessor,
         }
     }
     completion ({});
+}
+
+void pianoNoteOn (ABDEepAudioProcessor& audioProcessor,
+                 const juce::Array<juce::var>& args,
+                 juce::WebBrowserComponent::NativeFunctionCompletion completion)
+{
+    DBG("[BridgeActions] pianoNoteOn called with " + juce::String(args.size()) + " args");
+    if (args.size() >= 2)
+    {
+        int note = (int) args[0];
+        float velocity = (float) args[1];
+        DBG("[BridgeActions] pianoNoteOn: note=" + juce::String(note) + " vel=" + juce::String(velocity));
+        auto msg = juce::MidiMessage::noteOn (1, note, (juce::uint8) juce::jlimit (0, 127, juce::roundToInt (velocity * 127.0f)));
+        audioProcessor.queueMidiMessage (msg);
+    }
+    completion (juce::var::undefined());
+}
+
+void pianoNoteOff (ABDEepAudioProcessor& audioProcessor,
+                  const juce::Array<juce::var>& args,
+                  juce::WebBrowserComponent::NativeFunctionCompletion completion)
+{
+    if (args.size() >= 1)
+    {
+        int note = (int) args[0];
+        auto msg = juce::MidiMessage::noteOff (1, note);
+        audioProcessor.queueMidiMessage (msg);
+    }
+    completion (juce::var::undefined());
+}
+
+void getVoiceState (ABDEepAudioProcessor& audioProcessor,
+                    const juce::Array<juce::var>& args,
+                    juce::WebBrowserComponent::NativeFunctionCompletion completion)
+{
+    juce::ignoreUnused (args);
+    auto& engine = audioProcessor.getSynthEngine();
+    completion (engine.getVoiceState());
+}
+
+void getAudioWaveform (ABDEepAudioProcessor& audioProcessor,
+                       const juce::Array<juce::var>& args,
+                       juce::WebBrowserComponent::NativeFunctionCompletion completion)
+{
+    juce::ignoreUnused (args);
+    auto& engine = audioProcessor.getSynthEngine();
+    completion (engine.getAudioWaveform());
 }
 
 } // namespace BridgeActions

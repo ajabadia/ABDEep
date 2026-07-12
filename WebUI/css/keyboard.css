@@ -3,11 +3,11 @@
 /* Estructura del Teclado Inferior */
 .keyboard-container {
     height: 185px;
-    background: #070708;
+    background: var(--bg-deepest);
     position: relative;
     display: flex;
     flex-direction: row;
-    border-top: 4px solid #141518;
+    border-top: 4px solid var(--bg-elevated);
 }
 
 #ivory-keys-bed {
@@ -51,12 +51,127 @@
 
 .key.white.pushed {
     transform: translateY(3px);
-    background: #dcd7c9;
+    /* Velocity: cool blue-grey (vel=0) → warm beige (vel=1) */
+    background: color-mix(in srgb,
+        #b8cad8,
+        #e8d4b8 calc(var(--velocity, 0.8) * 100%)
+    );
     box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .key.black.pushed {
     transform: translateY(2px);
-    background: #151515;
+    /* Velocity: cool dark blue (vel=0) → warm dark brown (vel=1) */
+    background: color-mix(in srgb,
+        #0a0f14,
+        #1a1008 calc(var(--velocity, 0.8) * 100%)
+    );
     box-shadow: none;
+}
+
+/* --- Aftertouch + Mod Wheel Pressure Visualization --- */
+
+/* 
+ * --pressure: combined pressure (max of aftertouch & modWheel) → orange/red glow
+ * --mw-pressure: mod wheel only → blue tint overlay
+ * Both blend via nested color-mix: base → AT (orange) → MW (blue)
+ */
+
+.key.white.pushed.pressured {
+    transition: background 0.04s, box-shadow 0.04s, transform 0.04s;
+    /* Velocity base + AT orange + MW blue: three-layer blend */
+    background: color-mix(in srgb,
+        color-mix(in srgb,
+            color-mix(in srgb, #b8cad8, #e8d4b8 calc(var(--velocity, 0.8) * 100%)),
+            #ff6633 calc(var(--pressure, 0) * 100%)
+        ),
+        #3399ff calc(var(--mw-pressure, 0) * 70%)
+    );
+    box-shadow:
+        inset 0 2px 5px rgba(0, 0, 0, 0.2),
+        0 0 calc(6px * var(--pressure, 0)) rgba(255, 102, 51, calc(0.6 * var(--pressure, 0))),
+        0 0 calc(8px * var(--mw-pressure, 0)) rgba(51, 153, 255, calc(0.5 * var(--mw-pressure, 0)));
+    transform: translateY(calc(3px + 2px * var(--pressure, 0)));
+}
+
+.key.black.pushed.pressured {
+    transition: background 0.04s, box-shadow 0.04s, transform 0.04s;
+    /* Velocity base + AT deep red + MW blue: three-layer blend */
+    background: color-mix(in srgb,
+        color-mix(in srgb,
+            color-mix(in srgb, #0a0f14, #1a1008 calc(var(--velocity, 0.8) * 100%)),
+            #cc3300 calc(var(--pressure, 0) * 100%)
+        ),
+        #2266aa calc(var(--mw-pressure, 0) * 60%)
+    );
+    box-shadow:
+        -1px 0 1px rgba(0, 0, 0, 0.5),
+        1px 0 1px rgba(0, 0, 0, 0.5),
+        0 4px 4px rgba(0, 0, 0, 0.6),
+        0 0 calc(4px * var(--pressure, 0)) rgba(204, 51, 0, calc(0.5 * var(--pressure, 0))),
+        0 0 calc(6px * var(--mw-pressure, 0)) rgba(51, 153, 255, calc(0.4 * var(--mw-pressure, 0)));
+}
+
+/* --- Release animation: fade from pressure back to base color --- */
+/* Applied when key is released while pressured; uses longer transition for smooth fade */
+
+.key.white.pressure-release {
+    transition: background 0.35s ease-out, box-shadow 0.35s ease-out, transform 0.35s ease-out;
+    background: #b8cad8;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+    transform: translateY(3px);
+}
+
+.key.black.pressure-release {
+    transition: background 0.35s ease-out, box-shadow 0.35s ease-out, transform 0.35s ease-out;
+    background: #0a0f14;
+    box-shadow: none;
+    transform: translateY(2px);
+}
+
+/* Override the fast .pressured transitions during release — ease-out provides a natural deceleration */
+.key.white.pressure-release.pressured {
+    transition: background 0.35s ease-out, box-shadow 0.35s ease-out, transform 0.35s ease-out;
+}
+.key.black.pressure-release.pressured {
+    transition: background 0.35s ease-out, box-shadow 0.35s ease-out, transform 0.35s ease-out;
+}
+
+/* --- Pitch Bend Horizontal Displacement --- */
+/* --pb-offset is set in pixels (positive = right, negative = left), applied as translateX */
+
+.key.white.pushed.pitch-bent {
+    transition: transform 0.04s, background 0.04s, box-shadow 0.04s;
+    transform: translateY(3px) translateX(var(--pb-offset, 0px));
+}
+
+.key.black.pushed.pitch-bent {
+    transition: transform 0.04s, background 0.04s, box-shadow 0.04s;
+    transform: translateY(2px) translateX(var(--pb-offset, 0px));
+}
+
+/* When both pressured and pitch-bent, combine all transforms */
+.key.white.pushed.pitch-bent.pressured {
+    transform: translateY(calc(3px + 2px * var(--pressure, 0))) translateX(var(--pb-offset, 0px));
+}
+
+.key.black.pushed.pitch-bent.pressured {
+    transform: translateY(2px) translateX(var(--pb-offset, 0px));
+}
+
+/* Release animation includes pb-offset cleanup */
+.key.white.pressure-release.pitch-bent {
+    transform: translateY(3px) translateX(0px);
+}
+.key.black.pressure-release.pitch-bent {
+    transform: translateY(2px) translateX(0px);
+}
+
+/* Highlight the keybed container border when any controller is active */
+.keyboard-container.has-pressure {
+    border-top-color: color-mix(in srgb,
+        var(--bg-elevated) 50%,
+        #ff6633 50%
+    );
+    transition: border-top-color 0.1s;
 }

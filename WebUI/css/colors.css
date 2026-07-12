@@ -1,0 +1,198 @@
+/* ===============================================================
+   colors.css — Paleta de colores limitada y semántica
+   ===============================================================
+   Filosofía: ~15 tokens de color que cubren TODA la interfaz.
+   Los temas solo redefinen los --accent-* para cambiar la identidad
+   visual completa.
+   =============================================================== */
+
+:root {
+    /* ── Fondos (5 niveles de profundidad) ── */
+    --bg-deepest:  #070709;   /* El más oscuro: canvas, teclado */
+    --bg-surface:  #0f1013;   /* Tarjetas, paneles, sidebars */
+    --bg-elevated: #141518;   /* Modales, paneles elevados */
+    --bg-header:   #1c1d22;   /* Cabeceras, toolbars, inputs */
+    --bg-hover:    #23252a;   /* Hovers, fondos de botón default */
+
+    /* ── Bordes (3 niveles) ── */
+    --border-dim:    #1f2228;
+    --border:        #2e313a;
+    --border-strong: #444854;
+
+    /* ── Texto (4 niveles de énfasis) ── */
+    --text-primary:   #ffffff;
+    --text-secondary: #c5c6c7;
+    --text-dim:       #888;
+    --text-faint:     #555;
+
+    /* ── Colores de acento (cambiables por tema) ── */
+    --accent-primary: #ff9900;
+    --accent-blue:    #00ccff;
+    --accent-green:   #00ff66;
+    --accent-teal:    #00ffcc;
+    --accent-pink:    #ff00cc;
+    --accent-red:     #ff0066;
+
+    /* ── Semánticos (derivados de acentos) ── */
+    --color-danger: #e74c3c;
+    --color-gold:   #ffcc00;
+
+    /* ── Variables heredadas (compatibilidad con CSS/JS existente) ── */
+    --bg-synth:           #161616;
+    --brand-accent:       var(--accent-primary);
+    --brand-accent-glow:  0 0 12px color-mix(in srgb, var(--accent-primary) 80%, transparent), 0 0 4px #ffffff;
+    --text-labels:        var(--text-dim);
+}
+
+/* ===============================================================
+   TEMA: FUEGO (Rojo)
+   Sintetizador agresivo, cálido, alta energía
+   =============================================================== */
+body[data-theme="red"],
+body[data-theme="expanded-red"] {
+    --accent-primary: #ff2a2a;  /* Primario: rojo vibrante */
+    --accent-blue:    #ff6b6b;  /* Coral claro */
+    --accent-green:   #ff9500;  /* Ámbar cálido */
+    --accent-teal:    #ff8833;  /* Naranja coral */
+    --accent-pink:    #ff0040;  /* Rosa profundo */
+    --accent-red:     #cc0000;  /* Rojo oscuro */
+    --color-danger: #e63939;  /* Rojo danger más cálido */
+    --color-gold:   #ffaa00;  /* Ámbar dorado cálido */
+
+    --brand-accent:       var(--accent-primary);
+    --brand-accent-glow:  0 0 12px color-mix(in srgb, var(--accent-primary) 80%, transparent), 0 0 4px #ffffff;
+
+    /* Fondos ligeramente más cálidos */
+    --bg-deepest:  #080606;
+    --bg-surface:  #110e0e;
+    --bg-elevated: #181414;
+    --bg-header:   #1f1b1b;
+    --bg-hover:    #282323;
+
+    /* Bordes ligeramente más cálidos */
+    --border-dim:    #221b1b;
+    --border:        #332828;
+    --border-strong: #4a3737;
+}
+
+/* ===============================================================
+   TEMA: OCÉANO (Azul)
+   Sintetizador frío, profundo, ambiental
+   =============================================================== */
+body[data-theme="blue"],
+body[data-theme="expanded-blue"] {
+    --accent-primary: #0088ff;  /* Primario: azul vibrante */
+    --accent-blue:    #00ddff;  /* Cian brillante */
+    --accent-green:   #00cc88;  /* Verde azulado / teal */
+    --accent-teal:    #00ffee;  /* Cian claro */
+    --accent-pink:    #6633ff;  /* Púrpura */
+    --accent-red:     #ff0066;  /* Rosa neón */
+    --color-danger: #e63950;  /* Rojo-rosado danger */
+    --color-gold:   #ffdd44;  /* Dorado pálido */
+
+    --brand-accent:       var(--accent-primary);
+    --brand-accent-glow:  0 0 12px color-mix(in srgb, var(--accent-primary) 80%, transparent), 0 0 4px #ffffff;
+
+    /* Fondos ligeramente más fríos */
+    --bg-deepest:  #06070a;
+    --bg-surface:  #0d0f14;
+    --bg-elevated: #12151b;
+    --bg-header:   #191c23;
+    --bg-hover:    #21252c;
+
+    /* Bordes ligeramente más fríos */
+    --border-dim:    #1b1e26;
+    --border:        #2a2e38;
+    --border-strong: #3d424f;
+}
+
+/* ===============================================================
+   TEMA: NEÓN (Verde)
+   Sintetizador cyber, retro-computing, matrix
+   =============================================================== */
+body[data-theme="green"],
+body[data-theme="expanded-green"] {
+    --accent-primary: #00ff66;  /* Primario: verde neón vibrante */
+    --accent-blue:    #00ddff;  /* Cian */
+    --accent-green:   #33ff33;  /* Lima brillante */
+    --accent-teal:    #00ffaa;  /* Verde teal */
+    --accent-pink:    #ff00aa;  /* Magenta neón */
+    --accent-red:   #ff2233;    /* Rojo */
+    --color-danger: #e63939;  /* Rojo danger */
+    --color-gold:   #ccdd00;  /* Dorado verdoso / chartreuse */
+
+    --brand-accent:       var(--accent-primary);
+    --brand-accent-glow:  0 0 12px color-mix(in srgb, var(--accent-primary) 80%, transparent), 0 0 4px #ffffff;
+
+    /* Fondos más oscuros, tinte verdoso */
+    --bg-deepest:  #050a06;
+    --bg-surface:  #0a110c;
+    --bg-elevated: #0f1611;
+    --bg-header:   #151c17;
+    --bg-hover:    #1c241e;
+
+    /* Bordes con tinte verde */
+    --border-dim:    #182217;
+    --border-strong: #364d35;
+    --border:        #263326;
+}
+
+/* ===============================================================
+   TEMA: MIDNIGHT (Púrpura / Azul profundo)
+   Sintetizador oscuro, premium, flagship
+   =============================================================== */
+body[data-theme="midnight"] {
+    --accent-primary: #7744ff;  /* Primario: púrpura vibrante */
+    --accent-blue:    #4488ff;  /* Azul profundo */
+    --accent-green:   #00ccaa;  /* Verde azulado / teal */
+    --accent-teal:    #00ddcc;  /* Teal medio */
+    --accent-pink:    #aa44ff;  /* Lavanda / púrpura claro */
+    --accent-red:   #ff3366;    /* Rosa neón */
+    --color-danger: #e63950;  /* Rojo-rosado danger */
+    --color-gold:   #ffcc66;  /* Dorado suave */
+
+    --brand-accent:       var(--accent-primary);
+    --brand-accent-glow:  0 0 12px color-mix(in srgb, var(--accent-primary) 80%, transparent), 0 0 4px #ffffff;
+
+    /* Fondos ultra oscuros */
+    --bg-deepest:  #030305;
+    --bg-surface:  #07080b;
+    --bg-elevated: #0b0d12;
+    --bg-header:   #111318;
+    --bg-hover:    #181a20;
+
+    /* Bordes fríos y sutiles */
+    --border-dim:    #14161c;
+    --border:        #1e2128;
+    --border-strong: #2c2f38;
+}
+
+/* ===============================================================
+   TEMA: DARK-V2 (Púrpura real / Ultra oscuro)
+   Sintetizador minimalista, oscuro, de alto contraste
+   =============================================================== */
+body[data-theme="dark-v2"] {
+    --accent-primary: #9933ff;  /* Primario: púrpura real vibrante */
+    --accent-blue:    #6666ff;  /* Azul violáceo / periwinkle */
+    --accent-green:   #00ddaa;  /* Verde azulado / teal */
+    --accent-teal:    #00ddcc;  /* Teal medio */
+    --accent-pink:    #cc44ff;  /* Púrpura claro */
+    --accent-red:   #ff3377;    /* Rosa neón */
+    --color-danger: #e63950;  /* Rojo-rosado danger */
+    --color-gold:   #ffcc66;  /* Dorado suave */
+
+    --brand-accent:       var(--accent-primary);
+    --brand-accent-glow:  0 0 12px color-mix(in srgb, var(--accent-primary) 80%, transparent), 0 0 4px #ffffff;
+
+    /* Fondos casi negros */
+    --bg-deepest:  #020203;
+    --bg-surface:  #050508;
+    --bg-elevated: #08080d;
+    --bg-header:   #0c0d12;
+    --bg-hover:    #121318;
+
+    /* Bordes muy sutiles */
+    --border-dim:    #0e0f16;
+    --border:        #181922;
+    --border-strong: #252733;
+}

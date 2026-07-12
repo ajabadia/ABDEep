@@ -1,0 +1,34 @@
+{
+  "name": "abdeep",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ci": "vitest run --reporter=verbose",
+    "test:legacy": "echo All legacy tests have been migrated to Vitest — use \"npm test\" instead"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajabadia/ABDEep.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ajabadia/ABDEep/issues"
+  },
+  "homepage": "https://github.com/ajabadia/ABDEep#readme",
+  "dependencies": {
+    "patchwork-deepmind": "^0.3.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
+    "vitest": "^4.1.10"
+  }
+}
