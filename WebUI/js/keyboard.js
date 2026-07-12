@@ -366,20 +366,24 @@ function initKeyboardAndWheels() {
     var _bridgeRef = window.dualMidiBridge;
     if (_bridgeRef) {
         _bridgeRef._lastVoiceStateRaw = null;
-        var origGetVoiceState = _bridgeRef.getVoiceState.bind(_bridgeRef);
-        _bridgeRef.getVoiceState = async function() {
-            var result = await origGetVoiceState();
-            _bridgeRef._lastVoiceStateRaw = result;
-            return result;
-        };
+        if (typeof _bridgeRef.getVoiceState === 'function') {
+            var origGetVoiceState = _bridgeRef.getVoiceState.bind(_bridgeRef);
+            _bridgeRef.getVoiceState = async function() {
+                var result = await origGetVoiceState();
+                _bridgeRef._lastVoiceStateRaw = result;
+                return result;
+            };
+        }
         
         _bridgeRef._lastAudioWaveform = null;
-        var origGetAudioWaveform = _bridgeRef.getAudioWaveform.bind(_bridgeRef);
-        _bridgeRef.getAudioWaveform = async function() {
-            var result = await origGetAudioWaveform();
-            _bridgeRef._lastAudioWaveform = result;
-            return result;
-        };
+        if (typeof _bridgeRef.getAudioWaveform === 'function') {
+            var origGetAudioWaveform = _bridgeRef.getAudioWaveform.bind(_bridgeRef);
+            _bridgeRef.getAudioWaveform = async function() {
+                var result = await origGetAudioWaveform();
+                _bridgeRef._lastAudioWaveform = result;
+                return result;
+            };
+        }
     }
 }
 
