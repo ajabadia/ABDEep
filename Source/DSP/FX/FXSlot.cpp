@@ -10,6 +10,8 @@ namespace ABD
 
     void FXSlot::prepare(double newSampleRate, int samplesPerBlock)
     {
+        lastSampleRate = newSampleRate;
+        lastSamplesPerBlock = samplesPerBlock;
         if (effect)
             effect->prepare(newSampleRate, samplesPerBlock);
         buffersPrepared = false;
@@ -41,7 +43,10 @@ namespace ABD
         
         effect = createEffect(type);
         if (effect)
+        {
+            effect->prepare(lastSampleRate, lastSamplesPerBlock); // Auto-prepare with stored values
             syncParameters();
+        }
     }
 
     void FXSlot::setParameter(int index, float value)
@@ -136,13 +141,16 @@ namespace ABD
                 return std::make_unique<FXFlanger>();
 
             case 10: // Stereo Chorus
-            case 17: // Chorus-D
                 return std::make_unique<FXChorus>();
+            case 17: // Chorus-D
+                return std::make_unique<FXChorusD>();
 
             case 13: // Delay (single)
-            case 14: // 3Tap Delay
-            case 15: // 4Tap Delay
                 return std::make_unique<FXDelay>();
+            case 14: // 3Tap Delay
+                return std::make_unique<FXMultiTapDelay>(3);
+            case 15: // 4Tap Delay
+                return std::make_unique<FXMultiTapDelay>(4);
             
             // Rotary Speaker
             case 16:
@@ -174,7 +182,7 @@ namespace ABD
 
             // Fair Compressor
             case 31:
-                return std::make_unique<FXSimpleComp>();
+                return std::make_unique<FXFairComp>();
 
             // Noise Gate
             case 33:
@@ -200,15 +208,15 @@ namespace ABD
             case 12:
                 return std::make_unique<FXModDelayRev>();
 
-            // Reverb hybrids (mapped to existing effects)
+            // Reverb hybrids
             case 23: // flangVerb
             case 24: // chorusVerb
             case 25: // delayVerb
-                return std::make_unique<FXSimpleReverb>(1); // Default to Hall
+                return std::make_unique<FXHybridReverb>(newType);
 
             // Midas EQ
             case 30:
-                return std::make_unique<FXEnhancer>(); // Reutiliza enhancer como simple EQ
+                return std::make_unique<FXMidasEQ>();
 
             default:
                 return nullptr; // Bypass para tipos no implementados

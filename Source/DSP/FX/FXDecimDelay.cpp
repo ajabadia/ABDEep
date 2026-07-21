@@ -103,9 +103,13 @@ namespace ABD
 
             // SVF filter
             float freqHz = 30.0f * std::pow(666.0f, cutoff);
+            freqHz = std::clamp(freqHz, 20.0f, (float)(sampleRate / 6.5));
             float wd = (float)(2.0 * M_PI * freqHz / sampleRate);
             gCoeff = std::tan(wd * 0.5f);
             rCoeff = 1.0f / std::max(1.0f - resonance * 0.95f, 0.01f);
+            // Clamp damping to prevent SVF instability: g*r must stay below 2
+            float maxR = 2.0f / std::max(gCoeff, 0.001f);
+            rCoeff = std::min(rCoeff, maxR);
 
             auto svf = [&](float in, float& low, float& band, float& high) {
                 high = in - low - rCoeff * band;

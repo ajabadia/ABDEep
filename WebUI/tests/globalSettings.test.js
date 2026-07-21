@@ -97,14 +97,14 @@ function _createFakeElement(tag, attrs) {
     dataset: {},
     classList: {
       _classes: [],
-      add(c) { if (!this._classes.includes(c)) this._classes.push(c); },
+      add(c) { if (!this._classes.includes(c)) {this._classes.push(c);} },
       remove(c) { this._classes = this._classes.filter((x) => x !== c); },
       contains(c) { return this._classes.includes(c); },
     },
     getAttribute(name) { return this._attrs[name]; },
     setAttribute(name, val) { this._attrs[name] = val; },
     addEventListener(event, handler) {
-      if (!this._listeners[event]) this._listeners[event] = [];
+      if (!this._listeners[event]) {this._listeners[event] = [];}
       this._listeners[event].push(handler);
     },
     removeEventListener() {},
@@ -156,7 +156,7 @@ function _triggerChange(el, newValue) {
 
 function initVelocityCurveSetting() {
   const sel = document.getElementById('settings-velocity-curve');
-  if (!sel) return;
+  if (!sel) {return;}
   const saved = localStorage.getItem('abd-eep-velocity-curve') || 'normal';
   sel.value = saved;
   sel.addEventListener('change', function () {
@@ -174,14 +174,14 @@ function initVelocityCurveSetting() {
 
 function drawVelocityCurvePreview() {
   const canvas = document.getElementById('velocity-curve-preview');
-  if (!canvas) return;
+  if (!canvas) {return;}
   const ctx = canvas.getContext('2d');
-  if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (ctx) {ctx.clearRect(0, 0, canvas.width, canvas.height);}
 }
 
 function initPedalPolaritySetting() {
   const sel = document.getElementById('settings-pedal-polarity');
-  if (!sel) return;
+  if (!sel) {return;}
   const saved = localStorage.getItem('abd-eep-pedal-polarity') || 'norm-open';
   sel.value = saved;
   sel.addEventListener('change', function () {
@@ -197,7 +197,7 @@ function initPedalPolaritySetting() {
 
 function initMidiChannelSetting() {
   const sel = document.getElementById('settings-midi-channel');
-  if (!sel || !window.dualMidiBridge) return;
+  if (!sel || !window.dualMidiBridge) {return;}
   sel.value = String(window.dualMidiBridge.midiChannel);
   sel.addEventListener('change', function () {
     const ch = parseInt(this.value);
@@ -219,15 +219,15 @@ function initMidiChannelSetting() {
   const saved = localStorage.getItem('abd-eep-midi-channel');
   if (saved) {
     sel.value = saved;
-    if (window.dualMidiBridge) window.dualMidiBridge.midiChannel = parseInt(saved);
+    if (window.dualMidiBridge) {window.dualMidiBridge.midiChannel = parseInt(saved);}
   }
 }
 
 function initMasterTuneSetting() {
   const sel = document.getElementById('settings-master-tune');
-  if (!sel) return;
+  if (!sel) {return;}
   const saved = localStorage.getItem('abd-eep-master-tune');
-  if (saved) sel.value = saved;
+  if (saved) {sel.value = saved;}
   sel.addEventListener('change', function () {
     localStorage.setItem('abd-eep-master-tune', this.value);
     if (window.dualMidiBridge) {
@@ -235,13 +235,17 @@ function initMasterTuneSetting() {
       window.dualMidiBridge.setGlobalParameter('global_tune', (idx + 128) / 255.0);
     }
   });
+  if (saved && window.dualMidiBridge) {
+    const idx = parseInt(saved.match(/[+-]?\d+/));
+    window.dualMidiBridge.setGlobalParameter('global_tune', (idx + 128) / 255.0);
+  }
 }
 
 function initTransposeSetting() {
   const sel = document.getElementById('settings-transpose');
-  if (!sel) return;
+  if (!sel) {return;}
   const saved = localStorage.getItem('abd-eep-transpose');
-  if (saved) sel.value = saved;
+  if (saved) {sel.value = saved;}
   sel.addEventListener('change', function () {
     localStorage.setItem('abd-eep-transpose', this.value);
     if (window.dualMidiBridge) {
@@ -249,15 +253,19 @@ function initTransposeSetting() {
       window.dualMidiBridge.setGlobalParameter('transpose', (semitones + 48) / 96.0);
     }
   });
+  if (saved && window.dualMidiBridge) {
+    const semitones = parseInt(saved);
+    window.dualMidiBridge.setGlobalParameter('transpose', (semitones + 48) / 96.0);
+  }
 }
 
 function initLcdContrastSetting() {
   const slider = document.getElementById('settings-lcd-contrast');
   const valEl = document.getElementById('settings-lcd-contrast-val');
-  if (!slider) return;
+  if (!slider) {return;}
   const saved = localStorage.getItem('abd-eep-lcd-contrast') || '70';
   slider.value = saved;
-  if (valEl) valEl.textContent = saved + '%';
+  if (valEl) {valEl.textContent = saved + '%';}
   function updateContrast(v) {
     // mock behavior or empty
   }
@@ -266,7 +274,7 @@ function initLcdContrastSetting() {
   slider.addEventListener('input', function() {
     const val = this.value;
     localStorage.setItem('abd-eep-lcd-contrast', val);
-    if (valEl) valEl.textContent = val + '%';
+    if (valEl) {valEl.textContent = val + '%';}
     updateContrast(parseInt(val));
     if (window.dualMidiBridge) {
       window.dualMidiBridge.setGlobalParameter('lcd_contrast', parseInt(val) / 100.0);

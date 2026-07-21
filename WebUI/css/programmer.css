@@ -68,3 +68,50 @@
     z-index: 0;
     /* Sin box-shadow por defecto — el JS lo añade/elimina dinámicamente */
 }
+
+/* --- LCD scrolling text for long patch names --- */
+.lcd-scroll-container {
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100%;
+}
+.lcd-scroll-text {
+    display: inline-block;
+    white-space: nowrap;
+    will-change: transform;
+}
+.lcd-scroll-text.animate {
+    animation: lcdMarquee linear infinite;
+}
+.lcd-scroll-container:hover .lcd-scroll-text.animate,
+.lcd-scroll-text.animate.paused {
+    animation-play-state: paused;
+}
+@keyframes lcdMarquee {
+    0% { transform: translateX(0); }
+    85% { transform: translateX(-100%); }
+    100% { transform: translateX(0); }
+}
+
+/* --- VOICE LED MONITOR --- */
+.voice-led {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px;
+    line-height: 11px;
+    text-align: center;
+    background: #111;
+    border: 1px solid #333;
+    color: #444;
+    font-weight: bold;
+    transition: all 0.05s ease-out;
+    cursor: default;
+}
+.voice-led.active {
+    background: #00ff66;
+    border-color: #55ffaa;
+    color: #000;
+    box-shadow: 0 0 5px #00ff66, inset 0 0 2px #fff;
+}

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Solution>
+	<Configurations>
+		<BuildType Name="Debug"/>
+		<BuildType Name="Release"/>
+		<BuildType Name="MinSizeRel"/>
+		<BuildType Name="RelWithDebInfo"/>
+		<Platform Name="x64"/>
+	</Configurations>
+	<Project Path="ABDEepCalibrationLab.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5da6f66a-4e57-31b6-8a0d-d71d15bfae81">
+		<BuildDependency Project="ABDEepCalibrationLab_rc_lib.vcxproj"/>
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="abdeep_core.vcxproj"/>
+	</Project>
+	<Project Path="ABDEepCalibrationLab_rc_lib.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="b73503b5-9b2a-3740-ad51-375748d2468e">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="ABDEep_UnitTests.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0b5d2223-816f-3634-b744-7c03faa4da15">
+		<BuildDependency Project="ABDEep_UnitTests_rc_lib.vcxproj"/>
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="abdeep_core.vcxproj"/>
+	</Project>
+	<Project Path="ABDEep_UnitTests_rc_lib.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="743f5bbd-e066-3a51-9d16-8a2e4de116a6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="ABDEep_rc_lib.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="11d12a67-bddf-39b0-a02d-d24d39f0d8a4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="ABDEep_vst3_helper.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="52d6f305-7f82-3504-978a-68eaf331bdf3">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="abdeep_core.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1ae18640-812a-3a31-a738-8f1d6eed9dc7">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Folder Name="/ABDEep/">
+		<Project Path="ABDEep.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f3e4541d-2c08-38fc-8a7c-1eb6c6b2d8fd">
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="abdeep_core.vcxproj"/>
+		</Project>
+		<Project Path="ABDEep_All.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="223f3b05-3959-3400-8254-bfcba2bbc7f1">
+			<BuildDependency Project="ABDEep_Standalone.vcxproj"/>
+			<BuildDependency Project="ABDEep_VST3.vcxproj"/>
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<Build Solution="Debug|*" Project="false"/>
+			<Build Solution="Release|*" Project="false"/>
+			<Build Solution="MinSizeRel|*" Project="false"/>
+			<Build Solution="RelWithDebInfo|*" Project="false"/>
+		</Project>
+		<Project Path="ABDEep_Standalone.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="1cf91cc8-07de-3d9d-813d-51c7f4327d6d">
+			<BuildDependency Project="ABDEep.vcxproj"/>
+			<BuildDependency Project="ABDEep_rc_lib.vcxproj"/>
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="abdeep_core.vcxproj"/>
+		</Project>
+		<Project Path="ABDEep_VST3.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="63637b1a-c191-33dc-a09d-82d62ffbe4c1">
+			<BuildDependency Project="ABDEep.vcxproj"/>
+			<BuildDependency Project="ABDEep_rc_lib.vcxproj"/>
+			<BuildDependency Project="ABDEep_vst3_helper.vcxproj"/>
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="abdeep_core.vcxproj"/>
+		</Project>
+	</Folder>
+	<Folder Name="/CMakePredefinedTargets/">
+		<Project Path="ALL_BUILD.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9efe3e0c-106b-3ee4-9550-cbfb4b11184b" DefaultStartup="true">
+			<BuildDependency Project="ABDEep.vcxproj"/>
+			<BuildDependency Project="ABDEepCalibrationLab.vcxproj"/>
+			<BuildDependency Project="ABDEepCalibrationLab_rc_lib.vcxproj"/>
+			<BuildDependency Project="ABDEep_Standalone.vcxproj"/>
+			<BuildDependency Project="ABDEep_UnitTests.vcxproj"/>
+			<BuildDependency Project="ABDEep_UnitTests_rc_lib.vcxproj"/>
+			<BuildDependency Project="ABDEep_VST3.vcxproj"/>
+			<BuildDependency Project="ABDEep_rc_lib.vcxproj"/>
+			<BuildDependency Project="ABDEep_vst3_helper.vcxproj"/>
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<BuildDependency Project="abdeep_core.vcxproj"/>
+		</Project>
+		<Project Path="INSTALL.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="37121001-0f38-3d41-bde3-72d165350a63">
+			<BuildDependency Project="ALL_BUILD.vcxproj"/>
+			<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+			<Build Solution="Debug|*" Project="false"/>
+			<Build Solution="Release|*" Project="false"/>
+			<Build Solution="MinSizeRel|*" Project="false"/>
+			<Build Solution="RelWithDebInfo|*" Project="false"/>
+		</Project>
+		<Project Path="ZERO_CHECK.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="743917ef-c48f-3f18-b7e7-e4a6bd57b321"/>
+	</Folder>
+</Solution>

@@ -19,8 +19,8 @@ function generateStaircasePreset() {
 
 function generateTrianglePreset() {
     return Array(32).fill(0).map(function(_, i) {
-        var phase = (i / 16) % 2.0;
-        var val = phase < 1.0 ? phase : 2.0 - phase;
+        const phase = (i / 16) % 2.0;
+        const val = phase < 1.0 ? phase : 2.0 - phase;
         return Math.round((val * 255) - 128);
     });
 }
@@ -33,18 +33,18 @@ function generateRandomPreset() {
 
 function applyPresetToSteps(stepsValues, options) {
     options = options || {};
-    var seqStepsValues = options.seqStepsValues || [];
-    var seqStepsRaw = options.seqStepsRaw || [];
-    var bridge = options.bridge || null;
-    var updateStepVisual = options.updateStepVisual || function() {};
-    var results = { values: [], raws: [], normals: [] };
+    const seqStepsValues = options.seqStepsValues || [];
+    const seqStepsRaw = options.seqStepsRaw || [];
+    const bridge = options.bridge || null;
+    const updateStepVisual = options.updateStepVisual || function() {};
+    const results = { values: [], raws: [], normals: [] };
 
-    for (var i = 0; i < 32; i++) {
+    for (let i = 0; i < 32; i++) {
         seqStepsValues[i] = stepsValues[i];
-        var rawByte = stepsValues[i] + 128;
+        const rawByte = stepsValues[i] + 128;
         seqStepsRaw[i] = Math.max(0, Math.min(255, rawByte));
 
-        var normalized = seqStepsRaw[i] / 255.0;
+        const normalized = seqStepsRaw[i] / 255.0;
         if (bridge && bridge.parameterCache) {
             bridge.parameterCache['seq_step_' + (i + 1)] = normalized;
         }
@@ -64,7 +64,7 @@ function clampRaw(val) {
 // ===== Tests =====
 
 describe('generateStaircasePreset — linear ramp', function() {
-    var steps;
+    let steps;
 
     beforeEach(function() {
         steps = generateStaircasePreset();
@@ -93,13 +93,13 @@ describe('generateStaircasePreset — linear ramp', function() {
     });
 
     it('values are monotonically increasing', function() {
-        for (var i = 1; i < 32; i++) {
+        for (let i = 1; i < 32; i++) {
             expect(steps[i]).toBeGreaterThan(steps[i - 1]);
         }
     });
 
     it('all values are in range [-128, 127]', function() {
-        for (var i = 0; i < 32; i++) {
+        for (let i = 0; i < 32; i++) {
             expect(steps[i]).toBeGreaterThanOrEqual(-128);
             expect(steps[i]).toBeLessThanOrEqual(127);
         }
@@ -107,7 +107,7 @@ describe('generateStaircasePreset — linear ramp', function() {
 });
 
 describe('generateTrianglePreset — triangle wave', function() {
-    var steps;
+    let steps;
 
     beforeEach(function() {
         steps = generateTrianglePreset();
@@ -146,7 +146,7 @@ describe('generateTrianglePreset — triangle wave', function() {
     });
 
     it('all values are in range [-128, 127]', function() {
-        for (var i = 0; i < 32; i++) {
+        for (let i = 0; i < 32; i++) {
             expect(steps[i]).toBeGreaterThanOrEqual(-128);
             expect(steps[i]).toBeLessThanOrEqual(127);
         }
@@ -155,15 +155,15 @@ describe('generateTrianglePreset — triangle wave', function() {
 
 describe('generateRandomPreset — random values', function() {
     it('generates 32 values', function() {
-        var steps = generateRandomPreset();
+        const steps = generateRandomPreset();
         expect(steps.length).toBe(32);
     });
 
     it('produces different values on successive calls (probabilistic)', function() {
-        var steps1 = generateRandomPreset();
-        var steps2 = generateRandomPreset();
-        var allSame = true;
-        for (var i = 0; i < 32; i++) {
+        const steps1 = generateRandomPreset();
+        const steps2 = generateRandomPreset();
+        let allSame = true;
+        for (let i = 0; i < 32; i++) {
             if (steps1[i] !== steps2[i]) {
                 allSame = false;
                 break;
@@ -173,23 +173,23 @@ describe('generateRandomPreset — random values', function() {
     });
 
     it('all values are in range [-128, 127]', function() {
-        var steps = generateRandomPreset();
-        for (var i = 0; i < 32; i++) {
+        const steps = generateRandomPreset();
+        for (let i = 0; i < 32; i++) {
             expect(steps[i]).toBeGreaterThanOrEqual(-128);
             expect(steps[i]).toBeLessThanOrEqual(127);
         }
     });
 
     it('values are integers', function() {
-        var steps = generateRandomPreset();
-        for (var i = 0; i < 32; i++) {
+        const steps = generateRandomPreset();
+        for (let i = 0; i < 32; i++) {
             expect(Number.isInteger(steps[i])).toBe(true);
         }
     });
 });
 
 describe('applyPresetToSteps — step value computation and distribution', function() {
-    var seqStepsValues, seqStepsRaw, updateCalls, bridge, result;
+    let seqStepsValues, seqStepsRaw, updateCalls, bridge, result;
 
     beforeEach(function() {
         seqStepsValues = [];
@@ -199,7 +199,7 @@ describe('applyPresetToSteps — step value computation and distribution', funct
     });
 
     it('computes raw bytes as bipolar + 128', function() {
-        var staircase = generateStaircasePreset();
+        const staircase = generateStaircasePreset();
         result = applyPresetToSteps(staircase, {
             seqStepsValues: seqStepsValues,
             seqStepsRaw: seqStepsRaw,
@@ -211,7 +211,7 @@ describe('applyPresetToSteps — step value computation and distribution', funct
     });
 
     it('clamps raw bytes to [0, 255]', function() {
-        var extremeValues = [-200, 200]; // -200+128=-72 clamp to 0, 200+128=328 clamp to 255
+        const extremeValues = [-200, 200]; // -200+128=-72 clamp to 0, 200+128=328 clamp to 255
         seqStepsValues = [];
         seqStepsRaw = [];
         result = applyPresetToSteps(extremeValues.concat(Array(30).fill(0)), {
@@ -224,7 +224,7 @@ describe('applyPresetToSteps — step value computation and distribution', funct
     });
 
     it('computes normalized values as raw / 255', function() {
-        var staircase = generateStaircasePreset();
+        const staircase = generateStaircasePreset();
         result = applyPresetToSteps(staircase, {
             seqStepsValues: seqStepsValues,
             seqStepsRaw: seqStepsRaw,
@@ -236,7 +236,7 @@ describe('applyPresetToSteps — step value computation and distribution', funct
     });
 
     it('populates bridge parameterCache for each step', function() {
-        var staircase = generateStaircasePreset();
+        const staircase = generateStaircasePreset();
         result = applyPresetToSteps(staircase, {
             seqStepsValues: seqStepsValues,
             seqStepsRaw: seqStepsRaw,
@@ -250,8 +250,8 @@ describe('applyPresetToSteps — step value computation and distribution', funct
     });
 
     it('calls updateStepVisual for each step', function() {
-        var called = [];
-        var staircase = generateStaircasePreset();
+        const called = [];
+        const staircase = generateStaircasePreset();
         result = applyPresetToSteps(staircase, {
             seqStepsValues: seqStepsValues,
             seqStepsRaw: seqStepsRaw,
@@ -264,7 +264,7 @@ describe('applyPresetToSteps — step value computation and distribution', funct
     });
 
     it('populates seqStepsValues array', function() {
-        var staircase = generateStaircasePreset();
+        const staircase = generateStaircasePreset();
         result = applyPresetToSteps(staircase, {
             seqStepsValues: seqStepsValues,
             seqStepsRaw: seqStepsRaw,
@@ -275,7 +275,7 @@ describe('applyPresetToSteps — step value computation and distribution', funct
     });
 
     it('populates seqStepsRaw array', function() {
-        var staircase = generateStaircasePreset();
+        const staircase = generateStaircasePreset();
         result = applyPresetToSteps(staircase, {
             seqStepsValues: seqStepsValues,
             seqStepsRaw: seqStepsRaw,
@@ -286,7 +286,7 @@ describe('applyPresetToSteps — step value computation and distribution', funct
     });
 
     it('handles missing bridge gracefully (no crash)', function() {
-        var staircase = generateStaircasePreset();
+        const staircase = generateStaircasePreset();
         expect(function() {
             applyPresetToSteps(staircase, {
                 seqStepsValues: seqStepsValues,
@@ -317,34 +317,34 @@ describe('clampRaw — raw byte clamping', function() {
 
 describe('Staircase and Triangle — pattern structure differences', function() {
     it('staircase is monotonic, triangle is not', function() {
-        var stair = generateStaircasePreset();
-        var tri = generateTrianglePreset();
+        const stair = generateStaircasePreset();
+        const tri = generateTrianglePreset();
 
-        var stairIncreasing = true;
-        for (var i = 1; i < 32; i++) {
+        let stairIncreasing = true;
+        for (let i = 1; i < 32; i++) {
             if (stair[i] <= stair[i - 1]) { stairIncreasing = false; break; }
         }
         expect(stairIncreasing).toBe(true);
 
-        var triHasDecrease = false;
-        for (var j = 1; j < 32; j++) {
+        let triHasDecrease = false;
+        for (let j = 1; j < 32; j++) {
             if (tri[j] < tri[j - 1]) { triHasDecrease = true; break; }
         }
         expect(triHasDecrease).toBe(true);
     });
 
     it('both patterns have distinct first derivatives', function() {
-        var stair = generateStaircasePreset();
-        var tri = generateTrianglePreset();
+        const stair = generateStaircasePreset();
+        const tri = generateTrianglePreset();
 
         // Staircase: each step changes by ~8 (255/31 ≈ 8.2)
         // Triangle: changes direction at midpoint
-        var stairDiffs = 0;
-        for (var i = 1; i < 32; i++) {
+        let stairDiffs = 0;
+        for (let i = 1; i < 32; i++) {
             stairDiffs += Math.abs(stair[i] - stair[i - 1]);
         }
-        var triDiffs = 0;
-        for (var j = 1; j < 32; j++) {
+        let triDiffs = 0;
+        for (let j = 1; j < 32; j++) {
             triDiffs += Math.abs(tri[j] - tri[j - 1]);
         }
         // Staircase should have consistent step changes

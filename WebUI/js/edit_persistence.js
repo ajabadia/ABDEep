@@ -9,7 +9,7 @@ window.initEditPersistence = function() {
         menuSave.addEventListener('click', () => {
             const activeBank = window.loadedBanks[window.currentActiveBank];
             if (!activeBank || window.currentActivePatchIndex === -1) {
-                alert("Por favor, selecciona un preset de la librería local del Bank Manager para guardar.");
+                alert('Por favor, selecciona un preset de la librería local del Bank Manager para guardar.');
                 return;
             }
             const FACTORY_BANKS = [
@@ -29,7 +29,7 @@ window.initEditPersistence = function() {
                 for (let k = 0; k < 15; k++) {
                     patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
                 }
-                if (typeof updateSysExMonitor === 'function') updateSysExMonitor(patch.unpackedBytes);
+                if (typeof updateSysExMonitor === 'function') {updateSysExMonitor(patch.unpackedBytes);}
                 
                 if (typeof window._saveUserBanksToStorage === 'function') {
                     window._saveUserBanksToStorage();
@@ -40,7 +40,7 @@ window.initEditPersistence = function() {
                     const html = `<span style="font-size:10px; opacity:0.6;">SAVED</span><br><strong style="color:var(--accent-green);">${patch.name.toUpperCase()}</strong><br><span style="font-size:9px; color:var(--text-dim);">${window.currentActiveBank} › Slot ${window.currentActivePatchIndex + 1}</span>`;
                     window.lcdSafeUpdate(lcdText, html);
                 }
-                if (typeof window.renderPatchesForBank === 'function') window.renderPatchesForBank(window.currentActiveBank);
+                if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(window.currentActiveBank);}
             }
         });
     }
@@ -51,19 +51,19 @@ window.initEditPersistence = function() {
     const saveAsCancelBtn = document.getElementById('saveas-btn-cancel');
     const saveAsConfirmBtn = document.getElementById('saveas-btn-confirm');
     
-    let saveAsSelectedBank = "";
+    let saveAsSelectedBank = '';
     let saveAsSelectedSlotIdx = -1;
 
     if (menuSaveAs && saveAsModal) {
         menuSaveAs.addEventListener('click', () => {
             saveAsModal.style.display = 'flex';
             
-            const userBanks = Object.keys(window.loadedBanks).filter(b => !b.startsWith("Factory Bank"));
-            saveAsSelectedBank = userBanks.includes(window.currentActiveBank) ? window.currentActiveBank : (userBanks[0] || "");
+            const userBanks = Object.keys(window.loadedBanks).filter(b => !b.startsWith('Factory Bank'));
+            saveAsSelectedBank = userBanks.includes(window.currentActiveBank) ? window.currentActiveBank : (userBanks[0] || '');
             saveAsSelectedSlotIdx = window.currentActivePatchIndex >= 0 ? window.currentActivePatchIndex : 0;
 
             const activeBank = window.loadedBanks[window.currentActiveBank];
-            const activeName = (activeBank && activeBank[window.currentActivePatchIndex]) ? activeBank[window.currentActivePatchIndex].name : "My Custom Patch";
+            const activeName = (activeBank && activeBank[window.currentActivePatchIndex]) ? activeBank[window.currentActivePatchIndex].name : 'My Custom Patch';
             document.getElementById('saveas-preset-name').value = activeName;
 
             renderSaveAsBanks();
@@ -71,19 +71,19 @@ window.initEditPersistence = function() {
         });
 
         const closeSaveAs = () => { saveAsModal.style.display = 'none'; };
-        if (saveAsCloseBtn) saveAsCloseBtn.addEventListener('click', closeSaveAs);
-        if (saveAsCancelBtn) saveAsCancelBtn.addEventListener('click', closeSaveAs);
+        if (saveAsCloseBtn) {saveAsCloseBtn.addEventListener('click', closeSaveAs);}
+        if (saveAsCancelBtn) {saveAsCancelBtn.addEventListener('click', closeSaveAs);}
         saveAsModal.addEventListener('click', (e) => {
-            if (e.target === saveAsModal) closeSaveAs();
+            if (e.target === saveAsModal) {closeSaveAs();}
         });
 
         function renderSaveAsBanks() {
             const listContainer = document.getElementById('saveas-banks-list');
-            if (!listContainer) return;
+            if (!listContainer) {return;}
             listContainer.innerHTML = '';
 
             Object.keys(window.loadedBanks).forEach(bankName => {
-                const isFactory = bankName.startsWith("Factory Bank");
+                const isFactory = bankName.startsWith('Factory Bank');
                 const item = document.createElement('div');
                 item.style.cssText = `
                     padding: 8px; 
@@ -120,14 +120,14 @@ window.initEditPersistence = function() {
 
         function renderSaveAsSlots() {
             const gridContainer = document.getElementById('saveas-slots-grid');
-            if (!gridContainer) return;
+            if (!gridContainer) {return;}
             gridContainer.innerHTML = '';
 
             const patches = window.loadedBanks[saveAsSelectedBank] || [];
             for (let i = 0; i < 128; i++) {
                 const patch = patches[i] || { name: `[Empty Slot ${i+1}]` };
                 const isSelected = i === saveAsSelectedSlotIdx;
-                const isEmpty = patch.name.startsWith("INIT PATCH") || patch.name.startsWith("[Empty");
+                const isEmpty = patch.name.startsWith('INIT PATCH') || patch.name.startsWith('[Empty');
 
                 const item = document.createElement('div');
                 item.style.cssText = `
@@ -158,37 +158,37 @@ window.initEditPersistence = function() {
         if (saveAsConfirmBtn) {
             saveAsConfirmBtn.addEventListener('click', () => {
                 if (!saveAsSelectedBank) {
-                    alert("Por favor, selecciona un banco de usuario válido.");
+                    alert('Por favor, selecciona un banco de usuario válido.');
                     return;
                 }
                 if (saveAsSelectedSlotIdx < 0 || saveAsSelectedSlotIdx >= 128) {
-                    alert("Por favor, selecciona un slot de destino.");
+                    alert('Por favor, selecciona un slot de destino.');
                     return;
                 }
 
                 const newName = document.getElementById('saveas-preset-name').value.trim();
                 if (!newName) {
-                    alert("Por favor, escribe un nombre para el preset.");
+                    alert('Por favor, escribe un nombre para el preset.');
                     return;
                 }
 
                 const bank = window.loadedBanks[saveAsSelectedBank];
                 if (!bank || !bank[saveAsSelectedSlotIdx]) {
-                    alert("Error: el slot seleccionado no existe.");
+                    alert('Error: el slot seleccionado no existe.');
                     return;
                 }
                 const targetPatch = bank[saveAsSelectedSlotIdx];
                 
                 if (!targetPatch) {
-                    alert("Error interno: slot vacío. Intenta crear un nuevo banco.");
+                    alert('Error interno: slot vacío. Intenta crear un nuevo banco.');
                     return;
                 }
 
-                const isOccupied = targetPatch && !targetPatch.name.startsWith("INIT PATCH") && !targetPatch.name.startsWith("[Empty");
+                const isOccupied = targetPatch && !targetPatch.name.startsWith('INIT PATCH') && !targetPatch.name.startsWith('[Empty');
 
                 if (isOccupied) {
                     const confirmOverwrite = confirm(`¿Estás seguro de que deseas sobrescribir el preset existente "${targetPatch.name}" en el Slot ${saveAsSelectedSlotIdx + 1}?`);
-                    if (!confirmOverwrite) return;
+                    if (!confirmOverwrite) {return;}
                 }
 
                 targetPatch.name = newName;
@@ -198,16 +198,16 @@ window.initEditPersistence = function() {
                 if (typeof window.updateUnpackedBytesFromCache === 'function') {
                     window.updateUnpackedBytesFromCache(targetPatch.unpackedBytes);
                 }
-                if (typeof updateSysExMonitor === 'function') updateSysExMonitor(targetPatch.unpackedBytes);
+                if (typeof updateSysExMonitor === 'function') {updateSysExMonitor(targetPatch.unpackedBytes);}
 
                 window.currentActiveBank = saveAsSelectedBank;
                 window.currentActivePatchIndex = saveAsSelectedSlotIdx;
 
                 const localSelect = document.getElementById('local-bank-select');
-                if (localSelect) localSelect.value = saveAsSelectedBank;
-                if (typeof window.renderPatchesForBank === 'function') window.renderPatchesForBank(saveAsSelectedBank);
+                if (localSelect) {localSelect.value = saveAsSelectedBank;}
+                if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(saveAsSelectedBank);}
                 
-                if (window.triggerMidiDump) window.triggerMidiDump(targetPatch);
+                if (window.triggerMidiDump) {window.triggerMidiDump(targetPatch);}
 
                 if (typeof window._saveUserBanksToStorage === 'function') {
                     window._saveUserBanksToStorage();

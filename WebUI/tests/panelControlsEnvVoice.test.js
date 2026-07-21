@@ -45,8 +45,8 @@ function _makeTemplate() {
 }
 
 function _makeTemplatePoly() {
-  var html = '<select id="panel-poly-mode-select" data-param="voice_mode">';
-  for (var i = 0; i < 13; i++) html += '<option value="' + i + '">Mode ' + i + '</option>';
+  let html = '<select id="panel-poly-mode-select" data-param="voice_mode">';
+  for (let i = 0; i < 13; i++) {html += '<option value="' + i + '">Mode ' + i + '</option>';}
   html += '</select>';
   html += '<div class="priority-led-row" data-val="0" data-param="note_priority"><span class="shape-name">Lowest</span></div>'
     + '<div class="priority-led-row" data-val="1" data-param="note_priority"><span class="shape-name">Highest</span></div>'
@@ -106,7 +106,7 @@ function _createFakeEl(tag, attrs) {
     dataset: {},
     classList: {
       _classes: [],
-      add(c) { if (!this._classes.includes(c)) this._classes.push(c); },
+      add(c) { if (!this._classes.includes(c)) {this._classes.push(c);} },
       remove(c) { this._classes = this._classes.filter(x => x !== c); },
       contains(c) { return this._classes.includes(c); },
       toggle(c, force) {
@@ -120,7 +120,7 @@ function _createFakeEl(tag, attrs) {
     setAttribute(name, val) { this._attrs[name] = val; },
     hasAttribute(name) { return name in this._attrs; },
     addEventListener(event, handler) {
-      if (!this._listeners[event]) this._listeners[event] = [];
+      if (!this._listeners[event]) {this._listeners[event] = [];}
       this._listeners[event].push(handler);
     },
     removeEventListener() {},
@@ -134,7 +134,7 @@ function _createFakeEl(tag, attrs) {
     closest(sel) {
       if (sel && sel.startsWith('[') && sel.endsWith(']')) {
         const attr = sel.slice(1, -1);
-        if (this._attrs[attr] !== undefined) return this;
+        if (this._attrs[attr] !== undefined) {return this;}
         return this._parent && this._parent._attrs && this._parent._attrs[attr] !== undefined ? this._parent : null;
       }
       return null;
@@ -153,6 +153,10 @@ function _createFakeEl(tag, attrs) {
 // ══════════════════════════════════════════════════════════════════
 
 function bindPanelEnvControls(container, state, titleEl) {
+    const activeEnvBtn = document.querySelector('.env-type-btn.active');
+    if (activeEnvBtn) {
+        state.panelActiveEnv = parseInt(activeEnvBtn.getAttribute('data-env')) || 1;
+    }
     const prefix = 'env' + state.panelActiveEnv + '_';
     const envName = state.panelActiveEnv === 1 ? 'VCA' : (state.panelActiveEnv === 2 ? 'VCF' : 'MOD');
     titleEl.innerText = envName + ' Env Editor';
@@ -165,44 +169,44 @@ function bindPanelEnvControls(container, state, titleEl) {
             const paramId = row.getAttribute('data-param');
             container.querySelectorAll('.shape-led-row').forEach(function(r) { r.classList.remove('active'); });
             row.classList.add('active');
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter(paramId, trigVal / 4.0);
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter(paramId, trigVal / 4.0);}
         });
     });
 
     // LCD hovers: ctrl-units
     container.querySelectorAll('.ctrl-unit[data-param]').forEach(function(el) {
         el.addEventListener('mouseenter', function() {
-            var lcd = document.getElementById('lcd-text');
-            if (!lcd) return;
-            var pid = this.getAttribute('data-param');
-            var bridge = window.dualMidiBridge;
-            var v = bridge ? bridge.parameterCache[pid] : 0;
-            var lbl = this.querySelector('.label');
-            var name = lbl ? lbl.textContent.trim() : pid;
-            var pct = typeof v === 'number' ? Math.round(v * 100) : 0;
-            var envName2 = state.panelActiveEnv === 1 ? 'VCA' : (state.panelActiveEnv === 2 ? 'VCF' : 'MOD');
+            const lcd = document.getElementById('lcd-text');
+            if (!lcd) {return;}
+            const pid = this.getAttribute('data-param');
+            const bridge = window.dualMidiBridge;
+            const v = bridge ? bridge.parameterCache[pid] : 0;
+            const lbl = this.querySelector('.label');
+            const name = lbl ? lbl.textContent.trim() : pid;
+            const pct = typeof v === 'number' ? Math.round(v * 100) : 0;
+            const envName2 = state.panelActiveEnv === 1 ? 'VCA' : (state.panelActiveEnv === 2 ? 'VCF' : 'MOD');
             lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">' + envName2 + ' ENV PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + pct + '%</span>';
-            if (typeof window.setLcdParamDisplayTimer === 'function') window.setLcdParamDisplayTimer(lcd);
+            if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
         });
     });
 
     // LCD hovers: shape-led-rows
     container.querySelectorAll('.shape-led-row[data-param]').forEach(function(el) {
         el.addEventListener('mouseenter', function() {
-            var lcd = document.getElementById('lcd-text');
-            if (!lcd) return;
-            var pid = this.getAttribute('data-param');
-            var bridge = window.dualMidiBridge;
-            var v = bridge ? bridge.parameterCache[pid] : 0;
-            var nameEl = this.querySelector('.shape-name');
-            var name2 = nameEl ? nameEl.textContent.trim() : pid;
-            var envName2 = state.panelActiveEnv === 1 ? 'VCA' : (state.panelActiveEnv === 2 ? 'VCF' : 'MOD');
+            const lcd = document.getElementById('lcd-text');
+            if (!lcd) {return;}
+            const pid = this.getAttribute('data-param');
+            const bridge = window.dualMidiBridge;
+            const v = bridge ? bridge.parameterCache[pid] : 0;
+            const nameEl = this.querySelector('.shape-name');
+            const name2 = nameEl ? nameEl.textContent.trim() : pid;
+            const envName2 = state.panelActiveEnv === 1 ? 'VCA' : (state.panelActiveEnv === 2 ? 'VCF' : 'MOD');
             lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">' + envName2 + ' ENV PANEL</span><br>'
                 + '<strong>' + name2.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
-            if (typeof window.setLcdParamDisplayTimer === 'function') window.setLcdParamDisplayTimer(lcd);
+            if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
         });
     });
 }
@@ -211,10 +215,10 @@ function bindPanelPolyControls(container, state, titleEl) {
     titleEl.innerText = 'Polyphony & Unison';
     container.innerHTML = window.PANEL_TEMPLATES.POLY();
 
-    var selectPolyMode = document.getElementById('panel-poly-mode-select');
+    const selectPolyMode = document.getElementById('panel-poly-mode-select');
     if (selectPolyMode) {
         selectPolyMode.addEventListener('change', function() {
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter('voice_mode', parseInt(selectPolyMode.value) / 12.0);
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('voice_mode', parseInt(selectPolyMode.value) / 12.0);}
         });
     }
 
@@ -224,7 +228,7 @@ function bindPanelPolyControls(container, state, titleEl) {
             const paramId = row.getAttribute('data-param');
             container.querySelectorAll('.priority-led-row').forEach(function(r) { r.classList.remove('active'); });
             row.classList.add('active');
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter(paramId, val / 2.0);
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter(paramId, val / 2.0);}
         });
     });
 
@@ -234,60 +238,60 @@ function bindPanelPolyControls(container, state, titleEl) {
             const paramId = row.getAttribute('data-param');
             container.querySelectorAll('.trigger-led-row').forEach(function(r) { r.classList.remove('active'); });
             row.classList.add('active');
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter(paramId, val / 3.0);
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter(paramId, val / 3.0);}
         });
     });
 
     // LCD hovers: ctrl-units
     container.querySelectorAll('.ctrl-unit[data-param]').forEach(function(el) {
         el.addEventListener('mouseenter', function() {
-            var lcd = document.getElementById('lcd-text');
-            if (!lcd) return;
-            var pid = this.getAttribute('data-param');
-            var bridge = window.dualMidiBridge;
-            var v = bridge ? bridge.parameterCache[pid] : 0;
-            var lbl = this.querySelector('.label');
-            var name = lbl ? lbl.textContent.trim() : pid;
-            var pct = typeof v === 'number' ? Math.round(v * 100) : 0;
+            const lcd = document.getElementById('lcd-text');
+            if (!lcd) {return;}
+            const pid = this.getAttribute('data-param');
+            const bridge = window.dualMidiBridge;
+            const v = bridge ? bridge.parameterCache[pid] : 0;
+            const lbl = this.querySelector('.label');
+            const name = lbl ? lbl.textContent.trim() : pid;
+            const pct = typeof v === 'number' ? Math.round(v * 100) : 0;
             lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">POLY PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + pct + '%</span>';
-            if (typeof window.setLcdParamDisplayTimer === 'function') window.setLcdParamDisplayTimer(lcd);
+            if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
         });
     });
 
     // LCD hovers: shape-led-rows
     container.querySelectorAll('.shape-led-row[data-param]').forEach(function(el) {
         el.addEventListener('mouseenter', function() {
-            var lcd = document.getElementById('lcd-text');
-            if (!lcd) return;
-            var pid = this.getAttribute('data-param');
-            var bridge = window.dualMidiBridge;
-            var v = bridge ? bridge.parameterCache[pid] : 0;
-            var nameEl = this.querySelector('.shape-name');
-            var name = nameEl ? nameEl.textContent.trim() : pid;
+            const lcd = document.getElementById('lcd-text');
+            if (!lcd) {return;}
+            const pid = this.getAttribute('data-param');
+            const bridge = window.dualMidiBridge;
+            const v = bridge ? bridge.parameterCache[pid] : 0;
+            const nameEl = this.querySelector('.shape-name');
+            const name = nameEl ? nameEl.textContent.trim() : pid;
             lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">POLY PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
-            if (typeof window.setLcdParamDisplayTimer === 'function') window.setLcdParamDisplayTimer(lcd);
+            if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
         });
     });
 
     // LCD hovers: select elements
     container.querySelectorAll('select[data-param]').forEach(function(el) {
         el.addEventListener('mouseenter', function() {
-            var lcd = document.getElementById('lcd-text');
-            if (!lcd) return;
-            var pid = this.getAttribute('data-param');
-            var bridge = window.dualMidiBridge;
-            var v = bridge ? bridge.parameterCache[pid] : 0;
-            var opts = this.options;
-            var idx = Math.round(v * (opts.length - 1));
-            var selectedText = opts[idx] ? opts[idx].textContent.trim() : pid;
+            const lcd = document.getElementById('lcd-text');
+            if (!lcd) {return;}
+            const pid = this.getAttribute('data-param');
+            const bridge = window.dualMidiBridge;
+            const v = bridge ? bridge.parameterCache[pid] : 0;
+            const opts = this.options;
+            const idx = Math.round(v * (opts.length - 1));
+            const selectedText = opts[idx] ? opts[idx].textContent.trim() : pid;
             lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">POLY PANEL</span><br>'
                 + '<strong>' + pid.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + selectedText + '</span>';
-            if (typeof window.setLcdParamDisplayTimer === 'function') window.setLcdParamDisplayTimer(lcd);
+            if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
         });
     });
 }
@@ -301,7 +305,7 @@ function bindPanelPortaControls(container, state, titleEl) {
             const val = parseInt(row.getAttribute('data-val'));
             container.querySelectorAll('.porta-mode-led-row').forEach(function(r) { r.classList.remove('active'); });
             row.classList.add('active');
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter('porta_mode', val / 9.0);
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('porta_mode', val / 9.0);}
         });
     });
 
@@ -310,7 +314,7 @@ function bindPanelPortaControls(container, state, titleEl) {
             const val = parseInt(row.getAttribute('data-val'));
             container.querySelectorAll('.note-priority-led-row').forEach(function(r) { r.classList.remove('active'); });
             row.classList.add('active');
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter('note_priority', val / 2.0);
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('note_priority', val / 2.0);}
         });
     });
 
@@ -319,7 +323,7 @@ function bindPanelPortaControls(container, state, titleEl) {
             const val = parseInt(row.getAttribute('data-val'));
             container.querySelectorAll('.trigger-mode-led-row').forEach(function(r) { r.classList.remove('active'); });
             row.classList.add('active');
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter('trigger_mode', val / 3.0);
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('trigger_mode', val / 3.0);}
         });
     });
 }
@@ -333,8 +337,8 @@ function _makeEnvContainer(prefix) {
   cont._selectorAll = {};
 
   // Shape LED rows (trigger rows)
-  var shapeRows = [];
-  var triggerDefs = [
+  const shapeRows = [];
+  const triggerDefs = [
     { trig: 0, name: 'Key' },
     { trig: 1, name: 'LFO 1' },
     { trig: 2, name: 'LFO 2' },
@@ -342,9 +346,9 @@ function _makeEnvContainer(prefix) {
     { trig: 4, name: 'Seq' },
   ];
   triggerDefs.forEach(function(def) {
-    var row = _createFakeEl('div', { 'data-trig': String(def.trig), 'data-param': prefix + 'trigger_mode' });
+    const row = _createFakeEl('div', { 'data-trig': String(def.trig), 'data-param': prefix + 'trigger_mode' });
     row.classList.add('shape-led-row');
-    var nameEl = _createFakeEl('span');
+    const nameEl = _createFakeEl('span');
     nameEl.classList.add('shape-name');
     nameEl.textContent = def.name;
     row._subElements['.shape-name'] = nameEl;
@@ -352,11 +356,11 @@ function _makeEnvContainer(prefix) {
   });
 
   // Add curve rows
-  var curveRows = ['attack_curve', 'decay_curve', 'release_curve'];
+  const curveRows = ['attack_curve', 'decay_curve', 'release_curve'];
   curveRows.forEach(function(pid) {
-    var row = _createFakeEl('div', { 'data-param': prefix + pid });
+    const row = _createFakeEl('div', { 'data-param': prefix + pid });
     row.classList.add('shape-led-row');
-    var nameEl = _createFakeEl('span');
+    const nameEl = _createFakeEl('span');
     nameEl.classList.add('shape-name');
     nameEl.textContent = pid.replace('_', ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
     row._subElements['.shape-name'] = nameEl;
@@ -366,12 +370,12 @@ function _makeEnvContainer(prefix) {
   cont._selectorAll['.shape-led-row'] = shapeRows;
 
   // Ctrl units
-  var ctrlUnits = [];
-  var paramDefs = ['attack', 'decay', 'sustain', 'release'];
+  const ctrlUnits = [];
+  const paramDefs = ['attack', 'decay', 'sustain', 'release'];
   paramDefs.forEach(function(pid) {
-    var unit = _createFakeEl('div', { 'data-param': prefix + pid });
+    const unit = _createFakeEl('div', { 'data-param': prefix + pid });
     unit.classList.add('ctrl-unit');
-    var label = _createFakeEl('div');
+    const label = _createFakeEl('div');
     label.classList.add('label');
     label.textContent = pid.charAt(0).toUpperCase() + pid.slice(1);
     unit._subElements['.label'] = label;
@@ -380,16 +384,16 @@ function _makeEnvContainer(prefix) {
   cont._selectorAll['.ctrl-unit[data-param]'] = ctrlUnits;
 
   // Shape-led-rows with data-param (for LCD hover)
-  var shapeWithParam = [];
+  const shapeWithParam = [];
   triggerDefs.forEach(function(def) {
-    var row = _createFakeEl('div', { 'data-trig': String(def.trig), 'data-param': prefix + 'trigger_mode' });
+    const row = _createFakeEl('div', { 'data-trig': String(def.trig), 'data-param': prefix + 'trigger_mode' });
     row.classList.add('shape-led-row');
     row._subElements['.shape-name'] = _createFakeEl('span');
     row._subElements['.shape-name'].textContent = def.name;
     shapeWithParam.push(row);
   });
   curveRows.forEach(function(pid) {
-    var row = _createFakeEl('div', { 'data-param': prefix + pid });
+    const row = _createFakeEl('div', { 'data-param': prefix + pid });
     row.classList.add('shape-led-row');
     row._subElements['.shape-name'] = _createFakeEl('span');
     row._subElements['.shape-name'].textContent = pid;
@@ -405,11 +409,11 @@ function _makePolyContainer() {
   cont._selectorAll = {};
 
   // Priority LED rows
-  var priorityRows = [];
+  const priorityRows = [];
   [0, 1, 2].forEach(function(val) {
-    var row = _createFakeEl('div', { 'data-val': String(val), 'data-param': 'note_priority' });
+    const row = _createFakeEl('div', { 'data-val': String(val), 'data-param': 'note_priority' });
     row.classList.add('priority-led-row');
-    var nameEl = _createFakeEl('span');
+    const nameEl = _createFakeEl('span');
     nameEl.classList.add('shape-name');
     nameEl.textContent = ['Lowest', 'Highest', 'Last'][val];
     row._subElements['.shape-name'] = nameEl;
@@ -418,11 +422,11 @@ function _makePolyContainer() {
   cont._selectorAll['.priority-led-row'] = priorityRows;
 
   // Trigger LED rows
-  var triggerRows = [];
+  const triggerRows = [];
   [0, 1, 2, 3].forEach(function(val) {
-    var row = _createFakeEl('div', { 'data-val': String(val), 'data-param': 'trigger_mode' });
+    const row = _createFakeEl('div', { 'data-val': String(val), 'data-param': 'trigger_mode' });
     row.classList.add('trigger-led-row');
-    var nameEl = _createFakeEl('span');
+    const nameEl = _createFakeEl('span');
     nameEl.classList.add('shape-name');
     nameEl.textContent = ['Normal', 'Single', 'Multi', 'One-Shot'][val];
     row._subElements['.shape-name'] = nameEl;
@@ -431,11 +435,11 @@ function _makePolyContainer() {
   cont._selectorAll['.trigger-led-row'] = triggerRows;
 
   // Ctrl units
-  var ctrlUnits = [];
+  const ctrlUnits = [];
   ['voice_mode', 'unison_detune'].forEach(function(pid) {
-    var unit = _createFakeEl('div', { 'data-param': pid });
+    const unit = _createFakeEl('div', { 'data-param': pid });
     unit.classList.add('ctrl-unit');
-    var label = _createFakeEl('div');
+    const label = _createFakeEl('div');
     label.classList.add('label');
     label.textContent = pid;
     unit._subElements['.label'] = label;
@@ -444,9 +448,9 @@ function _makePolyContainer() {
   cont._selectorAll['.ctrl-unit[data-param]'] = ctrlUnits;
 
   // Shape-led-rows with data-param
-  var shapeWithParam = [];
+  const shapeWithParam = [];
   ['note_priority', 'trigger_mode'].forEach(function(pid) {
-    var row = _createFakeEl('div', { 'data-param': pid });
+    const row = _createFakeEl('div', { 'data-param': pid });
     row.classList.add('shape-led-row');
     row._subElements['.shape-name'] = _createFakeEl('span');
     row._subElements['.shape-name'].textContent = pid;
@@ -455,10 +459,10 @@ function _makePolyContainer() {
   cont._selectorAll['.shape-led-row[data-param]'] = shapeWithParam;
 
   // Select with data-param
-  var sel = _createFakeEl('select', { 'data-param': 'unison_detune' });
+  const sel = _createFakeEl('select', { 'data-param': 'unison_detune' });
   sel.options = [];
-  for (var i = 0; i < 3; i++) {
-    var opt = _createFakeEl('option');
+  for (let i = 0; i < 3; i++) {
+    const opt = _createFakeEl('option');
     opt.value = String(i);
     opt.textContent = String(i);
     sel.options.push(opt);
@@ -473,27 +477,27 @@ function _makePortaContainer() {
   cont._selectorAll = {};
 
   // Porta mode LED rows
-  var portaRows = [];
-  for (var i = 0; i < 3; i++) {
-    var row = _createFakeEl('div', { 'data-val': String(i) });
+  const portaRows = [];
+  for (let i = 0; i < 3; i++) {
+    const row = _createFakeEl('div', { 'data-val': String(i) });
     row.classList.add('porta-mode-led-row');
     portaRows.push(row);
   }
   cont._selectorAll['.porta-mode-led-row'] = portaRows;
 
   // Note priority LED rows
-  var npRows = [];
+  const npRows = [];
   [0, 1, 2].forEach(function(val) {
-    var row = _createFakeEl('div', { 'data-val': String(val), 'data-param': 'note_priority' });
+    const row = _createFakeEl('div', { 'data-val': String(val), 'data-param': 'note_priority' });
     row.classList.add('note-priority-led-row');
     npRows.push(row);
   });
   cont._selectorAll['.note-priority-led-row'] = npRows;
 
   // Trigger mode LED rows
-  var tmRows = [];
+  const tmRows = [];
   [0, 1, 2, 3].forEach(function(val) {
-    var row = _createFakeEl('div', { 'data-val': String(val), 'data-param': 'trigger_mode' });
+    const row = _createFakeEl('div', { 'data-val': String(val), 'data-param': 'trigger_mode' });
     row.classList.add('trigger-mode-led-row');
     tmRows.push(row);
   });
@@ -507,22 +511,23 @@ function _makePortaContainer() {
 // ══════════════════════════════════════════════════════════════════
 
 function _setupLcdDoc() {
-  var lcdEl = _createFakeEl('div', { id: 'lcd-text' });
-  var selectPolyMode = _createFakeEl('select', { id: 'panel-poly-mode-select' });
+  const lcdEl = _createFakeEl('div', { id: 'lcd-text' });
+  const selectPolyMode = _createFakeEl('select', { id: 'panel-poly-mode-select' });
   selectPolyMode.options = [];
-  for (var i = 0; i < 13; i++) {
-    var opt = _createFakeEl('option');
+  for (let i = 0; i < 13; i++) {
+    const opt = _createFakeEl('option');
     opt.value = String(i);
     opt.textContent = 'Mode ' + i;
     selectPolyMode.options.push(opt);
   }
 
-  var mockDoc = {
+  const mockDoc = {
     getElementById: function(id) {
-      if (id === 'lcd-text') return lcdEl;
-      if (id === 'panel-poly-mode-select') return selectPolyMode;
+      if (id === 'lcd-text') {return lcdEl;}
+      if (id === 'panel-poly-mode-select') {return selectPolyMode;}
       return null;
     },
+    querySelector: function() { return null; },
     addEventListener: vi.fn(),
   };
   return { lcdEl: lcdEl, selectPolyMode: selectPolyMode, mockDoc: mockDoc };
@@ -548,7 +553,7 @@ describe('bindPanelEnvControls', () => {
       PANEL_TEMPLATES: { ENV: _makeTemplate() },
       setLcdParamDisplayTimer: vi.fn(),
       formatParamValue: vi.fn(function(pid, val) {
-        if (val === 0) return 'OFF';
+        if (val === 0) {return 'OFF';}
         return Math.round(val * 100) + '%';
       }),
     });
@@ -576,6 +581,32 @@ describe('bindPanelEnvControls', () => {
     expect(titleEl.innerText).toBe('MOD Env Editor');
   });
 
+  // ── Sync from main screen active button ──
+
+  it('reads data-env from active .env-type-btn to override panelActiveEnv', () => {
+    state.panelActiveEnv = 1;
+    const fakeBtn = _createFakeEl('button');
+    fakeBtn.classList.add('active');
+    fakeBtn.setAttribute('data-env', '2');
+    lcdDoc.mockDoc.querySelector = function(sel) {
+      if (sel === '.env-type-btn.active') {return fakeBtn;}
+      return null;
+    };
+    bindPanelEnvControls(container, state, titleEl);
+    expect(state.panelActiveEnv).toBe(2);
+    expect(titleEl.innerText).toBe('VCF Env Editor');
+    expect(container.innerHTML).toContain('env2_');
+  });
+
+  it('falls back to state.panelActiveEnv when no active env button exists', () => {
+    state.panelActiveEnv = 3;
+    lcdDoc.mockDoc.querySelector = function() { return null; };
+    bindPanelEnvControls(container, state, titleEl);
+    expect(state.panelActiveEnv).toBe(3);
+    expect(titleEl.innerText).toBe('MOD Env Editor');
+    expect(container.innerHTML).toContain('env3_');
+  });
+
   // ── innerHTML ──
 
   it('sets container.innerHTML from PANEL_TEMPLATES.ENV with prefix', () => {
@@ -595,7 +626,7 @@ describe('bindPanelEnvControls', () => {
 
   it('registers click listeners on all shape-led-rows', () => {
     bindPanelEnvControls(container, state, titleEl);
-    var rows = container._selectorAll['.shape-led-row'];
+    const rows = container._selectorAll['.shape-led-row'];
     rows.forEach(function(row) {
       expect(row._listeners['click']).toBeDefined();
       expect(row._listeners['click'].length).toBe(1);
@@ -604,7 +635,7 @@ describe('bindPanelEnvControls', () => {
 
   it('clicking a trigger row removes active from all rows and activates clicked one', () => {
     bindPanelEnvControls(container, state, titleEl);
-    var rows = container._selectorAll['.shape-led-row'];
+    const rows = container._selectorAll['.shape-led-row'];
     rows[0].classList.add('active');
 
     // Click row at index 2 (LFO 2, trigVal=2)
@@ -617,7 +648,7 @@ describe('bindPanelEnvControls', () => {
 
   it('clicking trigger row calls setParameter with trigVal/4.0', () => {
     bindPanelEnvControls(container, state, titleEl);
-    var rows = container._selectorAll['.shape-led-row'];
+    const rows = container._selectorAll['.shape-led-row'];
 
     // Click row at index 4 (Seq, trigVal=4 → 4/4.0 = 1.0)
     rows[4]._listeners['click'][0]();
@@ -634,7 +665,7 @@ describe('bindPanelEnvControls', () => {
       PANEL_TEMPLATES: { ENV: _makeTemplate() },
     });
     bindPanelEnvControls(container, state, titleEl);
-    var rows = container._selectorAll['.shape-led-row'];
+    const rows = container._selectorAll['.shape-led-row'];
 
     expect(function() { rows[0]._listeners['click'][0](); }).not.toThrow();
   });
@@ -643,7 +674,7 @@ describe('bindPanelEnvControls', () => {
 
   it('registers mouseenter on ctrl-units', () => {
     bindPanelEnvControls(container, state, titleEl);
-    var units = container._selectorAll['.ctrl-unit[data-param]'];
+    const units = container._selectorAll['.ctrl-unit[data-param]'];
     units.forEach(function(unit) {
       expect(unit._listeners['mouseenter']).toBeDefined();
     });
@@ -652,10 +683,10 @@ describe('bindPanelEnvControls', () => {
   it('mouseenter on ctrl-unit updates lcd-text with param info', () => {
     _bridge.parameterCache['env1_attack'] = 0.5;
     bindPanelEnvControls(container, state, titleEl);
-    var units = container._selectorAll['.ctrl-unit[data-param]'];
+    const units = container._selectorAll['.ctrl-unit[data-param]'];
 
     // Mouse enter on attack unit — use .call() to bind `this` to the element
-    var fn = units[0]._listeners['mouseenter'][0];
+    const fn = units[0]._listeners['mouseenter'][0];
     fn.call(units[0], { currentTarget: units[0] });
 
     expect(lcdDoc.lcdEl.innerHTML).toContain('VCA ENV PANEL');
@@ -665,9 +696,9 @@ describe('bindPanelEnvControls', () => {
 
   it('mouseenter on ctrl-unit handles missing cache value (uses 0)', () => {
     bindPanelEnvControls(container, state, titleEl);
-    var units = container._selectorAll['.ctrl-unit[data-param]'];
+    const units = container._selectorAll['.ctrl-unit[data-param]'];
 
-    var fn = units[0]._listeners['mouseenter'][0];
+    const fn = units[0]._listeners['mouseenter'][0];
     fn.call(units[0], { currentTarget: units[0] });
 
     expect(lcdDoc.lcdEl.innerHTML).toContain('0%');
@@ -680,9 +711,9 @@ describe('bindPanelEnvControls', () => {
       formatParamValue: function() { return '0%'; },
     });
     bindPanelEnvControls(container, state, titleEl);
-    var units = container._selectorAll['.ctrl-unit[data-param]'];
+    const units = container._selectorAll['.ctrl-unit[data-param]'];
 
-    var fn = units[0]._listeners['mouseenter'][0];
+    const fn = units[0]._listeners['mouseenter'][0];
     fn.call(units[0], { currentTarget: units[0] });
 
     expect(lcdDoc.lcdEl.innerHTML).toContain('0%');
@@ -690,9 +721,9 @@ describe('bindPanelEnvControls', () => {
 
   it('calls setLcdParamDisplayTimer from ctrl-unit hover', () => {
     bindPanelEnvControls(container, state, titleEl);
-    var units = container._selectorAll['.ctrl-unit[data-param]'];
+    const units = container._selectorAll['.ctrl-unit[data-param]'];
 
-    var fn = units[0]._listeners['mouseenter'][0];
+    const fn = units[0]._listeners['mouseenter'][0];
     fn.call(units[0], { currentTarget: units[0] });
 
     expect(window.setLcdParamDisplayTimer).toHaveBeenCalledWith(lcdDoc.lcdEl);
@@ -701,12 +732,13 @@ describe('bindPanelEnvControls', () => {
   it('does not crash when lcd-text is missing from DOM', () => {
     vi.stubGlobal('document', {
       getElementById: function() { return null; },
+      querySelector: function() { return null; },
       addEventListener: vi.fn(),
     });
     bindPanelEnvControls(container, state, titleEl);
-    var units = container._selectorAll['.ctrl-unit[data-param]'];
+    const units = container._selectorAll['.ctrl-unit[data-param]'];
 
-    var fn = units[0]._listeners['mouseenter'][0];
+    const fn = units[0]._listeners['mouseenter'][0];
     expect(function() { fn.call(units[0], { currentTarget: units[0] }); }).not.toThrow();
   });
 
@@ -714,7 +746,7 @@ describe('bindPanelEnvControls', () => {
 
   it('registers mouseenter on shape-led-rows with data-param', () => {
     bindPanelEnvControls(container, state, titleEl);
-    var rows = container._selectorAll['.shape-led-row[data-param]'];
+    const rows = container._selectorAll['.shape-led-row[data-param]'];
     rows.forEach(function(row) {
       expect(row._listeners['mouseenter']).toBeDefined();
     });
@@ -723,12 +755,12 @@ describe('bindPanelEnvControls', () => {
   it('mouseenter on shape-led-row uses formatParamValue', () => {
     _bridge.parameterCache['env1_attack_curve'] = 0.5;
     bindPanelEnvControls(container, state, titleEl);
-    var rows = container._selectorAll['.shape-led-row[data-param]'];
+    const rows = container._selectorAll['.shape-led-row[data-param]'];
 
     // Row for attack_curve
     rows.forEach(function(row) {
       if (row.getAttribute('data-param') === 'env1_attack_curve') {
-        var fn = row._listeners['mouseenter'][0];
+        const fn = row._listeners['mouseenter'][0];
         fn.call(row, { currentTarget: row });
       }
     });
@@ -742,9 +774,9 @@ describe('bindPanelEnvControls', () => {
   it('uses correct env name in LCD for panelActiveEnv=2 (VCF)', () => {
     state.panelActiveEnv = 2;
     bindPanelEnvControls(container, state, titleEl);
-    var units = container._selectorAll['.ctrl-unit[data-param]'];
+    const units = container._selectorAll['.ctrl-unit[data-param]'];
 
-    var fn = units[0]._listeners['mouseenter'][0];
+    const fn = units[0]._listeners['mouseenter'][0];
     fn.call(units[0], { currentTarget: units[0] });
 
     expect(lcdDoc.lcdEl.innerHTML).toContain('VCF ENV PANEL');
@@ -753,9 +785,9 @@ describe('bindPanelEnvControls', () => {
   it('uses correct env name in LCD for panelActiveEnv=3 (MOD)', () => {
     state.panelActiveEnv = 3;
     bindPanelEnvControls(container, state, titleEl);
-    var units = container._selectorAll['.ctrl-unit[data-param]'];
+    const units = container._selectorAll['.ctrl-unit[data-param]'];
 
-    var fn = units[0]._listeners['mouseenter'][0];
+    const fn = units[0]._listeners['mouseenter'][0];
     fn.call(units[0], { currentTarget: units[0] });
 
     expect(lcdDoc.lcdEl.innerHTML).toContain('MOD ENV PANEL');
@@ -782,7 +814,7 @@ describe('bindPanelPolyControls', () => {
       PANEL_TEMPLATES: { POLY: _makeTemplatePoly },
       setLcdParamDisplayTimer: vi.fn(),
       formatParamValue: vi.fn(function(pid, val) {
-        if (typeof val !== 'number') return '0%';
+        if (typeof val !== 'number') {return '0%';}
         return Math.round(val * 100) + '%';
       }),
     });
@@ -831,7 +863,7 @@ describe('bindPanelPolyControls', () => {
 
   it('registers click listeners on all priority-led-rows', () => {
     bindPanelPolyControls(container, state, titleEl);
-    var rows = container._selectorAll['.priority-led-row'];
+    const rows = container._selectorAll['.priority-led-row'];
     rows.forEach(function(row) {
       expect(row._listeners['click']).toBeDefined();
     });
@@ -839,7 +871,7 @@ describe('bindPanelPolyControls', () => {
 
   it('clicking priority row activates it and deactivates others', () => {
     bindPanelPolyControls(container, state, titleEl);
-    var rows = container._selectorAll['.priority-led-row'];
+    const rows = container._selectorAll['.priority-led-row'];
     rows[0].classList.add('active');
 
     rows[2]._listeners['click'][0]();
@@ -851,7 +883,7 @@ describe('bindPanelPolyControls', () => {
 
   it('clicking priority row calls setParameter with data-val/2.0', () => {
     bindPanelPolyControls(container, state, titleEl);
-    var rows = container._selectorAll['.priority-led-row'];
+    const rows = container._selectorAll['.priority-led-row'];
 
     rows[1]._listeners['click'][0]();
     expect(_bridge.setParameter).toHaveBeenCalledWith('note_priority', 1.0 / 2.0);
@@ -864,7 +896,7 @@ describe('bindPanelPolyControls', () => {
 
   it('registers click listeners on all trigger-led-rows', () => {
     bindPanelPolyControls(container, state, titleEl);
-    var rows = container._selectorAll['.trigger-led-row'];
+    const rows = container._selectorAll['.trigger-led-row'];
     rows.forEach(function(row) {
       expect(row._listeners['click']).toBeDefined();
     });
@@ -872,7 +904,7 @@ describe('bindPanelPolyControls', () => {
 
   it('clicking trigger row calls setParameter with data-val/3.0', () => {
     bindPanelPolyControls(container, state, titleEl);
-    var rows = container._selectorAll['.trigger-led-row'];
+    const rows = container._selectorAll['.trigger-led-row'];
 
     rows[3]._listeners['click'][0]();
     expect(_bridge.setParameter).toHaveBeenCalledWith('trigger_mode', 3.0 / 3.0);
@@ -885,7 +917,7 @@ describe('bindPanelPolyControls', () => {
 
   it('registers mouseenter on ctrl-units', () => {
     bindPanelPolyControls(container, state, titleEl);
-    var units = container._selectorAll['.ctrl-unit[data-param]'];
+    const units = container._selectorAll['.ctrl-unit[data-param]'];
     units.forEach(function(unit) {
       expect(unit._listeners['mouseenter']).toBeDefined();
     });
@@ -894,9 +926,9 @@ describe('bindPanelPolyControls', () => {
   it('mouseenter on ctrl-unit updates lcd with poly label and percentage', () => {
     _bridge.parameterCache['voice_mode'] = 0.5;
     bindPanelPolyControls(container, state, titleEl);
-    var units = container._selectorAll['.ctrl-unit[data-param]'];
+    const units = container._selectorAll['.ctrl-unit[data-param]'];
 
-    var fn = units[0]._listeners['mouseenter'][0];
+    const fn = units[0]._listeners['mouseenter'][0];
     fn.call(units[0], { currentTarget: units[0] });
 
     expect(lcdDoc.lcdEl.innerHTML).toContain('POLY PANEL');
@@ -908,7 +940,7 @@ describe('bindPanelPolyControls', () => {
 
   it('registers mouseenter on shape-led-rows with data-param', () => {
     bindPanelPolyControls(container, state, titleEl);
-    var rows = container._selectorAll['.shape-led-row[data-param]'];
+    const rows = container._selectorAll['.shape-led-row[data-param]'];
     rows.forEach(function(row) {
       expect(row._listeners['mouseenter']).toBeDefined();
     });
@@ -917,9 +949,9 @@ describe('bindPanelPolyControls', () => {
   it('mouseenter on shape-led-row uses formatParamValue', () => {
     _bridge.parameterCache['note_priority'] = 0.5;
     bindPanelPolyControls(container, state, titleEl);
-    var rows = container._selectorAll['.shape-led-row[data-param]'];
+    const rows = container._selectorAll['.shape-led-row[data-param]'];
 
-    var fn = rows[0]._listeners['mouseenter'][0];
+    const fn = rows[0]._listeners['mouseenter'][0];
     fn.call(rows[0], { currentTarget: rows[0] });
 
     expect(lcdDoc.lcdEl.innerHTML).toContain('POLY PANEL');
@@ -930,7 +962,7 @@ describe('bindPanelPolyControls', () => {
 
   it('registers mouseenter on select[data-param]', () => {
     bindPanelPolyControls(container, state, titleEl);
-    var selects = container._selectorAll['select[data-param]'];
+    const selects = container._selectorAll['select[data-param]'];
     selects.forEach(function(sel) {
       expect(sel._listeners['mouseenter']).toBeDefined();
     });
@@ -939,9 +971,9 @@ describe('bindPanelPolyControls', () => {
   it('mouseenter on select shows selected option text in LCD', () => {
     _bridge.parameterCache['unison_detune'] = 0.5;
     bindPanelPolyControls(container, state, titleEl);
-    var selects = container._selectorAll['select[data-param]'];
+    const selects = container._selectorAll['select[data-param]'];
 
-    var fn = selects[0]._listeners['mouseenter'][0];
+    const fn = selects[0]._listeners['mouseenter'][0];
     fn.call(selects[0], { currentTarget: selects[0] });
 
     // val=0.5, opts.length=3, idx=Math.round(0.5*2)=1, selectedText options[1].textContent='1'
@@ -988,7 +1020,7 @@ describe('bindPanelPortaControls', () => {
 
   it('registers click listeners on all porta-mode-led-rows', () => {
     bindPanelPortaControls(container, state, titleEl);
-    var rows = container._selectorAll['.porta-mode-led-row'];
+    const rows = container._selectorAll['.porta-mode-led-row'];
     rows.forEach(function(row) {
       expect(row._listeners['click']).toBeDefined();
     });
@@ -996,7 +1028,7 @@ describe('bindPanelPortaControls', () => {
 
   it('clicking porta-mode row activates it and deactivates others', () => {
     bindPanelPortaControls(container, state, titleEl);
-    var rows = container._selectorAll['.porta-mode-led-row'];
+    const rows = container._selectorAll['.porta-mode-led-row'];
     rows[0].classList.add('active');
 
     rows[1]._listeners['click'][0]();
@@ -1008,7 +1040,7 @@ describe('bindPanelPortaControls', () => {
 
   it('clicking porta-mode row calls setParameter with data-val/9.0', () => {
     bindPanelPortaControls(container, state, titleEl);
-    var rows = container._selectorAll['.porta-mode-led-row'];
+    const rows = container._selectorAll['.porta-mode-led-row'];
 
     rows[2]._listeners['click'][0]();
     expect(_bridge.setParameter).toHaveBeenCalledWith('porta_mode', 2.0 / 9.0);
@@ -1023,7 +1055,7 @@ describe('bindPanelPortaControls', () => {
       PANEL_TEMPLATES: { PORTA: _makeTemplatePorta },
     });
     bindPanelPortaControls(container, state, titleEl);
-    var rows = container._selectorAll['.porta-mode-led-row'];
+    const rows = container._selectorAll['.porta-mode-led-row'];
 
     expect(function() { rows[0]._listeners['click'][0](); }).not.toThrow();
   });
@@ -1032,7 +1064,7 @@ describe('bindPanelPortaControls', () => {
 
   it('registers click listeners on all note-priority-led-rows', () => {
     bindPanelPortaControls(container, state, titleEl);
-    var rows = container._selectorAll['.note-priority-led-row'];
+    const rows = container._selectorAll['.note-priority-led-row'];
     rows.forEach(function(row) {
       expect(row._listeners['click']).toBeDefined();
     });
@@ -1040,7 +1072,7 @@ describe('bindPanelPortaControls', () => {
 
   it('clicking note-priority row calls setParameter with data-val/2.0', () => {
     bindPanelPortaControls(container, state, titleEl);
-    var rows = container._selectorAll['.note-priority-led-row'];
+    const rows = container._selectorAll['.note-priority-led-row'];
 
     rows[1]._listeners['click'][0]();
     expect(_bridge.setParameter).toHaveBeenCalledWith('note_priority', 1.0 / 2.0);
@@ -1048,7 +1080,7 @@ describe('bindPanelPortaControls', () => {
 
   it('clicking note-priority row activates it and deactivates others', () => {
     bindPanelPortaControls(container, state, titleEl);
-    var rows = container._selectorAll['.note-priority-led-row'];
+    const rows = container._selectorAll['.note-priority-led-row'];
     rows[0].classList.add('active');
 
     rows[2]._listeners['click'][0]();
@@ -1062,7 +1094,7 @@ describe('bindPanelPortaControls', () => {
 
   it('registers click listeners on all trigger-mode-led-rows', () => {
     bindPanelPortaControls(container, state, titleEl);
-    var rows = container._selectorAll['.trigger-mode-led-row'];
+    const rows = container._selectorAll['.trigger-mode-led-row'];
     rows.forEach(function(row) {
       expect(row._listeners['click']).toBeDefined();
     });
@@ -1070,7 +1102,7 @@ describe('bindPanelPortaControls', () => {
 
   it('clicking trigger-mode row calls setParameter with data-val/3.0', () => {
     bindPanelPortaControls(container, state, titleEl);
-    var rows = container._selectorAll['.trigger-mode-led-row'];
+    const rows = container._selectorAll['.trigger-mode-led-row'];
 
     rows[3]._listeners['click'][0]();
     expect(_bridge.setParameter).toHaveBeenCalledWith('trigger_mode', 3.0 / 3.0);
@@ -1078,7 +1110,7 @@ describe('bindPanelPortaControls', () => {
 
   it('clicking trigger-mode row activates it and deactivates others', () => {
     bindPanelPortaControls(container, state, titleEl);
-    var rows = container._selectorAll['.trigger-mode-led-row'];
+    const rows = container._selectorAll['.trigger-mode-led-row'];
     rows[0].classList.add('active');
 
     rows[2]._listeners['click'][0]();

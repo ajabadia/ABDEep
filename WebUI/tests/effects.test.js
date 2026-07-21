@@ -56,7 +56,7 @@ function _createFakeEl(tag, attrs) {
     dataset: {},
     classList: {
       _classes: [],
-      add(c) { if (!this._classes.includes(c)) this._classes.push(c); },
+      add(c) { if (!this._classes.includes(c)) {this._classes.push(c);} },
       remove(c) { this._classes = this._classes.filter(x => x !== c); },
       contains(c) { return this._classes.includes(c); },
     },
@@ -64,7 +64,7 @@ function _createFakeEl(tag, attrs) {
     setAttribute(name, val) { this._attrs[name] = val; },
     hasAttribute(name) { return name in this._attrs; },
     addEventListener(event, handler) {
-      if (!this._listeners[event]) this._listeners[event] = [];
+      if (!this._listeners[event]) {this._listeners[event] = [];}
       this._listeners[event].push(handler);
     },
     removeEventListener() {},
@@ -113,14 +113,14 @@ function getSlotOffsets(slotNumber) {
 }
 
 function saveFxPreset(presetName, slotNumber, bridge, selectedSlot, _loadAllFxPresetsFn, _renderFxPresetListFn, _readFxParamValueFn) {
-  if (!presetName || presetName.trim() === '') return;
-  var name = presetName.trim().replace(/[<>\"'&]/g, '');
-  if (!name) return;
+  if (!presetName || presetName.trim() === '') {return;}
+  const name = presetName.trim().replace(/[<>\"'&]/g, '');
+  if (!name) {return;}
   slotNumber = slotNumber || selectedSlot;
-  if (!bridge || !bridge.parameterCache) return;
+  if (!bridge || !bridge.parameterCache) {return;}
 
-  var offsets = getSlotOffsets(slotNumber);
-  var preset = {
+  const offsets = getSlotOffsets(slotNumber);
+  const preset = {
     name: name,
     slot: slotNumber,
     type: _readFxParamValueFn('fx' + slotNumber + '_type', offsets.typeByte, 0.0),
@@ -128,13 +128,13 @@ function saveFxPreset(presetName, slotNumber, bridge, selectedSlot, _loadAllFxPr
     gain: _readFxParamValueFn('fx' + slotNumber + '_gain', offsets.gainByte, 1.0),
     created: Date.now()
   };
-  for (var i = 1; i <= 12; i++) {
+  for (let i = 1; i <= 12; i++) {
     preset.params.push(_readFxParamValueFn('fx' + slotNumber + '_param' + i, offsets.paramOffsetStart + i - 1, 0.5));
   }
 
-  var allPresets = _loadAllFxPresetsFn();
-  var existingIdx = -1;
-  for (var j = 0; j < allPresets.length; j++) {
+  const allPresets = _loadAllFxPresetsFn();
+  let existingIdx = -1;
+  for (let j = 0; j < allPresets.length; j++) {
     if (allPresets[j].name === preset.name) {
       existingIdx = j;
       break;
@@ -157,19 +157,19 @@ function saveFxPreset(presetName, slotNumber, bridge, selectedSlot, _loadAllFxPr
 
 function loadAllFxPresets() {
   try {
-    var raw = localStorage.getItem('abd-eep-fx-presets');
+    const raw = localStorage.getItem('abd-eep-fx-presets');
     if (raw) {
-      var parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {return parsed;}
     }
   } catch (e) {}
   return [];
 }
 
 function deleteFxPreset(presetName, loadAllFn, renderFn) {
-  var allPresets = loadAllFn();
-  var filtered = [];
-  for (var i = 0; i < allPresets.length; i++) {
+  const allPresets = loadAllFn();
+  const filtered = [];
+  for (let i = 0; i < allPresets.length; i++) {
     if (allPresets[i].name !== presetName) {
       filtered.push(allPresets[i]);
     }
@@ -185,15 +185,15 @@ function deleteFxPreset(presetName, loadAllFn, renderFn) {
 }
 
 function renderFxPresetList(containerEl, presets, applyFn, deleteFn, selectedSlot) {
-  if (!containerEl) return;
+  if (!containerEl) {return;}
   if (!presets || presets.length === 0) {
     containerEl.innerHTML = '<div>No FX presets saved yet</div>';
     return;
   }
-  var html = '';
-  for (var i = presets.length - 1; i >= 0; i--) {
-    var p = presets[i];
-    var typeName = FX_TYPE_NAMES[Math.round(p.type * FX_TYPE_COUNT)] || 'Bypass';
+  let html = '';
+  for (let i = presets.length - 1; i >= 0; i--) {
+    const p = presets[i];
+    const typeName = FX_TYPE_NAMES[Math.round(p.type * FX_TYPE_COUNT)] || 'Bypass';
     html += '<div class="fx-preset-item" data-preset-index="' + i + '">' +
       '<div class="fx-preset-name" title="Apply ' + escapeHtml(p.name) + ' to FX' + selectedSlot + '">' +
         '<span class="fx-preset-name-text">' + escapeHtml(p.name) + '</span> ' +
@@ -205,15 +205,15 @@ function renderFxPresetList(containerEl, presets, applyFn, deleteFn, selectedSlo
   containerEl.innerHTML = html;
 
   containerEl.querySelectorAll('.fx-preset-item').forEach(function(item) {
-    var idx = parseInt(item.getAttribute('data-preset-index'));
-    if (isNaN(idx) || idx < 0 || idx >= presets.length) return;
-    var nameDiv = item.querySelector('.fx-preset-name');
+    const idx = parseInt(item.getAttribute('data-preset-index'));
+    if (isNaN(idx) || idx < 0 || idx >= presets.length) {return;}
+    const nameDiv = item.querySelector('.fx-preset-name');
     if (nameDiv) {
       nameDiv.addEventListener('click', function() {
         applyFn(presets[idx], selectedSlot);
       });
     }
-    var delBtn = item.querySelector('.fx-preset-delete-btn');
+    const delBtn = item.querySelector('.fx-preset-delete-btn');
     if (delBtn) {
       delBtn.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -241,7 +241,7 @@ describe('FX_TYPE_NAMES', () => {
   });
 
   it('all entries are non-empty strings', () => {
-    for (var i = 0; i < FX_TYPE_NAMES.length; i++) {
+    for (let i = 0; i < FX_TYPE_NAMES.length; i++) {
       expect(typeof FX_TYPE_NAMES[i]).toBe('string');
       expect(FX_TYPE_NAMES[i].length).toBeGreaterThan(0);
     }
@@ -364,7 +364,7 @@ describe('loadAllFxPresets', () => {
     vi.stubGlobal('localStorage', {
       getItem: vi.fn(function(key) { return _lsStore[key] || null; }),
       setItem: vi.fn(function(key, val) { _lsStore[key] = String(val); }),
-      clear: vi.fn(function() { for (const k in _lsStore) delete _lsStore[k]; }),
+      clear: vi.fn(function() { for (const k in _lsStore) {delete _lsStore[k];} }),
       removeItem: vi.fn(function(key) { delete _lsStore[key]; }),
     });
   });
@@ -433,7 +433,7 @@ describe('saveFxPreset', () => {
     vi.stubGlobal('localStorage', {
       getItem: vi.fn(function(key) { return _lsStore[key] || null; }),
       setItem: vi.fn(function(key, val) { _lsStore[key] = String(val); }),
-      clear: vi.fn(function() { for (const k in _lsStore) delete _lsStore[k]; }),
+      clear: vi.fn(function() { for (const k in _lsStore) {delete _lsStore[k];} }),
       removeItem: vi.fn(function(key) { delete _lsStore[key]; }),
     });
   });
@@ -540,7 +540,7 @@ describe('deleteFxPreset', () => {
     vi.stubGlobal('localStorage', {
       getItem: vi.fn(function(key) { return _lsStore[key] || null; }),
       setItem: vi.fn(function(key, val) { _lsStore[key] = String(val); }),
-      clear: vi.fn(function() { for (const k in _lsStore) delete _lsStore[k]; }),
+      clear: vi.fn(function() { for (const k in _lsStore) {delete _lsStore[k];} }),
       removeItem: vi.fn(function(key) { delete _lsStore[key]; }),
     });
   });
@@ -722,10 +722,10 @@ describe('applyFxPreset', () => {
 
   function applyFxPreset(presetData, slotNumber, bridge, selectedSlot, renderFn, lcdSafeUpdateFn) {
     slotNumber = slotNumber || 1;
-    if (!bridge) return;
+    if (!bridge) {return;}
 
     bridge.setParameter('fx' + slotNumber + '_type', presetData.type);
-    for (var i = 0; i < 12 && i < presetData.params.length; i++) {
+    for (let i = 0; i < 12 && i < presetData.params.length; i++) {
       bridge.setParameter('fx' + slotNumber + '_param' + (i + 1), presetData.params[i]);
     }
     if (presetData.gain !== undefined) {
@@ -832,7 +832,7 @@ describe('initEffectsModal exports', () => {
   it('exposes saveFxPreset on window', () => {
     vi.stubGlobal('window', {});
     // Simulate minimal initEffectsModal by setting window globals
-    var fakeSaveFn = function() {};
+    const fakeSaveFn = function() {};
     window.saveFxPreset = fakeSaveFn;
     window.applyFxPreset = function() {};
     window.deleteFxPreset = function() {};
@@ -890,9 +890,9 @@ describe('_setGainSliderPos', () => {
   function setGainSliderPos(paramId, fallbackByte, _readValFn) {
     const val = _readValFn(paramId, fallbackByte, 1.0);
     const slider = document.querySelector('[data-param="' + paramId + '"] .v-slider');
-    if (!slider) return;
+    if (!slider) {return;}
     const handle = slider.querySelector('.handle');
-    if (!handle) return;
+    if (!handle) {return;}
     const handleHeight = 12;
     const limit = slider.getBoundingClientRect().height - handleHeight;
     if (limit > 0) {
@@ -908,13 +908,13 @@ describe('_setGainSliderPos', () => {
     fakeEl = {
       getBoundingClientRect: function() { return { height: 112 }; },
       querySelector: function(sel) {
-        if (sel === '.handle') return fakeHandle;
+        if (sel === '.handle') {return fakeHandle;}
         return null;
       },
     };
     vi.stubGlobal('document', {
       querySelector: vi.fn(function(sel) {
-        if (sel.endsWith('.v-slider')) return fakeEl;
+        if (sel.endsWith('.v-slider')) {return fakeEl;}
         return null;
       }),
     });
@@ -1052,7 +1052,7 @@ describe('saveFxPreset — edge cases', () => {
     vi.stubGlobal('localStorage', {
       getItem: vi.fn(function(key) { return _lsStore[key] || null; }),
       setItem: vi.fn(function(key, val) { _lsStore[key] = String(val); }),
-      clear: vi.fn(function() { for (const k in _lsStore) delete _lsStore[k]; }),
+      clear: vi.fn(function() { for (const k in _lsStore) {delete _lsStore[k];} }),
       removeItem: vi.fn(function(key) { delete _lsStore[key]; }),
     });
   });
@@ -1151,9 +1151,9 @@ describe('applyFxPreset — edge cases', () => {
 
   function applyFxPreset(presetData, slotNumber, bridge, selectedSlot, renderFn) {
     slotNumber = slotNumber || 1;
-    if (!bridge) return;
+    if (!bridge) {return;}
     bridge.setParameter('fx' + slotNumber + '_type', presetData.type);
-    for (var i = 0; i < 12 && i < presetData.params.length; i++) {
+    for (let i = 0; i < 12 && i < presetData.params.length; i++) {
       bridge.setParameter('fx' + slotNumber + '_param' + (i + 1), presetData.params[i]);
     }
     if (presetData.gain !== undefined) {
@@ -1195,7 +1195,7 @@ describe('applyFxPreset — edge cases', () => {
     const preset = { name: 'NoParams', slot: 1, type: 0.5, gain: 1.0 };
     expect(function() {
       // Guard inside the function: use empty array fallback
-      var safeParams = preset.params || [];
+      const safeParams = preset.params || [];
       applyFxPreset({ ...preset, params: safeParams }, 1, bridge, 1, vi.fn());
     }).not.toThrow();
   });
@@ -1225,7 +1225,7 @@ describe('deleteFxPreset — edge cases', () => {
     vi.stubGlobal('localStorage', {
       getItem: vi.fn(function(key) { return _lsStore[key] || null; }),
       setItem: vi.fn(function(key, val) { _lsStore[key] = String(val); }),
-      clear: vi.fn(function() { for (const k in _lsStore) delete _lsStore[k]; }),
+      clear: vi.fn(function() { for (const k in _lsStore) {delete _lsStore[k];} }),
       removeItem: vi.fn(function(key) { delete _lsStore[key]; }),
     });
   });

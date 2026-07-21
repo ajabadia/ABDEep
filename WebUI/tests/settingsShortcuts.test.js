@@ -10,11 +10,11 @@ globalThis.window = globalThis.window || {};
 
 // ===== Extracted Source Functions =====
 
-var SHORTCUT_GROUP_ORDER = ['global', 'sequencer', 'other'];
-var SHORTCUT_GROUP_LABELS = { 'global': 'Global', 'sequencer': 'Sequencer', 'other': 'Other' };
-var SHORTCUT_GROUP_COLORS = { 'global': '--accent-cyan', 'sequencer': '--accent-pink', 'other': '--text-dim' };
+const SHORTCUT_GROUP_ORDER = ['global', 'sequencer', 'other'];
+const SHORTCUT_GROUP_LABELS = { 'global': 'Global', 'sequencer': 'Sequencer', 'other': 'Other' };
+const SHORTCUT_GROUP_COLORS = { 'global': '--accent-cyan', 'sequencer': '--accent-pink', 'other': '--text-dim' };
 
-var MODIFIER_KEYS = ['Control', 'Shift', 'Alt', 'Meta'];
+const MODIFIER_KEYS = ['Control', 'Shift', 'Alt', 'Meta'];
 
 function isModifierKey(key) {
     return MODIFIER_KEYS.indexOf(key) !== -1;
@@ -42,11 +42,11 @@ function validateCombo(combo) {
 }
 
 function handleCaptureKey(key, ctrlKey, shiftKey, altKey, metaKey) {
-    if (key === 'Escape') return { action: 'cancel', message: '✕ Cancelled' };
-    if (isModifierKey(key)) return { action: 'ignore' };
+    if (key === 'Escape') {return { action: 'cancel', message: '✕ Cancelled' };}
+    if (isModifierKey(key)) {return { action: 'ignore' };}
 
-    var combo = buildComboFromEvent(key, ctrlKey, shiftKey, altKey, metaKey);
-    var validationError = validateCombo(combo);
+    const combo = buildComboFromEvent(key, ctrlKey, shiftKey, altKey, metaKey);
+    const validationError = validateCombo(combo);
     if (validationError) {
         return { action: 'warning', message: '⚠ ' + validationError };
     }
@@ -55,10 +55,10 @@ function handleCaptureKey(key, ctrlKey, shiftKey, altKey, metaKey) {
 }
 
 function groupShortcuts(ids, meta) {
-    var groups = {};
+    const groups = {};
     ids.forEach(function(id) {
-        var m = meta[id] || { group: 'other', label: id, description: '', color: '--text-dim' };
-        if (!groups[m.group]) groups[m.group] = [];
+        const m = meta[id] || { group: 'other', label: id, description: '', color: '--text-dim' };
+        if (!groups[m.group]) {groups[m.group] = [];}
         groups[m.group].push({ id: id, meta: m });
     });
     return groups;
@@ -74,7 +74,7 @@ function getGroupColor(group) {
 
 function getDefaultGroupedIds() {
     // Returns the grouped structure with ids sorted by groupOrder
-    var result = [];
+    const result = [];
     SHORTCUT_GROUP_ORDER.forEach(function(group) {
         result.push({ group: group, label: getGroupLabel(group), color: getGroupColor(group) });
     });
@@ -82,11 +82,11 @@ function getDefaultGroupedIds() {
 }
 
 function formatCaptureFeedbackMessage(type, context) {
-    if (type === 'cancel') return '✕ Cancelled';
-    if (type === 'save') return '✓ Saved: ' + (context || '');
-    if (type === 'warning') return '⚠ ' + (context || '');
-    if (type === 'reset') return '✓ All shortcuts reset to defaults';
-    if (type === 'capture-prompt') return '⌨ Press key combination for "' + (context || '') + '"...';
+    if (type === 'cancel') {return '✕ Cancelled';}
+    if (type === 'save') {return '✓ Saved: ' + (context || '');}
+    if (type === 'warning') {return '⚠ ' + (context || '');}
+    if (type === 'reset') {return '✓ All shortcuts reset to defaults';}
+    if (type === 'capture-prompt') {return '⌨ Press key combination for "' + (context || '') + '"...';}
     return '';
 }
 
@@ -161,12 +161,12 @@ describe('isModifierKey', function() {
 
 describe('buildComboFromEvent', function() {
     it('builds combo object with all modifiers', function() {
-        var combo = buildComboFromEvent('z', true, true, false, false);
+        const combo = buildComboFromEvent('z', true, true, false, false);
         expect(combo).toEqual({ key: 'z', ctrl: true, shift: true, alt: false, meta: false });
     });
 
     it('coerces undefined to false', function() {
-        var combo = buildComboFromEvent('s', true, undefined, undefined, undefined);
+        const combo = buildComboFromEvent('s', true, undefined, undefined, undefined);
         expect(combo.ctrl).toBe(true);
         expect(combo.shift).toBe(false);
         expect(combo.alt).toBe(false);
@@ -174,7 +174,7 @@ describe('buildComboFromEvent', function() {
     });
 
     it('records key as-is', function() {
-        var combo = buildComboFromEvent('F5', false, false, false, false);
+        const combo = buildComboFromEvent('F5', false, false, false, false);
         expect(combo.key).toBe('F5');
     });
 });
@@ -211,7 +211,7 @@ describe('validateCombo', function() {
     });
 
     it('returns error string for combo without modifier', function() {
-        var err = validateCombo({ ctrl: false, shift: false, alt: false, meta: false, key: 'a' });
+        const err = validateCombo({ ctrl: false, shift: false, alt: false, meta: false, key: 'a' });
         expect(err).toContain('modifier');
     });
 
@@ -222,31 +222,31 @@ describe('validateCombo', function() {
 
 describe('handleCaptureKey — full capture decision logic', function() {
     it('cancels on Escape', function() {
-        var result = handleCaptureKey('Escape', false, false, false, false);
+        const result = handleCaptureKey('Escape', false, false, false, false);
         expect(result.action).toBe('cancel');
         expect(result.message).toContain('Cancelled');
     });
 
     it('ignores modifier-only keys', function() {
-        var result = handleCaptureKey('Control', false, false, false, false);
+        const result = handleCaptureKey('Control', false, false, false, false);
         expect(result.action).toBe('ignore');
     });
 
     it('returns warning when no modifier is held', function() {
-        var result = handleCaptureKey('a', false, false, false, false);
+        const result = handleCaptureKey('a', false, false, false, false);
         expect(result.action).toBe('warning');
         expect(result.message).toContain('modifier');
     });
 
     it('returns save for key with modifier', function() {
-        var result = handleCaptureKey('z', true, false, false, false);
+        const result = handleCaptureKey('z', true, false, false, false);
         expect(result.action).toBe('save');
         expect(result.combo.ctrl).toBe(true);
         expect(result.combo.key).toBe('z');
     });
 
     it('returns save for key with shift+alt', function() {
-        var result = handleCaptureKey('Tab', false, true, true, false);
+        const result = handleCaptureKey('Tab', false, true, true, false);
         expect(result.action).toBe('save');
         expect(result.combo.key).toBe('Tab');
         expect(result.combo.shift).toBe(true);
@@ -254,14 +254,14 @@ describe('handleCaptureKey — full capture decision logic', function() {
     });
 
     it('returns save for F-key with meta', function() {
-        var result = handleCaptureKey('F1', false, false, false, true);
+        const result = handleCaptureKey('F1', false, false, false, true);
         expect(result.action).toBe('save');
         expect(result.combo.meta).toBe(true);
     });
 });
 
 describe('groupShortcuts — organize by group field', function() {
-    var testMeta, testIds;
+    let testMeta, testIds;
 
     beforeEach(function() {
         testMeta = {
@@ -274,7 +274,7 @@ describe('groupShortcuts — organize by group field', function() {
     });
 
     it('groups items by meta.group', function() {
-        var groups = groupShortcuts(testIds, testMeta);
+        const groups = groupShortcuts(testIds, testMeta);
         expect(Object.keys(groups).sort()).toEqual(['global', 'other', 'sequencer']);
         expect(groups.global.length).toBe(2);
         expect(groups.sequencer.length).toBe(1);
@@ -282,19 +282,19 @@ describe('groupShortcuts — organize by group field', function() {
     });
 
     it('falls back to group "other" for ids without meta', function() {
-        var groups = groupShortcuts(['unknown_id'], {});
+        const groups = groupShortcuts(['unknown_id'], {});
         expect(groups.other.length).toBe(1);
         expect(groups.other[0].id).toBe('unknown_id');
     });
 
     it('includes meta data in grouped items', function() {
-        var groups = groupShortcuts(testIds, testMeta);
+        const groups = groupShortcuts(testIds, testMeta);
         expect(groups.global[0].meta.label).toBe('Save');
         expect(groups.global[1].meta.label).toBe('Copy');
     });
 
     it('handles null meta gracefully', function() {
-        var groups = groupShortcuts(['test'], { 'test': null });
+        const groups = groupShortcuts(['test'], { 'test': null });
         expect(groups.other.length).toBe(1);
         expect(groups.other[0].id).toBe('test');
     });
@@ -326,7 +326,7 @@ describe('getGroupColor', function() {
 
 describe('getDefaultGroupedIds', function() {
     it('returns 3 entries in group order', function() {
-        var result = getDefaultGroupedIds();
+        const result = getDefaultGroupedIds();
         expect(result.length).toBe(3);
         expect(result[0].group).toBe('global');
         expect(result[1].group).toBe('sequencer');
@@ -334,7 +334,7 @@ describe('getDefaultGroupedIds', function() {
     });
 
     it('includes label and color for each group', function() {
-        var result = getDefaultGroupedIds();
+        const result = getDefaultGroupedIds();
         expect(result[0].label).toBe('Global');
         expect(result[0].color).toBe('--accent-cyan');
         expect(result[1].label).toBe('Sequencer');

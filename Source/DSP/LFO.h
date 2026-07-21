@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 namespace ABD
 {
@@ -53,7 +54,10 @@ namespace ABD
         float targetSH = 0.0f;
         float currentSH = 0.0f;
 
+        uint32_t randomSeed = 123456789u;
+
         float generateRawWave();
         void updatePhaseIncrement();
+        float nextRandomFloat();
     };
 }

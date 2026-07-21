@@ -1,0 +1,220 @@
+﻿
+===========================================
+  ABD Eep Unit Test Runner
+===========================================
+
+  Running 1 matching test suite(s)...
+
+Random seed: 0x5ea5f2f
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / All FX types through FXSlot factory...
+Type 1 (1): OK
+Type 2 (2): OK
+Type 3 (3): OK
+Type 4 (4): OK
+Type 5 (5): OK
+Type 6 (6): OK
+Type 7 (7): OK
+Type 8 (8): OK
+Type 9 (9): OK
+Type 10 (10): OK
+Type 11 (11): OK
+Type 12 (12): OK
+Type 13 (13): OK
+Type 14 (14): OK
+Type 15 (15): OK
+Type 16 (16): OK
+Type 17 (17): OK
+Type 18 (18): OK
+Type 19 (19): OK
+Type 20 (20): OK
+Type 21 (21): OK
+Type 22 (22): OK
+Type 23 (23): OK
+Type 24 (24): OK
+Type 25 (25): OK
+Type 26 (26): OK
+Type 27 (27): OK
+Type 28 (28): OK
+Type 29 (29): OK
+Type 30 (30): OK
+Type 31 (31): OK
+Type 32 (32): OK
+Type 33 (33): OK
+Type 34 (34): OK
+Type 35 (35): OK
+Completed tests in FX Engine Tests / All FX types through FXSlot factory
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / Direct effect instantiation...
+Delay (direct): OK
+Chorus (direct): OK
+Hall Reverb (direct): OK
+Plate Reverb (direct): OK
+Flanger (direct): OK
+Phaser (direct): OK
+Rotary Speaker (direct): OK
+Auto Pan (direct): OK
+Rack Amp (direct): OK
+Multi-Band Dist (direct): OK
+Edison (direct): OK
+Mood Filter (direct): OK
+Enhancer (direct): OK
+Fair Comp (direct): OK
+Noise Gate (direct): OK
+Dual Pitch (direct): OK
+Vintage Pitch (direct): OK
+Decimator Delay (direct): OK
+T-Ray Delay (direct): OK
+Mod Delay Rev (direct): OK
+Completed tests in FX Engine Tests / Direct effect instantiation
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / FXEngine routing modes...
+Routing mode 0: OK
+Routing mode 1: OK
+Routing mode 2: OK
+Routing mode 3: OK
+Routing mode 4: OK
+Routing mode 5: OK
+Routing mode 6: OK
+Routing mode 7: OK
+Routing mode 8: OK
+Routing mode 9: OK
+Completed tests in FX Engine Tests / FXEngine routing modes
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / FXSlot edge cases...
+Bypass slot: OK
+Type toggling: OK
+Completed tests in FX Engine Tests / FXSlot edge cases
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / Parameter range safety...
+Parameter range safety: OK
+Completed tests in FX Engine Tests / Parameter range safety
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / Stereo vs mono handling...
+Mono buffer handling: OK
+Completed tests in FX Engine Tests / Stereo vs mono handling
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / FX Gain range clamping...
+Gain clamping [0,1]: OK
+Zero gain silence: OK
+Full gain output: OK
+Gain scaling ratio: OK (maxRatio=0.5000)
+Completed tests in FX Engine Tests / FX Gain range clamping
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / FX Mode: Insert (0), Send (1), Bypass (2)...
+FX Mode 0 (Insert): OK
+FX Mode 1 (Send): OK
+FX Mode 2 (Bypass): OK
+Completed tests in FX Engine Tests / FX Mode: Insert (0), Send (1), Bypass (2)
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / FX Mode: Bypass with all routing modes...
+Bypass + routing 0: OK
+Bypass + routing 1: OK
+Bypass + routing 2: OK
+Bypass + routing 3: OK
+Bypass + routing 4: OK
+Bypass + routing 5: OK
+Bypass + routing 6: OK
+Bypass + routing 7: OK
+Bypass + routing 8: OK
+Bypass + routing 9: OK
+Completed tests in FX Engine Tests / FX Mode: Bypass with all routing modes
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / FX parameter boundary values per type...
+Hall (type 1): boundaries OK
+Plate (type 2): boundaries OK
+Rich Plate (type 3): boundaries OK
+Ambience (type 4): boundaries OK
+Gated (type 5): boundaries OK
+Reverse (type 6): boundaries OK
+Rack Amp (type 7): boundaries OK
+Mood Filter (type 8): boundaries OK
+Phaser (type 9): boundaries OK
+Chorus (type 10): boundaries OK
+Chorus-D (type 17): boundaries OK
+Flanger (type 11): boundaries OK
+Mod Delay Rev (type 12): boundaries OK
+Delay (type 13): boundaries OK
+3Tap Delay (type 14): boundaries OK
+4Tap Delay (type 15): boundaries OK
+Rotary Speaker (type 16): boundaries OK
+Enhancer (type 18): boundaries OK
+Midas EQ (type 30): boundaries OK
+Edison (type 19): boundaries OK
+Auto Pan (type 20): boundaries OK
+T-Ray Delay (type 21): boundaries OK
+Deep Verb (type 22): boundaries OK
+Chamber (type 26): boundaries OK
+Room (type 27): boundaries OK
+Vintage (type 28): boundaries OK
+FlangVerb (type 23): boundaries OK
+ChorusVerb (type 24): boundaries OK
+DelayVerb (type 25): boundaries OK
+Dual Pitch (type 29): boundaries OK
+Fair Comp (type 31): boundaries OK
+Multi-Band Dist (type 32): boundaries OK
+Noise Gate (type 33): boundaries OK
+DecimDelay (type 34): boundaries OK
+Vintage Pitch (type 35): boundaries OK
+Completed tests in FX Engine Tests / FX parameter boundary values per type
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / FX parameter rapid sweep...
+Type 1 sweep: OK
+Type 2 sweep: OK
+Type 3 sweep: OK
+Type 4 sweep: OK
+Type 5 sweep: OK
+Type 6 sweep: OK
+Type 7 sweep: OK
+Type 8 sweep: OK
+Type 9 sweep: OK
+Type 10 sweep: OK
+Type 11 sweep: OK
+Type 12 sweep: OK
+Type 13 sweep: OK
+Type 14 sweep: OK
+Type 15 sweep: OK
+Type 16 sweep: OK
+Type 17 sweep: OK
+Type 18 sweep: OK
+Type 19 sweep: OK
+Type 20 sweep: OK
+Type 21 sweep: OK
+Type 22 sweep: OK
+Type 23 sweep: OK
+Type 24 sweep: OK
+Type 25 sweep: OK
+Type 26 sweep: OK
+Type 27 sweep: OK
+Type 28 sweep: OK
+Type 29 sweep: OK
+Type 30 sweep: OK
+Type 31 sweep: OK
+Type 32 sweep: OK
+Type 33 sweep: OK
+Type 34 sweep: OK
+Type 35 sweep: OK
+Completed tests in FX Engine Tests / FX parameter rapid sweep
+-----------------------------------------------------------------
+Starting tests in: FX Engine Tests / FXEngine integration: routing + gain + mode...
+Zero-gain silence across all routings: OK
+Full-gain output across all routings: OK
+Routing modes produce differing output: OK
+Bypass overrides all routing: OK
+Insert vs Send produce different output: OK
+Insert/Send/Bypass with varying gains: OK
+Inactive slots don't corrupt across routings: OK
+Gain scaling through series chain: OK
+All slots inactive across routings: OK
+All FX tests completed successfully.
+Completed tests in FX Engine Tests / FXEngine integration: routing + gain + mode
+
+===========================================
+  Test Summary
+===========================================
+  Total test suites: 12
+  Total assertions passed: 556394
+  Total assertions failed: 0
+===========================================
+
+

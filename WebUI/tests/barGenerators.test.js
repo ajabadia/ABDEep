@@ -26,26 +26,26 @@ const FILL = '\u2588';  // █
 const EMPTY = '\u2591'; // ░
 
 function _genFillBar(fillLen, totalLen, fillChar, emptyChar) {
-  if (totalLen === undefined) totalLen = 18;
-  if (fillChar === undefined) fillChar = FILL;
-  if (emptyChar === undefined) emptyChar = EMPTY;
+  if (totalLen === undefined) {totalLen = 18;}
+  if (fillChar === undefined) {fillChar = FILL;}
+  if (emptyChar === undefined) {emptyChar = EMPTY;}
   fillLen = Math.max(0, Math.round(fillLen));
   return fillChar.repeat(Math.min(fillLen, totalLen)) + emptyChar.repeat(Math.max(0, totalLen - fillLen));
 }
 
 function _genPosBar(pos, totalLen, fillChar, emptyChar) {
-  if (totalLen === undefined) totalLen = 18;
-  if (fillChar === undefined) fillChar = FILL;
-  if (emptyChar === undefined) emptyChar = EMPTY;
+  if (totalLen === undefined) {totalLen = 18;}
+  if (fillChar === undefined) {fillChar = FILL;}
+  if (emptyChar === undefined) {emptyChar = EMPTY;}
   pos = Math.max(0, Math.min(Math.round(pos), totalLen - 1));
   return emptyChar.repeat(pos) + fillChar + emptyChar.repeat(Math.max(0, totalLen - pos - 1));
 }
 
 function _genBarHtml(bar, opts) {
   opts = opts || {};
-  var colorStyle = opts.color ? 'color:' + opts.color + ';' : '';
-  var lsStyle = opts.letterSpacing !== undefined ? 'letter-spacing:' + opts.letterSpacing + ';' : '';
-  var suffix = opts.suffix || '';
+  const colorStyle = opts.color ? 'color:' + opts.color + ';' : '';
+  const lsStyle = opts.letterSpacing !== undefined ? 'letter-spacing:' + opts.letterSpacing + ';' : '';
+  const suffix = opts.suffix || '';
   return '<span style="font-size:12px;' + colorStyle + lsStyle + '">' + bar + '</span>' + suffix;
 }
 
@@ -351,8 +351,8 @@ describe('_genBarHtml', () => {
 //   - decorated: opcional, cambia headerStyle a font-size:7px con color
 
 function _genLcdBarHtml(type, opts) {
-  var barColor = (type === 'seq' || type === 'seq_preset') ? 'var(--accent-pink)' : 'var(--accent-primary)';
-  var bar = opts.bar || '';
+  const barColor = (type === 'seq' || type === 'seq_preset') ? 'var(--accent-pink)' : 'var(--accent-primary)';
+  const bar = opts.bar || '';
 
   if (type === 'seq_preset') {
     return '<span style="font-size:9px; opacity:0.6;">' + opts.header + '</span><br>'
@@ -361,7 +361,7 @@ function _genLcdBarHtml(type, opts) {
       + '<span style="font-size:7px; color:var(--text-dim);">' + opts.meta + '</span>';
   }
 
-  var headerStyle = opts.decorated
+  const headerStyle = opts.decorated
     ? 'font-size:7px; opacity:0.6; color:' + barColor + ';'
     : 'font-size:9px; opacity:0.6;';
 

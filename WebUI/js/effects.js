@@ -3,7 +3,7 @@
  * @purpose_en Central Effects Engine Rack controller, managing routings and dynamic parameter editor layouts for all 4 FX slots.
  */
 
-const FX_TYPE_NAMES = ["Bypass", "Ambience", "tcDeepVerb", "RoomRev", "VintageRoom", "HallReverb", "ChamberRev", "Plate Reverb", "Rich Plate", "Gated Reverb", "Reverse Reverb", "ChorusRev", "DelayRev", "FlangerRev", "MidasEQ", "Enhancer", "FairComp", "MBDistortion", "RackAmp", "Edison", "AutoPan/Trem", "NoiseGate", "Delay", "3Tap Delay", "4Tap Delay", "T-RayDelay", "DecimatorDelay", "ModDlyRev", "Stereo Chorus", "Chorus-D", "Stereo Flanger", "Stereo Phaser", "Mood Filter", "Dual Pitch", "Vintage Pitch", "Rotary Speaker"];
+const FX_TYPE_NAMES = ['Bypass', 'Ambience', 'tcDeepVerb', 'RoomRev', 'VintageRoom', 'HallReverb', 'ChamberRev', 'Plate Reverb', 'Rich Plate', 'Gated Reverb', 'Reverse Reverb', 'ChorusRev', 'DelayRev', 'FlangerRev', 'MidasEQ', 'Enhancer', 'FairComp', 'MBDistortion', 'RackAmp', 'Edison', 'AutoPan/Trem', 'NoiseGate', 'Delay', '3Tap Delay', '4Tap Delay', 'T-RayDelay', 'DecimatorDelay', 'ModDlyRev', 'Stereo Chorus', 'Chorus-D', 'Stereo Flanger', 'Stereo Phaser', 'Mood Filter', 'Dual Pitch', 'Vintage Pitch', 'Rotary Speaker'];
 window.FX_TYPE_NAMES = FX_TYPE_NAMES;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -17,7 +17,7 @@ function initEffectsModal() {
     const dynamicArea = document.getElementById('fx-dynamic-editor-area');
     const activeSlotLabel = document.getElementById('fx-screen-active-slot');
 
-    if (!fxBtn || !backdrop || !closeBtn || !dynamicArea) return;
+    if (!fxBtn || !backdrop || !closeBtn || !dynamicArea) {return;}
 
     let selectedSlot = 1;
     window._selectedFxSlot = selectedSlot;
@@ -47,7 +47,7 @@ function initEffectsModal() {
         const slotCol = document.getElementById(`fx-slot-${i}`);
         if (slotCol) {
             slotCol.addEventListener('click', (e) => {
-                if (e.target.tagName === 'SELECT') return;
+                if (e.target.tagName === 'SELECT') {return;}
                 
                 document.querySelectorAll('.fx-slot-column').forEach(c => c.style.borderColor = 'var(--bg-hover)');
                 slotCol.style.borderColor = 'var(--brand-accent)';
@@ -66,7 +66,7 @@ function initEffectsModal() {
             const slot = sel.getAttribute('data-slot');
             const val = parseInt(sel.value);
             const displayEl = document.getElementById(`fx${slot}-type-mini-display`);
-            if (displayEl) displayEl.innerText = FX_TYPE_NAMES[val];
+            if (displayEl) {displayEl.innerText = FX_TYPE_NAMES[val];}
             
             if (window.dualMidiBridge) {
                 window.dualMidiBridge.setParameter(`fx${slot}_type`, val / 35.0);
@@ -83,7 +83,7 @@ function initEffectsModal() {
     if (routingSelect) {
         routingSelect.addEventListener('change', () => {
             if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter("fx_routing", parseInt(routingSelect.value) / 9.0);
+                window.dualMidiBridge.setParameter('fx_routing', parseInt(routingSelect.value) / 9.0);
             }
         });
     }
@@ -117,7 +117,7 @@ function initEffectsModal() {
     const sendLevelArea = document.getElementById('fx-send-level-area');
 
     const setSendLevelVisibility = (modeVal) => {
-        if (!sendLevelArea) return;
+        if (!sendLevelArea) {return;}
         sendLevelArea.style.display = (modeVal === 1) ? 'flex' : 'none';
     };
     
@@ -126,19 +126,19 @@ function initEffectsModal() {
             modeIns.classList.add('active');
             [modeSend, modeByp].forEach(b => b.classList.remove('active'));
             setSendLevelVisibility(0);
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter("fx_mode", 0.0);
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('fx_mode', 0.0);}
         });
         modeSend.addEventListener('click', () => {
             modeSend.classList.add('active');
             [modeIns, modeByp].forEach(b => b.classList.remove('active'));
             setSendLevelVisibility(1);
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter("fx_mode", 0.5);
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('fx_mode', 0.5);}
         });
         modeByp.addEventListener('click', () => {
             modeByp.classList.add('active');
             [modeIns, modeSend].forEach(b => b.classList.remove('active'));
             setSendLevelVisibility(2);
-            if (window.dualMidiBridge) window.dualMidiBridge.setParameter("fx_mode", 1.0);
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('fx_mode', 1.0);}
         });
     }
 
@@ -158,12 +158,12 @@ function initEffectsModal() {
 
                 const val = 1.0 - (y / limit);
                 if (window.dualMidiBridge) {
-                    window.dualMidiBridge.setParameter("fx_send_level", val);
+                    window.dualMidiBridge.setParameter('fx_send_level', val);
                 }
             };
 
             function onSliderMove(e) {
-                if (isDragging) updateSendLevel(e.clientY);
+                if (isDragging) {updateSendLevel(e.clientY);}
             }
             function onSliderEnd() {
                 isDragging = false;
@@ -183,7 +183,7 @@ function initEffectsModal() {
 
     backdrop.querySelectorAll('.fx-slot-column .v-slider').forEach(slider => {
         const ctrlUnit = slider.closest('[data-param]');
-        if (!ctrlUnit) return;
+        if (!ctrlUnit) {return;}
         const paramId = ctrlUnit.getAttribute('data-param');
         const handle = slider.querySelector('.handle');
 
@@ -204,7 +204,7 @@ function initEffectsModal() {
         };
 
         function onSliderMove(e) {
-            if (isDragging) updateSliderPos(e.clientY);
+            if (isDragging) {updateSliderPos(e.clientY);}
         }
         function onSliderEnd() {
             isDragging = false;
@@ -228,12 +228,12 @@ function initEffectsModal() {
     };
 
     function _setGainSliderPos(paramId, fallbackByte) {
-        if (typeof window._readFxParamValue !== 'function') return;
+        if (typeof window._readFxParamValue !== 'function') {return;}
         const val = window._readFxParamValue(paramId, fallbackByte, 1.0);
         const slider = document.querySelector(`[data-param="${paramId}"] .v-slider`);
-        if (!slider) return;
+        if (!slider) {return;}
         const handle = slider.querySelector('.handle');
-        if (!handle) return;
+        if (!handle) {return;}
         const handleHeight = 12;
         const limit = slider.getBoundingClientRect().height - handleHeight;
         if (limit > 0) {
@@ -244,13 +244,13 @@ function initEffectsModal() {
 
     function syncFxModalUI() {
         for (let i = 1; i <= 4; i++) {
-            if (typeof window._readFxParamValue !== 'function') continue;
+            if (typeof window._readFxParamValue !== 'function') {continue;}
             const offsetType = i === 1 ? 166 : (i === 2 ? 179 : (i === 3 ? 192 : 205));
             const typeValNormalized = window._readFxParamValue(`fx${i}_type`, offsetType, 0.0);
             const typeVal = Math.round(typeValNormalized * 35.0);
             
             const selectEl = document.querySelector(`.fx-type-select[data-slot="${i}"]`);
-            if (selectEl) selectEl.value = typeVal;
+            if (selectEl) {selectEl.value = typeVal;}
 
             const offsetGain = i === 1 ? 218 : (i === 2 ? 219 : (i === 3 ? 220 : 221));
             _setGainSliderPos(`fx${i}_gain`, offsetGain);
@@ -262,7 +262,7 @@ function initEffectsModal() {
             }
             const gainVal = window._readFxParamValue(`fx${i}_gain`, offsetGain, 1.0);
             
-            let displayName = FX_TYPE_NAMES[typeVal] || "Bypass";
+            let displayName = FX_TYPE_NAMES[typeVal] || 'Bypass';
             if (typeVal > 0 && typeof window.findMatchingFxPresetName === 'function') {
                 const matchedName = window.findMatchingFxPresetName(typeValNormalized, gainVal, params);
                 if (matchedName) {
@@ -279,14 +279,14 @@ function initEffectsModal() {
 
         if (typeof window._readFxParamValue === 'function') {
             const routeVal = Math.round(window._readFxParamValue('fx_routing', 165, 0.0) * 9.0);
-            if (routingSelect) routingSelect.value = routeVal;
+            if (routingSelect) {routingSelect.value = routeVal;}
 
             const modeVal = Math.round(window._readFxParamValue('fx_mode', 222, 0.0) * 2.0);
             if (modeIns && modeSend && modeByp) {
                 [modeIns, modeSend, modeByp].forEach(b => b.classList.remove('active'));
-                if (modeVal === 0) modeIns.classList.add('active');
-                else if (modeVal === 1) modeSend.classList.add('active');
-                else modeByp.classList.add('active');
+                if (modeVal === 0) {modeIns.classList.add('active');}
+                else if (modeVal === 1) {modeSend.classList.add('active');}
+                else {modeByp.classList.add('active');}
             }
             setSendLevelVisibility(modeVal);
 
@@ -311,7 +311,7 @@ function initEffectsModal() {
 
     if (window.dualMidiBridge && typeof window.dualMidiBridge.onParameterChanged === 'function') {
         window.dualMidiBridge.onParameterChanged(function(paramId) {
-            if (backdrop.style.display === 'none') return;
+            if (backdrop.style.display === 'none') {return;}
             if (paramId.startsWith('fx')) {
                 if (paramId.endsWith('_type')) {
                     syncFxModalUI();

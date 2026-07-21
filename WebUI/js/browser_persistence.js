@@ -27,9 +27,9 @@ function _deserializeBankFromStorage(storedArray) {
 
 function _saveUserBanksToStorage() {
     try {
-        var userBanks = {};
+        const userBanks = {};
         Object.keys(window.loadedBanks).forEach(function(bankName) {
-            if (!bankName.startsWith("Factory Bank")) {
+            if (!bankName.startsWith('Factory Bank')) {
                 userBanks[bankName] = _serializeBankForStorage(window.loadedBanks[bankName]);
             }
         });
@@ -47,10 +47,10 @@ function _saveUserBanksToStorage() {
 
 function _loadUserBanksFromStorage() {
     try {
-        var raw = localStorage.getItem('abd-eep-user-banks');
-        if (!raw) return false;
-        var parsed = JSON.parse(raw);
-        var count = 0;
+        const raw = localStorage.getItem('abd-eep-user-banks');
+        if (!raw) {return false;}
+        const parsed = JSON.parse(raw);
+        let count = 0;
         Object.keys(parsed).forEach(function(bankName) {
             if (!window.loadedBanks[bankName]) {
                 window.loadedBanks[bankName] = _deserializeBankFromStorage(parsed[bankName]);
@@ -66,7 +66,7 @@ function _loadUserBanksFromStorage() {
 }
 
 function createEmptyBank() {
-    let list = [];
+    const list = [];
     for (let i = 0; i < 128; i++) {
         const defaultUnpacked = new Uint8Array(242);
         const nameStr = `INIT PATCH ${i+1}`;

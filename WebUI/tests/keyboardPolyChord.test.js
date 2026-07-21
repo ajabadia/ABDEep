@@ -8,7 +8,7 @@
 globalThis.window = globalThis.window || {};
 
 // ===== CHORD_INTERVALS (shared with chord_memory.js) =====
-var CHORD_INTERVALS = {
+const CHORD_INTERVALS = {
     0: null,            // Memory
     1: [0, 4, 7],       // Major
     2: [0, 3, 7],       // Minor
@@ -26,7 +26,7 @@ window.CHORD_INTERVALS = CHORD_INTERVALS;
 
 // ===== Extracted Source =====
 
-var POLY_CHORD_DEFAULTS = [
+const POLY_CHORD_DEFAULTS = [
     { rootKey: 0, chordType: 1 },  // C  → Major
     { rootKey: 1, chordType: 2 },  // C# → Minor
     { rootKey: 2, chordType: 1 },  // D  → Major
@@ -41,12 +41,12 @@ var POLY_CHORD_DEFAULTS = [
     { rootKey: 11, chordType: 2 }  // B  → Minor
 ];
 
-var CHORD_TYPE_NAMES = ['Memory', 'Major', 'Minor', 'Major 7th', 'Minor 7th', 'Dom 7th', 'Susp 4th', 'Power Chd', 'Augmented', 'Diminished', 'Sus2', '7th'];
+const CHORD_TYPE_NAMES = ['Memory', 'Major', 'Minor', 'Major 7th', 'Minor 7th', 'Dom 7th', 'Susp 4th', 'Power Chd', 'Augmented', 'Diminished', 'Sus2', '7th'];
 
-var NOTE_NAMES_SHORT = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_NAMES_SHORT = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 function initPolyChordNotes(bridge) {
-    if (!bridge) return;
+    if (!bridge) {return;}
 
     if (!bridge.parameterCache['poly_chord_map']) {
         bridge.parameterCache['poly_chord_map'] = POLY_CHORD_DEFAULTS.map(function(a) {
@@ -65,53 +65,53 @@ function initPolyChordNotes(bridge) {
 
 function playPolyChordMemory(rootNote, velocity, bridge, intervals) {
     intervals = intervals || CHORD_INTERVALS;
-    if (!bridge) return false;
+    if (!bridge) {return false;}
 
-    var polyChordEn = bridge.parameterCache['poly_chord_enable'] || 0.0;
-    if (polyChordEn < 0.5) return false;
+    const polyChordEn = bridge.parameterCache['poly_chord_enable'] || 0.0;
+    if (polyChordEn < 0.5) {return false;}
 
-    var polyMap = bridge.parameterCache['poly_chord_map'];
-    if (!polyMap || polyMap.length < 12) return false;
+    const polyMap = bridge.parameterCache['poly_chord_map'];
+    if (!polyMap || polyMap.length < 12) {return false;}
 
-    var keyClass = ((rootNote % 12) + 12) % 12; // Handle negative rootNote
-    var assignment = polyMap[keyClass];
+    const keyClass = ((rootNote % 12) + 12) % 12; // Handle negative rootNote
+    let assignment = polyMap[keyClass];
     if (!assignment) {
         assignment = POLY_CHORD_DEFAULTS[keyClass];
     }
 
-    var chordType = assignment.chordType;
-    if (chordType === undefined) chordType = 1;
+    let chordType = assignment.chordType;
+    if (chordType === undefined) {chordType = 1;}
 
-    if (!bridge._chordActiveNotes) bridge._chordActiveNotes = [];
+    if (!bridge._chordActiveNotes) {bridge._chordActiveNotes = [];}
 
-    var notesToPlay = [];
+    const notesToPlay = [];
 
     if (chordType === 0) {
-        var captured = bridge.parameterCache['chord_notes'];
-        if (!captured || captured.length === 0) return false;
+        const captured = bridge.parameterCache['chord_notes'];
+        if (!captured || captured.length === 0) {return false;}
 
-        var baseNote = captured[0];
-        var interval = rootNote - baseNote;
+        const baseNote = captured[0];
+        const interval = rootNote - baseNote;
 
         captured.forEach(function(note) {
-            var shiftedNote = note + interval;
+            const shiftedNote = note + interval;
             if (shiftedNote >= 0 && shiftedNote <= 127) {
                 notesToPlay.push(shiftedNote);
             }
         });
     } else {
-        var ivs = intervals[chordType];
-        if (!ivs) return false;
+        const ivs = intervals[chordType];
+        if (!ivs) {return false;}
 
         ivs.forEach(function(iv) {
-            var note = rootNote + iv;
+            const note = rootNote + iv;
             if (note >= 0 && note <= 127) {
                 notesToPlay.push(note);
             }
         });
     }
 
-    if (notesToPlay.length === 0) return false;
+    if (notesToPlay.length === 0) {return false;}
 
     notesToPlay.forEach(function(note) {
         bridge._chordActiveNotes.push(note);
@@ -123,6 +123,62 @@ function playPolyChordMemory(rootNote, velocity, bridge, intervals) {
     return true;
 }
 
+function stopPolyChordMemory(rootNote, bridge) {
+    if (!bridge || !bridge._chordActiveNotes) {return;}
+
+    const polyChordEn = bridge.parameterCache['poly_chord_enable'] || 0.0;
+    if (polyChordEn < 0.5) {return;}
+
+    const polyMap = bridge.parameterCache['poly_chord_map'];
+    if (!polyMap || polyMap.length < 12) {return;}
+
+    const keyClass = rootNote % 12;
+    let assignment = polyMap[keyClass];
+    if (!assignment) {
+        assignment = POLY_CHORD_DEFAULTS[keyClass];
+    }
+
+    let chordType = assignment.chordType;
+    if (chordType === undefined) {chordType = 1;}
+
+    const notesToStop = [];
+
+    if (chordType === 0) {
+        const captured = bridge.parameterCache['chord_notes'];
+        if (!captured || captured.length === 0) {return;}
+
+        const baseNote = captured[0];
+        const interval = rootNote - baseNote;
+
+        captured.forEach(function(note) {
+            const shiftedNote = note + interval;
+            if (shiftedNote >= 0 && shiftedNote <= 127) {
+                notesToStop.push(shiftedNote);
+            }
+        });
+    } else {
+        const intervals = CHORD_INTERVALS[chordType];
+        if (!intervals) {return;}
+
+        intervals.forEach(function(interval) {
+            const note = rootNote + interval;
+            if (note >= 0 && note <= 127) {
+                notesToStop.push(note);
+            }
+        });
+    }
+
+    notesToStop.forEach(function(note) {
+        const idx = bridge._chordActiveNotes.indexOf(note);
+        if (idx >= 0) {
+            bridge._chordActiveNotes.splice(idx, 1);
+            if (typeof bridge.pianoNoteOff === 'function') {
+                bridge.pianoNoteOff(note);
+            }
+        }
+    });
+}
+
 // ===== Tests =====
 
 describe('POLY_CHORD_DEFAULTS — per-key assignments', function() {
@@ -131,7 +187,7 @@ describe('POLY_CHORD_DEFAULTS — per-key assignments', function() {
     });
 
     it('alternates Major (1) and Minor (2) starting with C→Major', function() {
-        for (var i = 0; i < 12; i++) {
+        for (let i = 0; i < 12; i++) {
             expect(POLY_CHORD_DEFAULTS[i].rootKey).toBe(i);
             if (i % 2 === 0) {
                 expect(POLY_CHORD_DEFAULTS[i].chordType).toBe(1); // Even → Major
@@ -190,13 +246,13 @@ describe('NOTE_NAMES_SHORT — note labels', function() {
     });
 
     it('includes all 12 chromatic notes', function() {
-        var expected = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        const expected = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
         expect(NOTE_NAMES_SHORT).toEqual(expected);
     });
 });
 
 describe('initPolyChordNotes — parameter initialization', function() {
-    var bridge;
+    let bridge;
 
     beforeEach(function() {
         bridge = { parameterCache: {} };
@@ -241,7 +297,7 @@ describe('initPolyChordNotes — parameter initialization', function() {
 });
 
 describe('playPolyChordMemory — chord playback with per-key assignment', function() {
-    var bridge, playedNotes;
+    let bridge, playedNotes;
 
     function makeBridge(config) {
         config = config || {};
@@ -323,7 +379,7 @@ describe('playPolyChordMemory — chord playback with per-key assignment', funct
 });
 
 describe('playPolyChordMemory — custom polyMap overrides', function() {
-    var bridge, playedNotes;
+    let bridge, playedNotes;
 
     beforeEach(function() {
         playedNotes = [];
@@ -331,7 +387,7 @@ describe('playPolyChordMemory — custom polyMap overrides', function() {
 
     it('uses custom chord type from polyMap', function() {
         // Make C (key 0) use Power chord (type 7)
-        var customMap = POLY_CHORD_DEFAULTS.map(function(a) {
+        const customMap = POLY_CHORD_DEFAULTS.map(function(a) {
             return a.rootKey === 0 ? { rootKey: 0, chordType: 7 } : { rootKey: a.rootKey, chordType: a.chordType };
         });
         bridge = {
@@ -350,8 +406,8 @@ describe('playPolyChordMemory — custom polyMap overrides', function() {
     });
 
     it('assigns chord type per individual key class', function() {
-        var map = [];
-        for (var i = 0; i < 12; i++) {
+        const map = [];
+        for (let i = 0; i < 12; i++) {
             map.push({ rootKey: i, chordType: (i + 3) % 12 }); // Shifted by 3
         }
         bridge = {
@@ -366,7 +422,7 @@ describe('playPolyChordMemory — custom polyMap overrides', function() {
 });
 
 describe('playPolyChordMemory — keyClass from rootNote % 12', function() {
-    var bridge, playedNotes;
+    let bridge, playedNotes;
 
     beforeEach(function() {
         playedNotes = [];
@@ -405,11 +461,11 @@ describe('playPolyChordMemory — keyClass from rootNote % 12', function() {
 });
 
 describe('playPolyChordMemory — Memory mode (chordType=0)', function() {
-    var bridge, playedNotes;
+    let bridge, playedNotes;
 
     beforeEach(function() {
         playedNotes = [];
-        var polyMap = POLY_CHORD_DEFAULTS.map(function(a) {
+        const polyMap = POLY_CHORD_DEFAULTS.map(function(a) {
             return a.rootKey === 0 ? { rootKey: 0, chordType: 0 } : { rootKey: a.rootKey, chordType: a.chordType };
         });
         bridge = {
@@ -433,13 +489,13 @@ describe('playPolyChordMemory — Memory mode (chordType=0)', function() {
 
     it('returns false in Memory mode when no captured chord_notes', function() {
         bridge.parameterCache['chord_notes'] = [];
-        var result = playPolyChordMemory(60, 1.0, bridge);
+        const result = playPolyChordMemory(60, 1.0, bridge);
         expect(result).toBe(false);
     });
 });
 
 describe('playPolyChordMemory — edge cases', function() {
-    var bridge, playedNotes;
+    let bridge, playedNotes;
 
     beforeEach(function() {
         playedNotes = [];
@@ -484,7 +540,105 @@ describe('playPolyChordMemory — edge cases', function() {
     });
 
     it('returns false when all notes out of range', function() {
-        var result = playPolyChordMemory(200, 1.0, bridge);
+        const result = playPolyChordMemory(200, 1.0, bridge);
         expect(result).toBe(false);
+    });
+});
+
+// ===== stopPolyChordMemory tests (Bug 6 fix) =====
+
+describe('stopPolyChordMemory — stops all poly chord notes', function() {
+    let bridge, stoppedNotes;
+
+    beforeEach(function() {
+        stoppedNotes = [];
+        bridge = {
+            parameterCache: {
+                poly_chord_enable: 1.0,
+                poly_chord_map: POLY_CHORD_DEFAULTS.map(function(a) { return { rootKey: a.rootKey, chordType: a.chordType }; })
+            },
+            _chordActiveNotes: [60, 64, 67],
+            pianoNoteOff: function(note) { stoppedNotes.push(note); }
+        };
+    });
+
+    it('stops C Major chord notes', function() {
+        stopPolyChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(3);
+        expect(stoppedNotes).toContain(60);
+        expect(stoppedNotes).toContain(64);
+        expect(stoppedNotes).toContain(67);
+        expect(bridge._chordActiveNotes.length).toBe(0);
+    });
+
+    it('stops D Major chord notes (keyClass 2 → Major)', function() {
+        bridge._chordActiveNotes = [62, 66, 69]; // D Major (even keyClass → Major default)
+        stopPolyChordMemory(62, bridge);
+        expect(stoppedNotes.length).toBe(3);
+        expect(stoppedNotes).toContain(62);
+        expect(stoppedNotes).toContain(66);
+        expect(stoppedNotes).toContain(69);
+    });
+
+    it('stops notes in Memory mode (chordType 0)', function() {
+        const polyMap = POLY_CHORD_DEFAULTS.map(function(a) {
+            return a.rootKey === 0 ? { rootKey: 0, chordType: 0 } : { rootKey: a.rootKey, chordType: a.chordType };
+        });
+        bridge.parameterCache['poly_chord_map'] = polyMap;
+        bridge.parameterCache['chord_notes'] = [60, 64, 67]; // C Major captured
+        bridge._chordActiveNotes = [60, 64, 67];
+        stopPolyChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(3);
+        expect(stoppedNotes).toContain(60);
+        expect(stoppedNotes).toContain(64);
+        expect(stoppedNotes).toContain(67);
+    });
+
+    it('stops notes in Memory mode with transposition', function() {
+        const polyMap = POLY_CHORD_DEFAULTS.map(function(a) {
+            return a.rootKey === 0 ? { rootKey: 0, chordType: 0 } : { rootKey: a.rootKey, chordType: a.chordType };
+        });
+        bridge.parameterCache['poly_chord_map'] = polyMap;
+        bridge.parameterCache['chord_notes'] = [60, 64, 67]; // C Major captured
+        bridge._chordActiveNotes = [67, 71, 74]; // G Major transposed
+        stopPolyChordMemory(67, bridge); // keyClass 7 → Minor by default, NOT Memory mode
+        // keyClass 7 → Minor → intervals [0,3,7] → notes 67, 70, 74
+        // Only 67 and 74 are in _chordActiveNotes → 2 stopped
+        expect(stoppedNotes.length).toBe(2);
+        expect(stoppedNotes).toContain(67);
+        expect(stoppedNotes).toContain(74);
+    });
+
+    it('does nothing when poly chord disabled', function() {
+        bridge.parameterCache['poly_chord_enable'] = 0.0;
+        stopPolyChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(0);
+        expect(bridge._chordActiveNotes.length).toBe(3);
+    });
+
+    it('does nothing when bridge is null', function() {
+        expect(function() { stopPolyChordMemory(60, null); }).not.toThrow();
+    });
+
+    it('does nothing when _chordActiveNotes is empty', function() {
+        bridge._chordActiveNotes = [];
+        stopPolyChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(0);
+    });
+
+    it('only removes notes present in _chordActiveNotes', function() {
+        bridge._chordActiveNotes = [60, 67]; // Only root and 5th
+        stopPolyChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(2);
+        expect(stoppedNotes).toContain(60);
+        expect(stoppedNotes).toContain(67);
+    });
+
+    it('does nothing for rootNote with no matching active notes', function() {
+        bridge._chordActiveNotes = [60, 64, 67];
+        stopPolyChordMemory(85, bridge); // keyClass 1 → Minor → intervals [0,3,7] → notes 85, 88, 92
+        // None of these are in _chordActiveNotes
+        expect(stoppedNotes.length).toBe(0);
+        expect(bridge._chordActiveNotes.length).toBe(3);
     });
 });

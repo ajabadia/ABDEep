@@ -1,0 +1,56 @@
+{
+  "name": "patchwork-deepmind",
+  "version": "0.3.0",
+  "description": "DeepMind 12 MCP server (DeepMind-first)",
+  "main": "dist/mcp/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "generate:fx-reference": "npm run build && node dist/scripts/generate-fx-reference.js",
+    "start": "node dist/mcp/server.js",
+    "smoke:handshake": "npm run build && node dist/scripts/smoke-handshake.js",
+    "smoke:nrpn": "npm run build && node dist/scripts/smoke-nrpn.js",
+    "fx:type-sweep": "npm run build && node dist/scripts/fx-type-sweep.js",
+    "prepublishOnly": "npm run build && npm test",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "deepmind",
+    "deepmind-12",
+    "synthesizer",
+    "midi",
+    "nrpn",
+    "sysex",
+    "mcp",
+    "model-context-protocol"
+  ],
+  "author": "Benjamin Truthan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/truthanb/patchwork-deepmind.git"
+  },
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "midi": "^2.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/midi": "^2.0.4",
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "files": [
+    "dist",
+    "references",
+    "skills"
+  ],
+  "bin": {
+    "patchwork-deepmind": "dist/mcp/server.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

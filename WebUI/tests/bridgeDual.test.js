@@ -92,6 +92,15 @@ beforeEach(async () => {
   win.addEventListener = vi.fn();
   win.removeEventListener = vi.fn();
 
+  // Mock location for JUCE host detection in bridge-dual.js init()
+  // Set port to a non-empty value so isJuceHost is false (maxAttempts=5, fast init)
+  win.location = {
+    protocol: 'http:',
+    hostname: 'localhost',
+    port: '8080',
+  };
+  win.navigator = { userAgent: 'test-agent' };
+
   // Mock unpack/repack functions (byte-map.js)
   win.unpack7to8 = vi.fn((packed) => {
     // Basic unpack: reverse of pack8to7
@@ -147,12 +156,12 @@ beforeEach(async () => {
     // no-op for tests; spy on this to verify it was called
   };
   _currentBridge._applyMidiLearnMapping = function(key, val, nrpnInfo) {
-    var paramId = this.midiLearnMappings[key];
-    if (!paramId) return false;
-    var byteOffset = win.BRIDGE_PARAM_MAPS.PARAM_TO_BYTE_OFFSET[paramId];
-    var normalized;
+    const paramId = this.midiLearnMappings[key];
+    if (!paramId) {return false;}
+    const byteOffset = win.BRIDGE_PARAM_MAPS.PARAM_TO_BYTE_OFFSET[paramId];
+    let normalized;
     if (byteOffset !== undefined) {
-      var rawVal = nrpnInfo ? (val & 0xFF) : Math.round(val * 255.0 / 127.0);
+      const rawVal = nrpnInfo ? (val & 0xFF) : Math.round(val * 255.0 / 127.0);
       normalized = win.BRIDGE_PARAM_MAPS.rawToNormalized(byteOffset, rawVal);
     } else {
       normalized = val / 127.0;
@@ -441,13 +450,13 @@ describe('DualMidiBridge – handleIncomingMidi()', () => {
       expect(handlerSpy).toHaveBeenCalledTimes(2); // once per NRPN
     });
 
-    it('processes bipolar parameter correctly (vcf_env_depth, byteOffset 42)', () => {
+    it('processes bipolar parameter correctly (porta_osc_bal, byteOffset 91)', () => {
       const handlerSpy = vi.spyOn(_currentBridge, 'handleParameterChangeFromBackend');
 
-      // byteOffset 42 is bipolar. raw=128 → normalized = ((128-128)/127 + 1) / 2 = 0.5
-      _sendNRPN(0, 42, 1, 0); // dataMsb=1, dataLsb=0 → raw = 128
+      // byteOffset 91 is bipolar. raw=128 → normalized = ((128-128)/127 + 1) / 2 = 0.5
+      _sendNRPN(0, 91, 1, 0); // dataMsb=1, dataLsb=0 → raw = 128
 
-      expect(handlerSpy).toHaveBeenCalledWith('vcf_env_depth', 0.5);
+      expect(handlerSpy).toHaveBeenCalledWith('porta_osc_bal', 0.5);
     });
 
     it('processes enum parameter correctly (osc1_range, byteOffset 14)', () => {
@@ -490,30 +499,27 @@ describe('DualMidiBridge – handleIncomingMidi()', () => {
       expect(handlerSpy).toHaveBeenCalledWith('vcf_resonance', expect.closeTo(64 / 127, 2));
     });
 
-    it('maps CC 15 (osc1_saw_enable) to handleParameterChangeFromBackend', () => {
+    it('maps CC 16 (lfo1_rate) to handleParameterChangeFromBackend', () => {
       const handlerSpy = vi.spyOn(_currentBridge, 'handleParameterChangeFromBackend');
 
-      _sendCC(15, 127);
+      _sendCC(16, 127);
 
-      expect(handlerSpy).toHaveBeenCalledWith('osc1_saw_enable', 1.0);
+      expect(handlerSpy).toHaveBeenCalledWith('lfo1_rate', 1.0);
     });
 
-    it('maps CC 23 (vcf_cutoff alternate) and normalizes correctly', () => {
+    it('maps CC 23 (osc2_pitch_mod) and normalizes correctly', () => {
       const handlerSpy = vi.spyOn(_currentBridge, 'handleParameterChangeFromBackend');
 
       _sendCC(23, 0); // min
 
-      expect(handlerSpy).toHaveBeenCalledWith('vcf_cutoff', 0);
+      expect(handlerSpy).toHaveBeenCalledWith('osc2_pitch_mod', 0);
     });
 
     it('does not map unknown CC numbers (CC 1 = mod wheel)', () => {
       const handlerSpy = vi.spyOn(_currentBridge, 'handleParameterChangeFromBackend');
 
-      _sendCC(1, 64); // Mod wheel — not in ccMappings
+      _sendCC(1, 64); // Mod wheel — not in ccToParam
 
-      // Only default CC processing: should NOT call handler for any mapped param
-      // But it may call handlers via MIDI learn or other paths
-      // Just verify vcf_cutoff is not called
       const calls = handlerSpy.mock.calls.filter(c => c[0] === 'vcf_cutoff');
       expect(calls.length).toBe(0);
     });
@@ -521,7 +527,7 @@ describe('DualMidiBridge – handleIncomingMidi()', () => {
     it('normalizes value as val / 127.0', () => {
       const handlerSpy = vi.spyOn(_currentBridge, 'handleParameterChangeFromBackend');
 
-      _sendCC(19, 100); // osc2_tone_mod
+      _sendCC(24, 100); // osc2_tone_mod
 
       expect(handlerSpy).toHaveBeenCalledWith('osc2_tone_mod', expect.closeTo(100 / 127, 3));
     });
@@ -678,6 +684,39 @@ describe('DualMidiBridge – handleIncomingMidi()', () => {
       expect(_currentBridge._lastNrpnMsb).toBeNull();
       expect(_currentBridge._lastNrpnLsb).toBeNull();
       expect(_currentBridge._lastNrpnByte).toBeNull();
+    });
+  });
+
+  describe('DualMidiBridge – getDiagnosticSnapshot()', () => {
+    it('returns diagnostic snapshot from JUCE host when isJuce is true', async () => {
+      _currentBridge.isJuce = true;
+      window.juce = {
+        getDiagnosticSnapshot: vi.fn().mockResolvedValue({
+          diagnosticSchemaVersion: 1,
+          vcfOversample: 1,
+          vcfVoicingMode: 0,
+          driftAmount: 0.0,
+          timestamp: 123456,
+          blockCounter: 789,
+          voiceSnapshots: [
+            { voiceIndex: 0, isActive: true, baseCutoffHz: 500.0, effectiveCutoffHz: 520.0 }
+          ]
+        })
+      };
+
+      const result = await _currentBridge.getDiagnosticSnapshot();
+      expect(window.juce.getDiagnosticSnapshot).toHaveBeenCalled();
+      expect(result).toBeDefined();
+      expect(result.diagnosticSchemaVersion).toBe(1);
+      expect(result.voiceSnapshots[0].effectiveCutoffHz).toBe(520.0);
+
+      delete window.juce;
+    });
+
+    it('returns null when isJuce is false', async () => {
+      _currentBridge.isJuce = false;
+      const result = await _currentBridge.getDiagnosticSnapshot();
+      expect(result).toBeNull();
     });
   });
 });

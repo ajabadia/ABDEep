@@ -1,11 +1,37 @@
 #include "SynthVoice.h"
 #include <cmath>
+#if DEEP_TARGET_MODEL >= 2
+#include "../Core/CalibrationSpec.h"
+#endif
 
 namespace ABD
 {
     SynthVoice::SynthVoice()
     {
         std::fill(std::begin(modSources), std::end(modSources), 0.0f);
+    }
+
+    void SynthVoice::initializeVoicePersonality(int voiceSlotIndex)
+    {
+        // Deterministic per-voice LCG: no global std::rand() pollution
+        uint32_t seed = (uint32_t)(voiceSlotIndex * 7919 + 104729);
+        auto nextRand = [&]() -> float {
+            seed = seed * 1664525u + 1013904223u;
+            return (float)(seed & 0xFFFF) / 65535.0f; // 0..1
+        };
+
+        // Pitch: ±1.5 cents — enough for voice personality without detuning
+        staticPitchOffset1 = (nextRand() - 0.5f) * 3.0f;
+        staticPitchOffset2 = (nextRand() - 0.5f) * 3.0f;
+
+        // Cutoff: ±3% of normalized range
+        staticCutoffOffset = (nextRand() - 0.5f) * 0.06f;
+
+        // Resonance: ±2%
+        staticResOffset = (nextRand() - 0.5f) * 0.04f;
+
+        // Env time: ±8%
+        staticEnvTimeOffset = (nextRand() - 0.5f) * 0.16f;
     }
 
     void SynthVoice::prepare(double newSampleRate)
@@ -24,19 +50,28 @@ namespace ABD
     }
 
     // ========== Internal: calculate glide rate from portaTime and portaMode ==========
-    static float calcGlideRate(float portaTime, int portaMode, float intervalSemitones)
+    static float calcGlideRate(float portaTime, int portaMode, float intervalSemitones, float sampleRate)
     {
-        // portaTime=0 → instant (rate=1.0). portaTime=1 → very slow (rate~0.002)
-        float rate = 1.0f - portaTime * 0.998f;
-        rate = std::max(rate, 0.001f);
+        // portaTime=0 → instant (rate=1.0). portaTime=1 → tau=5s exponential glide
+        if (portaTime <= 0.0f)
+            return 1.0f;
 
-        // Fix-Rate modes (2, 3, 6-9): scale rate so larger intervals take same time as small ones
-        // Normalize so an octave (12 semitones) glides at the base rate
+        float tau = portaTime * 5.0f; // time constant: 0→0s, 1→5s
+
         bool isFixRate = (portaMode == 2 || portaMode == 3
                        || portaMode == 6 || portaMode == 7
                        || portaMode == 8 || portaMode == 9);
-        if (isFixRate && intervalSemitones > 0.5f)
-            rate = rate * (12.0f / intervalSemitones);
+
+        if (isFixRate)
+        {
+            // Linear interpolation: constant semitones per sample
+            // Normalized so a 12-semitone interval takes tau seconds
+            float ratePerSample = 12.0f / (tau * sampleRate);
+            return ratePerSample;
+        }
+
+        // Exponential modes (0,1,4,5): rate is multiplier on remaining distance
+        float rate = 1.0f - std::exp(-1.0f / (tau * sampleRate));
 
         // Exp modes (4, 5): quadratic curve for exponential feel (starts slow, ends fast)
         if (portaMode == 4 || portaMode == 5)
@@ -144,6 +179,8 @@ namespace ABD
             osc2.resetPhase();
             subPhase = 0.0;
         }
+
+        prevOsc1Phase = osc1.getPhase();
 
         // Inicializar drift analógico para esta nota
         drift.resetForNote(voiceIndex);
@@ -267,15 +304,41 @@ namespace ABD
                                      const float* globalLfo1,
                                      const float* globalLfo2)
     {
-        // 0. Obtener valores de drift analógico para esta muestra
-        float driftOsc1 = drift.getOsc1PitchDrift();     // en cents
-        float driftOsc2 = drift.getOsc2PitchDrift();     // en cents
-        float driftCutoff = drift.getVcfCutoffDrift();   // normalized ±
-        float driftResonance = drift.getVcfResonanceDrift(); // normalized ±
+        // Immutable calibration for this block (set by SynthEngine per-block)
+#if DEEP_TARGET_MODEL >= 2
+        static const CalibrationSpec kDefaultCal = CalibrationSpec::factoryDefaults();
+        const auto& cal = (calibration != nullptr) ? *calibration : kDefaultCal;
+#else
+        struct FallbackCal {
+            struct { struct { float minHz, maxHz, curveBase; } vcfCutoff;
+                     struct { float referenceHz, amountScale; } vcfKeytrack;
+                     struct { float cutoffScale; } vcfPitchBend;
+                     struct { float minHz, maxHz, modScaleHz, bassBoostGain; } hpf;
+                     struct { float driftToTimeScale, minTimeSec, exponentialBase; } envelopes;
+                     struct { float rateScale, rateExp; } lfo; } transfer;
+            struct { float staticPitchCentsRange, staticCutoffNormRange, staticResNormRange,
+                          staticEnvTimeNormRange, cutoffDriftScale, resonanceDriftScale; } voice;
+        };
+        static const FallbackCal cal = {
+            { { 50.f, 20000.f, 400.f },
+              { 261.63f, 1.f },
+              { 0.3f },
+              { 40.f, 2000.f, 18000.f, 12.f },
+              { 0.3f, 0.002f, 32768.f },
+              { 0.041f, 7.3747f } },
+            { 1.5f, 0.03f, 0.02f, 0.08f, 1.f, 1.f }
+        };
+#endif
+
+        // 0. Obtener valores de drift analógico para esta muestra (dynamic + static)
+        float driftOsc1 = drift.getOsc1PitchDrift() + staticPitchOffset1;
+        float driftOsc2 = drift.getOsc2PitchDrift() + staticPitchOffset2;
+        float driftCutoff = drift.getVcfCutoffDrift() + staticCutoffOffset;
+        float driftResonance = drift.getVcfResonanceDrift() + staticResOffset;
 
         // 1. Aplicar envTimeDrift a las envolventes antes de avanzar
         //    El drift escala la velocidad: ±30% máximo cuando paramDrift=1.0
-        float driftEnvScale = 1.0f + drift.getEnvTimeDrift() * 0.3f;
+        float driftEnvScale = 1.0f + (drift.getEnvTimeDrift() + staticEnvTimeOffset) * cal.transfer.envelopes.driftToTimeScale;
         env1VCA.setTimeScale(driftEnvScale);
         env2VCF.setTimeScale(driftEnvScale);
         env3MOD.setTimeScale(driftEnvScale);
@@ -365,8 +428,24 @@ namespace ABD
         if (portaActive)
         {
             float interval = std::abs(targetPortaPitch - currentPortaPitch);
-            float glideRate = calcGlideRate(params.portaTime, params.portaMode, interval);
-            currentPortaPitch += (targetPortaPitch - currentPortaPitch) * glideRate;
+            float glideRate = calcGlideRate(params.portaTime, params.portaMode, interval, (float)sampleRate);
+
+            bool isFixRate = (params.portaMode == 2 || params.portaMode == 3
+                           || params.portaMode == 6 || params.portaMode == 7
+                           || params.portaMode == 8 || params.portaMode == 9);
+
+            if (isFixRate)
+            {
+                // Linear: constant semitones per sample regardless of interval
+                float direction = (targetPortaPitch > currentPortaPitch) ? 1.0f : -1.0f;
+                currentPortaPitch += direction * glideRate;
+            }
+            else
+            {
+                // Exponential: rate is multiplier on remaining distance
+                currentPortaPitch += (targetPortaPitch - currentPortaPitch) * glideRate;
+            }
+
             if (std::abs(currentPortaPitch - targetPortaPitch) < 0.001f)
             {
                 currentPortaPitch = targetPortaPitch;
@@ -408,6 +487,8 @@ namespace ABD
         // Frecuencia final en Hz
         float freq1 = 440.0f * std::pow(2.0f, (osc1Note - 69.0f) / 12.0f);
         float freq2 = 440.0f * std::pow(2.0f, (osc2Note - 69.0f) / 12.0f);
+
+        lastCalculatedFreq1 = freq1;
 
         osc1.setFrequency(freq1);
         osc2.setFrequency(freq2);
@@ -471,19 +552,20 @@ namespace ABD
         float subSample = (subPhase < 0.5) ? 1.0f : -1.0f;
         subSample *= std::clamp(params.subLevel + subVolMod, 0.0f, 1.0f);
 
-        // --- Hard Sync: detectar wrap de fase de OSC2 y resetear OSC1 ---
+        // --- Hard Sync: detectar wrap de fase de OSC1 (Master) y resetear OSC2 (Slave) ---
         if (params.oscSync)
         {
-            double osc2Phase = osc2.getPhase();
+            double osc1Phase = osc1.getPhase();
             // Phase wrapped: fase anterior > fase actual tras nextSample()
-            if (osc2Phase < prevOsc2Phase)
-                osc1.resetPhase();
-            prevOsc2Phase = osc2Phase;
+            if (osc1Phase < prevOsc1Phase)
+                osc2.resetPhase();
+            prevOsc1Phase = osc1Phase;
         }
 
         // Generador de ruido simple
         float noiseSample = (-1.0f + 2.0f * ((float)std::rand() / (float)RAND_MAX)) * std::clamp(params.noiseLevel + noiseVolMod, 0.0f, 1.0f);
 
+        // Option B: Inject test tone before VCF
         float combinedOsc = osc1Sample + osc2Sample + subSample + noiseSample;
 
         // 4. Filtrado VCF Pasa-Bajos
@@ -494,36 +576,61 @@ namespace ABD
         
         // VCF Env Velocity Sensitivity: la velocity escala la profundidad del envelope VCF
         float velocityValue = modSources[(int)ModSource::kVelocity];
-        float velScaledEnvDepth = params.vcfEnvDepth * (1.0f - params.vcfEnvVel + params.vcfEnvVel * velocityValue);
+
+        // vcfEnvDepth es bipolar: 0.0=−100%, 0.5=0% (centro), 1.0=+100%
+        // Convertir a signed [-1,+1] antes de aplicar polarity toggle
+        const float signedEnvDepth = (params.vcfEnvDepth - 0.5f) * 2.0f;
+        // Polaridad: Normal=+1, Inverted=−1 (botón INVERT del hardware)
+        float polarityScale = (params.vcfEnvPolarity == 1) ? 1.0f : -1.0f;
+        float effectiveEnvDepth = signedEnvDepth * polarityScale;
+        float velScaledEnvDepth = effectiveEnvDepth * (1.0f - params.vcfEnvVel + params.vcfEnvVel * velocityValue);
         
         // VCF Pitch Bend Depth: el pitch bend modula el cutoff
         float pitchBendValue = modSources[(int)ModSource::kPitchBend];
-        float pitchBendCutoffMod = pitchBendValue * params.vcfPitchBend * 0.3f;
+        float pitchBendCutoffMod = pitchBendValue * params.vcfPitchBend * cal.transfer.vcfPitchBend.cutoffScale;
         
         float lfoCutoffDepth = params.vcfLfoDepth;
         float lfoValue = (params.vcfLfoSelect == 0) ? modSources[(int)ModSource::kLFO1] : modSources[(int)ModSource::kLFO2];
 
         // Drift analógico del filtro: pequeña fluctuación en cutoff y resonancia
-        float cutoffDriftMod = driftCutoff * params.paramDrift; // escalado por amount
-        float resonanceDriftMod = driftResonance * params.paramDrift * 0.5f;
+        float cutoffDriftMod = driftCutoff * params.paramDrift * cal.voice.cutoffDriftScale;
+        float resonanceDriftMod = driftResonance * params.paramDrift * cal.voice.resonanceDriftScale;
 
         // LFO depth modulado por Aftertouch y Mod Wheel
         float lfoDepthFromAftertouch = params.vcfAftertouchLfo * modSources[(int)ModSource::kKeyPressure];
         float lfoDepthFromModwheel = params.vcfModwheelLfo * modSources[(int)ModSource::kModWheel];
         float totalLfoDepth = lfoCutoffDepth + lfoDepthFromAftertouch + lfoDepthFromModwheel;
 
-        // Mapeo musical logarítmico del Cutoff
+        // Mapeo musical logarítmico del Cutoff (calibrado)
         float cutoffLvl = params.vcfCutoff + vcfCutoffMod + (env2Value * velScaledEnvDepth) + (lfoValue * totalLfoDepth) + pitchBendCutoffMod + cutoffDriftMod;
         cutoffLvl = std::clamp(cutoffLvl, 0.0f, 1.0f);
-        float cutoffHz = 20.0f * std::pow(1000.0f, cutoffLvl); // Mapeo de 20Hz a 20kHz
+        float cutoffHz = cal.transfer.vcfCutoff.minHz * std::pow(cal.transfer.vcfCutoff.curveBase, cutoffLvl);
 
         // Keytracking del filtro
-        float keyTrackHz = (freq1 - 261.63f) * params.vcfKeyTrack; // relativo al Do Central (C4)
+        float keyTrackHz = (freq1 - cal.transfer.vcfKeytrack.referenceHz) * params.vcfKeyTrack * cal.transfer.vcfKeytrack.amountScale;
         cutoffHz = std::clamp(cutoffHz + keyTrackHz, 10.0f, (float)(sampleRate * 0.45));
         // Almacenar cutoff modulado para el DebugPanel
         lastModVcfCutoffHz = cutoffHz;
 
-        vcf.setPoleMode(params.vcfPoleMode);
+        // Only update pole mode / oversample / voicing mode when params change (not per-sample)
+        if (params.vcfPoleMode != lastPoleMode)
+        {
+            vcf.setPoleMode(params.vcfPoleMode);
+            lastPoleMode = params.vcfPoleMode;
+        }
+#if DEEP_TARGET_MODEL >= 2
+        int effectiveOversample = params.vcfOversample == 0 ? 1 : params.vcfOversample == 1 ? 2 : 4;
+        if (effectiveOversample != lastOversample)
+        {
+            vcf.setOversample(effectiveOversample);
+            lastOversample = effectiveOversample;
+        }
+#endif
+        if (params.vcfVoicingMode != lastVcfVoicingMode)
+        {
+            vcf.setMode(params.vcfVoicingMode == 0 ? JunoVCF_ZDF::Mode::DeepMind : JunoVCF_ZDF::Mode::Juno106);
+            lastVcfVoicingMode = params.vcfVoicingMode;
+        }
         vcf.setCutoff(cutoffHz);
         
         float filterResMod = matrix.getModulationValue(ModDestination::kFilterResonance, modSources);
@@ -533,9 +640,27 @@ namespace ABD
 
         // 5. Filtrado HPF Pasa-Altos
         float hpfCutoffMod = matrix.getModulationValue(ModDestination::kFilterHPFCutoff, modSources);
-        float hpfCutoffHz = std::clamp(params.hpfCutoff + hpfCutoffMod * 500.0f, 10.0f, 10000.0f);
+        float hpfCutoffHz = std::clamp(params.hpfCutoff + hpfCutoffMod * cal.transfer.hpf.modScaleHz, cal.transfer.hpf.minHz, cal.transfer.hpf.maxHz);
         hpf.setCutoff(hpfCutoffHz);
         hpf.setBassBoostActive(params.hpfBassBoost);
+        hpf.setBassBoostGain(params.hpfBassBoostGain);
+
+        // Store diagnostic intermediate values
+        lastBaseCutoffHz = 50.0f * std::pow(400.0f, params.vcfCutoff);
+        lastEffectiveCutoffHz = cutoffHz;
+        lastVcfResonance = std::clamp(params.vcfResonance + filterResMod + resonanceDriftMod, 0.0f, 1.0f);
+        lastEnvDepthSign = effectiveEnvDepth;
+        lastKeytrackHz = keyTrackHz;
+        lastHpfCutoffHz = hpfCutoffHz;
+        lastLfo1Value = modSources[(int)ModSource::kLFO1];
+        lastLfo2Value = modSources[(int)ModSource::kLFO2];
+        lastEnv1Value = modSources[(int)ModSource::kEnv1VCA];
+        lastEnv2Value = env2Value;
+        lastDriftHz = cutoffDriftMod;
+        lastCutoffFromEnv = env2Value * velScaledEnvDepth;
+        lastCutoffFromLfo = lfoValue * totalLfoDepth;
+        lastCutoffFromDrift = cutoffDriftMod;
+        lastCutoffFromKeytrack = keyTrackHz;
 
         float finalFiltered = hpf.process(filtered);
 
@@ -615,5 +740,79 @@ namespace ABD
         {
             currentMidiNote = -1;
         }
+    }
+
+    VoiceDiagnosticSnapshot SynthVoice::getDiagnosticSnapshot(int voiceIdx) const
+    {
+        VoiceDiagnosticSnapshot snapshot;
+        snapshot.voiceIndex = voiceIdx;
+        snapshot.isActive = isActive();
+        snapshot.noteNumber = currentMidiNote >= 0 ? (float)currentMidiNote : 0.0f;
+        snapshot.velocity = noteVelocity;
+        
+        snapshot.detuneSemitonesBase = unisonDetuneSemitones;
+        snapshot.detuneSemitonesEffective = unisonDetuneSemitones + lastModOsc1DetuneSemitones;
+        snapshot.panBase = unisonPanPosition;
+        snapshot.panEffective = lastModPan;
+        
+        snapshot.baseCutoffHz = lastBaseCutoffHz;
+        snapshot.effectiveCutoffHz = lastEffectiveCutoffHz;
+        snapshot.resonance = lastVcfResonance;
+        snapshot.envDepthSign = lastEnvDepthSign;
+        snapshot.keytrackHz = lastKeytrackHz;
+        snapshot.hpfCutoffHz = lastHpfCutoffHz;
+        
+        snapshot.vcfCutoffBase = lastBaseCutoffHz;
+        snapshot.vcfCutoffEffectiveHz = lastEffectiveCutoffHz;
+        snapshot.vcfResonanceBase = lastVcfResonance;
+        snapshot.vcfResonanceEffective = lastVcfResonance;
+        snapshot.hpfCutoffBase = lastHpfCutoffHz;
+        
+        snapshot.lfo1Value = lastLfo1Value;
+        snapshot.lfo2Value = lastLfo2Value;
+        snapshot.env1Value = lastEnv1Value;
+        snapshot.env2Value = lastEnv2Value;
+        snapshot.driftHz = lastDriftHz;
+        
+        snapshot.cutoffFromEnv = lastCutoffFromEnv;
+        snapshot.cutoffFromLfo = lastCutoffFromLfo;
+        snapshot.cutoffFromDrift = lastCutoffFromDrift;
+        snapshot.cutoffFromKeytrack = lastCutoffFromKeytrack;
+        
+        snapshot.envStage = 0; // Se puede mapear al estado real de envolvente si se requiere
+        snapshot.sourceTag = 0;
+        snapshot.flags = 0;
+        
+        return snapshot;
+    }
+
+    float SynthVoice::getCurrentOscFreqHz() const noexcept
+    {
+        return lastCalculatedFreq1;
+    }
+
+    void SynthVoice::setPortamentoTimeNormalized (float norm)
+    {
+        params.portaTime = norm;
+    }
+
+    void SynthVoice::setPortamentoModeRaw (int rawMode)
+    {
+        params.portaMode = rawMode;
+    }
+
+    void SynthVoice::setOscSyncEnabled (bool enabled)
+    {
+        params.oscSync = enabled;
+    }
+
+    void SynthVoice::setOsc2Pitch (float pitch)
+    {
+        params.osc2Pitch = pitch;
+    }
+
+    void SynthVoice::setOsc2Level (float level)
+    {
+        params.osc2Level = level;
     }
 }

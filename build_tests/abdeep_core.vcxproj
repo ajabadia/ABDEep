@@ -1,0 +1,415 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1AE18640-812A-3A31-A738-8F1D6EED9DC7}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>abdeep_core</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\desarrollos\ABDSynths\ABDEep\build_tests\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">abdeep_core.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">abdeep_core</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\desarrollos\ABDSynths\ABDEep\build_tests\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">abdeep_core.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">abdeep_core</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\desarrollos\ABDSynths\ABDEep\build_tests\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">abdeep_core.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">abdeep_core</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.lib</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\desarrollos\ABDSynths\ABDEep\build_tests\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">abdeep_core.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">abdeep_core</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.lib</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;EEP_MODE_MIDI_CONTROLLER=1;DEEP_TARGET_MODEL=0;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;DEBUG=1;_DEBUG=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;EEP_MODE_MIDI_CONTROLLER=1;DEEP_TARGET_MODEL=0;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;DEBUG=1;_DEBUG=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EEP_MODE_MIDI_CONTROLLER=1;DEEP_TARGET_MODEL=0;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;NDEBUG=1;_NDEBUG=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EEP_MODE_MIDI_CONTROLLER=1;DEEP_TARGET_MODEL=0;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;NDEBUG=1;_NDEBUG=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EEP_MODE_MIDI_CONTROLLER=1;DEEP_TARGET_MODEL=0;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;NDEBUG=1;_NDEBUG=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EEP_MODE_MIDI_CONTROLLER=1;DEEP_TARGET_MODEL=0;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;NDEBUG=1;_NDEBUG=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck></BufferSecurityCheck>
+      <CallingConvention></CallingConvention>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel></FloatingPointModel>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EEP_MODE_MIDI_CONTROLLER=1;DEEP_TARGET_MODEL=0;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;NDEBUG=1;_NDEBUG=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;EEP_MODE_MIDI_CONTROLLER=1;DEEP_TARGET_MODEL=0;JUCE_MODULE_AVAILABLE_juce_audio_processors=1;JUCE_MODULE_AVAILABLE_juce_gui_extra=1;JUCE_MODULE_AVAILABLE_juce_gui_basics=1;JUCE_MODULE_AVAILABLE_juce_graphics=1;JUCE_MODULE_AVAILABLE_juce_events=1;JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1;NDEBUG=1;_NDEBUG=1;JUCE_MODULE_AVAILABLE_juce_core=1;JUCE_MODULE_AVAILABLE_juce_data_structures=1;JUCE_MODULE_AVAILABLE_juce_audio_processors_headless=1;JUCE_MODULE_AVAILABLE_juce_audio_basics=1;JUCE_MODULE_AVAILABLE_juce_audio_utils=1;JUCE_MODULE_AVAILABLE_juce_audio_formats=1;JUCE_MODULE_AVAILABLE_juce_audio_devices=1;JUCE_MODULE_AVAILABLE_juce_dsp=1;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\desarrollos\ABDSynths\ABDEep\Source;D:\desarrollos\ABDSynths\ABDEep\Source\Core;D:\desarrollos\ABDSynths\ABDEep\Source\DSP;D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_UnitTests_artefacts\JuceLibraryCode;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\VST3_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lv2;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\serd;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sord\src;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\sratom;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv;D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\format_types\LV2_SDK\lilv\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Lib>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\desarrollos\ABDSynths\ABDEep\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/desarrollos/ABDSynths/ABDEep/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/desarrollos/ABDSynths/ABDEep -BD:/desarrollos/ABDSynths/ABDEep/build_tests --check-stamp-file D:/desarrollos/ABDSynths/ABDEep/build_tests/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCXXInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeGenericSystem.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeLanguageInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeRCInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\FindPackageMessage.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\WindowsPaths.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeCCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeCXXCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeRCCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeSystem.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\cmake.verify_globs;d:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\extras\Build\CMake\FindWebView2.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/desarrollos/ABDSynths/ABDEep/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/desarrollos/ABDSynths/ABDEep -BD:/desarrollos/ABDSynths/ABDEep/build_tests --check-stamp-file D:/desarrollos/ABDSynths/ABDEep/build_tests/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCXXInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeGenericSystem.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeLanguageInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeRCInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\FindPackageMessage.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\WindowsPaths.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeCCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeCXXCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeRCCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeSystem.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\cmake.verify_globs;d:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\extras\Build\CMake\FindWebView2.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/desarrollos/ABDSynths/ABDEep/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/desarrollos/ABDSynths/ABDEep -BD:/desarrollos/ABDSynths/ABDEep/build_tests --check-stamp-file D:/desarrollos/ABDSynths/ABDEep/build_tests/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCXXInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeGenericSystem.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeLanguageInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeRCInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\FindPackageMessage.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\WindowsPaths.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeCCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeCXXCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeRCCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeSystem.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\cmake.verify_globs;d:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\extras\Build\CMake\FindWebView2.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/desarrollos/ABDSynths/ABDEep/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/desarrollos/ABDSynths/ABDEep -BD:/desarrollos/ABDSynths/ABDEep/build_tests --check-stamp-file D:/desarrollos/ABDSynths/ABDEep/build_tests/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCXXInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeGenericSystem.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeLanguageInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeRCInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Compiler\MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\FindPackageMessage.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Linker\MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\Windows.cmake;C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-4.2\Modules\Platform\WindowsPaths.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeCCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeCXXCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeRCCompiler.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\4.2.3-msvc3\CMakeSystem.cmake;D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\cmake.verify_globs;d:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\extras\Build\CMake\FindWebView2.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\Core\ParametersSpec.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\Core\ParametersSpec.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\Core\DiagnosticSnapshots.h" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\Core\PatchDiffTypes.h" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\Core\RoundTripValidator.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\Core\RoundTripValidator.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\Core\CalibrationSpec.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\Core\CalibrationSpec.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\Calibration\AudioABComparator.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\Calibration\AudioABComparator.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\Calibration\AudioABVerdictEngine.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\Calibration\AudioABVerdictEngine.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\Oscillator.h" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\DSPHelpers.h" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\OSC1.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\OSC1.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\OSC2.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\OSC2.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\ModulationMatrix.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\ModulationMatrix.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\Envelope.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\Envelope.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\LFO.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\LFO.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\JunoVCF_ZDF.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\JunoVCF_ZDF.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\VcfVoicing.h" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\JunoHPF.h" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\Filter.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\Filter.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\SynthVoice.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\SynthVoice.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\SynthEngine.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\SynthEngine.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\DriftEngine.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\DriftEngine.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXBase.h" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXSlot.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXSlot.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXDelay.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXDelay.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXChorus.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXChorus.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXSimpleReverb.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXSimpleReverb.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXFlanger.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXFlanger.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXPhaser.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXPhaser.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXRotarySpeaker.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXRotarySpeaker.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXAutoPan.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXAutoPan.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXRackAmp.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXRackAmp.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXMultiBandDist.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXMultiBandDist.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXEdison.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXEdison.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXMoodFilter.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXMoodFilter.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXEnhancer.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXEnhancer.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXSimpleComp.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXSimpleComp.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXNoiseGate.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXNoiseGate.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXPitchShifter.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXPitchShifter.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXDecimDelay.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXDecimDelay.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXTapeDelay.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXTapeDelay.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXModDelayRev.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXModDelayRev.cpp" />
+    <ClInclude Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXEngine.h" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDEep\Source\DSP\FX\FXEngine.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors\juce_audio_processors.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_gui_extra\juce_gui_extra.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_gui_basics\juce_gui_basics.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_graphics\juce_graphics.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_graphics\juce_graphics_Harfbuzz.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_graphics\juce_graphics_Sheenbidi.c" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_events\juce_events.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_core\juce_core.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_core\juce_core_CompilationTime.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_data_structures\juce_data_structures.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\juce_audio_processors_headless.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\juce_audio_processors_headless_ara.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_processors_headless\juce_audio_processors_headless_lv2_libs.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_basics\juce_audio_basics.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_utils\juce_audio_utils.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_formats\juce_audio_formats.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_audio_devices\juce_audio_devices.cpp" />
+    <ClCompile Include="D:\desarrollos\ABDSynths\ABDJUNiO601\JUCE\modules\juce_dsp\juce_dsp.cpp" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="D:\desarrollos\ABDSynths\ABDEep\build_tests\ZERO_CHECK.vcxproj">
+      <Project>{743917EF-C48F-3F18-B7E7-E4A6BD57B321}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

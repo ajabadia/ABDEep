@@ -5,8 +5,8 @@
  */
 
 // ===== localStorage stub =====
-var curveStore = {};
-var mockLS = {
+let curveStore = {};
+const mockLS = {
     getItem: function(k) { return curveStore[k] !== undefined ? curveStore[k] : null; },
     setItem: function(k, v) { curveStore[k] = String(v); },
     removeItem: function(k) { delete curveStore[k]; },
@@ -17,7 +17,7 @@ globalThis.localStorage = mockLS;
 // ===== Extracted Source =====
 
 function _evalCustomCurve(x, points) {
-    if (!points || points.length < 2) return x;
+    if (!points || points.length < 2) {return x;}
     for (let i = 0; i < points.length - 1; i++) {
         const a = points[i], b = points[i + 1];
         if (x >= a.x && x <= b.x) {
@@ -29,7 +29,7 @@ function _evalCustomCurve(x, points) {
 }
 
 function applyControllerCurve(value, curveType) {
-    if (curveType === 'linear' || !curveType) return value;
+    if (curveType === 'linear' || !curveType) {return value;}
     if (curveType === 'custom') {
         const ctrlName = 'aftertouch';
         const points = getCustomCurvePoints(ctrlName);
@@ -47,7 +47,7 @@ function applyControllerCurve(value, curveType) {
 }
 
 function applyBipolarCurve(value, curveType) {
-    if (curveType === 'linear' || !curveType) return value;
+    if (curveType === 'linear' || !curveType) {return value;}
     if (curveType === 'custom') {
         const points = getCustomCurvePoints('pitchbend');
         const abs = Math.max(0, Math.min(1, Math.abs(value)));
@@ -108,32 +108,32 @@ describe('_evalCustomCurve — piecewise linear interpolation', function() {
     });
 
     it('interpolates linearly between two end points', function() {
-        var pts = [{x:0, y:0}, {x:1, y:1}];
+        const pts = [{x:0, y:0}, {x:1, y:1}];
         expect(_evalCustomCurve(0, pts)).toBe(0);
         expect(_evalCustomCurve(0.5, pts)).toBe(0.5);
         expect(_evalCustomCurve(1, pts)).toBe(1);
     });
 
     it('interpolates with offset line', function() {
-        var pts = [{x:0, y:0.2}, {x:1, y:0.8}];
+        const pts = [{x:0, y:0.2}, {x:1, y:0.8}];
         expect(_evalCustomCurve(0, pts)).toBe(0.2);
         expect(_evalCustomCurve(0.5, pts)).toBe(0.5);
         expect(_evalCustomCurve(1, pts)).toBe(0.8);
     });
 
     it('interpolates with three points (custom curve)', function() {
-        var pts = [{x:0, y:0}, {x:0.5, y:0.2}, {x:1, y:1}];
+        const pts = [{x:0, y:0}, {x:0.5, y:0.2}, {x:1, y:1}];
         expect(_evalCustomCurve(0.25, pts)).toBeCloseTo(0.1, 5);
         expect(_evalCustomCurve(0.75, pts)).toBeCloseTo(0.6, 5);
     });
 
     it('clamps to last point when x exceeds range', function() {
-        var pts = [{x:0, y:0}, {x:0.5, y:0.5}];
+        const pts = [{x:0, y:0}, {x:0.5, y:0.5}];
         expect(_evalCustomCurve(0.75, pts)).toBe(0.5);
     });
 
     it('handles flat segment (a.x === b.x)', function() {
-        var pts = [{x:0.3, y:0.1}, {x:0.3, y:0.9}];
+        const pts = [{x:0.3, y:0.1}, {x:0.3, y:0.9}];
         // when b.x - a.x === 0, t = (x - a.x) / 1, which is 0
         // So result = a.y + 0 = 0.1
         expect(_evalCustomCurve(0.3, pts)).toBe(0.1);
@@ -260,7 +260,7 @@ describe('getCustomCurvePoints / setCustomCurvePoints', function() {
     });
 
     it('getCustomCurvePoints returns endpoints when nothing saved', function() {
-        var pts = getCustomCurvePoints('aftertouch');
+        const pts = getCustomCurvePoints('aftertouch');
         expect(pts.length).toBe(2);
         expect(pts[0]).toEqual({x:0, y:0});
         expect(pts[1]).toEqual({x:1, y:1});
@@ -268,7 +268,7 @@ describe('getCustomCurvePoints / setCustomCurvePoints', function() {
 
     it('setCustomCurvePoints stores intermediate points', function() {
         setCustomCurvePoints('aftertouch', [{x:0.3, y:0.2}]);
-        var pts = getCustomCurvePoints('aftertouch');
+        const pts = getCustomCurvePoints('aftertouch');
         expect(pts.length).toBe(3); // endpoints + 1 intermediate
         expect(pts[0]).toEqual({x:0, y:0});
         expect(pts[1]).toEqual({x:0.3, y:0.2});
@@ -281,21 +281,21 @@ describe('getCustomCurvePoints / setCustomCurvePoints', function() {
             {x:0.4, y:0.3},  // kept
             {x:1, y:0.8}     // should be filtered
         ]);
-        var pts = getCustomCurvePoints('aftertouch');
+        const pts = getCustomCurvePoints('aftertouch');
         expect(pts.length).toBe(3); // endpoints + 0.4
         expect(pts[1].x).toBe(0.4);
     });
 
     it('limits to 5 intermediate points max', function() {
-        var manyPoints = [];
-        for (var i = 1; i <= 7; i++) {
+        const manyPoints = [];
+        for (let i = 1; i <= 7; i++) {
             manyPoints.push({x: i / 8, y: i / 10});
         }
         setCustomCurvePoints('aftertouch', manyPoints);
-        var pts = getCustomCurvePoints('aftertouch');
+        const pts = getCustomCurvePoints('aftertouch');
         expect(pts.length).toBe(7); // 5 intermediates + 2 endpoints
         // Verify they're sorted
-        for (var j = 1; j < pts.length; j++) {
+        for (let j = 1; j < pts.length; j++) {
             expect(pts[j].x).toBeGreaterThan(pts[j-1].x);
         }
     });
@@ -306,7 +306,7 @@ describe('getCustomCurvePoints / setCustomCurvePoints', function() {
             {x:0.3, y:0.2},
             {x:0.5, y:0.5}
         ]);
-        var pts = getCustomCurvePoints('aftertouch');
+        const pts = getCustomCurvePoints('aftertouch');
         expect(pts[0].x).toBe(0);
         expect(pts[1].x).toBe(0.3);
         expect(pts[2].x).toBe(0.5);
@@ -323,7 +323,7 @@ describe('custom curve integration — eval with custom points', function() {
     it('applyControllerCurve custom uses stored points', function() {
         setCustomCurvePoints('aftertouch', [{x:0.5, y:0.2}]);
         // At x=0.25: interpolate between (0,0) and (0.5,0.2)
-        var result = applyControllerCurve(0.25, 'custom');
+        const result = applyControllerCurve(0.25, 'custom');
         expect(result).toBeCloseTo(0.1, 5);
     });
 
@@ -331,7 +331,7 @@ describe('custom curve integration — eval with custom points', function() {
         setCustomCurvePoints('pitchbend', [{x:0.5, y:0.6}]);
         // At value=0.5: abs=0.5, interpolate (0,0)-(0.5,0.6) → t=1.0 → 0.6
         // sign positive → 0.6
-        var result = applyBipolarCurve(0.5, 'custom');
+        const result = applyBipolarCurve(0.5, 'custom');
         expect(result).toBeCloseTo(0.6, 5);
     });
 });

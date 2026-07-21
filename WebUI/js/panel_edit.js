@@ -43,14 +43,14 @@ function initDetailPanel() {
     const realScopeScreenEl = document.getElementById('panel-real-scope-screen');
     const realScopeToggleBtn = document.getElementById('panel-real-scope-toggle');
 
-    if (!panel || !closeBtn || !container) return;
+    if (!panel || !closeBtn || !container) {return;}
 
     const noScreenModes = ['POLY', 'PORTA', 'CHORD', 'POLY_CHORD'];
     const noScopeModes = ['POLY', 'PORTA', 'CHORD', 'POLY_CHORD', 'ARP'];
     const state = window.panelEditState;
 
     window.updateScreenHeight = function() {
-        if (!screenEl || !screenToggleBtn) return;
+        if (!screenEl || !screenToggleBtn) {return;}
         if (noScreenModes.includes(state.currentPanelMode)) {
             screenEl.style.height = '0px';
             screenEl.style.borderBottomWidth = '0px';
@@ -72,7 +72,7 @@ function initDetailPanel() {
     };
 
     window.updateRealScopeHeight = function() {
-        if (!realScopeScreenEl || !realScopeToggleBtn) return;
+        if (!realScopeScreenEl || !realScopeToggleBtn) {return;}
         const isJuce = window.dualMidiBridge && window.dualMidiBridge.isJuce;
         const toolbar = document.getElementById('scope-toolbar');
         if (noScopeModes.includes(state.currentPanelMode)) {
@@ -87,12 +87,12 @@ function initDetailPanel() {
             realScopeScreenEl.style.height = '0px';
             realScopeScreenEl.style.borderBottomWidth = '0px';
             realScopeToggleBtn.innerHTML = isJuce ? '🔴 DSP SCOPE (off)' : '⚫ DSP SCOPE (no engine)';
-            if (toolbar) toolbar.style.display = 'none';
+            if (toolbar) {toolbar.style.display = 'none';}
         } else {
             realScopeScreenEl.style.height = '113px';
             realScopeScreenEl.style.borderBottomWidth = '1.5px';
             realScopeToggleBtn.innerHTML = '🟢 DSP SCOPE (live)';
-            if (toolbar) toolbar.style.display = 'flex';
+            if (toolbar) {toolbar.style.display = 'flex';}
         }
     };
 
@@ -118,38 +118,38 @@ function initDetailPanel() {
 
     // Scope toolbar triggers
     document.addEventListener('click', function _onScopeTrigger(e) {
-        var btn = e.target.closest('#scope-trigger-btn');
-        if (!btn) return;
+        const btn = e.target.closest('#scope-trigger-btn');
+        if (!btn) {return;}
         state._scopeTriggerMode = (state._scopeTriggerMode + 1) % 3;
         state._scopeLastSamples = null;
-        if (typeof window._updateScopeToolbar === 'function') window._updateScopeToolbar();
+        if (typeof window._updateScopeToolbar === 'function') {window._updateScopeToolbar();}
     });
 
     document.addEventListener('click', function _onScopeZoom(e) {
-        var btn = e.target.closest('.scope-zoom-btn');
-        if (!btn) return;
-        var zoom = parseInt(btn.getAttribute('data-zoom'));
+        const btn = e.target.closest('.scope-zoom-btn');
+        if (!btn) {return;}
+        const zoom = parseInt(btn.getAttribute('data-zoom'));
         if (zoom >= 1 && zoom <= 4) {
             state._scopeZoom = zoom;
-            if (typeof window._updateScopeToolbar === 'function') window._updateScopeToolbar();
+            if (typeof window._updateScopeToolbar === 'function') {window._updateScopeToolbar();}
         }
     });
 
     document.addEventListener('click', function _onScopeColor(e) {
-        var btn = e.target.closest('#scope-color-btn');
-        if (!btn) return;
+        const btn = e.target.closest('#scope-color-btn');
+        if (!btn) {return;}
         state._scopeColorScheme = (state._scopeColorScheme + 1) % (window.SCOPE_COLORS ? window.SCOPE_COLORS.length : 4);
-        if (typeof window._updateScopeToolbar === 'function') window._updateScopeToolbar();
+        if (typeof window._updateScopeToolbar === 'function') {window._updateScopeToolbar();}
     });
 
     // Opening modes listeners
     const setupOpenPanel = (btn, mode) => {
-        if (!btn) return;
+        if (!btn) {return;}
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             state.currentPanelMode = mode;
-            if (typeof window.syncDetailPanelControls === 'function') window.syncDetailPanelControls();
+            if (typeof window.syncDetailPanelControls === 'function') {window.syncDetailPanelControls();}
             panel.classList.add('active');
         });
     };
@@ -168,15 +168,15 @@ function initDetailPanel() {
             e.preventDefault();
             e.stopPropagation();
             if (window.dualMidiBridge) {
-                const active = window.dualMidiBridge.parameterCache["chord_enable"] > 0.5;
+                const active = window.dualMidiBridge.parameterCache['chord_enable'] > 0.5;
                 const nextVal = active ? 0.0 : 1.0;
-                window.dualMidiBridge.setParameter("chord_enable", nextVal);
+                window.dualMidiBridge.setParameter('chord_enable', nextVal);
                 if (nextVal > 0.5) {
-                    window.dualMidiBridge.setParameter("poly_chord_enable", 0.0);
+                    window.dualMidiBridge.setParameter('poly_chord_enable', 0.0);
                 }
             }
             state.currentPanelMode = 'CHORD';
-            if (typeof window.syncDetailPanelControls === 'function') window.syncDetailPanelControls();
+            if (typeof window.syncDetailPanelControls === 'function') {window.syncDetailPanelControls();}
             panel.classList.add('active');
         });
     }
@@ -186,33 +186,27 @@ function initDetailPanel() {
             e.preventDefault();
             e.stopPropagation();
             if (window.dualMidiBridge) {
-                const active = window.dualMidiBridge.parameterCache["poly_chord_enable"] > 0.5;
+                const active = window.dualMidiBridge.parameterCache['poly_chord_enable'] > 0.5;
                 const nextVal = active ? 0.0 : 1.0;
-                window.dualMidiBridge.setParameter("poly_chord_enable", nextVal);
+                window.dualMidiBridge.setParameter('poly_chord_enable', nextVal);
                 if (nextVal > 0.5) {
-                    window.dualMidiBridge.setParameter("chord_enable", 0.0);
+                    window.dualMidiBridge.setParameter('chord_enable', 0.0);
                 }
             }
             state.currentPanelMode = 'POLY_CHORD';
-            if (typeof window.syncDetailPanelControls === 'function') window.syncDetailPanelControls();
+            if (typeof window.syncDetailPanelControls === 'function') {window.syncDetailPanelControls();}
             panel.classList.add('active');
         });
     }
 
     window.openSeqPanel = function() {
         state.currentPanelMode = 'SEQ';
-        if (typeof window.syncDetailPanelControls === 'function') window.syncDetailPanelControls();
+        if (typeof window.syncDetailPanelControls === 'function') {window.syncDetailPanelControls();}
         panel.classList.add('active');
     };
 
     closeBtn.addEventListener('click', () => {
         panel.classList.remove('active');
-    });
-
-    document.addEventListener('click', (e) => {
-        if (panel.classList.contains('active') && !panel.contains(e.target) && !e.target.closest('.edit-panel-btn')) {
-            panel.classList.remove('active');
-        }
     });
 
     // Escuchar cambios de parámetros en tiempo real para refrescar faders del panel si se mueven
@@ -223,10 +217,10 @@ function initDetailPanel() {
                 if (paramId.startsWith(activePrefix)) {
                     if (paramId === `${activePrefix}key_sync` || paramId === `${activePrefix}arp_sync`) {
                         const box = document.getElementById(paramId === `${activePrefix}key_sync` ? 'lfo-key-sync-box' : 'lfo-arp-sync-box');
-                        if (box) box.classList.toggle('active', val > 0.5);
+                        if (box) {box.classList.toggle('active', val > 0.5);}
                         if (paramId === `${activePrefix}arp_sync`) {
                             const rateLabel = container.querySelector(`[data-param="${activePrefix}rate"] .label`);
-                            if (rateLabel) rateLabel.innerText = val > 0.5 ? 'Clock Div' : 'Rate';
+                            if (rateLabel) {rateLabel.innerText = val > 0.5 ? 'Clock Div' : 'Rate';}
                         }
                     } else if (paramId === `${activePrefix}shape`) {
                         const activeIndex = Math.round(val * 6.0);
@@ -247,14 +241,14 @@ function initDetailPanel() {
                     }
                 }
             } else if (state.currentPanelMode === 'VCA') {
-                if (paramId === "vca_mode") {
+                if (paramId === 'vca_mode') {
                     const btnTransparent = document.getElementById('panel-vca-mode-transparent');
                     const btnBallsy = document.getElementById('panel-vca-mode-ballsy');
                     if (btnTransparent && btnBallsy) {
                         btnTransparent.classList.toggle('active', val < 0.5);
                         btnBallsy.classList.toggle('active', val > 0.5);
                     }
-                } else if (paramId.startsWith("vca_")) {
+                } else if (paramId.startsWith('vca_')) {
                     const sliderEl = container.querySelector(`[data-param="${paramId}"] .v-slider`);
                     if (sliderEl) {
                         const handle = sliderEl.querySelector('.handle');
@@ -287,14 +281,14 @@ function initDetailPanel() {
                     }
                 }
             } else if (state.currentPanelMode === 'HPF') {
-                if (paramId === "hpf_boost_enable") {
+                if (paramId === 'hpf_boost_enable') {
                     const btnBoostOff = document.getElementById('panel-hpf-boost-off');
                     const btnBoostOn = document.getElementById('panel-hpf-boost-on');
                     if (btnBoostOff && btnBoostOn) {
                         btnBoostOff.classList.toggle('active', val < 0.5);
                         btnBoostOn.classList.toggle('active', val > 0.5);
                     }
-                } else if (paramId === "hpf_cutoff") {
+                } else if (paramId === 'hpf_cutoff') {
                     const sliderEl = container.querySelector(`[data-param="${paramId}"] .v-slider`);
                     if (sliderEl) {
                         const handle = sliderEl.querySelector('.handle');
@@ -306,28 +300,28 @@ function initDetailPanel() {
                     }
                 }
             } else if (state.currentPanelMode === 'VCF') {
-                if (paramId === "vcf_pole_mode") {
+                if (paramId === 'vcf_pole_mode') {
                     const btn2 = document.getElementById('panel-vcf-pole-2');
                     const btn4 = document.getElementById('panel-vcf-pole-4');
                     if (btn2 && btn4) {
                         btn2.classList.toggle('active', val < 0.5);
                         btn4.classList.toggle('active', val > 0.5);
                     }
-                } else if (paramId === "vcf_env_polarity") {
+                } else if (paramId === 'vcf_env_polarity') {
                     const btnNorm = document.getElementById('panel-vcf-pol-normal');
                     const btnInv = document.getElementById('panel-vcf-pol-inverted');
                     if (btnNorm && btnInv) {
                         btnNorm.classList.toggle('active', val > 0.5);
                         btnInv.classList.toggle('active', val < 0.5);
                     }
-                } else if (paramId === "vcf_lfo_select") {
+                } else if (paramId === 'vcf_lfo_select') {
                     const btn1 = document.getElementById('panel-vcf-lfosrc-1');
                     const btn2 = document.getElementById('panel-vcf-lfosrc-2');
                     if (btn1 && btn2) {
                         btn1.classList.toggle('active', val < 0.5);
                         btn2.classList.toggle('active', val > 0.5);
                     }
-                } else if (paramId.startsWith("vcf_")) {
+                } else if (paramId.startsWith('vcf_')) {
                     const sliderEl = container.querySelector(`[data-param="${paramId}"] .v-slider`);
                     if (sliderEl) {
                         const handle = sliderEl.querySelector('.handle');
@@ -340,25 +334,25 @@ function initDetailPanel() {
                 }
             } else if (state.currentPanelMode === 'OSC') {
                 if (state.panelActiveOsc === 1) {
-                    if (paramId === "osc1_saw_enable" || paramId === "osc1_square_enable") {
-                        const box = document.getElementById(paramId === "osc1_saw_enable" ? 'panel-osc1-saw-box' : 'panel-osc1-square-box');
-                        if (box) box.classList.toggle('active', val > 0.5);
-                    } else if (paramId === "osc_key_reset") {
+                    if (paramId === 'osc1_saw_enable' || paramId === 'osc1_square_enable') {
+                        const box = document.getElementById(paramId === 'osc1_saw_enable' ? 'panel-osc1-saw-box' : 'panel-osc1-square-box');
+                        if (box) {box.classList.toggle('active', val > 0.5);}
+                    } else if (paramId === 'osc_key_reset') {
                         const box = document.getElementById('panel-osc-key-reset-box');
-                        if (box) box.classList.toggle('active', val > 0.5);
-                    } else if (paramId === "osc1_pm_source") {
+                        if (box) {box.classList.toggle('active', val > 0.5);}
+                    } else if (paramId === 'osc1_pm_source') {
                         const sel = document.getElementById('panel-osc1-pmod-src-select');
-                        if (sel) sel.value = Math.round(val * 6.0);
-                    } else if (paramId === "osc1_pwm_source") {
+                        if (sel) {sel.value = Math.round(val * 6.0);}
+                    } else if (paramId === 'osc1_pwm_source') {
                         const sel = document.getElementById('panel-osc1-pwm-src-select');
-                        if (sel) sel.value = Math.round(val * 5.0);
-                    } else if (paramId === "osc1_range") {
+                        if (sel) {sel.value = Math.round(val * 5.0);}
+                    } else if (paramId === 'osc1_range') {
                         const activeIndex = Math.round(val * 2.0);
                         container.querySelectorAll('.osc1-range-led-row').forEach(row => {
                             const rowVal = parseInt(row.getAttribute('data-val'));
                             row.classList.toggle('active', rowVal === activeIndex);
                         });
-                    } else if (paramId === "osc1_pm_mode") {
+                    } else if (paramId === 'osc1_pm_mode') {
                         const activeIndex = Math.round(val * 1.0);
                         container.querySelectorAll('.osc1-pmode-led-row').forEach(row => {
                             const rowVal = parseInt(row.getAttribute('data-val'));
@@ -376,16 +370,16 @@ function initDetailPanel() {
                         }
                     }
                 } else {
-                    if (paramId === "osc_sync_enable") {
+                    if (paramId === 'osc_sync_enable') {
                         const box = document.getElementById('panel-osc-sync-box');
-                        if (box) box.classList.toggle('active', val > 0.5);
-                    } else if (paramId === "osc2_pm_source") {
+                        if (box) {box.classList.toggle('active', val > 0.5);}
+                    } else if (paramId === 'osc2_pm_source') {
                         const sel = document.getElementById('panel-osc2-pmod-src-select');
-                        if (sel) sel.value = Math.round(val * 6.0);
-                    } else if (paramId === "osc2_tpm_source") {
+                        if (sel) {sel.value = Math.round(val * 6.0);}
+                    } else if (paramId === 'osc2_tpm_source') {
                         const sel = document.getElementById('panel-osc2-tpm-src-select');
-                        if (sel) sel.value = Math.round(val * 5.0);
-                    } else if (paramId === "osc2_range") {
+                        if (sel) {sel.value = Math.round(val * 5.0);}
+                    } else if (paramId === 'osc2_range') {
                         const activeIndex = Math.round(val * 2.0);
                         container.querySelectorAll('.osc2-range-led-row').forEach(row => {
                             const rowVal = parseInt(row.getAttribute('data-val'));
@@ -404,22 +398,22 @@ function initDetailPanel() {
                     }
                 }
             } else if (state.currentPanelMode === 'POLY') {
-                if (paramId === "voice_mode") {
+                if (paramId === 'voice_mode') {
                     const sel = document.getElementById('panel-poly-mode-select');
-                    if (sel) sel.value = Math.round(val * 12.0);
-                } else if (paramId === "note_priority") {
+                    if (sel) {sel.value = Math.round(val * 12.0);}
+                } else if (paramId === 'note_priority') {
                     const activeIndex = Math.round(val * 2.0);
                     container.querySelectorAll('.priority-led-row').forEach(row => {
                         const rowVal = parseInt(row.getAttribute('data-val'));
                         row.classList.toggle('active', rowVal === activeIndex);
                     });
-                } else if (paramId === "trigger_mode") {
+                } else if (paramId === 'trigger_mode') {
                     const activeIndex = Math.round(val * 3.0);
                     container.querySelectorAll('.trigger-led-row').forEach(row => {
                         const rowVal = parseInt(row.getAttribute('data-val'));
                         row.classList.toggle('active', rowVal === activeIndex);
                     });
-                } else if (["unison_detune", "voice_drift", "param_drift", "drift_rate"].includes(paramId)) {
+                } else if (['unison_detune', 'voice_drift', 'param_drift', 'drift_rate'].includes(paramId)) {
                     const sliderEl = container.querySelector(`[data-param="${paramId}"] .v-slider`);
                     if (sliderEl) {
                         const handle = sliderEl.querySelector('.handle');
@@ -431,21 +425,21 @@ function initDetailPanel() {
                     }
                 }
             } else if (state.currentPanelMode === 'PORTA') {
-                if (paramId === "porta_mode") {
+                if (paramId === 'porta_mode') {
                     const idx = Math.round(val * 9.0);
                     container.querySelectorAll('.porta-mode-led-row').forEach(r => r.classList.remove('active'));
                     const match = container.querySelector(`.porta-mode-led-row[data-val="${idx}"]`);
-                    if (match) match.classList.add('active');
-                } else if (paramId === "note_priority") {
+                    if (match) {match.classList.add('active');}
+                } else if (paramId === 'note_priority') {
                     const idx = Math.round(val * 2.0);
                     container.querySelectorAll('.note-priority-led-row').forEach(r => r.classList.remove('active'));
                     const match = container.querySelector(`.note-priority-led-row[data-val="${idx}"]`);
-                    if (match) match.classList.add('active');
-                } else if (paramId === "trigger_mode") {
+                    if (match) {match.classList.add('active');}
+                } else if (paramId === 'trigger_mode') {
                     const idx = Math.round(val * 3.0);
                     container.querySelectorAll('.trigger-mode-led-row').forEach(r => r.classList.remove('active'));
                     const match = container.querySelector(`.trigger-mode-led-row[data-val="${idx}"]`);
-                    if (match) match.classList.add('active');
+                    if (match) {match.classList.add('active');}
                 } else {
                     const sliderEl = container.querySelector(`[data-param="${paramId}"] .v-slider`);
                     if (sliderEl) {
@@ -458,64 +452,64 @@ function initDetailPanel() {
                     }
                 }
             } else if (state.currentPanelMode === 'CHORD') {
-                if (paramId === "chord_enable") {
+                if (paramId === 'chord_enable') {
                     const box = document.getElementById('panel-chord-enable-box');
-                    if (box) box.classList.toggle('active', val > 0.5);
+                    if (box) {box.classList.toggle('active', val > 0.5);}
                 }
-                if (paramId === "chord_key") {
+                if (paramId === 'chord_key') {
                     const idx = Math.round(val * 11.0);
                     container.querySelectorAll('.chord-key-led-row').forEach(r => r.classList.remove('active'));
                     const match = container.querySelector(`.chord-key-led-row[data-val="${idx}"]`);
-                    if (match) match.classList.add('active');
+                    if (match) {match.classList.add('active');}
                 }
-                if (paramId === "chord_type") {
+                if (paramId === 'chord_type') {
                     const idx = Math.round(val * 11.0);
                     container.querySelectorAll('.chord-type-led-row').forEach(r => r.classList.remove('active'));
                     const match = container.querySelector(`.chord-type-led-row[data-val="${idx}"]`);
-                    if (match) match.classList.add('active');
+                    if (match) {match.classList.add('active');}
                 }
             } else if (state.currentPanelMode === 'POLY_CHORD') {
-                if (paramId === "poly_chord_enable") {
+                if (paramId === 'poly_chord_enable') {
                     const box = document.getElementById('panel-poly-chord-enable-box');
-                    if (box) box.classList.toggle('active', val > 0.5);
+                    if (box) {box.classList.toggle('active', val > 0.5);}
                 }
-                if (paramId === "chord_key") {
+                if (paramId === 'chord_key') {
                     const idx = Math.round(val * 11.0);
                     container.querySelectorAll('.chord-key-led-row').forEach(r => r.classList.remove('active'));
                     const match = container.querySelector(`.chord-key-led-row[data-val="${idx}"]`);
-                    if (match) match.classList.add('active');
+                    if (match) {match.classList.add('active');}
                 }
-                if (paramId === "chord_type") {
+                if (paramId === 'chord_type') {
                     const idx = Math.round(val * 11.0);
                     container.querySelectorAll('.chord-type-led-row').forEach(r => r.classList.remove('active'));
                     const match = container.querySelector(`.chord-type-led-row[data-val="${idx}"]`);
-                    if (match) match.classList.add('active');
+                    if (match) {match.classList.add('active');}
                 }
             } else if (state.currentPanelMode === 'SEQ') {
                 if (paramId === 'seq_enable') {
-                    var box = document.getElementById('panel-seq-enable-box');
-                    if (box) box.classList.toggle('active', val > 0.5);
+                    const box = document.getElementById('panel-seq-enable-box');
+                    if (box) {box.classList.toggle('active', val > 0.5);}
                 } else if (paramId === 'seq_clock') {
                     var sel = document.getElementById('panel-seq-clock-select');
-                    if (sel) sel.value = Math.round(val * 15.0);
+                    if (sel) {sel.value = Math.round(val * 15.0);}
                 } else if (paramId === 'seq_length') {
                     var sel = document.getElementById('panel-seq-length-select');
                     if (sel) {
                         sel.value = Math.round(val * 31.0);
-                        var sc = document.getElementById('panel-seq-steps-container');
-                        if (sc) for (var si3 = 0; si3 < 32; si3++) {
-                            var w = sc.children[si3];
-                            if (w && typeof w._updateStepVisual === 'function') w._updateStepVisual(si3);
-                        }
+                        const sc = document.getElementById('panel-seq-steps-container');
+                        if (sc) {for (let si3 = 0; si3 < 32; si3++) {
+                            const w = sc.children[si3];
+                            if (w && typeof w._updateStepVisual === 'function') {w._updateStepVisual(si3);}
+                        }}
                     }
                 } else if (paramId === 'seq_key_loop') {
                     var sel = document.getElementById('panel-seq-keyloop-select');
-                    if (sel) sel.value = Math.round(val * 2.0);
+                    if (sel) {sel.value = Math.round(val * 2.0);}
                 } else if (paramId && paramId.startsWith('seq_step_')) {
-                    var idx = parseInt(paramId.split('_')[2]) - 1;
+                    const idx = parseInt(paramId.split('_')[2]) - 1;
                     if (idx >= 0 && idx < 32) {
-                        var rawByte = Math.round(val * 255);
-                        var wraps = document.getElementById('panel-seq-steps-container');
+                        const rawByte = Math.round(val * 255);
+                        const wraps = document.getElementById('panel-seq-steps-container');
                         if (wraps && window._panelSeqValues && window._panelSeqRaw) {
                             window._panelSeqRaw[idx] = rawByte;
                             window._panelSeqValues[idx] = rawByte === 0 ? 0 : rawByte - 128;
@@ -525,46 +519,46 @@ function initDetailPanel() {
                         }
                     }
                 } else if (paramId === 'seq_swing' || paramId === 'seq_slew_rate') {
-                    var sliderEl = container.querySelector('[data-param="' + paramId + '"] .v-slider');
+                    const sliderEl = container.querySelector('[data-param="' + paramId + '"] .v-slider');
                     if (sliderEl) {
-                        var handle = sliderEl.querySelector('.handle');
-                        var rect = sliderEl.getBoundingClientRect();
+                        const handle = sliderEl.querySelector('.handle');
+                        const rect = sliderEl.getBoundingClientRect();
                         if (rect.height > 0) {
-                            var handleHeight = 16;
+                            const handleHeight = 16;
                             handle.style.top = (1.0 - val) * (rect.height - handleHeight) + 'px';
                         }
                     }
                 }
             } else if (state.currentPanelMode === 'ARP') {
-                if (paramId === "arp_enable") {
+                if (paramId === 'arp_enable') {
                     const box = document.getElementById('panel-arp-enable-box');
-                    if (box) box.classList.toggle('active', val > 0.5);
+                    if (box) {box.classList.toggle('active', val > 0.5);}
                 }
-                if (paramId === "arp_hold") {
+                if (paramId === 'arp_hold') {
                     const box = document.getElementById('panel-arp-hold-box');
-                    if (box) box.classList.toggle('active', val > 0.5);
+                    if (box) {box.classList.toggle('active', val > 0.5);}
                 }
-                if (paramId === "arp_key_sync") {
+                if (paramId === 'arp_key_sync') {
                     const box = document.getElementById('panel-arp-keysync-box');
-                    if (box) box.classList.toggle('active', val > 0.5);
+                    if (box) {box.classList.toggle('active', val > 0.5);}
                 }
-                if (paramId === "arp_clock_divider") {
+                if (paramId === 'arp_clock_divider') {
                     const sel = document.getElementById('panel-arp-clock-select');
-                    if (sel) sel.value = Math.round(val * 12.0);
+                    if (sel) {sel.value = Math.round(val * 12.0);}
                 }
-                if (paramId === "arp_velocity_gate") {
+                if (paramId === 'arp_velocity_gate') {
                     const sel = document.getElementById('panel-arp-velgate-select');
-                    if (sel) sel.value = Math.round(val * 2.0);
+                    if (sel) {sel.value = Math.round(val * 2.0);}
                 }
-                if (paramId === "arp_mode") {
+                if (paramId === 'arp_mode') {
                     const sel = document.getElementById('panel-arp-mode-select');
-                    if (sel) sel.value = Math.round(val * 10.0);
+                    if (sel) {sel.value = Math.round(val * 10.0);}
                 }
-                if (paramId === "arp_octave") {
+                if (paramId === 'arp_octave') {
                     const sel = document.getElementById('panel-arp-octave-select');
-                    if (sel) sel.value = Math.round(val * 3.0);
+                    if (sel) {sel.value = Math.round(val * 3.0);}
                 }
-                if (paramId === "arp_swing" || paramId === "arp_rate" || paramId === "arp_gate_time") {
+                if (paramId === 'arp_swing' || paramId === 'arp_rate' || paramId === 'arp_gate_time') {
                     const sliderEl = container.querySelector(`[data-param="${paramId}"] .v-slider`);
                     if (sliderEl) {
                         const handle = sliderEl.querySelector('.handle');
@@ -586,7 +580,7 @@ function initDetailPanel() {
     let _animFrameId = null;
     
     function _startCanvasAnimation() {
-        if (_animFrameId) return;
+        if (_animFrameId) {return;}
         state._animTime = 0;
         const lastFrameTime = { value: 0 };
         
@@ -598,7 +592,7 @@ function initDetailPanel() {
             const dt = Math.min(50, timestamp - lastFrameTime.value);
             lastFrameTime.value = timestamp;
             state._animTime += dt;
-            if (state._animTime > 60000) state._animTime = state._animTime % 60000;
+            if (state._animTime > 60000) {state._animTime = state._animTime % 60000;}
             
             if (typeof window.drawPanelGraphic === 'function') {
                 window.drawPanelGraphic();
@@ -611,7 +605,7 @@ function initDetailPanel() {
             // Highlight active sequencer step
             if (state.currentPanelMode === 'SEQ' && window.dualMidiBridge && window.dualMidiBridge._seqEngine) {
                 if (window.dualMidiBridge._seqEngine.running) {
-                    var curStep = window.dualMidiBridge.parameterCache['seq_current_step'];
+                    const curStep = window.dualMidiBridge.parameterCache['seq_current_step'];
                     if (typeof curStep === 'number' && curStep !== window._lastHighlightedSeqStep) {
                         window._lastHighlightedSeqStep = curStep;
                         window._lastSeqStepChangeTime = performance.now();
@@ -619,12 +613,12 @@ function initDetailPanel() {
                     if (typeof curStep === 'number') {
                         var sc2 = document.getElementById('panel-seq-steps-container');
                         if (sc2) {
-                            var elapsed = performance.now() - (window._lastSeqStepChangeTime || 0);
-                            var decay = Math.max(0, 1 - elapsed / 400);
-                            var blurPx = Math.round(3 + decay * 9);
+                            const elapsed = performance.now() - (window._lastSeqStepChangeTime || 0);
+                            const decay = Math.max(0, 1 - elapsed / 400);
+                            const blurPx = Math.round(3 + decay * 9);
                             for (var hi = 0; hi < sc2.children.length; hi++) {
                                 var child = sc2.children[hi];
-                                if (child) child.style.boxShadow = hi === curStep ? 'inset 0 0 ' + blurPx + 'px var(--accent-pink)' : 'none';
+                                if (child) {child.style.boxShadow = hi === curStep ? 'inset 0 0 ' + blurPx + 'px var(--accent-pink)' : 'none';}
                             }
                         }
                     }
@@ -633,26 +627,26 @@ function initDetailPanel() {
                         if (modalBackdrop && modalBackdrop.style.display !== 'none') {
                             var modalGrid = document.querySelector('.seq-steps-grid');
                             if (modalGrid) {
-                                var mElapsed = performance.now() - (window._lastSeqStepChangeTime || 0);
-                                var mDecay = Math.max(0, 1 - mElapsed / 400);
-                                var mBlurPx = Math.round(5 + mDecay * 11);
+                                const mElapsed = performance.now() - (window._lastSeqStepChangeTime || 0);
+                                const mDecay = Math.max(0, 1 - mElapsed / 400);
+                                const mBlurPx = Math.round(5 + mDecay * 11);
                                 for (var mhi = 0; mhi < modalGrid.children.length; mhi++) {
                                     var mChild = modalGrid.children[mhi];
-                                    if (mChild) mChild.style.boxShadow = mhi === curStep ? 'inset 0 0 ' + mBlurPx + 'px var(--accent-pink)' : 'none';
+                                    if (mChild) {mChild.style.boxShadow = mhi === curStep ? 'inset 0 0 ' + mBlurPx + 'px var(--accent-pink)' : 'none';}
                                 }
                             }
                         }
                     }
                     var ssStatus = document.getElementById('scope-seq-status');
                     if (ssStatus) {
-                        var ssVal = window.dualMidiBridge.parameterCache['seq_current_value'];
-                        var ssStep = window.dualMidiBridge.parameterCache['seq_current_step'];
-                        var ssSkip = (window.dualMidiBridge.parameterCache['seq_current_step_skip'] || 0) > 0.5;
-                        var ssLen = Math.round((window.dualMidiBridge.parameterCache['seq_length'] || 0) * 31) + 2;
+                        const ssVal = window.dualMidiBridge.parameterCache['seq_current_value'];
+                        const ssStep = window.dualMidiBridge.parameterCache['seq_current_step'];
+                        const ssSkip = (window.dualMidiBridge.parameterCache['seq_current_step_skip'] || 0) > 0.5;
+                        const ssLen = Math.round((window.dualMidiBridge.parameterCache['seq_length'] || 0) * 31) + 2;
                         if (typeof ssStep === 'number' && typeof ssVal === 'number') {
-                            var ssBipVal = Math.round((ssVal * 2.0 - 1.0) * 127);
-                            var ssRaw = Math.round(ssVal * 255);
-                            var ssSign = ssBipVal >= 0 ? '+' : '';
+                            const ssBipVal = Math.round((ssVal * 2.0 - 1.0) * 127);
+                            const ssRaw = Math.round(ssVal * 255);
+                            const ssSign = ssBipVal >= 0 ? '+' : '';
                             if (ssSkip) {
                                 ssStatus.textContent = 'STEP ' + (ssStep + 1) + '/' + ssLen + ' SKIP';
                                 ssStatus.style.color = 'var(--color-danger)';
@@ -668,7 +662,7 @@ function initDetailPanel() {
                     if (sc2) {
                         for (var hi = 0; hi < sc2.children.length; hi++) {
                             var child = sc2.children[hi];
-                            if (child) child.style.boxShadow = 'none';
+                            if (child) {child.style.boxShadow = 'none';}
                         }
                     }
                     var modalBackdrop = document.getElementById('seq-modal-backdrop');
@@ -677,12 +671,12 @@ function initDetailPanel() {
                         if (modalGrid) {
                             for (var mhi = 0; mhi < modalGrid.children.length; mhi++) {
                                 var mChild = modalGrid.children[mhi];
-                                if (mChild) mChild.style.boxShadow = 'none';
+                                if (mChild) {mChild.style.boxShadow = 'none';}
                             }
                         }
                     }
                     var ssStatus = document.getElementById('scope-seq-status');
-                    if (ssStatus) ssStatus.textContent = '';
+                    if (ssStatus) {ssStatus.textContent = '';}
                 }
             }
             _animFrameId = requestAnimationFrame(_loop);
@@ -693,10 +687,10 @@ function initDetailPanel() {
     // Polling timer for audio waveform data (every 100ms when real scope is visible)
     let _audioWaveformTimer = null;
     function _startAudioWaveformPolling() {
-        if (_audioWaveformTimer) return;
+        if (_audioWaveformTimer) {return;}
         _audioWaveformTimer = setInterval(function() {
-            var bridge = window.dualMidiBridge;
-            if (!bridge || !bridge.isJuce) return;
+            const bridge = window.dualMidiBridge;
+            if (!bridge || !bridge.isJuce) {return;}
             bridge.getAudioWaveform().catch(function() {});
         }, 100);
     }

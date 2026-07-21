@@ -16,7 +16,7 @@ const ENUM_TRIG_MODE   = ['Mono','Re-Trig','Legato','One-Shot'];
 const ENUM_NOTE_PRIO   = ['Lowest','Highest','Last'];
 const ENUM_ARP_MODE    = ['Up','Down','Up&Dn','Up Inv','Dn Inv','Up&Dn Inv','Up Alt','Down Alt','Random','As Played','Chord'];
 const ENUM_ARP_CLOCK   = ['1/32','1/16T','1/32D','1/16','1/8T','1/16D','1/8','1/4T','1/8D','1/4','1/2T','1/4D','1/2'];
-const ENUM_SEQ_CLOCK   = ['1/32','1/16T','1/32D','1/16','1/8T','1/16D','1/8','1/4T','1/8D','1/4','1/2T','1/4D','1/2','1/1T','1/2D','1/1'];
+const ENUM_SEQ_CLOCK   = ['1/2', '3/8', '1/3', '1/4', '3/16', '1/6', '1/8', '1/12', '1/16', '1/24', '1/32', '1/48', '1/64', '1/96', '1/128', '1/192'];
 const ENUM_KEY_LOOP    = ['Loop Off','Loop On','(unused)'];
 const ENUM_FX_ROUTING  = ['M-1 Ser 1-2-3-4','M-2 Par 1/2 Ser 3-4','M-3 Par 1/2 Par 3/4','M-4 Par 1/2/3/4','M-5 Par 1/2/3 Ser 4','M-6 Ser 1-2 Par 3/4','M-7 Ser 1 Par 2/3/4','M-8 Par (Ser 1-2-3)/4','M-9 Ser 3-4 FB(1-2)','M-10 Ser 4 FB(1-2-3)'];
 const ENUM_FX_MODE     = ['Insert','Send','Bypass'];
@@ -29,7 +29,7 @@ function bp(idx, param, region, type, extra = {}) {
 
 // Build the 242-entry map
 const map = [];
-for (let i = 0; i < 242; i++) map[i] = null;
+for (let i = 0; i < 242; i++) {map[i] = null;}
 
 // LFO 1 (0-6)
 map[0]  = bp(0,  'LFO 1 Rate',          'LFO1', 'value',     { desc: '0=slow…255=fast' });
@@ -282,27 +282,44 @@ return map;
  *   default → porcentaje
  */
 window.formatParamValue = function(paramId, normalizedVal) {
-    if (typeof normalizedVal !== 'number' || isNaN(normalizedVal)) return '—';
+    if (typeof normalizedVal !== 'number' || isNaN(normalizedVal)) {return '—';}
 
-    var p2b = window.BRIDGE_PARAM_MAPS && window.BRIDGE_PARAM_MAPS.PARAM_TO_BYTE_OFFSET;
-    var eBytes = window.BRIDGE_PARAM_MAPS && window.BRIDGE_PARAM_MAPS.ENUM_BYTES;
-    if (!p2b) return Math.round(normalizedVal * 100) + '%';
+    if (paramId === 'lfo1_rate' || paramId === 'lfo2_rate') {
+        const rateHz = 0.041 * Math.exp(7.3747 * normalizedVal);
+        return rateHz.toFixed(3) + ' Hz';
+    }
+    if (paramId === 'lfo1_delay' || paramId === 'lfo2_delay') {
+        const delaySec = normalizedVal * 6.5;
+        return delaySec.toFixed(2) + ' s';
+    }
+    if (paramId && (paramId.endsWith('_attack') || paramId.endsWith('_decay') || paramId.endsWith('_release'))) {
+        const timeSec = 0.002 * Math.pow(32768, normalizedVal);
+        if (timeSec < 1.0) {
+            return Math.round(timeSec * 1000) + ' ms';
+        } else {
+            return timeSec.toFixed(2) + ' s';
+        }
+    }
 
-    var byteOffset = p2b[paramId];
-    if (byteOffset === undefined) return Math.round(normalizedVal * 100) + '%';
+    const p2b = window.BRIDGE_PARAM_MAPS && window.BRIDGE_PARAM_MAPS.PARAM_TO_BYTE_OFFSET;
+    const eBytes = window.BRIDGE_PARAM_MAPS && window.BRIDGE_PARAM_MAPS.ENUM_BYTES;
+    if (!p2b) {return Math.round(normalizedVal * 100) + '%';}
 
-    var entry = window.BYTE_MAP[byteOffset];
-    if (!entry) return Math.round(normalizedVal * 100) + '%';
+    const byteOffset = p2b[paramId];
+    if (byteOffset === undefined) {return Math.round(normalizedVal * 100) + '%';}
 
-    var type = entry.type;
+    const entry = window.BYTE_MAP[byteOffset];
+    if (!entry) {return Math.round(normalizedVal * 100) + '%';}
+
+    const type = entry.type;
 
     if (type === 'toggle') {
         return normalizedVal > 0.5 ? 'ON' : 'OFF';
     }
 
     if (type === 'enum') {
-        var maxIdx = eBytes && eBytes[byteOffset] !== undefined ? eBytes[byteOffset] : (entry.enumLabels ? entry.enumLabels.length - 1 : 0);
-        var idx = Math.round(normalizedVal * maxIdx);
+        const maxIdx = eBytes && eBytes[byteOffset] !== undefined ? eBytes[byteOffset] : (entry.enumLabels ? entry.enumLabels.length - 1 : 0);
+        const idx = Math.round(normalizedVal * maxIdx);
         if (entry.enumLabels && idx >= 0 && idx < entry.enumLabels.length) {
             return entry.enumLabels[idx];
         }
@@ -310,7 +327,7 @@ window.formatParamValue = function(paramId, normalizedVal) {
     }
 
     if (type === 'bipolar') {
-        var signed = Math.round((normalizedVal - 0.5) * 200);
+        const signed = Math.round((normalizedVal - 0.5) * 200);
         return (signed >= 0 ? '+' : '') + signed;
     }
 

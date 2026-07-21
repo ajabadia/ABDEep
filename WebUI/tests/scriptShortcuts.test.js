@@ -5,8 +5,8 @@
  */
 
 // Global stubs for Node.js test environment
-var mockStore = {};
-var mockLocalStorage = (function() {
+let mockStore = {};
+const mockLocalStorage = (function() {
     return {
         getItem: function(key) { return mockStore[key] !== undefined ? mockStore[key] : null; },
         setItem: function(key, val) { mockStore[key] = String(val); },
@@ -40,13 +40,13 @@ var ShortcutConfig = {
     },
 
     load: function() {
-        var saved = {};
+        let saved = {};
         try {
-            var raw = localStorage.getItem(this.STORAGE_KEY);
-            if (raw) saved = JSON.parse(raw);
+            const raw = localStorage.getItem(this.STORAGE_KEY);
+            if (raw) {saved = JSON.parse(raw);}
         } catch(e) {}
-        var result = {};
-        for (var id in this._defaults) {
+        const result = {};
+        for (const id in this._defaults) {
             result[id] = saved[id] ? this._deepClone(saved[id]) : this._deepClone(this._defaults[id]);
         }
         return result;
@@ -59,18 +59,18 @@ var ShortcutConfig = {
     },
 
     get: function(id) {
-        var all = this.load();
+        const all = this.load();
         return all[id] || this._deepClone(this._defaults[id]) || {};
     },
 
     set: function(id, combo) {
-        var all = this.load();
+        const all = this.load();
         all[id] = this._deepClone(combo);
         this.save(all);
     },
 
     reset: function(id) {
-        var all = this.load();
+        const all = this.load();
         delete all[id];
         this.save(all);
     },
@@ -82,13 +82,13 @@ var ShortcutConfig = {
     },
 
     formatCombo: function(combo) {
-        if (!combo) return '';
-        var parts = [];
-        if (combo.ctrl)  parts.push('Ctrl');
-        if (combo.shift) parts.push('Shift');
-        if (combo.alt)   parts.push('Alt');
-        if (combo.meta)  parts.push('Meta');
-        if (combo.key)   parts.push(combo.key.length === 1 ? combo.key.toUpperCase() : combo.key);
+        if (!combo) {return '';}
+        const parts = [];
+        if (combo.ctrl)  {parts.push('Ctrl');}
+        if (combo.shift) {parts.push('Shift');}
+        if (combo.alt)   {parts.push('Alt');}
+        if (combo.meta)  {parts.push('Meta');}
+        if (combo.key)   {parts.push(combo.key.length === 1 ? combo.key.toUpperCase() : combo.key);}
         return parts.join(' + ');
     },
 
@@ -101,12 +101,12 @@ var ShortcutConfig = {
     },
 
     matches: function(e, combo) {
-        if (!combo) return false;
-        if (!!e.ctrlKey  !== !!combo.ctrl)  return false;
-        if (!!e.shiftKey !== !!combo.shift) return false;
-        if (!!e.altKey   !== !!combo.alt)   return false;
-        if (!!e.metaKey  !== !!combo.meta)  return false;
-        var eventKey = e.key;
+        if (!combo) {return false;}
+        if (!!e.ctrlKey  !== !!combo.ctrl)  {return false;}
+        if (!!e.shiftKey !== !!combo.shift) {return false;}
+        if (!!e.altKey   !== !!combo.alt)   {return false;}
+        if (!!e.metaKey  !== !!combo.meta)  {return false;}
+        const eventKey = e.key;
         if (combo.key && combo.key.length === 1 && eventKey.length === 1) {
             return eventKey.toLowerCase() === combo.key.toLowerCase();
         }
@@ -119,8 +119,8 @@ var ShortcutConfig = {
 
     // Extraída desde initKeyboardShortcuts para testing
     _handleKeydown: function(e) {
-        if (window._shortcutCaptureActive) return;
-        var shortcuts = ShortcutConfig.load();
+        if (window._shortcutCaptureActive) {return;}
+        const shortcuts = ShortcutConfig.load();
 
         if (ShortcutConfig.matches(e, shortcuts['midi-learn'])) {
             e.preventDefault();
@@ -134,10 +134,10 @@ var ShortcutConfig = {
         if (ShortcutConfig.matches(e, shortcuts['seq-quickstart'])) {
             e.preventDefault();
             var bridge = window.dualMidiBridge;
-            if (!bridge) return;
-            var seqBtn = document.getElementById('programmer-seq-btn');
-            if (seqBtn) seqBtn.click();
-            var currentSeqEn = bridge.parameterCache['seq_enable'] || 0;
+            if (!bridge) {return;}
+            const seqBtn = document.getElementById('programmer-seq-btn');
+            if (seqBtn) {seqBtn.click();}
+            const currentSeqEn = bridge.parameterCache['seq_enable'] || 0;
             if (currentSeqEn < 0.5) {
                 bridge.setParameter('seq_enable', 1.0);
             }
@@ -152,7 +152,7 @@ var ShortcutConfig = {
 
         if (ShortcutConfig.matches(e, shortcuts['panic'])) {
             e.preventDefault();
-            var panicBtn = document.getElementById('programmer-panic-btn');
+            const panicBtn = document.getElementById('programmer-panic-btn');
             if (panicBtn) {
                 panicBtn.click();
             }
@@ -169,7 +169,7 @@ describe('ShortcutConfig — defaults and constants', function() {
     });
 
     it('_defaults has 4 entries', function() {
-        var keys = Object.keys(ShortcutConfig._defaults);
+        const keys = Object.keys(ShortcutConfig._defaults);
         expect(keys.length).toBe(4);
     });
 
@@ -193,8 +193,8 @@ describe('ShortcutConfig — defaults and constants', function() {
     });
 
     it('_meta keys match _defaults keys', function() {
-        var metaKeys = Object.keys(ShortcutConfig._meta).sort();
-        var defaultKeys = Object.keys(ShortcutConfig._defaults).sort();
+        const metaKeys = Object.keys(ShortcutConfig._meta).sort();
+        const defaultKeys = Object.keys(ShortcutConfig._defaults).sort();
         expect(metaKeys).toEqual(defaultKeys);
     });
 });
@@ -205,20 +205,20 @@ describe('ShortcutConfig — load / save / get / set / reset', function() {
     });
 
     it('load() returns defaults when nothing saved', function() {
-        var config = ShortcutConfig.load();
+        const config = ShortcutConfig.load();
         expect(config['midi-learn'].ctrl).toBe(true);
         expect(config['panic'].key).toBe('P');
     });
 
     it('save() persists to localStorage', function() {
-        var custom = {};
-        for (var id in ShortcutConfig._defaults) {
+        const custom = {};
+        for (const id in ShortcutConfig._defaults) {
             custom[id] = { ctrl: false, shift: false, alt: false, meta: false, key: 'x' };
         }
         ShortcutConfig.save(custom);
-        var raw = mockLocalStorage.getItem(ShortcutConfig.STORAGE_KEY);
+        const raw = mockLocalStorage.getItem(ShortcutConfig.STORAGE_KEY);
         expect(raw).toBeDefined();
-        var parsed = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
         expect(parsed['midi-learn'].key).toBe('x');
     });
 
@@ -229,42 +229,42 @@ describe('ShortcutConfig — load / save / get / set / reset', function() {
             'seq-quickstart': { ctrl: false, shift: true, alt: false, meta: false, key: 'z' },
             'seq-debug': { ctrl: false, shift: true, alt: false, meta: false, key: 'z' }
         });
-        var loaded = ShortcutConfig.load();
+        const loaded = ShortcutConfig.load();
         expect(loaded['midi-learn'].shift).toBe(true);
         expect(loaded['midi-learn'].key).toBe('z');
     });
 
     it('get() returns default when nothing saved', function() {
         mockLocalStorage.clear();
-        var combo = ShortcutConfig.get('midi-learn');
+        const combo = ShortcutConfig.get('midi-learn');
         expect(combo.ctrl).toBe(true);
         expect(combo.key).toBe('l');
     });
 
     it('get() clones the object (no mutation)', function() {
-        var combo = ShortcutConfig.get('midi-learn');
+        const combo = ShortcutConfig.get('midi-learn');
         combo.ctrl = false;
-        var combo2 = ShortcutConfig.get('midi-learn');
+        const combo2 = ShortcutConfig.get('midi-learn');
         expect(combo2.ctrl).toBe(true);
     });
 
     it('set() stores single combo', function() {
         ShortcutConfig.set('panic', { ctrl: true, shift: false, alt: false, meta: false, key: 'X' });
-        var loaded = ShortcutConfig.load();
+        const loaded = ShortcutConfig.load();
         expect(loaded['panic'].ctrl).toBe(true);
         expect(loaded['panic'].key).toBe('X');
     });
 
     it('set() does not affect other ids', function() {
         ShortcutConfig.set('panic', { ctrl: true, shift: false, alt: false, meta: false, key: 'X' });
-        var loaded = ShortcutConfig.load();
+        const loaded = ShortcutConfig.load();
         expect(loaded['midi-learn'].key).toBe('l');
     });
 
     it('reset() reverts single id to default', function() {
         ShortcutConfig.set('panic', { ctrl: true, shift: false, alt: false, meta: false, key: 'X' });
         ShortcutConfig.reset('panic');
-        var loaded = ShortcutConfig.load();
+        const loaded = ShortcutConfig.load();
         expect(loaded['panic'].key).toBe('P');
         expect(loaded['panic'].shift).toBe(true);
     });
@@ -273,7 +273,7 @@ describe('ShortcutConfig — load / save / get / set / reset', function() {
         ShortcutConfig.set('midi-learn', { ctrl: false, shift: false, alt: false, meta: false, key: 'a' });
         ShortcutConfig.set('panic', { ctrl: false, shift: false, alt: false, meta: false, key: 'b' });
         ShortcutConfig.resetAll();
-        var loaded = ShortcutConfig.load();
+        const loaded = ShortcutConfig.load();
         expect(loaded['midi-learn'].ctrl).toBe(true);
         expect(loaded['panic'].key).toBe('P');
     });
@@ -308,44 +308,44 @@ describe('ShortcutConfig — matches', function() {
     });
 
     it('matches Ctrl+L event', function() {
-        var combo = { ctrl: true, shift: false, alt: false, meta: false, key: 'l' };
-        var e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'l' };
+        const combo = { ctrl: true, shift: false, alt: false, meta: false, key: 'l' };
+        const e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'l' };
         expect(ShortcutConfig.matches(e, combo)).toBe(true);
     });
 
     it('matches case-insensitive for single-char keys', function() {
-        var combo = { ctrl: true, shift: false, alt: false, meta: false, key: 'L' };
-        var e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'l' };
+        const combo = { ctrl: true, shift: false, alt: false, meta: false, key: 'L' };
+        const e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'l' };
         expect(ShortcutConfig.matches(e, combo)).toBe(true);
     });
 
     it('does not match when modifier differs', function() {
-        var combo = { ctrl: true, shift: false, alt: false, meta: false, key: 'l' };
-        var e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'l' };
+        const combo = { ctrl: true, shift: false, alt: false, meta: false, key: 'l' };
+        const e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'l' };
         expect(ShortcutConfig.matches(e, combo)).toBe(false);
     });
 
     it('does not match when key differs', function() {
-        var combo = { ctrl: true, shift: false, alt: false, meta: false, key: 'l' };
-        var e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'k' };
+        const combo = { ctrl: true, shift: false, alt: false, meta: false, key: 'l' };
+        const e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'k' };
         expect(ShortcutConfig.matches(e, combo)).toBe(false);
     });
 
     it('matches with all modifiers', function() {
-        var combo = { ctrl: true, shift: true, alt: true, meta: true, key: 'x' };
-        var e = { ctrlKey: true, shiftKey: true, altKey: true, metaKey: true, key: 'x' };
+        const combo = { ctrl: true, shift: true, alt: true, meta: true, key: 'x' };
+        const e = { ctrlKey: true, shiftKey: true, altKey: true, metaKey: true, key: 'x' };
         expect(ShortcutConfig.matches(e, combo)).toBe(true);
     });
 
     it('exact match for multi-char keys', function() {
-        var combo = { ctrl: false, shift: false, alt: false, meta: false, key: 'Escape' };
-        var e = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, key: 'Escape' };
+        const combo = { ctrl: false, shift: false, alt: false, meta: false, key: 'Escape' };
+        const e = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, key: 'Escape' };
         expect(ShortcutConfig.matches(e, combo)).toBe(true);
     });
 
     it('matches space key', function() {
-        var combo = { ctrl: false, shift: false, alt: false, meta: false, key: ' ' };
-        var e = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, key: ' ' };
+        const combo = { ctrl: false, shift: false, alt: false, meta: false, key: ' ' };
+        const e = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, key: ' ' };
         expect(ShortcutConfig.matches(e, combo)).toBe(true);
     });
 });
@@ -356,13 +356,13 @@ describe('ShortcutConfig — getMeta and getAllIds', function() {
     });
 
     it('getMeta returns fallback for unknown id', function() {
-        var meta = ShortcutConfig.getMeta('unknown-id');
+        const meta = ShortcutConfig.getMeta('unknown-id');
         expect(meta.label).toBe('unknown-id');
         expect(meta.group).toBe('other');
     });
 
     it('getAllIds returns all default keys', function() {
-        var ids = ShortcutConfig.getAllIds();
+        const ids = ShortcutConfig.getAllIds();
         expect(ids).toContain('midi-learn');
         expect(ids).toContain('panic');
         expect(ids.length).toBe(4);
@@ -370,7 +370,7 @@ describe('ShortcutConfig — getMeta and getAllIds', function() {
 });
 
 describe('ShortcutConfig — _handleKeydown dispatch', function() {
-    var dispatchedActions;
+    let dispatchedActions;
 
     beforeEach(function() {
         dispatchedActions = [];
@@ -397,25 +397,25 @@ describe('ShortcutConfig — _handleKeydown dispatch', function() {
     });
 
     it('Ctrl+L triggers MIDI Learn toggle', function() {
-        var e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'l', preventDefault: function() {} };
+        const e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'l', preventDefault: function() {} };
         ShortcutConfig._handleKeydown(e);
         expect(dispatchedActions).toContain('midi-learn');
     });
 
     it('Ctrl+Shift+P triggers PANIC', function() {
-        var e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'P', preventDefault: function() {} };
+        const e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'P', preventDefault: function() {} };
         ShortcutConfig._handleKeydown(e);
         expect(dispatchedActions).toContain('panic');
     });
 
     it('Ctrl+Shift+S triggers SEQ Quick-Start (opens seq panel)', function() {
-        var e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'S', preventDefault: function() {} };
+        const e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'S', preventDefault: function() {} };
         ShortcutConfig._handleKeydown(e);
         expect(dispatchedActions).toContain('seq-open');
     });
 
     it('Ctrl+Shift+D toggles SEQ Debug mode', function() {
-        var e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'D', preventDefault: function() {} };
+        const e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'D', preventDefault: function() {} };
         expect(window._seqDebugMode).toBe(false);
         ShortcutConfig._handleKeydown(e);
         expect(window._seqDebugMode).toBe(true);
@@ -423,13 +423,13 @@ describe('ShortcutConfig — _handleKeydown dispatch', function() {
 
     it('does not dispatch when _shortcutCaptureActive is true', function() {
         window._shortcutCaptureActive = true;
-        var e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'l', preventDefault: function() {} };
+        const e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'l', preventDefault: function() {} };
         ShortcutConfig._handleKeydown(e);
         expect(dispatchedActions).not.toContain('midi-learn');
     });
 
     it('does nothing for unrelated keys', function() {
-        var e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'x', preventDefault: function() {} };
+        const e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'x', preventDefault: function() {} };
         ShortcutConfig._handleKeydown(e);
         expect(dispatchedActions.length).toBe(0);
     });

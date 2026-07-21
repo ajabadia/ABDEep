@@ -29,9 +29,9 @@ function _isStepSkip(rawVal) { return rawVal === 0; }
 function _getActiveLength(v) { return parseInt(v) + 2; }
 function _rawToBipolar(r) { return r === 0 ? 0 : r - 128; }
 function _calcBipolarFromY(cy, rt, rh) {
-  let r = Math.max(0, Math.min(1, (cy - rt) / rh));
+  const r = Math.max(0, Math.min(1, (cy - rt) / rh));
   let b = Math.round((1.0 - r) * 255 - 128);
-  if (Math.abs(b) <= 2) b = 0;
+  if (Math.abs(b) <= 2) {b = 0;}
   return b;
 }
 function _bipolarToRaw(b) {
@@ -41,7 +41,7 @@ function _bipolarToRaw(b) {
 function _calcSwingDisplay(n) { return Math.round(50 + n * 9); }
 function _calcSlewDisplay(n) { return Math.round(n * 255); }
 function _calcHandlePos(v, sh, hh) {
-  if (sh <= 0) return 0;
+  if (sh <= 0) {return 0;}
   const limit = sh - hh;
   return (1.0 - v) * limit;
 }
@@ -60,10 +60,10 @@ function makeMockStepUnit() {
     style: {},
     title: '',
     querySelector: vi.fn(function(sel) {
-      if (sel === '.seq-step-val') return numIndicator;
-      if (sel === '.seq-step-raw') return rawIndicator;
-      if (sel === '.seq-step-fill-bar') return fillBar;
-      if (sel === '.seq-step-bar-container') return barContainer;
+      if (sel === '.seq-step-val') {return numIndicator;}
+      if (sel === '.seq-step-raw') {return rawIndicator;}
+      if (sel === '.seq-step-fill-bar') {return fillBar;}
+      if (sel === '.seq-step-bar-container') {return barContainer;}
       return null;
     }),
     _numIndicator: numIndicator,
@@ -139,7 +139,7 @@ function _runPollTick(bridge, backdropDisplay, state) {
   if (backdropDisplay === 'none') {
     return { stopped: true };
   }
-  if (!bridge) return { stopped: false, skipped: true };
+  if (!bridge) {return { stopped: false, skipped: true };}
 
   const currentStep = bridge.parameterCache['seq_current_step'];
   const seqEn = bridge.parameterCache['seq_enable'] || 0;
@@ -175,7 +175,7 @@ function _dragEditStep(i, clientY, rectTop, rectHeight, stepsValues, stepsRaw, b
   const relY = Math.max(0, Math.min(1, (clientY - rectTop) / rectHeight));
   const normVal = 1.0 - relY;
   let bipolarVal = Math.round((normVal * 255) - 128);
-  if (Math.abs(bipolarVal) <= 2) bipolarVal = 0;
+  if (Math.abs(bipolarVal) <= 2) {bipolarVal = 0;}
 
   stepsValues[i] = bipolarVal;
   const rawByte = bipolarVal + 128;
@@ -328,9 +328,9 @@ function _clearModalActiveHighlightFull(grid) {
       child.style.outline = '';
       child.style.boxShadow = '';
       const numEl = child.querySelector('.seq-step-val');
-      if (numEl) numEl.style.boxShadow = '';
+      if (numEl) {numEl.style.boxShadow = '';}
       const rawEl = child.querySelector('.seq-step-raw');
-      if (rawEl) rawEl.style.color = '';
+      if (rawEl) {rawEl.style.color = '';}
       cleared.push(ci);
     }
   }
@@ -733,7 +733,7 @@ describe('_startModalPolling / _stopModalPolling — timer lifecycle', () => {
     let pollTimer = null;
     const cb = vi.fn();
     function start() {
-      if (pollTimer) clearInterval(pollTimer);
+      if (pollTimer) {clearInterval(pollTimer);}
       pollTimer = setInterval(cb, 100);
     }
     start();
@@ -1569,8 +1569,8 @@ describe('SEQ param change dispatch — onParameterChanged handler', () => {
       const stepIdx = parseInt(paramId.split('_')[2], 10) - 1;
       if (stepIdx >= 0 && stepIdx < 32) {
         const rawByte = Math.round(val * 255);
-        if (stepsValues) stepsValues[stepIdx] = rawByte === 0 ? 0 : rawByte - 128;
-        if (stepsRaw) stepsRaw[stepIdx] = rawByte;
+        if (stepsValues) {stepsValues[stepIdx] = rawByte === 0 ? 0 : rawByte - 128;}
+        if (stepsRaw) {stepsRaw[stepIdx] = rawByte;}
         return { stepIdx, rawByte, bipolar: rawByte === 0 ? 0 : rawByte - 128 };
       }
       return null; // unmatched seq_step_ (out of range or invalid suffix)
@@ -1804,9 +1804,9 @@ describe('Full integration — open modal, edit step, poll tick, close', () => {
 describe('_updateSeqModalModeBadge — DOM update', () => {
   function _updateModeBadge(badgeEl, keyLoopNorm, forcedFreeRunning) {
     // Mirrors _updateSeqModalModeBadge
-    if (!badgeEl) return;
-    var keyLoopVal = Math.round((keyLoopNorm || 0) * 2);
-    var label, color, tooltip, cursorStyle;
+    if (!badgeEl) {return;}
+    const keyLoopVal = Math.round((keyLoopNorm || 0) * 2);
+    let label, color, tooltip, cursorStyle;
     if (forcedFreeRunning) {
       label = 'FREE*';
       color = 'var(--accent-yellow)';

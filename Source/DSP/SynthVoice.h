@@ -8,6 +8,8 @@
 #include "Filter.h"
 #include "ModulationMatrix.h"
 #include "DriftEngine.h"
+#include "../Core/CalibrationSpec.h"
+#include "Core/DiagnosticSnapshots.h"
 
 namespace ABD
 {
@@ -22,12 +24,18 @@ namespace ABD
         ~SynthVoice() = default;
 
         void prepare(double sampleRate);
+        void initializeVoicePersonality(int voiceSlotIndex);
         
         void startNote(int midiNoteNumber, float velocity, float voiceIndexNormalized);
         void stopNote(bool force = false);
         
         bool isActive() const { return env1VCA.isActive(); }
         int getMidiNote() const { return currentMidiNote; }
+        int getRootNote() const { return rootNoteTriggered; }
+        void setRootNote(int note) { rootNoteTriggered = note; }
+
+        /** Set immutable calibration snapshot for this block (called by SynthEngine) */
+        void setCalibration(const CalibrationSpec* cal) { calibration = cal; }
 
         // Modulación externa (ModWheel, Aftertouch, PitchBend, etc.)
         void setExternalModulation(ModSource source, float value);
@@ -50,7 +58,7 @@ namespace ABD
         bool portaActive = false;             // true while glide is in progress
 
         // Hard Sync state
-        double prevOsc2Phase = 0.0;           // previous sample's OSC2 phase (for wrap detection)
+        double prevOsc1Phase = 0.0;           // previous sample's OSC1 phase (for wrap detection)
 
         // LFO trigger mode state (zero-crossing detection for envelope retrigger)
         float prevLfo1Sample = 0.0f;          // previous sample's LFO1 output (for zero-crossing detection)
@@ -74,12 +82,37 @@ namespace ABD
                      float engineLfo1MonoMode = -1.0f,
                      float engineLfo2MonoMode = -1.0f);
 
+        VoiceDiagnosticSnapshot getDiagnosticSnapshot(int voiceIndex) const;
+
+        float getCurrentOscFreqHz() const noexcept;
+        void setPortamentoTimeNormalized (float norm);
+        void setPortamentoModeRaw (int rawMode);
+        void setOscSyncEnabled (bool enabled);
+        void setOsc2Pitch (float pitch);
+        void setOsc2Level (float level);
+
     private:
         double sampleRate = 44100.0;
         int currentMidiNote = -1;
         int lastMidiNote = -1;  // preserved across force-stops (for portamento glide)
+        int rootNoteTriggered = -1;  // root MIDI note that triggered this voice (for chord/poly release)
         float noteVelocity = 0.0f;
         float voiceIndex = 0.0f;
+
+        // --- Voice personality: static tolerances (set once at init) ---
+        float staticPitchOffset1 = 0.0f;   // cents, per-voice tuning tolerance
+        float staticPitchOffset2 = 0.0f;   // cents
+        float staticCutoffOffset = 0.0f;   // normalized -1..+1
+        float staticResOffset = 0.0f;      // normalized -1..+1
+        float staticEnvTimeOffset = 0.0f;  // normalized -1..+1
+
+        // Cached filter config (only update VCF when params change)
+        int lastPoleMode = -1;
+        int lastOversample = -1;
+        int lastVcfVoicingMode = -1;
+
+        // Calibration snapshot (immutable per-block, set by SynthEngine)
+        const CalibrationSpec* calibration = nullptr;
 
         // Módulos DSP
         OSC1 osc1;
@@ -134,6 +167,8 @@ namespace ABD
             float vcfCutoff = 1.0f;
             float vcfResonance = 0.0f;
             int vcfPoleMode = 1; // 24dB
+            int vcfOversample = 1; // 1x/2x/4x oversampling
+            int vcfVoicingMode = 0; // 0=DeepMind, 1=Juno106
             float vcfEnvDepth = 0.0f;
             float vcfEnvVel = 0.0f;
             float vcfLfoDepth = 0.0f;
@@ -146,6 +181,7 @@ namespace ABD
 
             float hpfCutoff = 20.0f;
             bool hpfBassBoost = false;
+            float hpfBassBoostGain = 1.0f;
 
             // VCA
             float vcaLevel = 0.8f;
@@ -180,6 +216,26 @@ namespace ABD
             bool lfo1ArpSync = false;  // LFO1 sync to arpeggiator clock
             bool lfo2ArpSync = false;  // LFO2 sync to arpeggiator clock
         } params;
+
+        // Variables para diagnóstico (Diagnostic Trace)
+        float lastBaseCutoffHz = 0.0f;
+        float lastEffectiveCutoffHz = 0.0f;
+        float lastVcfResonance = 0.0f;
+        float lastEnvDepthSign = 0.0f;
+        float lastKeytrackHz = 0.0f;
+        float lastHpfCutoffHz = 0.0f;
+        
+        float lastLfo1Value = 0.0f;
+        float lastLfo2Value = 0.0f;
+        float lastEnv1Value = 0.0f;
+        float lastEnv2Value = 0.0f;
+        float lastDriftHz = 0.0f;
+        float lastCalculatedFreq1 = 440.0f;
+        
+        float lastCutoffFromEnv = 0.0f;
+        float lastCutoffFromLfo = 0.0f;
+        float lastCutoffFromDrift = 0.0f;
+        float lastCutoffFromKeytrack = 0.0f;
 
         friend class SynthEngine;
 

@@ -1,0 +1,778 @@
+/* ── Sprint 3: Side pane + Bank Run + Workflow ──────────────────── */
+
+/* Side pane (right column) */
+.cal-side-pane {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Header actions (export buttons) */
+.cal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 10px;
+}
+
+.cal-export-feedback {
+  font-size: 10px;
+  color: var(--accent-green, #65d36e);
+  white-space: nowrap;
+}
+
+/* Bank Run section */
+.cal-run-section {
+  border: 1px solid var(--border-dim, #2c2c2c);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cal-run-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-header, #1a1a1a);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cal-run-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary, #bbb);
+}
+
+.cal-run-toggle-icon {
+  font-size: 10px;
+  color: var(--text-dim, #888);
+}
+
+.cal-run-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-dim, #222);
+  background: var(--bg-surface, #111);
+}
+
+.cal-run-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cal-run-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim, #888);
+}
+
+/* Bank Run list */
+.cal-run-list-mount {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cal-run-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  font-size: 10px;
+  color: var(--text-dim, #888);
+}
+
+.cal-run-list-title {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cal-run-progress {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-secondary, #bbb);
+}
+
+.cal-run-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.cal-run-empty {
+  padding: 12px;
+  font-size: 11px;
+  color: var(--text-dim, #888);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.cal-run-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  border: 1px solid transparent;
+  transition: background 0.1s;
+}
+
+.cal-run-item:hover {
+  background: color-mix(in srgb, var(--brand-accent, #ff9900) 8%, transparent);
+}
+
+.cal-run-item.is-current {
+  background: color-mix(in srgb, var(--brand-accent, #ff9900) 16%, transparent);
+  border-color: color-mix(in srgb, var(--brand-accent, #ff9900) 40%, transparent);
+}
+
+.cal-run-item.is-critical-item {
+  border-left: 2px solid var(--accent-orange, #ff9d42);
+}
+
+.cal-run-idx {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim, #888);
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.cal-run-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cal-run-item-name {
+  color: var(--text-primary, #ddd);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-run-item-bank {
+  font-size: 9px;
+  color: var(--text-dim, #888);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-run-status-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+.cal-status-pass   { color: var(--accent-green, #65d36e); }
+.cal-status-review { color: var(--accent-blue, #6ec7ff); }
+.cal-status-fail   { color: var(--accent-orange, #ff9d42); }
+.cal-status-skip   { color: var(--text-dim, #888); }
+
+/* Workflow drawer */
+.cal-workflow-mount {
+  flex-shrink: 0;
+}
+
+.cal-workflow-drawer {
+  border: 1px solid var(--border-mid, #333);
+  border-radius: 10px;
+  background: var(--bg-header, #1a1a1a);
+}
+
+.cal-workflow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-dim, #2c2c2c);
+}
+
+.cal-workflow-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary, #bbb);
+}
+
+.cal-workflow-progress {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim, #888);
+}
+
+.cal-workflow-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.cal-workflow-patch-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #eee);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-workflow-meta {
+  font-size: 10px;
+  color: var(--text-dim, #888);
+}
+
+.cal-workflow-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-dim, #222);
+}
+
+.cal-workflow-label { color: var(--text-dim, #888); }
+.cal-workflow-value { color: var(--text-primary, #eee); font-weight: 600; }
+
+.cal-workflow-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cal-workflow-nav {
+  display: flex;
+  gap: 4px;
+  justify-content: space-between;
+}
+
+/* ── End Sprint 3 ───────────────────────────────────────────────── */
+
+.cal-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-surface, #111);
+  color: var(--text-primary, #ddd);
+  border: 1px solid var(--border-dim, #2a2a2a);
+  border-radius: var(--radius, 10px);
+  min-height: 420px;
+}
+
+.cal-header,
+.cal-toolbar,
+.cal-status-row,
+.cal-tabs,
+.cal-filters,
+.cal-inline,
+.cal-grid-2 {
+  display: flex;
+  align-items: center;
+}
+
+.cal-header {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cal-title {
+  margin: 0;
+  font-size: var(--text-lg, 14px);
+}
+
+.cal-subtitle {
+  font-size: var(--text-xs, 10px);
+  color: var(--text-dim, #888);
+}
+
+.cal-toolbar,
+.cal-filters,
+.cal-inline,
+.cal-tabs {
+  gap: 8px;
+}
+
+.cal-filters {
+  flex-wrap: wrap;
+}
+
+.cal-status {
+  font-size: var(--text-xs, 10px);
+  color: var(--text-dim, #999);
+}
+
+.cal-tab {
+  background: var(--bg-header, #191919);
+  border: 1px solid var(--border-dim, #2c2c2c);
+  color: var(--text-dim, #999);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: var(--text-xs, 10px);
+  cursor: pointer;
+}
+
+.cal-tab.active {
+  color: var(--brand-accent, #ff9900);
+  border-color: var(--brand-accent, #ff9900);
+  background: color-mix(in srgb, var(--brand-accent, #ff9900) 18%, transparent);
+}
+
+.cal-panel {
+  min-height: 280px;
+}
+
+.cal-grid-2 {
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.cal-grid-2 > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.cal-section-title {
+  margin: 0 0 6px 0;
+  font-size: var(--text-sm, 11px);
+  color: var(--text-secondary, #bbb);
+}
+
+.cal-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border-dim, #2c2c2c);
+  border-radius: 8px;
+  background: var(--bg-deepest, #0d0d0d);
+}
+
+.cal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.cal-table th,
+.cal-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-dim, #232323);
+  text-align: left;
+  vertical-align: top;
+}
+
+.cal-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-header, #171717);
+  color: var(--text-secondary, #bbb);
+  z-index: 1;
+}
+
+.cal-table tr.is-changed {
+  background: color-mix(in srgb, var(--accent-pink, #ff4fa3) 8%, transparent);
+}
+
+.cal-table td.is-delta {
+  color: var(--accent-orange, #ff9d42);
+}
+
+.cal-empty {
+  color: var(--text-faint, #666);
+  text-align: center;
+}
+
+.cal-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  line-height: 1.2;
+  border: 1px solid var(--border-dim, #333);
+  color: var(--text-dim, #999);
+}
+
+.cal-badge-ok {
+  color: var(--accent-green, #65d36e);
+  border-color: var(--accent-green, #65d36e);
+}
+
+.cal-badge-warn {
+  color: var(--accent-orange, #ff9d42);
+  border-color: var(--accent-orange, #ff9d42);
+}
+
+.cal-badge-accent {
+  color: var(--brand-accent, #ff9900);
+  border-color: var(--brand-accent, #ff9900);
+}
+
+.cal-note {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-dim, #2c2c2c);
+  border-radius: 8px;
+  font-size: 10px;
+  color: var(--text-dim, #999);
+  background: var(--bg-header, #171717);
+}
+
+.cal-compare-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 4px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.cal-btn-swap {
+  align-self: center;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: var(--bg-header, #1a1a1a);
+  border: 1px solid var(--border-dim, #333);
+  color: var(--text-secondary, #bbb);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cal-btn-swap:hover {
+  background: var(--brand-accent, #ff9900);
+  color: #000;
+}
+
+.cal-compare-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border-dim, #2b2b2b);
+  border-radius: 8px;
+  background: var(--bg-header, #171717);
+}
+
+.cal-compare-head {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim, #999);
+}
+
+.cal-compare-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cal-picked-name {
+  min-width: 0;
+  font-size: 10px;
+  color: var(--text-secondary, #bbb);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mono {
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ── CL-05: Badge variants ──────────────────────────────────────── */
+.cal-badge-alias {
+  color: var(--accent-blue, #6ec7ff);
+  border-color: var(--accent-blue, #6ec7ff);
+}
+
+.cal-badge-stub {
+  color: var(--text-dim, #aaa);
+  border-color: var(--border-dim, #555);
+  border-style: dashed;
+}
+
+/* ── CL-03: Summary cards bar ───────────────────────────────────── */
+.cal-summary-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+}
+
+.cal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-dim, #2c2c2c);
+  background: var(--bg-header, #1a1a1a);
+  gap: 2px;
+}
+
+.cal-card-count {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Share Tech Mono', monospace;
+  line-height: 1;
+}
+
+.cal-card-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim, #888);
+}
+
+.cal-card-ok    { border-color: var(--accent-green, #65d36e); }
+.cal-card-ok .cal-card-count { color: var(--accent-green, #65d36e); }
+
+.cal-card-alias { border-color: var(--accent-blue, #6ec7ff); }
+.cal-card-alias .cal-card-count { color: var(--accent-blue, #6ec7ff); }
+
+.cal-card-stub  { border-color: var(--border-dim, #555); border-style: dashed; }
+.cal-card-stub .cal-card-count { color: var(--text-dim, #aaa); }
+
+.cal-card-warn  { border-color: var(--accent-orange, #ff9d42); }
+.cal-card-warn .cal-card-count { color: var(--accent-orange, #ff9d42); }
+
+.cal-card-total { border-color: var(--border-mid, #444); }
+.cal-card-total .cal-card-count { color: var(--text-secondary, #bbb); }
+
+/* ── CL-03b: Critical contract warning banner ───────────────────── */
+.cal-critical-warning {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-orange, #ff9d42) 12%, transparent);
+  border: 1px solid var(--accent-orange, #ff9d42);
+  font-size: 11px;
+  color: var(--accent-orange, #ff9d42);
+  margin-bottom: 4px;
+}
+
+.cal-critical-param {
+  background: color-mix(in srgb, var(--accent-orange, #ff9d42) 20%, transparent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  cursor: default;
+}
+
+/* ── CL-07: Panel split layout when drawer is active ────────────── */
+.cal-panel-split {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.cal-panel-split.has-drawer {
+  flex-direction: row;
+  gap: 10px;
+}
+
+.cal-panel-main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.cal-panel-drawer {
+  width: 260px;
+  flex-shrink: 0;
+  overflow: auto;
+}
+
+/* ── CL-07: Drawer component ────────────────────────────────────── */
+.cal-drawer {
+  border: 1px solid var(--border-mid, #333);
+  border-radius: 10px;
+  background: var(--bg-header, #1a1a1a);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cal-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-dim, #2c2c2c);
+}
+
+.cal-drawer-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary, #bbb);
+}
+
+.cal-drawer-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim, #888);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.cal-drawer-close:hover {
+  color: var(--text-primary, #ddd);
+  background: var(--bg-surface, #252525);
+}
+
+.cal-drawer-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.cal-drawer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-dim, #222);
+}
+
+.cal-drawer-label {
+  color: var(--text-dim, #888);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cal-drawer-value {
+  color: var(--text-primary, #eee);
+  text-align: right;
+  word-break: break-all;
+}
+
+.cal-drawer-note {
+  margin-top: 4px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: var(--bg-surface, #111);
+  font-size: 10px;
+  color: var(--text-dim, #999);
+  line-height: 1.5;
+}
+
+.cal-drawer-section {
+  margin-top: 8px;
+  border: 1px solid var(--border-dim, #2a2a2a);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: rgba(0,0,0,0.2);
+}
+
+.cal-drawer-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent, #4fc3f7);
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-dim, #222);
+}
+
+.cal-drawer-subsection {
+  font-size: 10px;
+  color: var(--text-dim, #888);
+  margin: 6px 0 4px 0;
+  font-style: italic;
+}
+
+.cal-badge-dsp {
+  display: inline-block;
+  background: #1b5e20;
+  color: #c8e6c9;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: 6px;
+}
+
+.cal-badge-module {
+  display: inline-block;
+  background: #0d47a1;
+  color: #bbdefb;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: 6px;
+}
+
+/* ── CL-05: Row interaction states ─────────────────────────────── */
+.cal-row {
+  transition: background 0.1s;
+}
+
+.cal-row:hover {
+  background: color-mix(in srgb, var(--brand-accent, #ff9900) 7%, transparent) !important;
+}
+
+.cal-row.is-selected {
+  background: color-mix(in srgb, var(--brand-accent, #ff9900) 14%, transparent) !important;
+  outline: 1px solid color-mix(in srgb, var(--brand-accent, #ff9900) 50%, transparent);
+  outline-offset: -1px;
+}
+
+.cal-row.is-critical td:first-child {
+  border-left: 2px solid var(--accent-orange, #ff9d42);
+}
+
+/* ── CL-10: Live Validation Dashboard ──────────────────────────── */
+.cal-live-tab {
+  padding: 12px;
+}
+
+.cal-live-tab .cal-table {
+  font-size: 10.5px;
+}
+
+.cal-live-tab .cal-table td {
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.cal-blink {
+  animation: cal-blink-anim 1.2s ease-in-out infinite;
+}
+
+@keyframes cal-blink-anim {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+

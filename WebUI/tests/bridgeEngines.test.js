@@ -72,8 +72,8 @@ function createArpEngine(bridge) {
     },
 
     addHeldNote: function(note, velocity) {
-      for (var i = 0; i < this.heldNotes.length; i++) {
-        if (this.heldNotes[i].note === note) return;
+      for (let i = 0; i < this.heldNotes.length; i++) {
+        if (this.heldNotes[i].note === note) {return;}
       }
       this.heldNotes.push({ note: note, velocity: velocity });
       this.heldNotes.sort(function(a, b) { return a.note - b.note; });
@@ -83,7 +83,7 @@ function createArpEngine(bridge) {
     },
 
     removeHeldNote: function(note) {
-      for (var i = 0; i < this.heldNotes.length; i++) {
+      for (let i = 0; i < this.heldNotes.length; i++) {
         if (this.heldNotes[i].note === note) {
           this.heldNotes.splice(i, 1);
           break;
@@ -95,20 +95,20 @@ function createArpEngine(bridge) {
     },
 
     start: function() {
-      if (this.running || this.heldNotes.length === 0) return;
+      if (this.running || this.heldNotes.length === 0) {return;}
       this.running = true;
       this.stepIndex = 0;
       this.currentDirection = 1;
     },
 
     stop: function() {
-      if (!this.running) return;
+      if (!this.running) {return;}
       this.running = false;
       if (this.timerId) {
         clearInterval(this.timerId);
         this.timerId = null;
       }
-      if (self._arpKillAllNotes) self._arpKillAllNotes();
+      if (self._arpKillAllNotes) {self._arpKillAllNotes();}
     },
 
     setHeldNotes: function(notes) {
@@ -135,40 +135,40 @@ function createSeqEngine(bridge) {
     _forcedFreeRunning: false,
 
     addHeldNote: function(note, velocity) {
-      for (var i = 0; i < this.heldNotes.length; i++) {
-        if (this.heldNotes[i].note === note) return;
+      for (let i = 0; i < this.heldNotes.length; i++) {
+        if (this.heldNotes[i].note === note) {return;}
       }
       this.heldNotes.push({ note: note, velocity: velocity });
-      var seqEn = self.parameterCache['seq_enable'] || 0;
-      var keyLoop = Math.round((self.parameterCache['seq_key_loop'] || 0) * 2);
-      var needsKeySync = (keyLoop === 1 || keyLoop === 2);
+      const seqEn = self.parameterCache['seq_enable'] || 0;
+      const keyLoop = Math.round((self.parameterCache['seq_key_loop'] || 0) * 2);
+      const needsKeySync = (keyLoop === 1 || keyLoop === 2);
       if (seqEn > 0.5 && !this.running && needsKeySync) {
         this.start();
       }
     },
 
     removeHeldNote: function(note) {
-      for (var i = 0; i < this.heldNotes.length; i++) {
+      for (let i = 0; i < this.heldNotes.length; i++) {
         if (this.heldNotes[i].note === note) {
           this.heldNotes.splice(i, 1);
           break;
         }
       }
-      var keyLoop = Math.round((self.parameterCache['seq_key_loop'] || 0) * 2);
-      var needsKeySync = (keyLoop === 1 || keyLoop === 2);
+      const keyLoop = Math.round((self.parameterCache['seq_key_loop'] || 0) * 2);
+      const needsKeySync = (keyLoop === 1 || keyLoop === 2);
       if (this.heldNotes.length === 0 && this.running && needsKeySync) {
         this.stop();
       }
     },
 
     start: function() {
-      if (this.running) return;
+      if (this.running) {return;}
       this.running = true;
       this.stepIndex = 0;
     },
 
     stop: function() {
-      if (!this.running) return;
+      if (!this.running) {return;}
       this.running = false;
       if (this.timerId) {
         clearInterval(this.timerId);
@@ -177,29 +177,29 @@ function createSeqEngine(bridge) {
     },
 
     _seqStep: function(bridge) {
-      var eng = bridge._seqEngine;
-      if (!eng || !eng.running) return;
+      const eng = bridge._seqEngine;
+      if (!eng || !eng.running) {return;}
 
-      var keyLoop = Math.round((bridge.parameterCache['seq_key_loop'] || 0) * 2);
-      var needsKeySync = (keyLoop === 1 || keyLoop === 2);
+      const keyLoop = Math.round((bridge.parameterCache['seq_key_loop'] || 0) * 2);
+      const needsKeySync = (keyLoop === 1 || keyLoop === 2);
 
       if (needsKeySync && eng.heldNotes.length === 0) {
         return;
       }
 
-      var seqLength = Math.round((bridge.parameterCache['seq_length'] || 0) * 31) + 2;
-      var swing = bridge.parameterCache['seq_swing'] || 0;
-      var slewRate = bridge.parameterCache['seq_slew_rate'] || 0;
+      const seqLength = Math.round((bridge.parameterCache['seq_length'] || 0) * 31) + 2;
+      const swing = bridge.parameterCache['seq_swing'] || 0;
+      const slewRate = bridge.parameterCache['seq_slew_rate'] || 0;
 
-      var stepIdx = eng.stepIndex % seqLength;
-      var paramId = 'seq_step_' + (stepIdx + 1);
-      var stepVal = bridge.parameterCache[paramId];
-      var isSkip = false;
+      const stepIdx = eng.stepIndex % seqLength;
+      const paramId = 'seq_step_' + (stepIdx + 1);
+      let stepVal = bridge.parameterCache[paramId];
+      let isSkip = false;
       if (stepVal !== undefined && stepVal < 0.001 && Math.round(stepVal * 255) === 0) {
         isSkip = true;
       }
       if (stepVal === undefined) {
-        var raw = bridge.parameterCache['seq_step_' + (stepIdx + 1) + '_raw'];
+        const raw = bridge.parameterCache['seq_step_' + (stepIdx + 1) + '_raw'];
         if (raw === 0) {
           isSkip = true;
         }
@@ -207,9 +207,9 @@ function createSeqEngine(bridge) {
       }
 
       if (!isSkip) {
-        var prev = eng.previousValues[stepIdx];
+        const prev = eng.previousValues[stepIdx];
         if (prev !== undefined && slewRate > 0.01) {
-          var slewFactor = Math.max(0.01, 1.0 - (slewRate * 0.5));
+          const slewFactor = Math.max(0.01, 1.0 - (slewRate * 0.5));
           stepVal = prev + (stepVal - prev) * (1 - slewFactor);
         }
         eng.previousValues[stepIdx] = stepVal;
@@ -228,22 +228,22 @@ function createSeqEngine(bridge) {
 
 /** _arpStep logic isolated as a pure function for testing */
 function _arpStep(engine, parameterCache) {
-  if (!engine || !engine.running) return { played: false };
+  if (!engine || !engine.running) {return { played: false };}
 
-  var held = engine.heldNotes;
+  const held = engine.heldNotes;
   if (held.length === 0) {
     engine.stop();
     return { played: false };
   }
 
-  var arpMode = Math.round((parameterCache['arp_mode'] || 0) * 10);
-  var arpOctave = Math.round((parameterCache['arp_octave'] || 0) * 3);
-  var gateTime = parameterCache['arp_gate_time'] || 0.5;
-  var arpHold = (parameterCache['arp_hold'] || 0) > 0.5;
-  var arpKeySync = (parameterCache['arp_key_sync'] || 0) > 0.5;
+  const arpMode = Math.round((parameterCache['arp_mode'] || 0) * 10);
+  const arpOctave = Math.round((parameterCache['arp_octave'] || 0) * 3);
+  const gateTime = parameterCache['arp_gate_time'] || 0.5;
+  const arpHold = (parameterCache['arp_hold'] || 0) > 0.5;
+  const arpKeySync = (parameterCache['arp_key_sync'] || 0) > 0.5;
 
-  var noteIdx = engine.stepIndex % held.length;
-  var octaveOffset = 0;
+  let noteIdx = engine.stepIndex % held.length;
+  let octaveOffset = 0;
 
   switch (arpMode) {
     case 0:
@@ -302,7 +302,7 @@ function _arpStep(engine, parameterCache) {
       noteIdx = engine.stepIndex % held.length;
   }
 
-  var maxOctave = Math.min(arpOctave, 4);
+  const maxOctave = Math.min(arpOctave, 4);
   if (octaveOffset > maxOctave * 12) {
     engine.stepIndex = 0;
     noteIdx = 0;
@@ -311,12 +311,14 @@ function _arpStep(engine, parameterCache) {
 
   engine.stepIndex++;
 
-  var playedNote = null;
+  let playedNote = null;
   if (noteIdx >= 0 && noteIdx < held.length) {
-    var h = held[noteIdx];
-    var outNote = h.note + octaveOffset;
+    const h = held[noteIdx];
+    const outNote = h.note + octaveOffset;
     if (outNote >= 0 && outNote <= 127) {
-      playedNote = { note: outNote, velocity: h.velocity, octaveOffset: octaveOffset, gateTime: gateTime };
+      const intervalMs = engine.intervalMs || 200;
+      const offDelay = Math.max(10, Math.round(gateTime * intervalMs));
+      playedNote = { note: outNote, velocity: h.velocity, octaveOffset: octaveOffset, gateTime: gateTime, offDelay: offDelay };
     }
   }
 
@@ -332,46 +334,46 @@ function _arpStep(engine, parameterCache) {
 
 /** _seqStep logic isolated as a pure function for testing */
 function _seqStep(engine, parameterCache) {
-  if (!engine || !engine.running) return { processed: false };
+  if (!engine || !engine.running) {return { processed: false };}
 
-  var keyLoop = Math.round((parameterCache['seq_key_loop'] || 0) * 2);
-  var needsKeySync = (keyLoop === 1 || keyLoop === 2);
+  const keyLoop = Math.round((parameterCache['seq_key_loop'] || 0) * 2);
+  const needsKeySync = (keyLoop === 1 || keyLoop === 2);
 
   if (needsKeySync && engine.heldNotes.length === 0) {
     return { processed: false, reason: 'key_sync_no_notes' };
   }
 
-  var seqLength = Math.round((parameterCache['seq_length'] || 0) * 31) + 2;
-  var swing = parameterCache['seq_swing'] || 0;
-  var slewRate = parameterCache['seq_slew_rate'] || 0;
+  const seqLength = Math.round((parameterCache['seq_length'] || 0) * 31) + 2;
+  const swing = parameterCache['seq_swing'] || 0;
+  const slewRate = parameterCache['seq_slew_rate'] || 0;
 
-  var stepIdx = engine.stepIndex % seqLength;
-  var paramId = 'seq_step_' + (stepIdx + 1);
-  var stepVal = parameterCache[paramId];
-  var isSkip = false;
+  const stepIdx = engine.stepIndex % seqLength;
+  const paramId = 'seq_step_' + (stepIdx + 1);
+  let stepVal = parameterCache[paramId];
+  let isSkip = false;
   if (stepVal !== undefined && stepVal < 0.001 && Math.round(stepVal * 255) === 0) {
     isSkip = true;
   }
   if (stepVal === undefined) {
-    var raw = parameterCache['seq_step_' + (stepIdx + 1) + '_raw'];
+    const raw = parameterCache['seq_step_' + (stepIdx + 1) + '_raw'];
     if (raw === 0) {
       isSkip = true;
     }
     stepVal = stepVal || 0.5;
   }
 
-  var slewApplied = false;
+  let slewApplied = false;
   if (!isSkip) {
-    var prev = engine.previousValues[stepIdx];
+    const prev = engine.previousValues[stepIdx];
     if (prev !== undefined && slewRate > 0.01) {
-      var slewFactor = Math.max(0.01, 1.0 - (slewRate * 0.5));
+      const slewFactor = Math.max(0.01, 1.0 - (slewRate * 0.5));
       stepVal = prev + (stepVal - prev) * (1 - slewFactor);
       slewApplied = true;
     }
     engine.previousValues[stepIdx] = stepVal;
   }
 
-  var result = {
+  const result = {
     processed: true,
     stepIdx: stepIdx,
     stepVal: stepVal,
@@ -559,7 +561,7 @@ describe('Arp engine — lifecycle (init, start, stop, notes)', () => {
 
 describe('Arp engine — _arpKillAllNotes', () => {
   function killAllNotes(bridge) {
-    for (var i = 0; i < bridge._arpActiveNotes.length; i++) {
+    for (let i = 0; i < bridge._arpActiveNotes.length; i++) {
       bridge.pianoNoteOff(bridge._arpActiveNotes[i]);
     }
     bridge._arpActiveNotes = [];
@@ -771,7 +773,7 @@ describe('Arp step — mode 6 (UP-ALT) and mode 7 (DOWN-ALT)', () => {
 describe('Arp step — mode 8 (RANDOM)', () => {
   it('produces random note index within held range', () => {
     const held = [{ note: 60, v: 0.8 }, { note: 64, v: 0.7 }, { note: 67, v: 0.9 }];
-    let indices = new Set();
+    const indices = new Set();
     for (let i = 0; i < 50; i++) {
       const result = _arpStep({ running: true, stepIndex: i, heldNotes: held }, { arp_mode: 8 / 10, arp_octave: 1.0, arp_gate_time: 0.5, arp_hold: 0, arp_key_sync: 0 });
       indices.add(result.noteIdx);
@@ -784,7 +786,7 @@ describe('Arp step — mode 8 (RANDOM)', () => {
 
   it('random octave offset within arpOctave range', () => {
     const held = [{ note: 60, v: 0.8 }];
-    let offsets = new Set();
+    const offsets = new Set();
     // arp_octave: 0.33 → Math.round(0.33*3) = Math.round(1) = 1 → max (1+1)*12 = 24
     for (let i = 0; i < 30; i++) {
       const result = _arpStep({ running: true, stepIndex: i, heldNotes: held }, { arp_mode: 8 / 10, arp_octave: 0.33, arp_gate_time: 0.5, arp_hold: 0, arp_key_sync: 0 });
@@ -858,6 +860,20 @@ describe('Arp step — edge cases', () => {
     const engine = { running: true, stepIndex: 0, heldNotes: [{ note: 60, velocity: 0.37 }] };
     const result = _arpStep(engine, { arp_mode: 0.0, arp_octave: 0.0, arp_gate_time: 0.5, arp_hold: 0, arp_key_sync: 0 });
     expect(result.note.velocity).toBe(0.37);
+  });
+
+  it('gateTime is relative to step interval, not fixed 1000ms (Bug 4 fix)', () => {
+    const engine = { running: true, stepIndex: 0, heldNotes: [{ note: 60, velocity: 0.8 }], intervalMs: 100 };
+    const result = _arpStep(engine, { arp_mode: 0.0, arp_octave: 0.0, arp_gate_time: 0.3, arp_hold: 0, arp_key_sync: 0 });
+    expect(result.note.gateTime).toBe(0.3);
+    expect(result.note.offDelay).toBe(30);
+  });
+
+  it('gateTime uses default 200ms when intervalMs not set', () => {
+    const engine = { running: true, stepIndex: 0, heldNotes: [{ note: 60, velocity: 0.8 }] };
+    const result = _arpStep(engine, { arp_mode: 0.0, arp_octave: 0.0, arp_gate_time: 0.5, arp_hold: 0, arp_key_sync: 0 });
+    expect(result.note.gateTime).toBe(0.5);
+    expect(result.note.offDelay).toBe(100);
   });
 });
 
@@ -1007,13 +1023,13 @@ describe('Seq step — slew rate interpolation', () => {
     // Both steps independently slew from 0 toward 1.0. Each first access reads 0.
     const engine = { running: true, stepIndex: 0, previousValues: new Array(32).fill(0), heldNotes: [] };
     const paramCache = { seq_length: 0.0, seq_swing: 0, seq_slew_rate: 0.5, seq_key_loop: 0 };
-    for (var si = 1; si <= 2; si++) {
+    for (let si = 1; si <= 2; si++) {
       paramCache['seq_step_' + si] = 1.0;
     }
     const values = [];
     for (let i = 0; i < 10; i++) {
       const r = _seqStep(engine, paramCache);
-      if (r.processed) values.push(r.stepVal);
+      if (r.processed) {values.push(r.stepVal);}
     }
     // Steps alternate 0→1→0→1→0→1... Each starts from its own previousValue=0
     expect(values[0]).toBeCloseTo(0.25, 5);  // step 0: 0 + (1-0)*0.25 = 0.25
@@ -1133,20 +1149,15 @@ describe('Seq step — general logic', () => {
 
 describe('_updateSeqEngine — start/stop logic', () => {
   function _updateSeqEngine(bridge) {
-    var seqEn = bridge.parameterCache['seq_enable'] || 0;
+    const seqEn = bridge.parameterCache['seq_enable'] || 0;
     if (!bridge._seqEngine) {
       bridge._seqEngine = createSeqEngine(bridge);
     }
-    var keyLoop = Math.round((bridge.parameterCache['seq_key_loop'] || 0) * 2);
-    var needsKeySync = (keyLoop === 1 || keyLoop === 2);
+    const keyLoop = Math.round((bridge.parameterCache['seq_key_loop'] || 0) * 2);
+    const needsKeySync = (keyLoop === 1 || keyLoop === 2);
 
     if (seqEn > 0.5) {
       if (!needsKeySync || bridge._seqEngine.heldNotes.length > 0) {
-        bridge._seqEngine.start();
-      } else {
-        bridge.parameterCache['seq_key_loop'] = 0;
-        bridge._seqEngine._forcedFreeRunning = true;
-        bridge.handleParameterChangeFromBackend('seq_key_loop', 0);
         bridge._seqEngine.start();
       }
     } else {
@@ -1171,15 +1182,14 @@ describe('_updateSeqEngine — start/stop logic', () => {
     expect(bridge._seqEngine.running).toBe(true);
   });
 
-  it('forces Free Running when key sync but no held notes', () => {
+  it('keeps sequencer stopped when key sync but no held notes (Bug 5 fix)', () => {
     const bridge = makeMockBridge({ seq_enable: 1.0, seq_key_loop: 1 / 2 });
     bridge._seqEngine = createSeqEngine(bridge);
     _updateSeqEngine(bridge);
-    expect(bridge._seqEngine.running).toBe(true);
-    expect(bridge._seqEngine._forcedFreeRunning).toBe(true);
-    expect(bridge._seqEngine.running).toBe(true);
-    expect(bridge.parameterCache['seq_key_loop']).toBe(0);
-    expect(bridge.handleParameterChangeFromBackend).toHaveBeenCalledWith('seq_key_loop', 0);
+    expect(bridge._seqEngine.running).toBe(false);
+    expect(bridge._seqEngine._forcedFreeRunning).toBeFalsy();
+    expect(bridge.parameterCache['seq_key_loop']).toBe(1 / 2);
+    expect(bridge.handleParameterChangeFromBackend).not.toHaveBeenCalledWith('seq_key_loop', 0);
   });
 
   it('stops engine when seq_enable<=0.5', () => {
@@ -1242,7 +1252,7 @@ describe('Bridge engine init wiring — onParameterChanged', () => {
   it('seq_enable > 0.5 triggers _updateSeqEngine start', () => {
     const bridge = makeMockBridge({ seq_enable: 1.0, seq_key_loop: 0.0 });
     bridge._updateSeqEngine = function() {
-      if (!this._seqEngine) this._seqEngine = createSeqEngine(this);
+      if (!this._seqEngine) {this._seqEngine = createSeqEngine(this);}
       if (this.parameterCache['seq_enable'] > 0.5) {
         this._seqEngine.start();
       }
@@ -1254,7 +1264,7 @@ describe('Bridge engine init wiring — onParameterChanged', () => {
   it('seq_enable <= 0.5 triggers _updateSeqEngine stop', () => {
     const bridge = makeMockBridge({ seq_enable: 0.0 });
     bridge._updateSeqEngine = function() {
-      if (!this._seqEngine) this._seqEngine = createSeqEngine(this);
+      if (!this._seqEngine) {this._seqEngine = createSeqEngine(this);}
       if (this.parameterCache['seq_enable'] <= 0.5) {
         this._seqEngine.stop();
       }

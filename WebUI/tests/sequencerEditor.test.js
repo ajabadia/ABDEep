@@ -24,7 +24,7 @@ function normalizeRaw(raw) {
 }
 
 function snapBipolarToZero(val) {
-    if (Math.abs(val) <= 2) return 0;
+    if (Math.abs(val) <= 2) {return 0;}
     return val;
 }
 
@@ -33,21 +33,21 @@ function isSkipStep(rawVal) {
 }
 
 function formatStepValue(val, rawVal) {
-    if (isSkipStep(rawVal)) return 'SKIP';
-    if (val === 0) return '0';
+    if (isSkipStep(rawVal)) {return 'SKIP';}
+    if (val === 0) {return '0';}
     return val > 0 ? '+' + val : String(val);
 }
 
 function computeFillHeight(val, isSkip) {
-    if (isSkip) return 0;
-    var abs = Math.abs(val);
-    if (val >= 0) return (val / 127) * 50; // source: positive uses /127
+    if (isSkip) {return 0;}
+    const abs = Math.abs(val);
+    if (val >= 0) {return (val / 127) * 50;} // source: positive uses /127
     return (abs / 128) * 50;               // source: negative uses /128
 }
 
 function computeFillBottom(val, isSkip) {
-    if (isSkip) return 50;
-    if (val >= 0) return 50;
+    if (isSkip) {return 50;}
+    if (val >= 0) {return 50;}
     return 50 - computeFillHeight(val, false);
 }
 
@@ -56,19 +56,19 @@ function isStepActive(index, activeLength) {
 }
 
 function getActiveLength(selectValue) {
-    if (selectValue === undefined || selectValue === null) return 16;
+    if (selectValue === undefined || selectValue === null) {return 16;}
     return parseInt(selectValue) + 2;
 }
 
 function computeBipolarFromNormalized(normVal) {
-    var bipolar = Math.round((normVal * 255) - 128);
+    const bipolar = Math.round((normVal * 255) - 128);
     return snapBipolarToZero(bipolar);
 }
 
 function computeBipolarFromY(clientY, rectTop, rectHeight) {
-    var relY = (clientY - rectTop) / rectHeight;
+    let relY = (clientY - rectTop) / rectHeight;
     relY = Math.max(0, Math.min(1, relY));
-    var normVal = 1.0 - relY;
+    const normVal = 1.0 - relY;
     return computeBipolarFromNormalized(normVal);
 }
 
@@ -76,7 +76,7 @@ function getStepTooltip(index, val, rawVal) {
     if (isSkipStep(rawVal)) {
         return 'Step ' + (index + 1) + ': SKIP (raw: ' + rawVal + ')';
     }
-    var sign = val >= 0 ? '+' : '';
+    const sign = val >= 0 ? '+' : '';
     return 'Step ' + (index + 1) + ': ' + sign + val + ' (raw: ' + rawVal + ')';
 }
 
@@ -118,9 +118,9 @@ describe('rawToBipolar — raw byte (0..255) to bipolar (-128..127)', function()
     });
 
     it('round-trip: bipolar -> raw -> bipolar', function() {
-        var original = -64;
-        var raw = bipolarToRaw(original);
-        var back = rawToBipolar(raw);
+        const original = -64;
+        const raw = bipolarToRaw(original);
+        const back = rawToBipolar(raw);
         expect(back).toBe(original);
     });
 });
@@ -251,7 +251,7 @@ describe('computeFillBottom — fill bar bottom position', function() {
     });
 
     it('returns < 50 for negative values (grows down from center)', function() {
-        var bottom = computeFillBottom(-64, false);
+        const bottom = computeFillBottom(-64, false);
         expect(bottom).toBeLessThan(50);
         expect(bottom).toBeCloseTo(25, 1);
     });
@@ -306,13 +306,13 @@ describe('computeBipolarFromNormalized — normalized (0..1) to bipolar (-128..1
 
     it('converts 0.5 to 0 (with snapZero)', function() {
         // Math.round(0.5 * 255 - 128) = Math.round(127.5 - 128) = Math.round(-0.5) = 0
-        var result = computeBipolarFromNormalized(0.5);
+        const result = computeBipolarFromNormalized(0.5);
         expect(result).toBe(0);
     });
 
     it('snaps values near zero', function() {
         // 0.5 - tiny delta: Math.round(0.498 * 255 - 128) = Math.round(126.99 - 128) = Math.round(-1.01) = -1
-        var result = computeBipolarFromNormalized(0.498);
+        const result = computeBipolarFromNormalized(0.498);
         // -1 should be snapped to 0 since | -1 | <= 2
         expect(result).toBe(0);
     });
@@ -325,35 +325,35 @@ describe('computeBipolarFromNormalized — normalized (0..1) to bipolar (-128..1
 
 describe('computeBipolarFromY — mouse Y to bipolar value', function() {
     it('maps top of bar (clientY=rectTop) to 127', function() {
-        var val = computeBipolarFromY(100, 100, 200);
+        const val = computeBipolarFromY(100, 100, 200);
         // relY = (100 - 100) / 200 = 0, normVal = 1.0 - 0 = 1.0
         // bipolar = round(1.0 * 255 - 128) = 127
         expect(val).toBe(127);
     });
 
     it('maps bottom of bar (clientY=rectTop+height) to -128', function() {
-        var val = computeBipolarFromY(300, 100, 200);
+        const val = computeBipolarFromY(300, 100, 200);
         // relY = (300 - 100) / 200 = 1, normVal = 1.0 - 1 = 0
         // bipolar = round(0 * 255 - 128) = -128
         expect(val).toBe(-128);
     });
 
     it('maps center of bar to 0', function() {
-        var val = computeBipolarFromY(200, 100, 200);
+        const val = computeBipolarFromY(200, 100, 200);
         // relY = (200 - 100) / 200 = 0.5, normVal = 1.0 - 0.5 = 0.5
         // bipolar = round(0.5 * 255 - 128) = round(-0.5) = 0
         expect(val).toBe(0);
     });
 
     it('clamps relY to [0, 1] for values above bar', function() {
-        var val = computeBipolarFromY(50, 100, 200);
+        const val = computeBipolarFromY(50, 100, 200);
         // relY = (50 - 100) / 200 = -0.25 → clamped to 0
         // normVal = 1.0 - 0 = 1.0 → bipolar = 127
         expect(val).toBe(127);
     });
 
     it('clamps relY to [0, 1] for values below bar', function() {
-        var val = computeBipolarFromY(400, 100, 200);
+        const val = computeBipolarFromY(400, 100, 200);
         // relY = (400-100)/200 = 1.5 → clamped to 1
         // normVal = 1.0 - 1 = 0 → bipolar = -128
         expect(val).toBe(-128);
@@ -362,28 +362,28 @@ describe('computeBipolarFromY — mouse Y to bipolar value', function() {
 
 describe('getStepTooltip — hover tooltip string', function() {
     it('formats SKIP tooltip when raw is 0', function() {
-        var tip = getStepTooltip(0, 0, 0);
+        const tip = getStepTooltip(0, 0, 0);
         expect(tip).toContain('Step 1');
         expect(tip).toContain('SKIP');
         expect(tip).toContain('raw: 0');
     });
 
     it('formats positive value tooltip', function() {
-        var tip = getStepTooltip(4, 64, 192);
+        const tip = getStepTooltip(4, 64, 192);
         expect(tip).toContain('Step 5');
         expect(tip).toContain('+64');
         expect(tip).toContain('raw: 192');
     });
 
     it('formats negative value tooltip', function() {
-        var tip = getStepTooltip(30, -64, 64);
+        const tip = getStepTooltip(30, -64, 64);
         expect(tip).toContain('Step 31');
         expect(tip).toContain('-64');
         expect(tip).toContain('raw: 64');
     });
 
     it('formats zero value tooltip', function() {
-        var tip = getStepTooltip(0, 0, 128);
+        const tip = getStepTooltip(0, 0, 128);
         expect(tip).toContain('Step 1');
         expect(tip).toContain('+0');
         expect(tip).toContain('raw: 128');

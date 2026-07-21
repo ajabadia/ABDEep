@@ -16,22 +16,22 @@
 // Source Constants (extracted from byte-map.js)
 // =============================================================================
 
-var ENUM_LFO_SHAPE   = ['Sine','Triangle','Square','Ramp Up','Ramp Down','S&H','S&G'];
-var ENUM_PWM_SOURCE  = ['Manual','LFO 1','LFO 2','VCA Env','VCF Env','Mod Env'];
-var ENUM_OSC_RANGE   = ["16'","8'","4'"];
-var ENUM_PM_SELECT   = ['LFO1','LFO2','VCA Env','VCF Env','Mod Env','LFO1 Uni','LFO2 Uni'];
-var ENUM_PORTA_MODE  = ['Normal','Fingered','Fixed Rate','Fixed Rate Fingered','Exponential','Exponential Fingered','Fixed+2','Fixed-2','Fixed+5','Fixed-5','Fixed+12','Fixed-12','Fixed+24','Fixed-24'];
-var ENUM_VOICE_MODE  = ['Poly','Uni2','Uni3','Uni4','Uni6','Uni12','Mono','Mono2','Mono3','Mono4','Mono6','Poly6','Poly8'];
-var ENUM_TRIG_MODE   = ['Mono','Re-Trig','Legato','One-Shot'];
-var ENUM_NOTE_PRIO   = ['Lowest','Highest','Last'];
-var ENUM_ARP_MODE    = ['Up','Down','Up&Dn','Up Inv','Dn Inv','Up&Dn Inv','Up Alt','Down Alt','Random','As Played','Chord'];
-var ENUM_ARP_CLOCK   = ['1/32','1/16T','1/32D','1/16','1/8T','1/16D','1/8','1/4T','1/8D','1/4','1/2T','1/4D','1/2'];
-var ENUM_SEQ_CLOCK   = ['1/32','1/16T','1/32D','1/16','1/8T','1/16D','1/8','1/4T','1/8D','1/4','1/2T','1/4D','1/2','1/1T','1/2D','1/1'];
-var ENUM_KEY_LOOP    = ['Loop Off','Loop On','(unused)'];
-var ENUM_FX_ROUTING  = ['M-1 Ser 1-2-3-4','M-2 Par 1/2 Ser 3-4','M-3 Par 1/2 Par 3/4','M-4 Par 1/2/3/4','M-5 Par 1/2/3 Ser 4','M-6 Ser 1-2 Par 3/4','M-7 Ser 1 Par 2/3/4','M-8 Par (Ser 1-2-3)/4','M-9 Ser 3-4 FB(1-2)','M-10 Ser 4 FB(1-2-3)'];
-var ENUM_FX_MODE     = ['Insert','Send','Bypass'];
-var ENUM_ENV_TRIG    = ['Key','LFO 1','LFO 2','Loop','Seq Step'];
-var ENUM_CHORD_TYPE  = ['Memory','Major','Minor','Aug','Dim','Sus2','Sus4','7th'];
+const ENUM_LFO_SHAPE   = ['Sine','Triangle','Square','Ramp Up','Ramp Down','S&H','S&G'];
+const ENUM_PWM_SOURCE  = ['Manual','LFO 1','LFO 2','VCA Env','VCF Env','Mod Env'];
+const ENUM_OSC_RANGE   = ["16'","8'","4'"];
+const ENUM_PM_SELECT   = ['LFO1','LFO2','VCA Env','VCF Env','Mod Env','LFO1 Uni','LFO2 Uni'];
+const ENUM_PORTA_MODE  = ['Normal','Fingered','Fixed Rate','Fixed Rate Fingered','Exponential','Exponential Fingered','Fixed+2','Fixed-2','Fixed+5','Fixed-5','Fixed+12','Fixed-12','Fixed+24','Fixed-24'];
+const ENUM_VOICE_MODE  = ['Poly','Uni2','Uni3','Uni4','Uni6','Uni12','Mono','Mono2','Mono3','Mono4','Mono6','Poly6','Poly8'];
+const ENUM_TRIG_MODE   = ['Mono','Re-Trig','Legato','One-Shot'];
+const ENUM_NOTE_PRIO   = ['Lowest','Highest','Last'];
+const ENUM_ARP_MODE    = ['Up','Down','Up&Dn','Up Inv','Dn Inv','Up&Dn Inv','Up Alt','Down Alt','Random','As Played','Chord'];
+const ENUM_ARP_CLOCK   = ['1/32','1/16T','1/32D','1/16','1/8T','1/16D','1/8','1/4T','1/8D','1/4','1/2T','1/4D','1/2'];
+const ENUM_SEQ_CLOCK   = ['1/32','1/16T','1/32D','1/16','1/8T','1/16D','1/8','1/4T','1/8D','1/4','1/2T','1/4D','1/2','1/1T','1/2D','1/1'];
+const ENUM_KEY_LOOP    = ['Loop Off','Loop On','(unused)'];
+const ENUM_FX_ROUTING  = ['M-1 Ser 1-2-3-4','M-2 Par 1/2 Ser 3-4','M-3 Par 1/2 Par 3/4','M-4 Par 1/2/3/4','M-5 Par 1/2/3 Ser 4','M-6 Ser 1-2 Par 3/4','M-7 Ser 1 Par 2/3/4','M-8 Par (Ser 1-2-3)/4','M-9 Ser 3-4 FB(1-2)','M-10 Ser 4 FB(1-2-3)'];
+const ENUM_FX_MODE     = ['Insert','Send','Bypass'];
+const ENUM_ENV_TRIG    = ['Key','LFO 1','LFO 2','Loop','Seq Step'];
+const ENUM_CHORD_TYPE  = ['Memory','Major','Minor','Aug','Dim','Sus2','Sus4','7th'];
 
 function bp(idx, param, region, type, extra) {
   extra = extra || {};
@@ -39,8 +39,8 @@ function bp(idx, param, region, type, extra) {
 }
 
 // Build the 242-entry map
-var BYTE_MAP = [];
-for (var i = 0; i < 242; i++) BYTE_MAP[i] = null;
+const BYTE_MAP = [];
+for (let i = 0; i < 242; i++) {BYTE_MAP[i] = null;}
 
 BYTE_MAP[0]  = bp(0,  'LFO 1 Rate',          'LFO1', 'value',     { desc: '0=slow…255=fast' });
 BYTE_MAP[1]  = bp(1,  'LFO 1 Delay/Fade',    'LFO1', 'value',     { desc: '0=no delay…255=max delay' });
@@ -165,8 +165,8 @@ BYTE_MAP[119] = bp(119, 'Seq Length',          'Seq',  'value',    { desc: '0=1 
 BYTE_MAP[120] = bp(120, 'Seq Swing',           'Seq',  'value',    { desc: '0=50%…25=75%' });
 BYTE_MAP[121] = bp(121, 'Seq Key Loop',        'Seq',  'enum',     { enumLabels: ENUM_KEY_LOOP });
 BYTE_MAP[122] = bp(122, 'Seq Slew Rate',       'Seq',  'value',    { desc: '0=none…255=max' });
-for (var si = 123; si <= 154; si++) {
-  var stepNum = si - 122;
+for (let si = 123; si <= 154; si++) {
+  const stepNum = si - 122;
   BYTE_MAP[si] = bp(si, 'Seq Step ' + stepNum, 'SeqSteps','bipolar', { desc: '0=skip, 128=center, <128=neg, >128=pos' });
 }
 BYTE_MAP[155] = bp(155, 'Arp On/Off',         'Arp',  'toggle',   { desc: '0=Off, 1=On' });
@@ -194,15 +194,15 @@ BYTE_MAP[176] = bp(176, 'FX1 Param 10',        'FX1',  'value',    { desc: '' })
 BYTE_MAP[177] = bp(177, 'FX1 Param 11',        'FX1',  'value',    { desc: '' });
 BYTE_MAP[178] = bp(178, 'FX1 Param 12',        'FX1',  'value',    { desc: '' });
 BYTE_MAP[179] = bp(179, 'FX2 Type',            'FX2',  'value',    { desc: '0-35' });
-for (var f2i = 180; f2i <= 191; f2i++) {
+for (let f2i = 180; f2i <= 191; f2i++) {
   BYTE_MAP[f2i] = bp(f2i, 'FX2 Param ' + (f2i - 179), 'FX2', 'value', { desc: '' });
 }
 BYTE_MAP[192] = bp(192, 'FX3 Type',            'FX3',  'value',    { desc: '0-35' });
-for (var f3i = 193; f3i <= 204; f3i++) {
+for (let f3i = 193; f3i <= 204; f3i++) {
   BYTE_MAP[f3i] = bp(f3i, 'FX3 Param ' + (f3i - 192), 'FX3', 'value', { desc: '' });
 }
 BYTE_MAP[205] = bp(205, 'FX4 Type',            'FX4',  'value',    { desc: '0-35' });
-for (var f4i = 206; f4i <= 217; f4i++) {
+for (let f4i = 206; f4i <= 217; f4i++) {
   BYTE_MAP[f4i] = bp(f4i, 'FX4 Param ' + (f4i - 205), 'FX4', 'value', { desc: '' });
 }
 BYTE_MAP[218] = bp(218, 'FX1 Output Gain',     'FX1',  'value',    { desc: '0-150 (0=min…150=max)' });
@@ -211,8 +211,8 @@ BYTE_MAP[220] = bp(220, 'FX3 Output Gain',     'FX3',  'value',    { desc: '0-15
 BYTE_MAP[221] = bp(221, 'FX4 Output Gain',     'FX4',  'value',    { desc: '0-150' });
 BYTE_MAP[222] = bp(222, 'FX Mode',             'FX',   'enum',     { enumLabels: ENUM_FX_MODE });
 BYTE_MAP[223] = bp(223, '(firmware metadata)', 'Firmware', 'value', { desc: 'Firmware internal metadata. 116 unique values. No CRC16/checksum. No DSP impact.' });
-for (var ci = 224; ci <= 238; ci++) {
-  var charIdx = ci - 224;
+for (let ci = 224; ci <= 238; ci++) {
+  const charIdx = ci - 224;
   BYTE_MAP[ci] = bp(ci, 'Program Name char[' + charIdx + ']', 'Name', 'ascii', { desc: 'ASCII character of patch name (15 chars in SysEx format)' });
 }
 BYTE_MAP[239] = bp(239, '(name field tail)', 'Tail', 'value', { desc: 'Data after name field. raw SysEx offsets 282-284. Part of packed payload tail.' });
@@ -223,12 +223,12 @@ BYTE_MAP[241] = bp(241, '(name field tail)', 'Tail', 'value', { desc: 'Last unpa
 // Source Constants (extracted from bridge-param-maps.js)
 // =============================================================================
 
-var BIPOLAR_BYTES = new Set([42, 83, 91, 95, 98, 101, 104, 107, 110, 113, 116, 123, 124, 125, 126, 127,
+const BIPOLAR_BYTES = new Set([42, 83, 91, 95, 98, 101, 104, 107, 110, 113, 116, 123, 124, 125, 126, 127,
     128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143,
     144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154
 ]);
 
-var ENUM_BYTES = {
+const ENUM_BYTES = {
     2: 6, 3: 1, 4: 1, 9: 6, 10: 1, 11: 1, 14: 2, 15: 2, 16: 5, 17: 5, 18: 1, 19: 1, 20: 1, 22: 6, 32: 6,
     35: 9, 38: 1, 46: 1, 50: 1, 51: 1, 52: 1,
     57: 4, 66: 4, 75: 4, 84: 2, 85: 12, 86: 3, 92: 1,
@@ -236,95 +236,95 @@ var ENUM_BYTES = {
     166: 35, 179: 35, 192: 35, 205: 35, 222: 2
 };
 
-var PARAM_TO_BYTE_OFFSET = {
-    "lfo1_rate": 0, "lfo1_delay": 1, "lfo1_shape": 2, "lfo1_key_sync": 3,
-    "lfo1_arp_sync": 4, "lfo1_mono_mode": 5, "lfo1_slew": 6,
-    "lfo2_rate": 7, "lfo2_delay": 8, "lfo2_shape": 9, "lfo2_key_sync": 10,
-    "lfo2_arp_sync": 11, "lfo2_mono_mode": 12, "lfo2_slew": 13,
-    "osc1_range": 14, "osc2_range": 15,
-    "osc1_pwm_source": 16, "osc2_pm_source": 32, "osc2_tpm_source": 17,
-    "osc1_square_enable": 18, "osc1_saw_enable": 19, "osc_sync_enable": 20,
-    "osc1_pitch_mod": 21, "osc1_pm_source": 22,
-    "osc1_lfo_aftertouch": 23, "osc1_lfo_modwheel": 24, "osc1_pwm_amount": 25,
-    "osc2_level": 26, "osc2_pitch": 27, "osc2_tone_mod": 28, "osc2_pitch_mod": 29,
-    "osc2_aftertouch_pitch": 30, "osc2_modwheel_pitch": 31, "osc2_pitch_mod_select": 32,
-    "noise_level": 33,
-    "global_portamento": 34, "porta_mode": 35,
-    "pitch_bend_up": 36, "pitch_bend_down": 37, "osc1_pm_mode": 38,
-    "vcf_cutoff": 39, "hpf_cutoff": 40, "vcf_resonance": 41, "vcf_env_depth": 42,
-    "vcf_env_vel": 43, "vcf_pitch_bend": 44, "vcf_lfo_depth": 45,
-    "vcf_lfo_select": 46, "vcf_aftertouch_lfo": 47, "vcf_modwheel_lfo": 48,
-    "vcf_key_tracking": 49, "vcf_env_polarity": 50, "vcf_pole_mode": 51, "hpf_boost_enable": 52,
-    "env1_attack": 53, "env1_decay": 54, "env1_sustain": 55, "env1_release": 56,
-    "env1_trigger_mode": 57, "env1_attack_curve": 58, "env1_decay_curve": 59,
-    "env1_sustain_curve": 60, "env1_release_curve": 61,
-    "env2_attack": 62, "env2_decay": 63, "env2_sustain": 64, "env2_release": 65,
-    "env2_trigger_mode": 66, "env2_attack_curve": 67, "env2_decay_curve": 68,
-    "env2_sustain_curve": 69, "env2_release_curve": 70,
-    "env3_attack": 71, "env3_decay": 72, "env3_sustain": 73, "env3_release": 74,
-    "env3_trigger_mode": 75, "env3_attack_curve": 76, "env3_decay_curve": 77,
-    "env3_sustain_curve": 78, "env3_release_curve": 79,
-    "vca_level": 80, "vca_env_depth": 81, "vca_vel_sens": 82, "vca_pan_spread": 83,
-    "note_priority": 84, "voice_mode": 85, "trigger_mode": 86,
-    "unison_detune": 87, "voice_drift": 88, "osc_drift": 88,
-    "param_drift": 89, "drift_rate": 90, "porta_osc_bal": 91, "osc_key_reset": 92,
-    "mod_matrix_slot1_src": 93, "mod_matrix_slot1_dest": 94, "mod_matrix_slot1_depth": 95,
-    "mod_matrix_slot2_src": 96, "mod_matrix_slot2_dest": 97, "mod_matrix_slot2_depth": 98,
-    "mod_matrix_slot3_src": 99, "mod_matrix_slot3_dest": 100, "mod_matrix_slot3_depth": 101,
-    "mod_matrix_slot4_src": 102, "mod_matrix_slot4_dest": 103, "mod_matrix_slot4_depth": 104,
-    "mod_matrix_slot5_src": 105, "mod_matrix_slot5_dest": 106, "mod_matrix_slot5_depth": 107,
-    "mod_matrix_slot6_src": 108, "mod_matrix_slot6_dest": 109, "mod_matrix_slot6_depth": 110,
-    "mod_matrix_slot7_src": 111, "mod_matrix_slot7_dest": 112, "mod_matrix_slot7_depth": 113,
-    "mod_matrix_slot8_src": 114, "mod_matrix_slot8_dest": 115, "mod_matrix_slot8_depth": 116,
-    "seq_enable": 117, "seq_clock": 118, "seq_length": 119,
-    "seq_swing": 120, "seq_key_loop": 121, "seq_slew_rate": 122,
-    "seq_step_1": 123, "seq_step_2": 124, "seq_step_3": 125, "seq_step_4": 126, "seq_step_5": 127,
-    "seq_step_6": 128, "seq_step_7": 129, "seq_step_8": 130, "seq_step_9": 131, "seq_step_10": 132,
-    "seq_step_11": 133, "seq_step_12": 134, "seq_step_13": 135, "seq_step_14": 136, "seq_step_15": 137,
-    "seq_step_16": 138, "seq_step_17": 139, "seq_step_18": 140, "seq_step_19": 141, "seq_step_20": 142,
-    "seq_step_21": 143, "seq_step_22": 144, "seq_step_23": 145, "seq_step_24": 146, "seq_step_25": 147,
-    "seq_step_26": 148, "seq_step_27": 149, "seq_step_28": 150, "seq_step_29": 151, "seq_step_30": 152,
-    "seq_step_31": 153, "seq_step_32": 154,
-    "chord_enable": 105, "poly_chord_enable": 106, "chord_key": 107, "chord_type": 108,
-    "arp_enable": 155, "arp_mode": 156, "arp_rate": 157, "arp_clock_divider": 158,
-    "arp_key_sync": 159, "arp_gate_time": 160, "arp_gate": 160,
-    "arp_hold": 161, "arp_pattern": 162, "arp_swing": 163, "arp_octave": 164,
-    "fx_routing": 165,
-    "fx1_type": 166, "fx1_param1": 167, "fx1_param2": 168, "fx1_param3": 169,
-    "fx1_param4": 170, "fx1_param5": 171, "fx1_param6": 172, "fx1_param7": 173,
-    "fx1_param8": 174, "fx1_param9": 175, "fx1_param10": 176, "fx1_param11": 177, "fx1_param12": 178,
-    "fx2_type": 179, "fx2_param1": 180, "fx2_param2": 181, "fx2_param3": 182,
-    "fx2_param4": 183, "fx2_param5": 184, "fx2_param6": 185, "fx2_param7": 186,
-    "fx2_param8": 187, "fx2_param9": 188, "fx2_param10": 189, "fx2_param11": 190, "fx2_param12": 191,
-    "fx3_type": 192, "fx3_param1": 193, "fx3_param2": 194, "fx3_param3": 195,
-    "fx3_param4": 196, "fx3_param5": 197, "fx3_param6": 198, "fx3_param7": 199,
-    "fx3_param8": 200, "fx3_param9": 201, "fx3_param10": 202, "fx3_param11": 203, "fx3_param12": 204,
-    "fx4_type": 205, "fx4_param1": 206, "fx4_param2": 207, "fx4_param3": 208,
-    "fx4_param4": 209, "fx4_param5": 210, "fx4_param6": 211, "fx4_param7": 212,
-    "fx4_param8": 213, "fx4_param9": 214, "fx4_param10": 215, "fx4_param11": 216, "fx4_param12": 217,
-    "fx1_gain": 218, "fx2_gain": 219, "fx3_gain": 220, "fx4_gain": 221,
-    "fx_mode": 222,
-    "fx_feedback_gain": 223,
-    "fx_send_level": 225
+const PARAM_TO_BYTE_OFFSET = {
+    'lfo1_rate': 0, 'lfo1_delay': 1, 'lfo1_shape': 2, 'lfo1_key_sync': 3,
+    'lfo1_arp_sync': 4, 'lfo1_mono_mode': 5, 'lfo1_slew': 6,
+    'lfo2_rate': 7, 'lfo2_delay': 8, 'lfo2_shape': 9, 'lfo2_key_sync': 10,
+    'lfo2_arp_sync': 11, 'lfo2_mono_mode': 12, 'lfo2_slew': 13,
+    'osc1_range': 14, 'osc2_range': 15,
+    'osc1_pwm_source': 16, 'osc2_pm_source': 32, 'osc2_tpm_source': 17,
+    'osc1_square_enable': 18, 'osc1_saw_enable': 19, 'osc_sync_enable': 20,
+    'osc1_pitch_mod': 21, 'osc1_pm_source': 22,
+    'osc1_lfo_aftertouch': 23, 'osc1_lfo_modwheel': 24, 'osc1_pwm_amount': 25,
+    'osc2_level': 26, 'osc2_pitch': 27, 'osc2_tone_mod': 28, 'osc2_pitch_mod': 29,
+    'osc2_aftertouch_pitch': 30, 'osc2_modwheel_pitch': 31, 'osc2_pitch_mod_select': 32,
+    'noise_level': 33,
+    'global_portamento': 34, 'porta_mode': 35,
+    'pitch_bend_up': 36, 'pitch_bend_down': 37, 'osc1_pm_mode': 38,
+    'vcf_cutoff': 39, 'hpf_cutoff': 40, 'vcf_resonance': 41, 'vcf_env_depth': 42,
+    'vcf_env_vel': 43, 'vcf_pitch_bend': 44, 'vcf_lfo_depth': 45,
+    'vcf_lfo_select': 46, 'vcf_aftertouch_lfo': 47, 'vcf_modwheel_lfo': 48,
+    'vcf_key_tracking': 49, 'vcf_env_polarity': 50, 'vcf_pole_mode': 51, 'hpf_boost_enable': 52,
+    'env1_attack': 53, 'env1_decay': 54, 'env1_sustain': 55, 'env1_release': 56,
+    'env1_trigger_mode': 57, 'env1_attack_curve': 58, 'env1_decay_curve': 59,
+    'env1_sustain_curve': 60, 'env1_release_curve': 61,
+    'env2_attack': 62, 'env2_decay': 63, 'env2_sustain': 64, 'env2_release': 65,
+    'env2_trigger_mode': 66, 'env2_attack_curve': 67, 'env2_decay_curve': 68,
+    'env2_sustain_curve': 69, 'env2_release_curve': 70,
+    'env3_attack': 71, 'env3_decay': 72, 'env3_sustain': 73, 'env3_release': 74,
+    'env3_trigger_mode': 75, 'env3_attack_curve': 76, 'env3_decay_curve': 77,
+    'env3_sustain_curve': 78, 'env3_release_curve': 79,
+    'vca_level': 80, 'vca_env_depth': 81, 'vca_vel_sens': 82, 'vca_pan_spread': 83,
+    'note_priority': 84, 'voice_mode': 85, 'trigger_mode': 86,
+    'unison_detune': 87, 'voice_drift': 88, 'osc_drift': 88,
+    'param_drift': 89, 'drift_rate': 90, 'porta_osc_bal': 91, 'osc_key_reset': 92,
+    'mod_matrix_slot1_src': 93, 'mod_matrix_slot1_dest': 94, 'mod_matrix_slot1_depth': 95,
+    'mod_matrix_slot2_src': 96, 'mod_matrix_slot2_dest': 97, 'mod_matrix_slot2_depth': 98,
+    'mod_matrix_slot3_src': 99, 'mod_matrix_slot3_dest': 100, 'mod_matrix_slot3_depth': 101,
+    'mod_matrix_slot4_src': 102, 'mod_matrix_slot4_dest': 103, 'mod_matrix_slot4_depth': 104,
+    'mod_matrix_slot5_src': 105, 'mod_matrix_slot5_dest': 106, 'mod_matrix_slot5_depth': 107,
+    'mod_matrix_slot6_src': 108, 'mod_matrix_slot6_dest': 109, 'mod_matrix_slot6_depth': 110,
+    'mod_matrix_slot7_src': 111, 'mod_matrix_slot7_dest': 112, 'mod_matrix_slot7_depth': 113,
+    'mod_matrix_slot8_src': 114, 'mod_matrix_slot8_dest': 115, 'mod_matrix_slot8_depth': 116,
+    'seq_enable': 117, 'seq_clock': 118, 'seq_length': 119,
+    'seq_swing': 120, 'seq_key_loop': 121, 'seq_slew_rate': 122,
+    'seq_step_1': 123, 'seq_step_2': 124, 'seq_step_3': 125, 'seq_step_4': 126, 'seq_step_5': 127,
+    'seq_step_6': 128, 'seq_step_7': 129, 'seq_step_8': 130, 'seq_step_9': 131, 'seq_step_10': 132,
+    'seq_step_11': 133, 'seq_step_12': 134, 'seq_step_13': 135, 'seq_step_14': 136, 'seq_step_15': 137,
+    'seq_step_16': 138, 'seq_step_17': 139, 'seq_step_18': 140, 'seq_step_19': 141, 'seq_step_20': 142,
+    'seq_step_21': 143, 'seq_step_22': 144, 'seq_step_23': 145, 'seq_step_24': 146, 'seq_step_25': 147,
+    'seq_step_26': 148, 'seq_step_27': 149, 'seq_step_28': 150, 'seq_step_29': 151, 'seq_step_30': 152,
+    'seq_step_31': 153, 'seq_step_32': 154,
+    'chord_enable': 105, 'poly_chord_enable': 106, 'chord_key': 107, 'chord_type': 108,
+    'arp_enable': 155, 'arp_mode': 156, 'arp_rate': 157, 'arp_clock_divider': 158,
+    'arp_key_sync': 159, 'arp_gate_time': 160, 'arp_gate': 160,
+    'arp_hold': 161, 'arp_pattern': 162, 'arp_swing': 163, 'arp_octave': 164,
+    'fx_routing': 165,
+    'fx1_type': 166, 'fx1_param1': 167, 'fx1_param2': 168, 'fx1_param3': 169,
+    'fx1_param4': 170, 'fx1_param5': 171, 'fx1_param6': 172, 'fx1_param7': 173,
+    'fx1_param8': 174, 'fx1_param9': 175, 'fx1_param10': 176, 'fx1_param11': 177, 'fx1_param12': 178,
+    'fx2_type': 179, 'fx2_param1': 180, 'fx2_param2': 181, 'fx2_param3': 182,
+    'fx2_param4': 183, 'fx2_param5': 184, 'fx2_param6': 185, 'fx2_param7': 186,
+    'fx2_param8': 187, 'fx2_param9': 188, 'fx2_param10': 189, 'fx2_param11': 190, 'fx2_param12': 191,
+    'fx3_type': 192, 'fx3_param1': 193, 'fx3_param2': 194, 'fx3_param3': 195,
+    'fx3_param4': 196, 'fx3_param5': 197, 'fx3_param6': 198, 'fx3_param7': 199,
+    'fx3_param8': 200, 'fx3_param9': 201, 'fx3_param10': 202, 'fx3_param11': 203, 'fx3_param12': 204,
+    'fx4_type': 205, 'fx4_param1': 206, 'fx4_param2': 207, 'fx4_param3': 208,
+    'fx4_param4': 209, 'fx4_param5': 210, 'fx4_param6': 211, 'fx4_param7': 212,
+    'fx4_param8': 213, 'fx4_param9': 214, 'fx4_param10': 215, 'fx4_param11': 216, 'fx4_param12': 217,
+    'fx1_gain': 218, 'fx2_gain': 219, 'fx3_gain': 220, 'fx4_gain': 221,
+    'fx_mode': 222,
+    'fx_feedback_gain': 223,
+    'fx_send_level': 225
 };
 
-var PARAM_TO_CC = {
-    "lfo1_rate": 16, "lfo1_delay": 17,
-    "osc1_pitch_mod": 20, "osc1_pwm_amount": 21,
-    "osc2_pitch_mod": 23, "osc2_tone_mod": 24, "osc2_pitch": 25, "osc2_level": 26,
-    "noise_level": 27,
-    "global_portamento": 5,
-    "vcf_cutoff": 29, "vcf_resonance": 30, "vcf_env_depth": 31,
-    "vcf_lfo_depth": 33, "vcf_key_tracking": 34, "hpf_cutoff": 35,
-    "vca_level": 36,
-    "env1_attack": 37, "env1_decay": 39, "env1_sustain": 40, "env1_release": 41,
-    "env2_attack": 42, "env2_decay": 43, "env2_sustain": 44, "env2_release": 45,
-    "env3_attack": 46, "env3_decay": 47, "env3_sustain": 48, "env3_release": 49,
-    "unison_detune": 28,
-    "arp_rate": 12, "arp_gate_time": 13, "arp_gate": 13,
-    "global_volume": 7,
-    "global_tune": 81,
-    "transpose": 82
+const PARAM_TO_CC = {
+    'lfo1_rate': 16, 'lfo1_delay': 17,
+    'osc1_pitch_mod': 20, 'osc1_pwm_amount': 21,
+    'osc2_pitch_mod': 23, 'osc2_tone_mod': 24, 'osc2_pitch': 25, 'osc2_level': 26,
+    'noise_level': 27,
+    'global_portamento': 5,
+    'vcf_cutoff': 29, 'vcf_resonance': 30, 'vcf_env_depth': 31,
+    'vcf_lfo_depth': 33, 'vcf_key_tracking': 34, 'hpf_cutoff': 35,
+    'vca_level': 36,
+    'env1_attack': 37, 'env1_decay': 39, 'env1_sustain': 40, 'env1_release': 41,
+    'env2_attack': 42, 'env2_decay': 43, 'env2_sustain': 44, 'env2_release': 45,
+    'env3_attack': 46, 'env3_decay': 47, 'env3_sustain': 48, 'env3_release': 49,
+    'unison_detune': 28,
+    'arp_rate': 12, 'arp_gate_time': 13, 'arp_gate': 13,
+    'global_volume': 7,
+    'global_tune': 81,
+    'transpose': 82
 };
 
 // =============================================================================
@@ -332,11 +332,11 @@ var PARAM_TO_CC = {
 // =============================================================================
 
 function buildReverseMap() {
-    var map = {};
-    for (var paramId in PARAM_TO_BYTE_OFFSET) {
+    const map = {};
+    for (const paramId in PARAM_TO_BYTE_OFFSET) {
         if (PARAM_TO_BYTE_OFFSET.hasOwnProperty(paramId)) {
-            var byteOff = PARAM_TO_BYTE_OFFSET[paramId];
-            if (!map[byteOff]) map[byteOff] = [];
+            const byteOff = PARAM_TO_BYTE_OFFSET[paramId];
+            if (!map[byteOff]) {map[byteOff] = [];}
             if (map[byteOff].indexOf(paramId) === -1) {
                 map[byteOff].push(paramId);
             }
@@ -345,7 +345,7 @@ function buildReverseMap() {
     return map;
 }
 
-var BYTE_OFFSET_TO_PARAM_IDS = buildReverseMap();
+const BYTE_OFFSET_TO_PARAM_IDS = buildReverseMap();
 
 function rawToNormalized(byteOffset, rawValue) {
     if (BIPOLAR_BYTES.has(byteOffset)) {
@@ -359,7 +359,7 @@ function rawToNormalized(byteOffset, rawValue) {
 
 function normalizedToRaw(byteOffset, normalizedValue) {
     if (BIPOLAR_BYTES.has(byteOffset)) {
-        var val = ((normalizedValue * 2.0) - 1.0) * 127.0;
+        const val = ((normalizedValue * 2.0) - 1.0) * 127.0;
         return Math.round(val + 128);
     }
     if (ENUM_BYTES[byteOffset] !== undefined) {
@@ -369,27 +369,27 @@ function normalizedToRaw(byteOffset, normalizedValue) {
 }
 
 function formatParamValue(paramId, normalizedVal) {
-    if (typeof normalizedVal !== 'number' || isNaN(normalizedVal)) return '\u2014';
+    if (typeof normalizedVal !== 'number' || isNaN(normalizedVal)) {return '\u2014';}
 
-    var p2b = PARAM_TO_BYTE_OFFSET;
-    var eBytes = ENUM_BYTES;
-    if (!p2b) return Math.round(normalizedVal * 100) + '%';
+    const p2b = PARAM_TO_BYTE_OFFSET;
+    const eBytes = ENUM_BYTES;
+    if (!p2b) {return Math.round(normalizedVal * 100) + '%';}
 
-    var byteOffset = p2b[paramId];
-    if (byteOffset === undefined) return Math.round(normalizedVal * 100) + '%';
+    const byteOffset = p2b[paramId];
+    if (byteOffset === undefined) {return Math.round(normalizedVal * 100) + '%';}
 
-    var entry = BYTE_MAP[byteOffset];
-    if (!entry) return Math.round(normalizedVal * 100) + '%';
+    const entry = BYTE_MAP[byteOffset];
+    if (!entry) {return Math.round(normalizedVal * 100) + '%';}
 
-    var type = entry.type;
+    const type = entry.type;
 
     if (type === 'toggle') {
         return normalizedVal > 0.5 ? 'ON' : 'OFF';
     }
 
     if (type === 'enum') {
-        var maxIdx = eBytes && eBytes[byteOffset] !== undefined ? eBytes[byteOffset] : (entry.enumLabels ? entry.enumLabels.length - 1 : 0);
-        var idx = Math.round(normalizedVal * maxIdx);
+        const maxIdx = eBytes && eBytes[byteOffset] !== undefined ? eBytes[byteOffset] : (entry.enumLabels ? entry.enumLabels.length - 1 : 0);
+        const idx = Math.round(normalizedVal * maxIdx);
         if (entry.enumLabels && idx >= 0 && idx < entry.enumLabels.length) {
             return entry.enumLabels[idx];
         }
@@ -397,7 +397,7 @@ function formatParamValue(paramId, normalizedVal) {
     }
 
     if (type === 'bipolar') {
-        var signed = Math.round((normalizedVal - 0.5) * 200);
+        const signed = Math.round((normalizedVal - 0.5) * 200);
         return (signed >= 0 ? '+' : '') + signed;
     }
 
@@ -417,7 +417,7 @@ describe('BYTE_MAP — data integrity', function () {
     });
 
     it('all 242 entries are non-null', function () {
-        for (var i = 0; i < BYTE_MAP.length; i++) {
+        for (let i = 0; i < BYTE_MAP.length; i++) {
             if (BYTE_MAP[i] === null) {
                 expect('byte ' + i + ' is null').toBe('all non-null');
                 return;
@@ -427,14 +427,14 @@ describe('BYTE_MAP — data integrity', function () {
     });
 
     it('each entry has idx matching its array index', function () {
-        for (var i = 0; i < BYTE_MAP.length; i++) {
+        for (let i = 0; i < BYTE_MAP.length; i++) {
             expect(BYTE_MAP[i].idx).toBe(i);
         }
     });
 
     it('each entry has required properties: idx, param, region, type', function () {
-        for (var i = 0; i < BYTE_MAP.length; i++) {
-            var e = BYTE_MAP[i];
+        for (let i = 0; i < BYTE_MAP.length; i++) {
+            const e = BYTE_MAP[i];
             expect(typeof e.idx).toBe('number');
             expect(typeof e.param).toBe('string');
             expect(e.param.length).toBeGreaterThan(0);
@@ -445,9 +445,9 @@ describe('BYTE_MAP — data integrity', function () {
     });
 
     it('all type values are valid', function () {
-        var validTypes = ['value', 'enum', 'toggle', 'bipolar', 'time', 'ascii', 'dual'];
-        for (var i = 0; i < BYTE_MAP.length; i++) {
-            var t = BYTE_MAP[i].type;
+        const validTypes = ['value', 'enum', 'toggle', 'bipolar', 'time', 'ascii', 'dual'];
+        for (let i = 0; i < BYTE_MAP.length; i++) {
+            const t = BYTE_MAP[i].type;
             if (validTypes.indexOf(t) === -1) {
                 expect('byte ' + i + ' has invalid type "' + t + '"').toBe('type in ' + JSON.stringify(validTypes));
             }
@@ -456,8 +456,8 @@ describe('BYTE_MAP — data integrity', function () {
     });
 
     it('enum entries that have enumLabels are non-empty arrays', function () {
-        for (var i = 0; i < BYTE_MAP.length; i++) {
-            var e = BYTE_MAP[i];
+        for (let i = 0; i < BYTE_MAP.length; i++) {
+            const e = BYTE_MAP[i];
             if (e.type === 'enum' && e.enumLabels !== null) {
                 if (!Array.isArray(e.enumLabels) || e.enumLabels.length === 0) {
                     expect('byte ' + i + ' ' + e.param + ' enumLabels is not a non-empty array').toBe('non-empty array');
@@ -469,9 +469,9 @@ describe('BYTE_MAP — data integrity', function () {
 
     it('some enum entries use desc instead of enumLabels (mod matrix sources/dests)', function () {
         // Bytes 93-94, 96-97, 99-100, 102-103, 114 are enum type with desc-only (no enumLabels)
-        var descOnlyEnums = [93, 94, 96, 97, 99, 100, 102, 103, 114];
-        for (var i = 0; i < descOnlyEnums.length; i++) {
-            var e = BYTE_MAP[descOnlyEnums[i]];
+        const descOnlyEnums = [93, 94, 96, 97, 99, 100, 102, 103, 114];
+        for (let i = 0; i < descOnlyEnums.length; i++) {
+            const e = BYTE_MAP[descOnlyEnums[i]];
             expect(e.type).toBe('enum');
             expect(e.enumLabels).toBeNull();
             expect(e.desc.length).toBeGreaterThan(0);
@@ -479,8 +479,8 @@ describe('BYTE_MAP — data integrity', function () {
     });
 
     it('dual entries do not have enumLabels (they use desc only)', function () {
-        for (var i = 0; i < BYTE_MAP.length; i++) {
-            var e = BYTE_MAP[i];
+        for (let i = 0; i < BYTE_MAP.length; i++) {
+            const e = BYTE_MAP[i];
             if (e.type === 'dual') {
                 // Dual entries use desc to describe dual-purpose bytes, not enumLabels
                 expect(e.enumLabels).toBeNull();
@@ -490,17 +490,17 @@ describe('BYTE_MAP — data integrity', function () {
     });
 
     it('all param names are unique except known tail duplicates (bytes 239-241)', function () {
-        var seen = {};
-        var duplicates = [];
-        for (var i = 0; i < BYTE_MAP.length; i++) {
-            var name = BYTE_MAP[i].param;
+        const seen = {};
+        const duplicates = [];
+        for (let i = 0; i < BYTE_MAP.length; i++) {
+            const name = BYTE_MAP[i].param;
             if (seen[name] !== undefined) {
                 duplicates.push({ name: name, first: seen[name], second: i });
             }
             seen[name] = i;
         }
         // The only allowed duplicates are "(name field tail)" at bytes 239-241
-        for (var d = 0; d < duplicates.length; d++) {
+        for (let d = 0; d < duplicates.length; d++) {
             if (duplicates[d].name !== '(name field tail)') {
                 expect('unexpected duplicate "' + duplicates[d].name + '" at bytes ' + duplicates[d].first + ' and ' + duplicates[d].second).toBe('no unexpected duplicates');
             }
@@ -515,20 +515,20 @@ describe('BYTE_MAP — data integrity', function () {
 describe('BYTE_MAP — region range integrity', function () {
 
     it('bytes 0-6 are LFO1 region', function () {
-        for (var i = 0; i <= 6; i++) {
+        for (let i = 0; i <= 6; i++) {
             expect(BYTE_MAP[i].region).toBe('LFO1');
         }
     });
 
     it('bytes 7-13 are LFO2 region', function () {
-        for (var i = 7; i <= 13; i++) {
+        for (let i = 7; i <= 13; i++) {
             expect(BYTE_MAP[i].region).toBe('LFO2');
         }
     });
 
     it('bytes 14-33 are OSC/Noise region', function () {
-        var oscRegions = ['OSC1', 'OSC2', 'OSC', 'Noise'];
-        for (var i = 14; i <= 33; i++) {
+        const oscRegions = ['OSC1', 'OSC2', 'OSC', 'Noise'];
+        for (let i = 14; i <= 33; i++) {
             if (oscRegions.indexOf(BYTE_MAP[i].region) === -1) {
                 expect('byte ' + i + ' region=' + BYTE_MAP[i].region).toBe('one of ' + JSON.stringify(oscRegions));
             }
@@ -537,8 +537,8 @@ describe('BYTE_MAP — region range integrity', function () {
     });
 
     it('bytes 34-38 are Porta/Pitch region', function () {
-        var pitchRegions = ['Porta', 'Pitch'];
-        for (var i = 34; i <= 38; i++) {
+        const pitchRegions = ['Porta', 'Pitch'];
+        for (let i = 34; i <= 38; i++) {
             if (pitchRegions.indexOf(BYTE_MAP[i].region) === -1) {
                 expect('byte ' + i + ' region=' + BYTE_MAP[i].region).toBe('one of ' + JSON.stringify(pitchRegions));
             }
@@ -547,8 +547,8 @@ describe('BYTE_MAP — region range integrity', function () {
     });
 
     it('bytes 39-52 are VCF/HPF region', function () {
-        var filterRegions = ['VCF', 'HPF'];
-        for (var i = 39; i <= 52; i++) {
+        const filterRegions = ['VCF', 'HPF'];
+        for (let i = 39; i <= 52; i++) {
             if (filterRegions.indexOf(BYTE_MAP[i].region) === -1) {
                 expect('byte ' + i + ' region=' + BYTE_MAP[i].region).toBe('one of ' + JSON.stringify(filterRegions));
             }
@@ -557,8 +557,8 @@ describe('BYTE_MAP — region range integrity', function () {
     });
 
     it('bytes 53-79 are ENV1/ENV2/ENV3 region', function () {
-        var envRegions = ['ENV1', 'ENV2', 'ENV3'];
-        for (var i = 53; i <= 79; i++) {
+        const envRegions = ['ENV1', 'ENV2', 'ENV3'];
+        for (let i = 53; i <= 79; i++) {
             if (envRegions.indexOf(BYTE_MAP[i].region) === -1) {
                 expect('byte ' + i + ' region=' + BYTE_MAP[i].region).toBe('one of ' + JSON.stringify(envRegions));
             }
@@ -567,44 +567,44 @@ describe('BYTE_MAP — region range integrity', function () {
     });
 
     it('bytes 80-83 are VCA region', function () {
-        for (var i = 80; i <= 83; i++) {
+        for (let i = 80; i <= 83; i++) {
             expect(BYTE_MAP[i].region).toBe('VCA');
         }
     });
 
     it('bytes 84-92 are Voice region', function () {
-        for (var i = 84; i <= 92; i++) {
+        for (let i = 84; i <= 92; i++) {
             expect(BYTE_MAP[i].region).toBe('Voice');
         }
     });
 
     it('bytes 93-116 are ModMat region', function () {
-        for (var i = 93; i <= 116; i++) {
+        for (let i = 93; i <= 116; i++) {
             expect(BYTE_MAP[i].region).toBe('ModMat');
         }
     });
 
     it('bytes 117-122 are Seq region', function () {
-        for (var i = 117; i <= 122; i++) {
+        for (let i = 117; i <= 122; i++) {
             expect(BYTE_MAP[i].region).toBe('Seq');
         }
     });
 
     it('bytes 123-154 are SeqSteps region', function () {
-        for (var i = 123; i <= 154; i++) {
+        for (let i = 123; i <= 154; i++) {
             expect(BYTE_MAP[i].region).toBe('SeqSteps');
         }
     });
 
     it('bytes 155-164 are Arp region', function () {
-        for (var i = 155; i <= 164; i++) {
+        for (let i = 155; i <= 164; i++) {
             expect(BYTE_MAP[i].region).toBe('Arp');
         }
     });
 
     it('bytes 165-222 are FX region', function () {
-        var fxRegions = ['FX', 'FX1', 'FX2', 'FX3', 'FX4'];
-        for (var i = 165; i <= 222; i++) {
+        const fxRegions = ['FX', 'FX1', 'FX2', 'FX3', 'FX4'];
+        for (let i = 165; i <= 222; i++) {
             if (fxRegions.indexOf(BYTE_MAP[i].region) === -1) {
                 expect('byte ' + i + ' region=' + BYTE_MAP[i].region).toBe('one of ' + JSON.stringify(fxRegions));
             }
@@ -613,13 +613,13 @@ describe('BYTE_MAP — region range integrity', function () {
     });
 
     it('bytes 224-238 are Name region', function () {
-        for (var i = 224; i <= 238; i++) {
+        for (let i = 224; i <= 238; i++) {
             expect(BYTE_MAP[i].region).toBe('Name');
         }
     });
 
     it('bytes 239-241 are Tail region', function () {
-        for (var i = 239; i <= 241; i++) {
+        for (let i = 239; i <= 241; i++) {
             expect(BYTE_MAP[i].region).toBe('Tail');
         }
     });
@@ -678,17 +678,17 @@ describe('BYTE_MAP — enum label arrays', function () {
 describe('PARAM_TO_BYTE_OFFSET — map integrity', function () {
 
     it('has at least 180 param entries', function () {
-        var count = 0;
-        for (var k in PARAM_TO_BYTE_OFFSET) {
-            if (PARAM_TO_BYTE_OFFSET.hasOwnProperty(k)) count++;
+        let count = 0;
+        for (const k in PARAM_TO_BYTE_OFFSET) {
+            if (PARAM_TO_BYTE_OFFSET.hasOwnProperty(k)) {count++;}
         }
         expect(count).toBeGreaterThanOrEqual(180);
     });
 
     it('all byte offsets are valid (0-241)', function () {
-        for (var paramId in PARAM_TO_BYTE_OFFSET) {
+        for (const paramId in PARAM_TO_BYTE_OFFSET) {
             if (PARAM_TO_BYTE_OFFSET.hasOwnProperty(paramId)) {
-                var off = PARAM_TO_BYTE_OFFSET[paramId];
+                const off = PARAM_TO_BYTE_OFFSET[paramId];
                 expect(typeof off).toBe('number');
                 expect(off).toBeGreaterThanOrEqual(0);
                 expect(off).toBeLessThanOrEqual(241);
@@ -698,15 +698,15 @@ describe('PARAM_TO_BYTE_OFFSET — map integrity', function () {
 
     it('every byte offset has at least one paramId (reverse map consistency)', function () {
         // Check that every offset in PARAM_TO_BYTE_OFFSET is covered by the reverse map
-        var coveredOffsets = {};
-        for (var k in BYTE_OFFSET_TO_PARAM_IDS) {
+        const coveredOffsets = {};
+        for (const k in BYTE_OFFSET_TO_PARAM_IDS) {
             if (BYTE_OFFSET_TO_PARAM_IDS.hasOwnProperty(k)) {
                 coveredOffsets[k] = true;
             }
         }
-        for (var p in PARAM_TO_BYTE_OFFSET) {
+        for (const p in PARAM_TO_BYTE_OFFSET) {
             if (PARAM_TO_BYTE_OFFSET.hasOwnProperty(p)) {
-                var off = String(PARAM_TO_BYTE_OFFSET[p]);
+                const off = String(PARAM_TO_BYTE_OFFSET[p]);
                 if (!coveredOffsets[off]) {
                     expect('offset ' + off + ' missing from BYTE_OFFSET_TO_PARAM_IDS').toBe('present');
                 }
@@ -716,15 +716,15 @@ describe('PARAM_TO_BYTE_OFFSET — map integrity', function () {
     });
 
     it('reverse map has at least as many keys as PARAM_TO_BYTE_OFFSET references unique offsets', function () {
-        var uniqueOffsets = {};
-        for (var p in PARAM_TO_BYTE_OFFSET) {
+        const uniqueOffsets = {};
+        for (const p in PARAM_TO_BYTE_OFFSET) {
             if (PARAM_TO_BYTE_OFFSET.hasOwnProperty(p)) {
                 uniqueOffsets[PARAM_TO_BYTE_OFFSET[p]] = true;
             }
         }
-        var revCount = 0;
-        for (var r in BYTE_OFFSET_TO_PARAM_IDS) {
-            if (BYTE_OFFSET_TO_PARAM_IDS.hasOwnProperty(r)) revCount++;
+        let revCount = 0;
+        for (const r in BYTE_OFFSET_TO_PARAM_IDS) {
+            if (BYTE_OFFSET_TO_PARAM_IDS.hasOwnProperty(r)) {revCount++;}
         }
         expect(revCount).toBeGreaterThanOrEqual(Object.keys(uniqueOffsets).length - 5); // allow aliases at 88, 32, 160
     });
@@ -736,9 +736,9 @@ describe('PARAM_TO_BYTE_OFFSET — map integrity', function () {
 describe('ENUM_BYTES — parameter range integrity', function () {
 
     it('all ENUM_BYTES keys are valid byte offsets (0-241)', function () {
-        for (var k in ENUM_BYTES) {
+        for (const k in ENUM_BYTES) {
             if (ENUM_BYTES.hasOwnProperty(k)) {
-                var off = parseInt(k, 10);
+                const off = parseInt(k, 10);
                 expect(off).toBeGreaterThanOrEqual(0);
                 expect(off).toBeLessThanOrEqual(241);
             }
@@ -746,7 +746,7 @@ describe('ENUM_BYTES — parameter range integrity', function () {
     });
 
     it('all ENUM_BYTES values are >= 1', function () {
-        for (var k in ENUM_BYTES) {
+        for (const k in ENUM_BYTES) {
             if (ENUM_BYTES.hasOwnProperty(k)) {
                 expect(ENUM_BYTES[k]).toBeGreaterThanOrEqual(1);
             }
@@ -754,13 +754,13 @@ describe('ENUM_BYTES — parameter range integrity', function () {
     });
 
     it('ENUM_BYTES keys appear in BYTE_MAP with compatible type (enum/toggle/bipolar/dual/value)', function () {
-        for (var k in ENUM_BYTES) {
+        for (const k in ENUM_BYTES) {
             if (ENUM_BYTES.hasOwnProperty(k)) {
-                var off = parseInt(k, 10);
-                var entry = BYTE_MAP[off];
+                const off = parseInt(k, 10);
+                const entry = BYTE_MAP[off];
                 // ENUM_BYTES can coexist with value type for parameters like
                 // Seq Length (byte 119) which has a 0-31 range but is stored as 'value'
-                var compatibleTypes = ['enum', 'toggle', 'bipolar', 'dual', 'value'];
+                const compatibleTypes = ['enum', 'toggle', 'bipolar', 'dual', 'value'];
                 if (entry && compatibleTypes.indexOf(entry.type) === -1) {
                     expect('byte ' + k + ' has ENUM_BYTES but BYTE_MAP type=' + entry.type).toBe('one of ' + JSON.stringify(compatibleTypes));
                 }
@@ -770,8 +770,8 @@ describe('ENUM_BYTES — parameter range integrity', function () {
     });
 
     it('toggle entries (3,4,10,11,18,19,20,38,46,50,51,52,92,117,155,159,161) are in ENUM_BYTES with max=1', function () {
-        var toggleBytes = [3, 4, 10, 11, 18, 19, 20, 38, 46, 50, 51, 52, 92, 117, 155, 159, 161];
-        for (var i = 0; i < toggleBytes.length; i++) {
+        const toggleBytes = [3, 4, 10, 11, 18, 19, 20, 38, 46, 50, 51, 52, 92, 117, 155, 159, 161];
+        for (let i = 0; i < toggleBytes.length; i++) {
             expect(ENUM_BYTES[toggleBytes[i]]).toBe(1);
         }
     });
@@ -794,9 +794,9 @@ describe('BIPOLAR_BYTES — set integrity', function () {
     });
 
     it('bipolar bytes 42,83,91,95-116 (mod matrix depths) are bipolar or dual in BYTE_MAP', function () {
-        var expectedBipolar = [42, 83, 91, 95, 98, 101, 104, 107, 110, 113, 116];
-        for (var i = 0; i < expectedBipolar.length; i++) {
-            var entry = BYTE_MAP[expectedBipolar[i]];
+        const expectedBipolar = [42, 83, 91, 95, 98, 101, 104, 107, 110, 113, 116];
+        for (let i = 0; i < expectedBipolar.length; i++) {
+            const entry = BYTE_MAP[expectedBipolar[i]];
             // Byte 107 is 'dual' (Mod5 Depth / Chord Key) but in bipolar context acts as bipolar
             if (entry && entry.type !== 'bipolar' && entry.type !== 'dual') {
                 expect('byte ' + expectedBipolar[i] + ' is in BIPOLAR_BYTES but BYTE_MAP type=' + entry.type).toBe('bipolar or dual');
@@ -806,7 +806,7 @@ describe('BIPOLAR_BYTES — set integrity', function () {
     });
 
     it('all seq step bytes (123-154) are in BIPOLAR_BYTES', function () {
-        for (var i = 123; i <= 154; i++) {
+        for (let i = 123; i <= 154; i++) {
             expect(BIPOLAR_BYTES.has(i)).toBe(true);
         }
     });
@@ -818,9 +818,9 @@ describe('BIPOLAR_BYTES — set integrity', function () {
 describe('PARAM_TO_CC — MIDI CC map integrity', function () {
 
     it('all CC values are in range 0-127', function () {
-        for (var k in PARAM_TO_CC) {
+        for (const k in PARAM_TO_CC) {
             if (PARAM_TO_CC.hasOwnProperty(k)) {
-                var cc = PARAM_TO_CC[k];
+                const cc = PARAM_TO_CC[k];
                 expect(cc).toBeGreaterThanOrEqual(0);
                 expect(cc).toBeLessThanOrEqual(127);
             }
@@ -828,10 +828,10 @@ describe('PARAM_TO_CC — MIDI CC map integrity', function () {
     });
 
     it('CC values are unique (no duplicate CC mapping)', function () {
-        var seenCC = {};
-        for (var k in PARAM_TO_CC) {
+        const seenCC = {};
+        for (const k in PARAM_TO_CC) {
             if (PARAM_TO_CC.hasOwnProperty(k)) {
-                var cc = PARAM_TO_CC[k];
+                const cc = PARAM_TO_CC[k];
                 if (seenCC[cc] !== undefined) {
                     // Allow known duplicates: arp_gate (13) = arp_gate_time (13)
                     // But flag unexpected duplicates
@@ -847,8 +847,8 @@ describe('PARAM_TO_CC — MIDI CC map integrity', function () {
     });
 
     it('most paramIds in PARAM_TO_CC exist in PARAM_TO_BYTE_OFFSET (global_volume/tune/transpose are MIDI-only)', function () {
-        var midiOnlyCCs = ['global_volume', 'global_tune', 'transpose'];
-        for (var k in PARAM_TO_CC) {
+        const midiOnlyCCs = ['global_volume', 'global_tune', 'transpose'];
+        for (const k in PARAM_TO_CC) {
             if (PARAM_TO_CC.hasOwnProperty(k)) {
                 if (midiOnlyCCs.indexOf(k) === -1) {
                     expect(PARAM_TO_BYTE_OFFSET[k]).toBeDefined(k + ' should have a byte offset');
@@ -888,12 +888,12 @@ describe('rawToNormalized — raw value conversion', function () {
     });
 
     it('bipolar type: raw 64 → normalized ~0.248', function () {
-        var expected = Math.max(0, Math.min(1, ((64 - 128) / 127.0 + 1) / 2));
+        const expected = Math.max(0, Math.min(1, ((64 - 128) / 127.0 + 1) / 2));
         expect(rawToNormalized(42, 64)).toBeCloseTo(expected, 5);
     });
 
     it('bipolar type: raw 192 → normalized ~0.752', function () {
-        var expected = Math.max(0, Math.min(1, ((192 - 128) / 127.0 + 1) / 2));
+        const expected = Math.max(0, Math.min(1, ((192 - 128) / 127.0 + 1) / 2));
         expect(rawToNormalized(42, 192)).toBeCloseTo(expected, 5);
     });
 
@@ -973,63 +973,63 @@ describe('normalizedToRaw — normalized value conversion', function () {
 describe('Conversion roundtrip — raw→normalized→raw consistency', function () {
 
     it('value type: raw 0 → normalized → raw 0', function () {
-        var n = rawToNormalized(0, 0);
+        const n = rawToNormalized(0, 0);
         expect(normalizedToRaw(0, n)).toBe(0);
     });
 
     it('value type: raw 255 → normalized → raw 255', function () {
-        var n = rawToNormalized(0, 255);
+        const n = rawToNormalized(0, 255);
         expect(normalizedToRaw(0, n)).toBe(255);
     });
 
     it('value type: raw 128 → normalized → raw 128', function () {
-        var n = rawToNormalized(0, 128);
+        const n = rawToNormalized(0, 128);
         expect(normalizedToRaw(0, n)).toBe(128);
     });
 
     it('bipolar type: raw 128 → normalized → raw 128', function () {
-        var n = rawToNormalized(42, 128);
+        const n = rawToNormalized(42, 128);
         expect(normalizedToRaw(42, n)).toBe(128);
     });
 
     it('bipolar type: raw 0 → normalized → raw 1 (clamped to min bipolar valid value)', function () {
         // raw=0 → clamped normalized=0 → raw=1 (bipolar valid range is 1-255)
-        var n = rawToNormalized(42, 0);
+        const n = rawToNormalized(42, 0);
         expect(normalizedToRaw(42, n)).toBe(1);
     });
 
     it('bipolar type: raw 255 → normalized → raw 255', function () {
-        var n = rawToNormalized(42, 255);
+        const n = rawToNormalized(42, 255);
         expect(normalizedToRaw(42, n)).toBe(255);
     });
 
     it('bipolar type: raw 64 → normalized → raw 64', function () {
-        var n = rawToNormalized(42, 64);
+        const n = rawToNormalized(42, 64);
         expect(normalizedToRaw(42, n)).toBe(64);
     });
 
     it('bipolar type: raw 192 → normalized → raw 192', function () {
-        var n = rawToNormalized(42, 192);
+        const n = rawToNormalized(42, 192);
         expect(normalizedToRaw(42, n)).toBe(192);
     });
 
     it('enum type: raw 3 → normalized → raw 3', function () {
-        var n = rawToNormalized(2, 3);
+        const n = rawToNormalized(2, 3);
         expect(normalizedToRaw(2, n)).toBe(3);
     });
 
     it('enum type: raw 0 → normalized → raw 0', function () {
-        var n = rawToNormalized(2, 0);
+        const n = rawToNormalized(2, 0);
         expect(normalizedToRaw(2, n)).toBe(0);
     });
 
     it('seq step (bipolar): raw 0 → normalized → raw 1 (bipolar min valid value)', function () {
-        var n = rawToNormalized(123, 0);
+        const n = rawToNormalized(123, 0);
         expect(normalizedToRaw(123, n)).toBe(1);
     });
 
     it('seq step (bipolar): raw 255 → normalized → raw 255', function () {
-        var n = rawToNormalized(123, 255);
+        const n = rawToNormalized(123, 255);
         expect(normalizedToRaw(123, n)).toBe(255);
     });
 
@@ -1181,21 +1181,21 @@ describe('BYTE_MAP — type span coverage', function () {
     });
 
     it('time type covers ADSR time parameters (6 total)', function () {
-        var timeBytes = [53, 54, 56, 62, 63, 65, 71, 72, 74];
-        for (var i = 0; i < timeBytes.length; i++) {
+        const timeBytes = [53, 54, 56, 62, 63, 65, 71, 72, 74];
+        for (let i = 0; i < timeBytes.length; i++) {
             expect(BYTE_MAP[timeBytes[i]].type).toBe('time');
         }
     });
 
     it('ascii type covers name chars (bytes 224-238, 15 entries)', function () {
-        for (var i = 224; i <= 238; i++) {
+        for (let i = 224; i <= 238; i++) {
             expect(BYTE_MAP[i].type).toBe('ascii');
         }
     });
 
     it('dual type covers mod matrix slots 5-8 (bytes 105-116)', function () {
-        var dualBytes = [105, 106, 107, 108, 109, 110, 111, 112, 113, 115, 116];
-        for (var i = 0; i < dualBytes.length; i++) {
+        const dualBytes = [105, 106, 107, 108, 109, 110, 111, 112, 113, 115, 116];
+        for (let i = 0; i < dualBytes.length; i++) {
             expect(BYTE_MAP[dualBytes[i]].type).toBe('dual');
         }
     });

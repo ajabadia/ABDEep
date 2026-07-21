@@ -1,0 +1,136 @@
+﻿
+===========================================
+  ABD Eep Unit Test Runner
+===========================================
+
+  Running 2 matching test suite(s)...
+
+Random seed: 0x596cd9f
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Voice mode helpers â getVoicesPerNote...
+All 13 voice modes: OK
+Completed tests in SynthEngine DSP Tests / Voice mode helpers â getVoicesPerNote
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Unison detune calculation...
+Unison detune symmetry: OK
+Completed tests in SynthEngine DSP Tests / Unison detune calculation
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Unison pan spread...
+Unison pan distribution: OK
+Completed tests in SynthEngine DSP Tests / Unison pan spread
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Chord interval tables...
+All 8 chord types: OK
+Completed tests in SynthEngine DSP Tests / Chord interval tables
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / SynthVoice default parameter values...
+Default parameters: OK
+Completed tests in SynthEngine DSP Tests / SynthVoice default parameter values
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / SynthVoice startNote and stopNote...
+Start/stop lifecycle: OK
+Completed tests in SynthEngine DSP Tests / SynthVoice startNote and stopNote
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / DriftEngine parameter integration...
+DriftEngine integration: OK
+Completed tests in SynthEngine DSP Tests / DriftEngine parameter integration
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / ModulationMatrix slot routing...
+Modulation matrix routing: OK
+Completed tests in SynthEngine DSP Tests / ModulationMatrix slot routing
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Envelope ADSR lifecycle...
+Envelope ADSR lifecycle: OK
+Completed tests in SynthEngine DSP Tests / Envelope ADSR lifecycle
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / LFO shape enumeration...
+LFO shapes 0-6: OK
+Completed tests in SynthEngine DSP Tests / LFO shape enumeration
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Transpose and global tune ranges...
+Transpose and tune mapping: OK
+Completed tests in SynthEngine DSP Tests / Transpose and global tune ranges
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Portamento parameter ranges...
+Portamento parameter ranges: OK
+Completed tests in SynthEngine DSP Tests / Portamento parameter ranges
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Note priority edge cases...
+Note priority edge cases: OK
+Completed tests in SynthEngine DSP Tests / Note priority edge cases
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Pitch Bend range scaling...
+Pitch bend range scaling: OK
+Completed tests in SynthEngine DSP Tests / Pitch Bend range scaling
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / VCF pole mode enumeration...
+VCF pole mode: OK
+Completed tests in SynthEngine DSP Tests / VCF pole mode enumeration
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Envelope curve parameter mapping...
+Envelope curve mapping: OK
+Completed tests in SynthEngine DSP Tests / Envelope curve parameter mapping
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Held notes tracker limits...
+Held notes tracker limits: OK
+Completed tests in SynthEngine DSP Tests / Held notes tracker limits
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Poly chord accumulator reset...
+Poly chord accumulator reset: OK
+Completed tests in SynthEngine DSP Tests / Poly chord accumulator reset
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Oscillator range number of options...
+Oscillator range clamping: OK
+Completed tests in SynthEngine DSP Tests / Oscillator range number of options
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Memory chord octave span...
+Memory chord octave span: OK
+Completed tests in SynthEngine DSP Tests / Memory chord octave span
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / OSC2 tone mod waveshaping...
+OSC2 tone mod waveshaping: OK
+Completed tests in SynthEngine DSP Tests / OSC2 tone mod waveshaping
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / DriftEngine linear amplitude scaling...
+DriftEngine linear scaling: OK
+Completed tests in SynthEngine DSP Tests / DriftEngine linear amplitude scaling
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / DriftEngine setSampleRate recalculates intervals...
+DriftEngine setSampleRate: OK
+Completed tests in SynthEngine DSP Tests / DriftEngine setSampleRate recalculates intervals
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Portamento glide simulation...
+Portamento glide simulation: OK
+Completed tests in SynthEngine DSP Tests / Portamento glide simulation
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / PolyBLEP anti-aliasing â polyBlep2 returns correction near discontinuities...
+PolyBLEP anti-aliasing: OK
+Completed tests in SynthEngine DSP Tests / PolyBLEP anti-aliasing â polyBlep2 returns correction near discontinuities
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / VCF TPT ZDF â produces output and responds to cutoff/resonance...
+VCF TPT ZDF: OK
+Completed tests in SynthEngine DSP Tests / VCF TPT ZDF â produces output and responds to cutoff/resonance
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / VCF oversampling â setOversample does not crash and produces output...
+VCF oversampling: OK
+Completed tests in SynthEngine DSP Tests / VCF oversampling â setOversample does not crash and produces output
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Saw curvature â sawCurvature maps [0,1) to [0,1) with correct bow direction...
+Saw curvature: OK
+Completed tests in SynthEngine DSP Tests / Saw curvature â sawCurvature maps [0,1) to [0,1) with correct bow direction
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / Chord release â voice rootNote tracking for selective release...
+Chord release: OK
+Completed tests in SynthEngine DSP Tests / Chord release â voice rootNote tracking for selective release
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / VCF 2-pole vs 4-pole rolloff contract...
+VCF 2-pole rolloff: OK (ratio=13.185)
+Completed tests in SynthEngine DSP Tests / VCF 2-pole vs 4-pole rolloff contract
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / DriftEngine drift=0 deterministic zero...
+DriftEngine drift=0 contract: OK
+Completed tests in SynthEngine DSP Tests / DriftEngine drift=0 deterministic zero
+-----------------------------------------------------------------
+Starting tests in: SynthEngine DSP Tests / HPF bass boost energy contract...
+HPF bass boost contract: OK (ON=3.16294 > OFF=0.709991)
+Completed 

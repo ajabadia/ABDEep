@@ -70,9 +70,11 @@ namespace ABD
     void FXMoodFilter::updateCoeffs(float freqHz)
     {
         float wd = (float)(2.0 * M_PI * freqHz / sampleRate);
-        gCoeff = std::tan(wd * 0.5f);
+        // Clamp gCoeff for Chamberlin SVF stability (must be < 2.0)
+        gCoeff = std::min(std::tan(wd * 0.5f), 1.9f);
         float damping = 1.0f - reso * 0.95f;
-        rCoeff = 1.0f / std::max(damping, 0.01f);
+        // Clamp rCoeff to prevent runaway feedback (max ~4.0 for stability)
+        rCoeff = std::min(1.0f / std::max(damping, 0.01f), 4.0f);
         driveGain = 1.0f + drive * 5.0f;
     }
 
@@ -103,7 +105,7 @@ namespace ABD
             // Frecuencia modulada
             float baseHz = 20.0f * std::pow(750.0f, baseFreq);
             float modRange = baseHz * 4.0f;
-            float freqHz = std::clamp(baseHz + mod * modRange, 20.0f, 20000.0f);
+            float freqHz = std::clamp(baseHz + mod * modRange, 20.0f, (float)(sampleRate * 0.45f));
             updateCoeffs(freqHz);
 
             // Drive (overdrive pre-filtro)
@@ -115,12 +117,17 @@ namespace ABD
                 high = in - low - rCoeff * band;
                 band = band + gCoeff * high;
                 low = low + gCoeff * band;
+                // Soft-limit state variables to prevent runaway
+                band = std::tanh(band);
+                low = std::tanh(low);
                 // 2-pole: low1 = low
                 if (fourPole)
                 {
                     float low2 = low + gCoeff * (band - low);
+                    low2 = std::tanh(low2);
                     low = low2;
                     band = band + gCoeff * (low2 - band);
+                    band = std::tanh(band);
                     low = low2;
                 }
             };

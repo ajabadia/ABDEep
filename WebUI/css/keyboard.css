@@ -42,7 +42,12 @@
 
 .key.white {
     flex: 1;
-    background: linear-gradient(to bottom, #f8f6ee 0%, #fffff8 40%, #e0ded6 100%);
+    background: linear-gradient(to bottom, 
+        var(--ivory-top, #f8f6ee) 0%, 
+        var(--ivory-base, #fffff8) 40%, 
+        var(--ivory-bottom, #e0ded6) var(--dirt-start, 85%), 
+        var(--dirt-color, rgba(105, 90, 75, 0.1)) 100%
+    );
     border: 1px solid #999;
     border-top: none;
     z-index: 10;
@@ -65,22 +70,49 @@
 
 .key.white.pushed {
     transform: translateY(3px);
-    /* Velocity: cool blue-grey (vel=0) → warm beige (vel=1) */
+    background: #c5d2dd; /* Fallback sólido de gris azulado */
     background: color-mix(in srgb,
         #b8cad8,
         #e8d4b8 calc(var(--velocity, 0.8) * 100%)
     );
-    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.key.white.pushed::before,
+.key.white.pushed-anim::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--key-led-color, var(--brand-accent));
+    box-shadow: 0 0 14px 4px var(--key-led-color, var(--brand-accent));
+    z-index: 15;
 }
 
 .key.black.pushed {
     transform: translateY(2px);
-    /* Velocity: cool dark blue (vel=0) → warm dark brown (vel=1) */
+    background: #141414; /* Fallback sólido oscuro */
     background: color-mix(in srgb,
-        #0a0f14,
-        #1a1008 calc(var(--velocity, 0.8) * 100%)
+        #121518,
+        #22160e calc(var(--velocity, 0.8) * 100%)
     );
-    box-shadow: none;
+    border-color: #030303;
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.key.black.pushed::before,
+.key.black.pushed-anim::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--key-led-color, var(--brand-accent));
+    box-shadow: 0 0 12px 3px var(--key-led-color, var(--brand-accent));
+    z-index: 25;
 }
 
 /* --- Aftertouch + Mod Wheel Pressure Visualization --- */

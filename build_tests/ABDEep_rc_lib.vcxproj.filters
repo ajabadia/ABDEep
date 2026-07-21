@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\desarrollos\ABDSynths\ABDEep\build_tests\CMakeFiles\cf506e7d36295f9a8f02b30bbaa668f6\ABDEep_resources.rc.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\desarrollos\ABDSynths\ABDEep\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="D:\desarrollos\ABDSynths\ABDEep\build_tests\ABDEep_artefacts\JuceLibraryCode\ABDEep_resources.rc">
+      <Filter>Source Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{0A2AD42E-F404-37B7-A661-C35C78CD77EE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{F60091B1-D8B0-39C3-8571-FDF6CA063974}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

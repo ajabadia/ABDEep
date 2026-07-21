@@ -1,5 +1,7 @@
 #pragma once
 #include <cmath>
+#include "JunoVCF_ZDF.h"
+#include "JunoHPF.h"
 
 namespace ABD
 {
@@ -19,7 +21,9 @@ namespace ABD
     };
 
     /**
-     * VCF: Filtro pasa-bajos resonante de 2 o 4 polos (12dB / 24dB por octava).
+     * VCF: TPT ZDF OTA Ladder Filter (JunoVCF_ZDF core).
+     * 4-pole 24dB/oct or 2-pole 12dB/oct with analog-modeled
+     * saturation and resonance.
      */
     class VCF : public Filter
     {
@@ -31,6 +35,8 @@ namespace ABD
         void setCutoff(float cutoffHz) override;
         void setResonance(float resonance) override;
         void setPoleMode(int mode); // 0 = 4-Pole (24dB), 1 = 2-Pole (12dB)
+        void setOversample(int factor); // 1x/2x/4x
+        void setMode(JunoVCF_ZDF::Mode mode);
 
         float process(float sample) override;
 
@@ -38,41 +44,19 @@ namespace ABD
         double sampleRate = 44100.0;
         float cutoff = 1000.0f;
         float resonance = 0.0f;
-        int poleMode = 1; // Default 24dB
+        int poleMode = 0; // 0 = 4-pole (default), 1 = 2-pole (stub)
+        int mOversample = 1;
 
-        // Coeficientes del filtro (Biquads en cascada para simplicidad y estabilidad)
-        struct Biquad
-        {
-            float a0 = 1.0f, a1 = 0.0f, a2 = 0.0f;
-            float b1 = 0.0f, b2 = 0.0f;
-            float x1 = 0.0f, x2 = 0.0f;
-            float y1 = 0.0f, y2 = 0.0f;
+        JunoVCF_ZDF mFilter;
 
-            void reset()
-            {
-                x1 = x2 = y1 = y2 = 0.0f;
-            }
-
-            float process(float x)
-            {
-                float y = a0 * x + a1 * x1 + a2 * x2 - b1 * y1 - b2 * y2;
-                // Saturación interna suave
-                y = std::tanh(y);
-                x2 = x1;
-                x1 = x;
-                y2 = y1;
-                y1 = y;
-                return y;
-            }
-        };
-
-        Biquad stages[2]; // Dos biquads en cascada (cada uno es de 12dB/2-pole)
-
-        void updateCoefficients();
+        // 2-pole output for poleMode==0
+        float m2PoleState[2] = {};
+        float m2PoleOutput = 0.0f;
     };
 
     /**
-     * HPF: Filtro pasa-altos de 1 polo (6dB/octava) con Bass Boost opcional.
+     * HPF: JunoHPF hybrid — J6 continuous HPF + J106 bass boost.
+     * Two independent controls: HPF cutoff (38.6–1394.2 Hz) + bass boost gain.
      */
     class HPF : public Filter
     {
@@ -82,20 +66,13 @@ namespace ABD
 
         void prepare(double sampleRate) override;
         void setCutoff(float cutoffHz) override;
-        void setResonance(float resonance) override { /* No resonante */ }
+        void setResonance(float resonance) override { (void)resonance; }
         void setBassBoostActive(bool active);
+        void setBassBoostGain(float gain);
 
         float process(float sample) override;
 
     private:
-        double sampleRate = 44100.0;
-        float cutoff = 20.0f;
-        bool bassBoost = false;
-
-        float x1 = 0.0f;
-        float y1 = 0.0f;
-        float alpha = 0.99f; // Coeficiente para el filtro pasa-altos de 1 polo
-
-        void updateCoefficients();
+        JunoHPF mHPF;
     };
 }

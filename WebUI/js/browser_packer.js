@@ -9,8 +9,8 @@ function unpack7to8(packedBytes) {
     for (let i = 0; i < packedBytes.length; i += 8) {
         const msbFlags = packedBytes[i];
         for (let k = 1; k < 8; k++) {
-            if (i + k >= packedBytes.length) break;
-            if (writeIdx >= 242) break;
+            if (i + k >= packedBytes.length) {break;}
+            if (writeIdx >= 242) {break;}
             let val = packedBytes[i + k];
             if (msbFlags & (1 << (k - 1))) {
                 val |= 0x80;
@@ -30,7 +30,7 @@ function pack8to7(unpackedBytes) {
         const startWriteIdx = writeIdx;
         writeIdx++;
         for (let k = 1; k < 8; k++) {
-            if (readIdx >= 242) break;
+            if (readIdx >= 242) {break;}
             let val = unpackedBytes[readIdx++];
             if (val & 0x80) {
                 msbFlags |= (1 << (k - 1));
@@ -46,14 +46,16 @@ function pack8to7(unpackedBytes) {
 
 function extractNameFromRawSysex(rawSysex, baseOffset) {
     baseOffset = baseOffset || 0;
-    var rawOffsets = [];
-    for (var j = 265; j <= 271; j++) rawOffsets.push(j);
-    for (var j = 273; j <= 279; j++) rawOffsets.push(j);
-    rawOffsets.push(281);
+    // Con cabecera de 10 bytes, el payload empaquetado está desplazado en 2 bytes respecto a la especificación de 8 bytes.
+    // Los offsets de los caracteres del nombre de 15 bytes son: 265 (último byte del bloque 31),
+    // saltando 266 (prefijo del bloque 32), 267 a 273 (bloque 32), saltando 274 (prefijo del bloque 33), 275 a 281 (bloque 33).
+    const rawOffsets = [265];
+    for (var j = 267; j <= 273; j++) {rawOffsets.push(j);}
+    for (var j = 275; j <= 281; j++) {rawOffsets.push(j);}
     
-    var nameChars = [];
-    for (var idx = 0; idx < rawOffsets.length; idx++) {
-        var c = rawSysex[baseOffset + rawOffsets[idx]];
+    const nameChars = [];
+    for (let idx = 0; idx < rawOffsets.length; idx++) {
+        const c = rawSysex[baseOffset + rawOffsets[idx]];
         if (c >= 32 && c < 127) {
             nameChars.push(String.fromCharCode(c));
         } else if (c === 0) {
@@ -64,8 +66,8 @@ function extractNameFromRawSysex(rawSysex, baseOffset) {
 }
 
 function buildSingleSysex(patch) {
-    var packed = pack8to7(patch.unpackedBytes);
-    var syxMsg = new Uint8Array(291);
+    const packed = pack8to7(patch.unpackedBytes);
+    const syxMsg = new Uint8Array(291);
     syxMsg[0] = 0xF0;
     syxMsg[1] = 0x00;
     syxMsg[2] = 0x20;
@@ -73,8 +75,10 @@ function buildSingleSysex(patch) {
     syxMsg[4] = 0x20;
     syxMsg[5] = 0x7F;
     syxMsg[6] = 0x02;
-    syxMsg[7] = 0x07;
-    syxMsg.set(packed, 8);
+    syxMsg[7] = 0x07; // Banco por defecto
+    syxMsg[8] = 0x00; // Programa por defecto
+    syxMsg[9] = 0x00; // Reservado
+    syxMsg.set(packed, 10); // Insertar payload a partir del byte 10
     syxMsg[290] = 0xF7;
     return syxMsg;
 }

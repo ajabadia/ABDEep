@@ -19,6 +19,11 @@
 #include "FXDecimDelay.h"
 #include "FXTapeDelay.h"
 #include "FXModDelayRev.h"
+#include "FXMidasEQ.h"
+#include "FXHybridReverb.h"
+#include "FXMultiTapDelay.h"
+#include "FXChorusD.h"
+#include "FXFairComp.h"
 #include <memory>
 
 namespace ABD
@@ -67,6 +72,9 @@ namespace ABD
         float mix = 0.5f;             // Mezcla wet/dry
 
         std::unique_ptr<FXBase> effect;
+
+        double lastSampleRate = 44100.0;
+        int lastSamplesPerBlock = 256;
 
         // Buffers pre-alocados para evitar alocaciones en hot-path
         juce::AudioBuffer<float> wetBuffer;

@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abdeep/schemas/audio-ab-comparison/2.0.0",
+  "title": "AudioABComparisonResult",
+  "type": "OBJECT",
+  "required": [
+    "run_id",
+    "comparator_version",
+    "status",
+    "reason_code",
+    "input",
+    "alignment",
+    "time_metrics",
+    "spectral_metrics",
+    "warnings",
+    "errors",
+    "verdict"
+  ],
+  "properties": {
+    "run_id": { "type": "STRING", "minLength": 1 },
+    "comparator_version": { "type": "STRING" },
+    "status": { "type": "STRING", "enum": ["ok", "error"] },
+    "reason_code": {
+      "type": "STRING",
+      "enum": ["SUCCESS", "WAV_MISSING", "SR_MISMATCH", "NAN_INF_DETECTED", "EMPTY_BUFFER", "ALIGNMENT_OFFSET_EXCEEDED", "CORRELATION_PEAK_TOO_LOW", "OVERLAP_RATIO_LOW", "RMS_DELTA_EXCEEDED", "SPECTRAL_DIFF_EXCEEDED"]
+    },
+    "input": {
+      "type": "OBJECT",
+      "required": [
+        "sample_rate",
+        "num_channels_reference",
+        "num_channels_capture",
+        "original_samples_reference",
+        "original_samples_capture",
+        "analyzed_samples",
+        "channels_mode",
+        "trimmed_samples_reference",
+        "trimmed_samples_capture"
+      ],
+      "properties": {
+        "sample_rate": { "type": "NUMBER" },
+        "num_channels_reference": { "type": "INTEGER" },
+        "num_channels_capture": { "type": "INTEGER" },
+        "original_samples_reference": { "type": "INTEGER" },
+        "original_samples_capture": { "type": "INTEGER" },
+        "analyzed_samples": { "type": "INTEGER" },
+        "channels_mode": { "type": "STRING" },
+        "trimmed_samples_reference": { "type": "INTEGER" },
+        "trimmed_samples_capture": { "type": "INTEGER" }
+      }
+    },
+    "alignment": {
+      "type": "OBJECT",
+      "required": ["applied", "sample_offset", "time_offset_ms", "correlation_peak", "overlap_ratio"],
+      "properties": {
+        "applied": { "type": "BOOLEAN" },
+        "sample_offset": { "type": "INTEGER" },
+        "time_offset_ms": { "type": "NUMBER" },
+        "correlation_peak": { "type": "NUMBER" },
+        "overlap_ratio": { "type": "NUMBER" }
+      }
+    },
+    "time_metrics": {
+      "type": "OBJECT",
+      "required": [
+        "peak_ref_dbfs",
+        "peak_cap_dbfs",
+        "peak_delta_db",
+        "rms_ref_dbfs",
+        "rms_cap_dbfs",
+        "rms_delta_db",
+        "residual_rms_dbfs",
+        "residual_peak_dbfs",
+        "mae",
+        "rmse"
+      ],
+      "properties": {
+        "peak_ref_dbfs": { "type": "NUMBER" },
+        "peak_cap_dbfs": { "type": "NUMBER" },
+        "peak_delta_db": { "type": "NUMBER" },
+        "rms_ref_dbfs": { "type": "NUMBER" },
+        "rms_cap_dbfs": { "type": "NUMBER" },
+        "rms_delta_db": { "type": "NUMBER" },
+        "residual_rms_dbfs": { "type": "NUMBER" },
+        "residual_peak_dbfs": { "type": "NUMBER" },
+        "mae": { "type": "NUMBER" },
+        "rmse": { "type": "NUMBER" }
+      }
+    },
+    "spectral_metrics": {
+      "type": "OBJECT",
+      "required": [
+        "log_mag_mean_abs_diff_db",
+        "spectral_centroid_delta_hz",
+        "spectral_flatness_delta",
+        "low_band_delta_db",
+        "mid_band_delta_db",
+        "high_band_delta_db"
+      ],
+      "properties": {
+        "log_mag_mean_abs_diff_db": { "type": "NUMBER" },
+        "spectral_centroid_delta_hz": { "type": "NUMBER" },
+        "spectral_flatness_delta": { "type": "NUMBER" },
+        "low_band_delta_db": { "type": "NUMBER" },
+        "mid_band_delta_db": { "type": "NUMBER" },
+        "high_band_delta_db": { "type": "NUMBER" }
+      }
+    },
+    "verdict": {
+      "type": "OBJECT",
+      "required": ["level", "reason_code", "triggered_rules"],
+      "properties": {
+        "level": { "type": "STRING", "enum": ["pass", "warn", "fail"] },
+        "reason_code": { "type": "STRING" },
+        "triggered_rules": {
+          "type": "ARRAY",
+          "items": { "type": "STRING" }
+        }
+      }
+    },
+    "warnings": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" }
+    },
+    "errors": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" }
+    }
+  }
+}

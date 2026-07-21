@@ -1,6 +1,6 @@
 # 📋 Plan de Cobertura — Tests WebUI JS
 
-**Estado actual:** 3,542 tests · 54 test files · 52 source files · 48 con test · 3 sin test
+**Estado actual:** 3,840 tests · 58 test files · **52/52 source files con test** ✅
 
 ---
 
@@ -39,6 +39,9 @@
 | `panel_oscilloscope.js` | ~200 | `panelOscilloscope.test.js` | 37 |
 | `panel_controls_binder.js` | 208 | `panelControlsBinder.test.js` | 39 |
 | `panel_controls_env_voice.js` | 170 | `panelControlsEnvVoice.test.js` | 48 |
+| `panel_controls_lfo_vca.js` | 145 | `panelControlsLfoVca.test.js` | 46 |
+| `panel_controls_arp_seq_mod.js` | 643 | `panelControlsArpSeqMod.test.js` | 90 |
+| `panel_controls_osc_vcf.js` | 300 | `panelControlsOscVcf.test.js` | 61 |
 | `panel_templates.js` | ~200 | `panelTemplates.test.js` | 32 |
 | `script.js` | 1109 | `scriptCore.test.js`, `globalSettings.test.js`, `lcdSafeUpdate.test.js` | — |
 | `script_bar_generators.js` | ~50 | `barGenerators.test.js` | — |
@@ -64,27 +67,27 @@
 | `debug-panel.js` | 369 | `uiComponents.test.js` (parcial) |
 | `ctrl-tooltip.js` | 350 | `uiComponents.test.js` (parcial) |
 | `settings-modal.js` | 332 | `uiComponents.test.js` + `modalTests.test.js` |
-| `bank-manager.js` | 137 | `uiComponents.test.js` (parcial) |
-| `keyboard-shortcuts.js` | 113 | — |
+| `bank-manager.js` | 137 | `structuralComponents.test.js` ✅ |
+| `keyboard-shortcuts.js` | 113 | `structuralComponents.test.js` ✅ |
 | `debug_panel_template.js` | 104 | — |
-| `fx-modal.js` | 121 | — |
-| `top-bar.js` | 94 | — |
-| `arp-modal.js` | 83 | — |
-| `seq-modal.js` | 74 | — |
-| `programmer-section.js` | 86 | — |
-| `keyboard-section.js` | 64 | — |
+| `fx-modal.js` | 121 | `modalComponents.test.js` ✅ |
+| `top-bar.js` | 94 | `structuralComponents.test.js` ✅ |
+| `arp-modal.js` | 83 | `modalComponents.test.js` ✅ |
+| `seq-modal.js` | 74 | `modalComponents.test.js` ✅ |
+| `programmer-section.js` | 86 | `structuralComponents.test.js` ✅ |
+| `keyboard-section.js` | 64 | `sectionComponents.test.js` ✅ |
 | `debug_panel_voice_calculator.js` | 47 | — |
-| `control-grid.js` | 44 | — |
-| `side-panel.js` | 44 | — |
-| `env-section.js` | 36 | — |
-| `osc-section.js` | 35 | — |
-| `vca-section.js` | 33 | — |
-| `lfo-section.js` | 32 | — |
-| `vcf-section.js` | 32 | — |
-| `hpf-section.js` | 31 | — |
-| `mod-matrix.js` | 29 | — |
-| `arp-seq-section.js` | 26 | — |
-| `poly-section.js` | 28 | — |
+| `control-grid.js` | 44 | `sectionComponents.test.js` ✅ |
+| `side-panel.js` | 44 | `structuralComponents.test.js` ✅ |
+| `osc-section.js` | 35 | `sectionComponents.test.js` ✅ |
+| `vca-section.js` | 33 | `sectionComponents.test.js` ✅ |
+| `vcf-section.js` | 32 | `sectionComponents.test.js` ✅ |
+| `hpf-section.js` | 31 | `sectionComponents.test.js` ✅ |
+| `arp-seq-section.js` | 26 | `sectionComponents.test.js` ✅ |
+| `poly-section.js` | 28 | `sectionComponents.test.js` ✅ |
+| `mod-matrix.js` | 29 | ✅ (via `uiComponents.test.js`) |
+| `env-section.js` | 36 | ✅ (via `uiComponents.test.js`) |
+| `lfo-section.js` | 32 | ✅ (via `uiComponents.test.js`) |
 
 ---
 
@@ -93,12 +96,12 @@
 | # | Archivo | LOC | Funciones | Estrategia |
 |---|---------|-----|-----------|------------|
 | ~~1~~ | ~~`browser_packer.js`~~ | ~~85~~ | ~~`unpack7to8()`, `pack8to7()`, `extractNameFromRawSysex()`, `buildSingleSysex()`~~ | ~~Puro — sin DOM. Testear bit-packing 7↔8, nombres, padding~~ ✅ Ahora en `browserPacker.test.js` + `browserCore.test.js` |
-| 2 | `panel_controls_arp_seq_mod.js` | 643 | `bindPanelArpControls()`, `bindPanelChordControls()`, `bindPanelPolyChordControls()`, `bindPanelSeqControls()`, `bindPanelChordAndPolyCommon()` | DOM mock + bridge stub. ARP/Chord/SEQ binding logic |
+| ~~2~~ | ~~`panel_controls_arp_seq_mod.js`~~ | ~~643~~ | ~~`bindPanelArpControls()`, `bindPanelChordControls()`, `bindPanelPolyChordControls()`, `bindPanelSeqControls()`, `bindPanelChordAndPolyCommon()`~~ | ~~DOM mock + bridge stub. ARP/Chord/SEQ binding logic~~ ✅ Ahora en `panelControlsArpSeqMod.test.js` |
 | ~~3~~ | ~~`panel_controls_env_voice.js`~~ | ~~170~~ | ~~`bindPanelEnvControls()`, `bindPanelPolyControls()`, `bindPanelPortaControls()`~~ | ~~DOM + bridge. ENV triggers, Poly mode/priority, Porta~~ ✅ Ahora en `panelControlsEnvVoice.test.js` |
-| 4 | `panel_controls_lfo_vca.js` | 145 | `bindPanelLfoControls()`, `bindPanelVcaControls()` | DOM + bridge. LFO shape selectors, VCA mode buttons |
-| 5 | `panel_controls_osc_vcf.js` | 300 | `bindPanelOscControls()`, `bindPanelHpfControls()`, `bindPanelVcfControls()` | DOM + bridge. OSC1/2 range, HPF boost, VCF pole/polarity |
+| ~~4~~ | ~~`panel_controls_lfo_vca.js`~~ | ~~145~~ | ~~`bindPanelLfoControls()`, `bindPanelVcaControls()`~~ | ~~DOM + bridge. LFO shape selectors, VCA mode buttons~~ ✅ Ahora en `panelControlsLfoVca.test.js` |
+| ~~5~~ | ~~`panel_controls_osc_vcf.js`~~ | ~~300~~ | ~~`bindPanelOscControls()`, `bindPanelHpfControls()`, `bindPanelVcfControls()`~~ | ~~DOM + bridge. OSC1/2 range, HPF boost, VCF pole/polarity~~ ✅ Ahora en `panelControlsOscVcf.test.js` |
 
-**Total LOC sin test:** 1,088 líneas · **% cubierto:** 92% de archivos, ~96% de LOC
+**🎉 52/52 archivos fuente con test directo — 100% de cobertura!**
 
 ### ℹ️ Excluido intencionalmente
 
@@ -115,6 +118,12 @@
 | 2026-07-12 | 52 | 3,442 | +1,568 | 52 | 24 |
 | 2026-07-12 | 53 | 3,494 | +1,620 | 52 | 24 |
 | 2026-07-12 | 54 | 3,542 | +1,668 | 52 | 24 |
+| 2026-07-12 | 55 | 3,588 | +1,714 | 52 | 24 |
+| 2026-07-12 | 56 | 3,678 | +1,804 | 52 | 24 |
+| 2026-07-12 | **57** | **3,739** | **+1,865** | **52/52 ✅** | 24 |
+| 2026-07-12 | **58** | **3,840** | **+1,966** | **52/52 ✅** | **16/24 ✅ (Batch 1)** |
+| 2026-07-13 | **59** | **3,932** | **+2,058** | **52/52 ✅** | **19/24 ✅ (Batch 2)** |
+| 2026-07-13 | **60** | **4,030** | **+2,156** | **52/52 ✅** | **24/24 ✅ (Batch 3)** |
 
 ---
 

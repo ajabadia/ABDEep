@@ -17,6 +17,7 @@ namespace ABD
 
         for (int i = 0; i < kNumVoices; ++i)
         {
+            voices[i].initializeVoicePersonality(i);
             voices[i].prepare(sampleRate);
         }
 
@@ -53,6 +54,25 @@ namespace ABD
                     return choice->getIndex();
             return 0;
         };
+
+        // One-shot diagnostic: confirm updateParameters runs and params are readable
+        {
+            static bool logged = false;
+            if (!logged)
+            {
+                logged = true;
+                auto* cutoffP = apvts.getRawParameterValue("vcf_cutoff");
+                auto* vcaP = apvts.getRawParameterValue("vca_level");
+                auto* volP = apvts.getRawParameterValue("global_volume");
+                juce::String msg = "[DSP] updateParameters FIRST CALL:"
+                    + juce::String(" vcf_cutoff raw=" + juce::String(cutoffP ? cutoffP->load() : -1.0f))
+                    + " vca_level raw=" + juce::String(vcaP ? vcaP->load() : -1.0f)
+                    + " global_volume raw=" + juce::String(volP ? volP->load() : -1.0f)
+                    + "\n";
+                juce::File logFile ("D:\\desarrollos\\ABDSynths\\ABDEep\\webview_log.txt");
+                logFile.appendText (msg);
+            }
+        }
 
         // Actualizar parámetros comunes para todas las voces
         for (int i = 0; i < kNumVoices; ++i)
@@ -91,6 +111,8 @@ namespace ABD
             p.vcfCutoff = getFloat("vcf_cutoff");
             p.vcfResonance = getFloat("vcf_resonance");
             p.vcfPoleMode = getInt("vcf_pole_mode"); // 0=4-Pole(24dB), 1=2-Pole(12dB) — labels ya coinciden con Filter.cpp
+            p.vcfOversample = std::clamp(getInt("vcf_oversample"), 0, 2); // 0=1x, 1=2x, 2=4x
+            p.vcfVoicingMode = getInt("vcf_voicing_mode");
             p.vcfEnvDepth = getFloat("vcf_env_depth");
             p.vcfEnvVel = getFloat("vcf_env_vel");
             p.vcfLfoDepth = getFloat("vcf_lfo_depth");
@@ -104,6 +126,7 @@ namespace ABD
             // HPF
             p.hpfCutoff = getFloat("hpf_cutoff");
             p.hpfBassBoost = getBool("hpf_boost_enable");
+            p.hpfBassBoostGain = getFloat("hpf_bass_boost_gain");
 
             // VCA
             p.vcaLevel = getFloat("vca_level");
@@ -119,55 +142,82 @@ namespace ABD
             // Sincronizar drift engine de cada voz
             voices[i].drift.setDriftParams(p.voiceDrift, p.paramDrift, p.driftRate);
 
-            // Sincronizar Envelopes de forma directa
+            // Sincronizar Envelopes de forma directa con mapeo exponencial físico
+#if DEEP_TARGET_MODEL >= 2
+            const auto& cal = activeCalibration;
+#else
+            struct { struct { struct { float minTimeSec, exponentialBase; } envelopes;
+                               struct { float rateScale, rateExp; } lfo; } transfer; } cal;
+            cal.transfer.envelopes = { 0.002f, 32768.f };
+            cal.transfer.lfo = { 0.041f, 7.3747f };
+#endif
+            auto mapEnvTime = [&cal](float rawVal) -> float {
+                float normVal = rawVal * 0.1f;
+                return cal.transfer.envelopes.minTimeSec * std::pow(cal.transfer.envelopes.exponentialBase, normVal);
+            };
+
             voices[i].env1VCA.setParameters(
-                getFloat("env1_attack"),
-                getFloat("env1_decay"),
+                mapEnvTime(getFloat("env1_attack")),
+                mapEnvTime(getFloat("env1_decay")),
                 getFloat("env1_sustain"),
-                getFloat("env1_release")
+                mapEnvTime(getFloat("env1_release"))
             );
             voices[i].env1VCA.setCurves(
-                getFloat("env1_attack_curve"),
-                getFloat("env1_decay_curve"),
-                getFloat("env1_sustain_curve"),
-                getFloat("env1_release_curve")
+                (getFloat("env1_attack_curve") - 0.5f) * 2.0f,
+                (getFloat("env1_decay_curve") - 0.5f) * 2.0f,
+                (getFloat("env1_sustain_curve") - 0.5f) * 2.0f,
+                (getFloat("env1_release_curve") - 0.5f) * 2.0f
             );
 
             voices[i].env2VCF.setParameters(
-                getFloat("env2_attack"),
-                getFloat("env2_decay"),
+                mapEnvTime(getFloat("env2_attack")),
+                mapEnvTime(getFloat("env2_decay")),
                 getFloat("env2_sustain"),
-                getFloat("env2_release")
+                mapEnvTime(getFloat("env2_release"))
             );
             voices[i].env2VCF.setCurves(
-                getFloat("env2_attack_curve"),
-                getFloat("env2_decay_curve"),
-                getFloat("env2_sustain_curve"),
-                getFloat("env2_release_curve")
+                (getFloat("env2_attack_curve") - 0.5f) * 2.0f,
+                (getFloat("env2_decay_curve") - 0.5f) * 2.0f,
+                (getFloat("env2_sustain_curve") - 0.5f) * 2.0f,
+                (getFloat("env2_release_curve") - 0.5f) * 2.0f
             );
 
             voices[i].env3MOD.setParameters(
-                getFloat("env3_attack"),
-                getFloat("env3_decay"),
+                mapEnvTime(getFloat("env3_attack")),
+                mapEnvTime(getFloat("env3_decay")),
                 getFloat("env3_sustain"),
-                getFloat("env3_release")
+                mapEnvTime(getFloat("env3_release"))
             );
             voices[i].env3MOD.setCurves(
-                getFloat("env3_attack_curve"),
-                getFloat("env3_decay_curve"),
-                getFloat("env3_sustain_curve"),
-                getFloat("env3_release_curve")
+                (getFloat("env3_attack_curve") - 0.5f) * 2.0f,
+                (getFloat("env3_decay_curve") - 0.5f) * 2.0f,
+                (getFloat("env3_sustain_curve") - 0.5f) * 2.0f,
+                (getFloat("env3_release_curve") - 0.5f) * 2.0f
             );
 
-            // Sincronizar LFOs
-            voices[i].lfo1.setRate(getFloat("lfo1_rate"));
-            voices[i].lfo1.setDelay(getFloat("lfo1_delay"));
+            // Sincronizar LFOs con mapeo físico real (DeepMind 12 specs)
+#if DEEP_TARGET_MODEL >= 2
+            float lfo1RateHz = activeCalibration.transfer.lfo.rateScale * std::exp(activeCalibration.transfer.lfo.rateExp * getFloat("lfo1_rate"));
+            float lfo1DelaySec = getFloat("lfo1_delay") * 6.5f;
+            float lfo2RateHz = activeCalibration.transfer.lfo.rateScale * std::exp(activeCalibration.transfer.lfo.rateExp * getFloat("lfo2_rate"));
+            float lfo2DelaySec = getFloat("lfo2_delay") * 6.5f;
+#else
+            static constexpr float kDefaultRateScale = 0.041f;
+            static constexpr float kDefaultRateExp   = 7.3747f;
+            float lfo1RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo1_rate"));
+            float lfo1DelaySec = getFloat("lfo1_delay") * 6.5f;
+            float lfo2RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo2_rate"));
+            float lfo2DelaySec = getFloat("lfo2_delay") * 6.5f;
+#endif
+
+            voices[i].lfo1.setRate(lfo1RateHz);
+            voices[i].lfo1.setDelay(lfo1DelaySec);
             voices[i].lfo1.setSlew(getFloat("lfo1_slew"));
             voices[i].lfo1.setShape(getInt("lfo1_shape"));
             voices[i].lfo1.setKeySync(getBool("lfo1_key_sync"));
 
-            voices[i].lfo2.setRate(getFloat("lfo2_rate"));
-            voices[i].lfo2.setDelay(getFloat("lfo2_delay"));
+            voices[i].lfo2.setRate(lfo2RateHz);
+            voices[i].lfo2.setDelay(lfo2DelaySec);
             voices[i].lfo2.setSlew(getFloat("lfo2_slew"));
             voices[i].lfo2.setShape(getInt("lfo2_shape"));
             voices[i].lfo2.setKeySync(getBool("lfo2_key_sync"));
@@ -177,15 +227,30 @@ namespace ABD
         lfo1MonoMode = getFloat("lfo1_mono_mode");
         lfo2MonoMode = getFloat("lfo2_mono_mode");
 
+        // Calcular mapeo físico para LFOs globales
+#if DEEP_TARGET_MODEL >= 2
+        float globalLfo1RateHz = activeCalibration.transfer.lfo.rateScale * std::exp(activeCalibration.transfer.lfo.rateExp * getFloat("lfo1_rate"));
+        float globalLfo1DelaySec = getFloat("lfo1_delay") * 6.5f;
+        float globalLfo2RateHz = activeCalibration.transfer.lfo.rateScale * std::exp(activeCalibration.transfer.lfo.rateExp * getFloat("lfo2_rate"));
+        float globalLfo2DelaySec = getFloat("lfo2_delay") * 6.5f;
+#else
+        static constexpr float kDefaultRateScale = 0.041f;
+        static constexpr float kDefaultRateExp   = 7.3747f;
+        float globalLfo1RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo1_rate"));
+        float globalLfo1DelaySec = getFloat("lfo1_delay") * 6.5f;
+        float globalLfo2RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo2_rate"));
+        float globalLfo2DelaySec = getFloat("lfo2_delay") * 6.5f;
+#endif
+
         // Sincronizar LFOs globales con los mismos parámetros que las voces
-        globalLfo1.setRate(getFloat("lfo1_rate"));
-        globalLfo1.setDelay(getFloat("lfo1_delay"));
+        globalLfo1.setRate(globalLfo1RateHz);
+        globalLfo1.setDelay(globalLfo1DelaySec);
         globalLfo1.setSlew(getFloat("lfo1_slew"));
         globalLfo1.setShape(getInt("lfo1_shape"));
         globalLfo1.setKeySync(getBool("lfo1_key_sync"));
 
-        globalLfo2.setRate(getFloat("lfo2_rate"));
-        globalLfo2.setDelay(getFloat("lfo2_delay"));
+        globalLfo2.setRate(globalLfo2RateHz);
+        globalLfo2.setDelay(globalLfo2DelaySec);
         globalLfo2.setSlew(getFloat("lfo2_slew"));
         globalLfo2.setShape(getInt("lfo2_shape"));
         globalLfo2.setKeySync(getBool("lfo2_key_sync"));
@@ -219,9 +284,9 @@ namespace ABD
             std::memset(polyChordHeldNotes, 0, sizeof(polyChordHeldNotes));
         }
 
-        // Leer Transpose & Global Tune
-        transposeSemitones = (int)std::round(getFloat("transpose") * 96.0f - 48.0f);
-        globalTuneCents = getFloat("global_tune") * 255.0f - 128.0f;
+        // Leer Transpose & Global Tune (real-world ranges from ParametersSpec, no denormalization needed)
+        transposeSemitones = (int)std::round(getFloat("transpose"));
+        globalTuneCents = getFloat("global_tune");
 
         // Propagar globalTuneCents a todas las voces
         for (int i = 0; i < kNumVoices; ++i)
@@ -407,7 +472,11 @@ namespace ABD
 
                 voices[voiceIdx].unisonDetuneSemitones = detuneST;
                 voices[voiceIdx].unisonPanPosition = panPos;
+                // Forzar stop si la voz estaba activa (evita clicks al robar voces)
+                if (voices[voiceIdx].isActive())
+                    voices[voiceIdx].stopNote(true);
                 voices[voiceIdx].startNote(chordNote, velocity, voiceNormalized);
+                voices[voiceIdx].setRootNote(rootNote);
 
                 voices[voiceIdx].setExternalModulation(ModSource::kPitchBend, currentPitchBend);
                 voices[voiceIdx].setExternalModulation(ModSource::kModWheel, currentModWheel);
@@ -421,12 +490,31 @@ namespace ABD
 
     int SynthEngine::findFreeVoice()
     {
+        // 1. Buscar una voz completamente inactiva (Stage::kIdle)
         for (int i = 0; i < kNumVoices; ++i)
         {
             if (!voices[i].isActive())
                 return i;
         }
-        return 0; // steal oldest
+
+        // 2. Si no hay inactivas, priorizar el robo de voces que ya estén en fase de Release
+        int bestReleaseVoice = -1;
+        for (int i = 0; i < kNumVoices; ++i)
+        {
+            if (voices[i].isActive() && voices[i].env1VCA.getCurrentStage() == Envelope::Stage::kRelease)
+            {
+                bestReleaseVoice = i;
+                break;
+            }
+        }
+        if (bestReleaseVoice >= 0)
+            return bestReleaseVoice;
+
+        // 3. Si todas las voces están sostenidas físicamente (Attack/Decay/Sustain),
+        // robamos usando round-robin para distribuir el robo de voz de forma rotatoria
+        static int lastStolenVoice = 0;
+        lastStolenVoice = (lastStolenVoice + 1) % kNumVoices;
+        return lastStolenVoice;
     }
 
     void SynthEngine::triggerNote(int midiNoteNumber, float velocity)
@@ -565,6 +653,12 @@ namespace ABD
             + " mode=" + juce::String(voiceMode)
             + " stack=" + juce::String(voicesPerNote));
 
+        {
+            juce::File logFile ("D:\\desarrollos\\ABDSynths\\ABDEep\\webview_log.txt");
+            logFile.appendText ("[DSP] triggerNote: note=" + juce::String(midiNoteNumber)
+                + " vel=" + juce::String(velocity) + "\n");
+        }
+
         // Emitir note-on para la UI web
         pendingNoteOnNote.store(midiNoteNumber, std::memory_order_release);
         pendingNoteOnVel.store(velocity, std::memory_order_release);
@@ -586,7 +680,11 @@ namespace ABD
 
             voices[voiceIdx].unisonDetuneSemitones = detuneST;
             voices[voiceIdx].unisonPanPosition = panPos;
+            // Forzar stop si la voz estaba activa (evita clicks al robar voces)
+            if (voices[voiceIdx].isActive())
+                voices[voiceIdx].stopNote(true);
             voices[voiceIdx].startNote(midiNoteNumber, velocity, voiceNormalized);
+            voices[voiceIdx].setRootNote(midiNoteNumber);
 
             voices[voiceIdx].setExternalModulation(ModSource::kPitchBend, currentPitchBend);
             voices[voiceIdx].setExternalModulation(ModSource::kModWheel, currentModWheel);
@@ -599,12 +697,11 @@ namespace ABD
     {
         if (polyChordEnable)
         {
-            // Poly Chord: remover la nota del acumulador
+            // Poly Chord: remover la nota raíz del acumulador
             for (int h = 0; h < polyChordNoteCount; ++h)
             {
                 if (polyChordHeldNotes[h] == midiNoteNumber)
                 {
-                    // Desplazar el resto del array hacia la izquierda
                     for (int r = h; r < polyChordNoteCount - 1; ++r)
                         polyChordHeldNotes[r] = polyChordHeldNotes[r + 1];
                     polyChordNoteCount--;
@@ -612,16 +709,25 @@ namespace ABD
                 }
             }
 
-            // Si no quedan notas en el Poly Chord, liberar todas las voces
             if (polyChordNoteCount == 0)
             {
+                // Todas las raíces soltadas: liberar todas las voces
                 for (int i = 0; i < kNumVoices; ++i)
                 {
                     if (voices[i].isActive())
                         voices[i].stopNote(false);
                 }
-                return;
             }
+            else
+            {
+                // Quedan raíces activas: liberar solo voces cuya root == midiNoteNumber
+                for (int i = 0; i < kNumVoices; ++i)
+                {
+                    if (voices[i].isActive() && voices[i].getRootNote() == midiNoteNumber)
+                        voices[i].stopNote(false);
+                }
+            }
+            return;
         }
 
         // Mono mode: remove from held notes tracker
@@ -638,7 +744,6 @@ namespace ABD
                 }
             }
 
-            // Si aún quedan notas sostenidas, snap a la siguiente prioridad
             if (monoHeldNoteCount > 0)
             {
                 int nextNote = monoHeldNotes[0];
@@ -647,31 +752,25 @@ namespace ABD
                     for (int h = 1; h < monoHeldNoteCount; ++h)
                         if (monoHeldNotes[h] > nextNote) nextNote = monoHeldNotes[h];
                 }
-                else // Lowest (0) or Last (2): use the last element as next note
+                else if (notePriority == 0) // Lowest
                 {
-                    // For Lowest, find the minimum
-                    if (notePriority == 0)
-                    {
-                        for (int h = 1; h < monoHeldNoteCount; ++h)
-                            if (monoHeldNotes[h] < nextNote) nextNote = monoHeldNotes[h];
-                    }
-                    else // Last: the most recently added note is at the end
-                    {
-                        nextNote = monoHeldNotes[monoHeldNoteCount - 1];
-                    }
+                    for (int h = 1; h < monoHeldNoteCount; ++h)
+                        if (monoHeldNotes[h] < nextNote) nextNote = monoHeldNotes[h];
+                }
+                else // Last (2): most recently added
+                {
+                    nextNote = monoHeldNotes[monoHeldNoteCount - 1];
                 }
 
-                // Re-trigger the correct priority note on the active voice
                 for (int i = 0; i < kNumVoices; ++i)
                 {
                     if (voices[i].isActive())
                         voices[i].stopNote(true);
                 }
-                triggerNote(nextNote, 0.8f); // Default velocity for priority snap
+                triggerNote(nextNote, 0.8f);
                 return;
             }
 
-            // No held notes left: release normally
             for (int i = 0; i < kNumVoices; ++i)
             {
                 if (voices[i].isActive())
@@ -683,10 +782,11 @@ namespace ABD
         // Emitir note-off para la UI web
         pendingNoteOffNote.store(midiNoteNumber, std::memory_order_release);
 
-        // Poly mode: liberar voces que coinciden con esta nota MIDI
+        // Poly mode: liberar voces cuya nota raíz coincide con la nota liberada
+        // (evita notas colgadas cuando Chord Memory crea intervalos sobre una raíz)
         for (int i = 0; i < kNumVoices; ++i)
         {
-            if (voices[i].getMidiNote() == midiNoteNumber)
+            if (voices[i].isActive() && voices[i].getRootNote() == midiNoteNumber)
             {
                 voices[i].stopNote(false);
             }
@@ -717,8 +817,20 @@ namespace ABD
             globalLfo2Buffer.set(s, globalLfo2.nextSample());
         }
 
-        // 1. Limpiar buffer de salida de audio del plugin
         buffer.clear();
+
+        // 1.5. Resolve calibration snapshot for this block (immutable during processing)
+#if DEEP_TARGET_MODEL >= 2
+        {
+            const juce::ScopedLock sl (calibrationLock);
+            activeCalibration = pendingCalibration;
+        }
+
+        // Propagate calibration to all voices (immutable pointer for the block)
+        for (int i = 0; i < kNumVoices; ++i)
+            voices[i].setCalibration(&activeCalibration);
+#endif
+
 
         // 2. Procesar eventos MIDI entrantes en orden cronológico
         for (const auto metadata : midiMessages)
@@ -788,7 +900,20 @@ namespace ABD
             currentPeakLevel = buffer.getMagnitude(0, numSamples);
             static int dbgCounter = 0;
             if (++dbgCounter % 100 == 0)
+            {
                 DBG("[SynthEngine] Active voices: " + juce::String(activeCount) + " peakLevel: " + juce::String(currentPeakLevel, 6));
+
+                // Diagnostic: log to file every ~2s when there are active voices
+                auto& p = voices[0].params;
+                juce::File logFile ("D:\\desarrollos\\ABDSynths\\ABDEep\\webview_log.txt");
+                logFile.appendText ("[DSP Diagnostic] voices=" + juce::String(activeCount)
+                    + " peak=" + juce::String(currentPeakLevel, 4)
+                    + " vcfCutoff=" + juce::String(p.vcfCutoff, 2)
+                    + " vcfRes=" + juce::String(p.vcfResonance, 2)
+                    + " vcaLevel=" + juce::String(p.vcaLevel, 2)
+                    + " globalVol=" + juce::String(globalVolume, 2)
+                    + "\n");
+            }
         }
 
         // Procesar FX Engine (post-voices, pre-master gain)
@@ -840,6 +965,44 @@ namespace ABD
         snapSustainPedal = currentSustainPedal;
         // Peak level (VU Meter)
         snapPeakLevel = currentPeakLevel;
+
+        // Populate diagnostic snapshot
+        currentDiagnosticSnapshot.blockCounter++;
+        currentDiagnosticSnapshot.timestamp = (uint64_t)juce::Time::currentTimeMillis();
+        currentDiagnosticSnapshot.vcfOversample = voices[0].params.vcfOversample;
+        currentDiagnosticSnapshot.vcfVoicingMode = voices[0].params.vcfVoicingMode;
+        currentDiagnosticSnapshot.driftAmount = voices[0].params.paramDrift;
+        
+        currentDiagnosticSnapshot.pitchBend = snapPitchBend;
+        currentDiagnosticSnapshot.modWheel = snapModWheel;
+        currentDiagnosticSnapshot.aftertouch = snapAftertouch;
+        currentDiagnosticSnapshot.sustainPedal = snapSustainPedal;
+        currentDiagnosticSnapshot.peakLevel = snapPeakLevel;
+        currentDiagnosticSnapshot.voiceMode = voiceMode;
+        
+        // Contar notas polifónicas activas
+        int activeNotesCount = 0;
+        for (int i = 0; i < kNumVoices; ++i)
+        {
+            if (voices[i].isActive())
+                activeNotesCount++;
+        }
+        currentDiagnosticSnapshot.polyChordNoteCount = activeNotesCount;
+
+        for (int i = 0; i < kNumVoices; ++i)
+        {
+            currentDiagnosticSnapshot.voiceSnapshots[i] = voices[i].getDiagnosticSnapshot(i);
+        }
+
+#if DEEP_TARGET_MODEL >= 2
+        currentDiagnosticSnapshot.activeCalibrationJson = activeCalibration.toXml();
+#endif
+    }
+
+    EngineDiagnosticSnapshot SynthEngine::getDiagnosticSnapshot() const
+    {
+        const juce::ScopedLock sl(voiceStateLock);
+        return currentDiagnosticSnapshot;
     }
 
     juce::var SynthEngine::getVoiceState() const
@@ -901,6 +1064,27 @@ juce::var SynthEngine::getAudioWaveform() const
     return juce::var (samples);
 }
 
+void SynthEngine::panic()
+{
+    const juce::ScopedLock sl (voiceStateLock);
+    
+    // 1. Forzar release inmediato de todas las voces físicas
+    for (int i = 0; i < kNumVoices; ++i)
+    {
+        voices[i].stopNote (true); // force=true resets envelopes immediately
+    }
+    
+    // 2. Limpiar todos los acumuladores e historiales de notas
+    std::memset (polyChordHeldNotes, 0, sizeof (polyChordHeldNotes));
+    polyChordNoteCount = 0;
+    
+    std::memset (monoHeldNotes, 0, sizeof (monoHeldNotes));
+    monoHeldNoteCount = 0;
+    
+    // 3. Resetear el nivel de salida
+    currentPeakLevel = 0.0f;
+}
+
 juce::String SynthEngine::getActiveNotesJSON() const
 {
     juce::Array<juce::var> notesArr;
@@ -945,4 +1129,32 @@ juce::String SynthEngine::getActiveNotesJSON() const
     json += "]";
     return json;
 }
+
+//==============================================================================
+// Calibration
+//==============================================================================
+
+#if DEEP_TARGET_MODEL >= 2
+bool SynthEngine::loadCalibrationFromJson(const juce::String& json)
+{
+    juce::String error;
+    auto spec = CalibrationSpec::fromXml(json, error);
+    if (! error.isEmpty())
+        return false;
+
+    const juce::ScopedLock sl (calibrationLock);
+    pendingCalibration = spec;
+    return true;
+}
+
+juce::String SynthEngine::getCalibrationJson() const
+{
+    const juce::ScopedLock sl (calibrationLock);
+    return activeCalibration.toXml();
+}
+#else
+bool SynthEngine::loadCalibrationFromJson(const juce::String&) { return false; }
+juce::String SynthEngine::getCalibrationJson() const { return {}; }
+#endif
+
 }

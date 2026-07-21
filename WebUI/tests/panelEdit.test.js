@@ -15,7 +15,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // Mock state
 // ══════════════════════════════════════════════════════════════════
 
-let _drawPanelGraphicCalled = false;
+const _drawPanelGraphicCalled = false;
 let _bridge = null; // set per test
 
 // ══════════════════════════════════════════════════════════════════
@@ -87,7 +87,7 @@ function _createFakeEl(tag, attrs) {
     dataset: {},
     classList: {
       _classes: [],
-      add(c) { if (!this._classes.includes(c)) this._classes.push(c); },
+      add(c) { if (!this._classes.includes(c)) {this._classes.push(c);} },
       remove(c) { this._classes = this._classes.filter(x => x !== c); },
       contains(c) { return this._classes.includes(c); },
       toggle(c, force) {
@@ -101,7 +101,7 @@ function _createFakeEl(tag, attrs) {
     setAttribute(name, val) { this._attrs[name] = val; },
     hasAttribute(name) { return name in this._attrs; },
     addEventListener(event, handler) {
-      if (!this._listeners[event]) this._listeners[event] = [];
+      if (!this._listeners[event]) {this._listeners[event] = [];}
       this._listeners[event].push(handler);
     },
     removeEventListener() {},
@@ -116,7 +116,7 @@ function _createFakeEl(tag, attrs) {
       // For `closest('[data-param]')` — if this element has the attr, return self
       if (sel && sel.startsWith('[') && sel.endsWith(']')) {
         const attr = sel.slice(1, -1);
-        if (this._attrs[attr] !== undefined) return this;
+        if (this._attrs[attr] !== undefined) {return this;}
         // Otherwise traverse up (simplified: just check parent reference)
         return this._parent && this._parent._attrs && this._parent._attrs[attr] !== undefined ? this._parent : null;
       }
@@ -171,10 +171,10 @@ function _makeToggle(id, paramId) {
 /** Create a shape-led-row with data attributes */
 function _makeShapeLedRow(dataShape, dataTrig, dataVal, paramId) {
   const attrs = { 'class': 'shape-led-row' };
-  if (dataShape !== undefined) attrs['data-shape'] = String(dataShape);
-  if (dataTrig !== undefined) attrs['data-trig'] = String(dataTrig);
-  if (dataVal !== undefined) attrs['data-val'] = String(dataVal);
-  if (paramId !== undefined) attrs['data-param'] = paramId;
+  if (dataShape !== undefined) {attrs['data-shape'] = String(dataShape);}
+  if (dataTrig !== undefined) {attrs['data-trig'] = String(dataTrig);}
+  if (dataVal !== undefined) {attrs['data-val'] = String(dataVal);}
+  if (paramId !== undefined) {attrs['data-param'] = paramId;}
   const row = _createFakeEl('div', attrs);
   row.classList.add('shape-led-row');
   return row;
@@ -190,11 +190,11 @@ function _makeContainer() {
   cont._shapeRows = [];
 
   cont.querySelectorAll = function(sel) {
-    if (sel === '.v-slider') return cont._vSliders;
-    if (sel === 'select[data-param]') return cont._selects;
-    if (sel === '.toggle-box[data-param]') return cont._toggles;
-    if (sel === '.shape-led-row') return cont._shapeRows;
-    if (sel === '[data-param]') return [];
+    if (sel === '.v-slider') {return cont._vSliders;}
+    if (sel === 'select[data-param]') {return cont._selects;}
+    if (sel === '.toggle-box[data-param]') {return cont._toggles;}
+    if (sel === '.shape-led-row') {return cont._shapeRows;}
+    if (sel === '[data-param]') {return [];}
     return [];
   };
 
@@ -211,14 +211,14 @@ function _makeContainer() {
 
 /** updatePanelFromState: syncs parameterCache → DOM sliders/selects/toggles/shape rows */
 function updatePanelFromState(container) {
-  if (!window.dualMidiBridge) return;
+  if (!window.dualMidiBridge) {return;}
 
   // Vertical sliders
   container.querySelectorAll('.v-slider').forEach(function(slider) {
     const ctrlUnit = slider.closest('[data-param]');
-    if (!ctrlUnit) return;
+    if (!ctrlUnit) {return;}
     const paramId = ctrlUnit.getAttribute('data-param');
-    if (!paramId) return;
+    if (!paramId) {return;}
     const val = window.dualMidiBridge.parameterCache[paramId];
     if (val !== undefined) {
       const handle = slider.querySelector('.handle');
@@ -252,11 +252,11 @@ function updatePanelFromState(container) {
     const val = window.dualMidiBridge.parameterCache[paramId];
     if (val !== undefined) {
       if (paramId === 'vca_mode') {
-        if (box.id === 'panel-vca-mode-transparent') box.classList.toggle('active', val < 0.5);
-        if (box.id === 'panel-vca-mode-ballsy') box.classList.toggle('active', val > 0.5);
+        if (box.id === 'panel-vca-mode-transparent') {box.classList.toggle('active', val < 0.5);}
+        if (box.id === 'panel-vca-mode-ballsy') {box.classList.toggle('active', val > 0.5);}
       } else if (paramId === 'vcf_pole_mode') {
-        if (box.id === 'panel-vcf-pole-2') box.classList.toggle('active', val < 0.5);
-        if (box.id === 'panel-vcf-pole-4') box.classList.toggle('active', val > 0.5);
+        if (box.id === 'panel-vcf-pole-2') {box.classList.toggle('active', val < 0.5);}
+        if (box.id === 'panel-vcf-pole-4') {box.classList.toggle('active', val > 0.5);}
       } else {
         box.classList.toggle('active', val > 0.5);
       }
@@ -267,21 +267,21 @@ function updatePanelFromState(container) {
   container.querySelectorAll('.shape-led-row').forEach(function(row) {
     let paramId = row.getAttribute('data-param');
     if (!paramId) {
-      if (row.classList.contains('chord-key-led-row')) paramId = 'chord_key';
-      if (row.classList.contains('chord-type-led-row')) paramId = 'chord_type';
+      if (row.classList.contains('chord-key-led-row')) {paramId = 'chord_key';}
+      if (row.classList.contains('chord-type-led-row')) {paramId = 'chord_type';}
     }
-    if (!paramId) return;
+    if (!paramId) {return;}
 
     const val = window.dualMidiBridge.parameterCache[paramId];
     if (val !== undefined) {
       let maxVal = 6.0;
-      if (row.hasAttribute('data-trig')) maxVal = 4.0;
-      else if (paramId === 'note_priority') maxVal = 2.0;
-      else if (paramId === 'trigger_mode') maxVal = 3.0;
-      else if (paramId === 'osc1_range' || paramId === 'osc2_range') maxVal = 2.0;
-      else if (paramId === 'osc1_pm_mode') maxVal = 1.0;
-      else if (paramId === 'chord_key') maxVal = 11.0;
-      else if (paramId === 'chord_type') maxVal = 11.0;
+      if (row.hasAttribute('data-trig')) {maxVal = 4.0;}
+      else if (paramId === 'note_priority') {maxVal = 2.0;}
+      else if (paramId === 'trigger_mode') {maxVal = 3.0;}
+      else if (paramId === 'osc1_range' || paramId === 'osc2_range') {maxVal = 2.0;}
+      else if (paramId === 'osc1_pm_mode') {maxVal = 1.0;}
+      else if (paramId === 'chord_key') {maxVal = 11.0;}
+      else if (paramId === 'chord_type') {maxVal = 11.0;}
 
       const activeIndex = Math.round(val * maxVal);
       const currentIdx = parseInt(row.getAttribute('data-shape') || row.getAttribute('data-trig') || row.getAttribute('data-val') || '0');
@@ -297,7 +297,7 @@ function updatePanelFromState(container) {
 
 /** updateScreenHeight: toggle graphic screen visibility/height */
 function updateScreenHeight(screenEl, screenToggleBtn, currentPanelMode, isScreenCollapsed, noScreenModes) {
-  if (!screenEl || !screenToggleBtn) return;
+  if (!screenEl || !screenToggleBtn) {return;}
   if (noScreenModes.includes(currentPanelMode)) {
     screenEl.style.height = '0px';
     screenEl.style.borderBottomWidth = '0px';
@@ -320,13 +320,13 @@ function updateScreenHeight(screenEl, screenToggleBtn, currentPanelMode, isScree
 
 /** updateRealScopeHeight: toggle real scope screen visibility/height */
 function updateRealScopeHeight(realScopeScreenEl, realScopeToggleBtn, currentPanelMode, isRealScopeCollapsed, noScopeModes, scopeToolbar, stopPollingFn) {
-  if (!realScopeScreenEl || !realScopeToggleBtn) return;
+  if (!realScopeScreenEl || !realScopeToggleBtn) {return;}
   const isJuce = window.dualMidiBridge && window.dualMidiBridge.isJuce;
 
   if (noScopeModes.includes(currentPanelMode)) {
     realScopeScreenEl.style.display = 'none';
     realScopeToggleBtn.style.display = 'none';
-    if (typeof stopPollingFn === 'function') stopPollingFn();
+    if (typeof stopPollingFn === 'function') {stopPollingFn();}
     return;
   }
   realScopeScreenEl.style.display = 'flex';
@@ -335,12 +335,12 @@ function updateRealScopeHeight(realScopeScreenEl, realScopeToggleBtn, currentPan
     realScopeScreenEl.style.height = '0px';
     realScopeScreenEl.style.borderBottomWidth = '0px';
     realScopeToggleBtn.innerHTML = isJuce ? '🔴 DSP SCOPE (off)' : '⚫ DSP SCOPE (no engine)';
-    if (scopeToolbar) scopeToolbar.style.display = 'none';
+    if (scopeToolbar) {scopeToolbar.style.display = 'none';}
   } else {
     realScopeScreenEl.style.height = '113px';
     realScopeScreenEl.style.borderBottomWidth = '1.5px';
     realScopeToggleBtn.innerHTML = '🟢 DSP SCOPE (live)';
-    if (scopeToolbar) scopeToolbar.style.display = 'flex';
+    if (scopeToolbar) {scopeToolbar.style.display = 'flex';}
   }
 }
 
@@ -1013,30 +1013,30 @@ describe('updateRealScopeHeight', () => {
  *  - Binds click handlers on screen/scope toggle buttons
  */
 function initDetailPanel() {
-  var lfoEditBtn = document.getElementById('lfo-edit-btn');
-  var vcaEditBtn = document.getElementById('vca-edit-btn');
-  var envEditBtn = document.getElementById('env-edit-btn');
-  var hpfEditBtn = document.getElementById('hpf-edit-btn');
-  var vcfEditBtn = document.getElementById('vcf-edit-btn');
-  var oscEditBtn = document.getElementById('osc-edit-btn');
-  var polyEditBtn = document.getElementById('poly-edit-btn');
-  var portaEditBtn = document.getElementById('porta-edit-btn');
-  var chordEditBtn = document.getElementById('programmer-chord-btn');
-  var polychordEditBtn = document.getElementById('programmer-polychord-btn');
-  var panel = document.getElementById('detail-edit-panel');
-  var closeBtn = document.getElementById('panel-close-btn');
-  var container = document.getElementById('panel-dynamic-controls');
-  var titleEl = document.getElementById('panel-title');
-  var screenEl = document.getElementById('panel-graphic-screen');
-  var screenToggleBtn = document.getElementById('panel-graphic-toggle');
-  var realScopeScreenEl = document.getElementById('panel-real-scope-screen');
-  var realScopeToggleBtn = document.getElementById('panel-real-scope-toggle');
+  const lfoEditBtn = document.getElementById('lfo-edit-btn');
+  const vcaEditBtn = document.getElementById('vca-edit-btn');
+  const envEditBtn = document.getElementById('env-edit-btn');
+  const hpfEditBtn = document.getElementById('hpf-edit-btn');
+  const vcfEditBtn = document.getElementById('vcf-edit-btn');
+  const oscEditBtn = document.getElementById('osc-edit-btn');
+  const polyEditBtn = document.getElementById('poly-edit-btn');
+  const portaEditBtn = document.getElementById('porta-edit-btn');
+  const chordEditBtn = document.getElementById('programmer-chord-btn');
+  const polychordEditBtn = document.getElementById('programmer-polychord-btn');
+  const panel = document.getElementById('detail-edit-panel');
+  const closeBtn = document.getElementById('panel-close-btn');
+  const container = document.getElementById('panel-dynamic-controls');
+  const titleEl = document.getElementById('panel-title');
+  const screenEl = document.getElementById('panel-graphic-screen');
+  const screenToggleBtn = document.getElementById('panel-graphic-toggle');
+  const realScopeScreenEl = document.getElementById('panel-real-scope-screen');
+  const realScopeToggleBtn = document.getElementById('panel-real-scope-toggle');
 
-  if (!panel || !closeBtn || !container) return;
+  if (!panel || !closeBtn || !container) {return;}
 
   // Expose public API
   window.syncDetailPanelControls = function() {
-    if (!window.PANEL_TEMPLATES) return;
+    if (!window.PANEL_TEMPLATES) {return;}
     // Minimal stub: just calls updatePanelFromState
   };
 
@@ -1047,7 +1047,7 @@ function initDetailPanel() {
 
   // Edit button click handlers
   function bindEditButton(btn) {
-    if (!btn) return;
+    if (!btn) {return;}
     btn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -1379,7 +1379,7 @@ describe('hexToRgba — canvas color helper', () => {
 
 describe('applyCurve — exponential envelope curve', () => {
   function applyCurve(t, curve) {
-    if (Math.abs(curve) < 0.01) return t;
+    if (Math.abs(curve) < 0.01) {return t;}
     const exp = curve > 0 ? 1.0 + curve * 3.0 : 1.0 / (1.0 - curve * 3.0);
     return Math.pow(t, exp);
   }
@@ -1518,8 +1518,8 @@ describe('_evalOscWaveform — oscillator combination', () => {
   function _evalOscWaveform(sawEn, sqEn, osc2Lvl, osc2Pitch, pct, phase) {
     const angle = pct * Math.PI * 6 + phase;
     let yVal = 0;
-    if (sawEn) yVal += -0.5 + ((angle % (Math.PI * 2)) / (Math.PI * 2));
-    if (sqEn) yVal += (angle % (Math.PI * 2)) < Math.PI ? 0.35 : -0.35;
+    if (sawEn) {yVal += -0.5 + ((angle % (Math.PI * 2)) / (Math.PI * 2));}
+    if (sqEn) {yVal += (angle % (Math.PI * 2)) < Math.PI ? 0.35 : -0.35;}
     const osc2Phase = phase + osc2Pitch * Math.PI * 2;
     const a2 = pct * Math.PI * 6 + osc2Phase;
     yVal += osc2Lvl * 0.3 * Math.sin(a2 * 1.5);
@@ -1651,18 +1651,18 @@ describe('SCOPE_COLORS — color palette array', () => {
 
 describe('_findTriggerPoint — zero-crossing trigger detection', () => {
   function _findTriggerPoint(samples, mode, edge) {
-    if (mode === 0 || !samples || samples.length < 4) return 0;
+    if (mode === 0 || !samples || samples.length < 4) {return 0;}
     const threshold = 0.0;
     const searchStart = Math.floor(samples.length * 0.1);
     const searchEnd = Math.floor(samples.length * 0.8);
     for (let i = searchStart; i < searchEnd; i++) {
       const prev = samples[i - 1];
       const curr = samples[i];
-      if (typeof prev !== 'number' || typeof curr !== 'number') continue;
+      if (typeof prev !== 'number' || typeof curr !== 'number') {continue;}
       if (edge === 0) {
-        if (prev <= threshold && curr > threshold) return i;
+        if (prev <= threshold && curr > threshold) {return i;}
       } else {
-        if (prev >= threshold && curr < threshold) return i;
+        if (prev >= threshold && curr < threshold) {return i;}
       }
     }
     return -1;
@@ -1702,7 +1702,7 @@ describe('_findTriggerPoint — zero-crossing trigger detection', () => {
 
   it('skips first 10% and last 20% of samples', () => {
     const samples = [];
-    for (let i = 0; i < 20; i++) samples.push(-1.0);
+    for (let i = 0; i < 20; i++) {samples.push(-1.0);}
     samples[5] = 1.0;
     expect(_findTriggerPoint(samples, 1, 0)).toBe(5);
   });
@@ -1734,11 +1734,11 @@ describe('_updateScopeToolbar — scope toolbar UI', () => {
       triggerBtn.title = 'Trigger: ' + names[_scopeTriggerMode];
     }
     zoomBtns.forEach(function(btn) {
-      var z = parseInt(btn.getAttribute('data-zoom'));
+      const z = parseInt(btn.getAttribute('data-zoom'));
       btn.classList.toggle('active', z === _scopeZoom);
     });
     if (colorBtn) {
-      var colors = _getScopeColors();
+      const colors = _getScopeColors();
       if (colorIndicator) {
         colorIndicator.style.color = colors.waveform;
         colorIndicator.style.textShadow = '0 0 4px ' + colors.glow;
@@ -1826,9 +1826,9 @@ describe('drawPanelGraphic — canvas rendering', () => {
   let panelActiveEnv = 1;
   let panelActiveLfo = 1;
   let panelActiveOsc = 1;
-  let isScreenCollapsed = false;
-  let isRealScopeCollapsed = true;
-  let brandColor = '#ff9900';
+  const isScreenCollapsed = false;
+  const isRealScopeCollapsed = true;
+  const brandColor = '#ff9900';
 
   function hexToRgba(hex, alpha) {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -1838,7 +1838,7 @@ describe('drawPanelGraphic — canvas rendering', () => {
   }
 
   function applyCurve(t, curve) {
-    if (Math.abs(curve) < 0.01) return t;
+    if (Math.abs(curve) < 0.01) {return t;}
     const exp = curve > 0 ? 1.0 + curve * 3.0 : 1.0 / (1.0 - curve * 3.0);
     return Math.pow(t, exp);
   }
@@ -1869,76 +1869,76 @@ describe('drawPanelGraphic — canvas rendering', () => {
   function _evalOscWaveform(sawEn, sqEn, osc2Lvl, osc2Pitch, pct, phase) {
     const angle = pct * Math.PI * 6 + phase;
     let yVal = 0;
-    if (sawEn) yVal += -0.5 + ((angle % (Math.PI * 2)) / (Math.PI * 2));
-    if (sqEn) yVal += (angle % (Math.PI * 2)) < Math.PI ? 0.35 : -0.35;
+    if (sawEn) {yVal += -0.5 + ((angle % (Math.PI * 2)) / (Math.PI * 2));}
+    if (sqEn) {yVal += (angle % (Math.PI * 2)) < Math.PI ? 0.35 : -0.35;}
     const osc2Phase = phase + osc2Pitch * Math.PI * 2;
     yVal += osc2Lvl * 0.3 * Math.sin((pct * Math.PI * 6 + osc2Phase) * 1.5);
     return yVal;
   }
 
   function drawPanelGraphic() {
-    if (!canvas) return;
-    var ctxLocal = ctx;
-    var w = 200;
-    var h = 100;
+    if (!canvas) {return;}
+    const ctxLocal = ctx;
+    const w = 200;
+    const h = 100;
     ctxLocal.clearRect(0, 0, w, h);
 
     // CRT grid
     ctxLocal.strokeStyle = hexToRgba(brandColor, 0.04);
     ctxLocal.lineWidth = 1;
-    for (var gx = 0; gx < w; gx += 20) {
+    for (let gx = 0; gx < w; gx += 20) {
       ctxLocal.beginPath();
       ctxLocal.moveTo(gx, 0);
       ctxLocal.lineTo(gx, h);
       ctxLocal.stroke();
     }
-    for (var gy = 0; gy < h; gy += 20) {
+    for (let gy = 0; gy < h; gy += 20) {
       ctxLocal.beginPath();
       ctxLocal.moveTo(0, gy);
       ctxLocal.lineTo(w, gy);
       ctxLocal.stroke();
     }
 
-    if (!cache) return;
+    if (!cache) {return;}
 
     if (currentPanelMode === 'ENV' || currentPanelMode === 'VCA') {
-      var envNum = currentPanelMode === 'VCA' ? 1 : panelActiveEnv;
+      const envNum = currentPanelMode === 'VCA' ? 1 : panelActiveEnv;
       var prefix = 'env' + envNum + '_';
-      var a = typeof cache[prefix + 'attack'] !== 'undefined' ? cache[prefix + 'attack'] : 0.2;
-      var d = typeof cache[prefix + 'decay'] !== 'undefined' ? cache[prefix + 'decay'] : 0.35;
-      var s = typeof cache[prefix + 'sustain'] !== 'undefined' ? cache[prefix + 'sustain'] : 0.55;
-      var r = typeof cache[prefix + 'release'] !== 'undefined' ? cache[prefix + 'release'] : 0.4;
-      var aCurve = typeof cache[prefix + 'attack_curve'] !== 'undefined' ? (cache[prefix + 'attack_curve'] * 2.0 - 1.0) : 0.0;
-      var dCurve = typeof cache[prefix + 'decay_curve'] !== 'undefined' ? (cache[prefix + 'decay_curve'] * 2.0 - 1.0) : 0.0;
-      var rCurve = typeof cache[prefix + 'release_curve'] !== 'undefined' ? (cache[prefix + 'release_curve'] * 2.0 - 1.0) : 0.0;
+      const a = typeof cache[prefix + 'attack'] !== 'undefined' ? cache[prefix + 'attack'] : 0.2;
+      const d = typeof cache[prefix + 'decay'] !== 'undefined' ? cache[prefix + 'decay'] : 0.35;
+      const s = typeof cache[prefix + 'sustain'] !== 'undefined' ? cache[prefix + 'sustain'] : 0.55;
+      const r = typeof cache[prefix + 'release'] !== 'undefined' ? cache[prefix + 'release'] : 0.4;
+      const aCurve = typeof cache[prefix + 'attack_curve'] !== 'undefined' ? (cache[prefix + 'attack_curve'] * 2.0 - 1.0) : 0.0;
+      const dCurve = typeof cache[prefix + 'decay_curve'] !== 'undefined' ? (cache[prefix + 'decay_curve'] * 2.0 - 1.0) : 0.0;
+      const rCurve = typeof cache[prefix + 'release_curve'] !== 'undefined' ? (cache[prefix + 'release_curve'] * 2.0 - 1.0) : 0.0;
 
       var padding = 10;
       var graphW = w - padding * 2;
       var graphH = h - padding * 2;
-      var startX = padding;
+      const startX = padding;
       var startY = h - padding;
-      var topY = padding;
+      const topY = padding;
 
-      var totalTime = a + d + 0.7 + r;
-      var aW = Math.max(4, (a / totalTime) * graphW);
-      var dW = Math.max(4, (d / totalTime) * graphW);
-      var sW = Math.max(8, (0.7 / totalTime) * graphW);
-      var rW = Math.max(4, (r / totalTime) * graphW);
+      const totalTime = a + d + 0.7 + r;
+      const aW = Math.max(4, (a / totalTime) * graphW);
+      const dW = Math.max(4, (d / totalTime) * graphW);
+      const sW = Math.max(8, (0.7 / totalTime) * graphW);
+      const rW = Math.max(4, (r / totalTime) * graphW);
 
-      var p0x = startX, p0y = startY;
-      var p1x = startX + aW, p1y = topY;
-      var p2x = p1x + dW, p2y = startY - s * graphH;
-      var p3x = p2x + sW, p3y = p2y;
-      var p4x = p3x + rW, p4y = startY;
+      const p0x = startX, p0y = startY;
+      const p1x = startX + aW, p1y = topY;
+      const p2x = p1x + dW, p2y = startY - s * graphH;
+      const p3x = p2x + sW, p3y = p2y;
+      const p4x = p3x + rW, p4y = startY;
 
       // Fill
       ctxLocal.fillStyle = hexToRgba(brandColor, 0.06);
       ctxLocal.beginPath();
       ctxLocal.moveTo(p0x, p0y);
-      for (var fi = 0; fi <= 20; fi++) ctxLocal.lineTo(p0x + (p1x - p0x) * (fi / 20), p0y + (p1y - p0y) * applyCurve(fi / 20, aCurve));
-      for (var fi2 = 0; fi2 <= 20; fi2++) ctxLocal.lineTo(p1x + (p2x - p1x) * (fi2 / 20), p1y + (p2y - p1y) * applyCurve(fi2 / 20, dCurve));
+      for (let fi = 0; fi <= 20; fi++) {ctxLocal.lineTo(p0x + (p1x - p0x) * (fi / 20), p0y + (p1y - p0y) * applyCurve(fi / 20, aCurve));}
+      for (let fi2 = 0; fi2 <= 20; fi2++) {ctxLocal.lineTo(p1x + (p2x - p1x) * (fi2 / 20), p1y + (p2y - p1y) * applyCurve(fi2 / 20, dCurve));}
       ctxLocal.lineTo(p3x, p3y);
-      for (var fi3 = 0; fi3 <= 20; fi3++) ctxLocal.lineTo(p3x + (p4x - p3x) * (fi3 / 20), p3y + (p4y - p3y) * applyCurve(fi3 / 20, rCurve));
+      for (let fi3 = 0; fi3 <= 20; fi3++) {ctxLocal.lineTo(p3x + (p4x - p3x) * (fi3 / 20), p3y + (p4y - p3y) * applyCurve(fi3 / 20, rCurve));}
       ctxLocal.lineTo(p0x, p0y);
       ctxLocal.fill();
 
@@ -1947,10 +1947,10 @@ describe('drawPanelGraphic — canvas rendering', () => {
       ctxLocal.lineWidth = 2;
       ctxLocal.beginPath();
       ctxLocal.moveTo(p0x, p0y);
-      for (var si = 0; si <= 20; si++) ctxLocal.lineTo(p0x + (p1x - p0x) * (si / 20), p0y + (p1y - p0y) * applyCurve(si / 20, aCurve));
-      for (var si2 = 0; si2 <= 20; si2++) ctxLocal.lineTo(p1x + (p2x - p1x) * (si2 / 20), p1y + (p2y - p1y) * applyCurve(si2 / 20, dCurve));
+      for (let si = 0; si <= 20; si++) {ctxLocal.lineTo(p0x + (p1x - p0x) * (si / 20), p0y + (p1y - p0y) * applyCurve(si / 20, aCurve));}
+      for (let si2 = 0; si2 <= 20; si2++) {ctxLocal.lineTo(p1x + (p2x - p1x) * (si2 / 20), p1y + (p2y - p1y) * applyCurve(si2 / 20, dCurve));}
       ctxLocal.lineTo(p3x, p3y);
-      for (var si3 = 0; si3 <= 20; si3++) ctxLocal.lineTo(p3x + (p4x - p3x) * (si3 / 20), p3y + (p4y - p3y) * applyCurve(si3 / 20, rCurve));
+      for (let si3 = 0; si3 <= 20; si3++) {ctxLocal.lineTo(p3x + (p4x - p3x) * (si3 / 20), p3y + (p4y - p3y) * applyCurve(si3 / 20, rCurve));}
       ctxLocal.stroke();
 
       // Nodes
@@ -1962,15 +1962,15 @@ describe('drawPanelGraphic — canvas rendering', () => {
       });
 
       // Label
-      var envLabel = currentPanelMode === 'VCA' ? 'ENV 1 (VCA)' : (['', 'ENV 1 VCA', 'ENV 2 VCF', 'ENV 3 MOD'][envNum] || 'ENV ' + envNum);
+      const envLabel = currentPanelMode === 'VCA' ? 'ENV 1 (VCA)' : (['', 'ENV 1 VCA', 'ENV 2 VCF', 'ENV 3 MOD'][envNum] || 'ENV ' + envNum);
       ctxLocal.fillStyle = hexToRgba(brandColor, 0.4);
       ctxLocal.font = '7px Share Tech Mono, monospace';
       ctxLocal.fillText(envLabel, padding + 2, padding + 8);
 
     } else if (currentPanelMode === 'LFO') {
       var prefix = 'lfo' + panelActiveLfo + '_';
-      var shapeVal = typeof cache[prefix + 'shape'] !== 'undefined' ? Math.round(cache[prefix + 'shape'] * 6) : 1;
-      var lfoRate = typeof cache[prefix + 'rate'] !== 'undefined' ? cache[prefix + 'rate'] : 0.5;
+      const shapeVal = typeof cache[prefix + 'shape'] !== 'undefined' ? Math.round(cache[prefix + 'shape'] * 6) : 1;
+      const lfoRate = typeof cache[prefix + 'rate'] !== 'undefined' ? cache[prefix + 'rate'] : 0.5;
 
       ctxLocal.strokeStyle = brandColor;
       ctxLocal.lineWidth = 2;
@@ -1980,16 +1980,16 @@ describe('drawPanelGraphic — canvas rendering', () => {
       var graphW = w - padding * 2;
       var graphH = h - padding * 2;
       var centerY = h / 2;
-      var freq = 0.5 + lfoRate * 4.0;
-      var phaseOffset = (_animTime / 1000) * freq * Math.PI * 2;
+      const freq = 0.5 + lfoRate * 4.0;
+      const phaseOffset = (_animTime / 1000) * freq * Math.PI * 2;
 
-      for (var lx = 0; lx < graphW; lx++) {
-        var pct = lx / graphW;
-        var yVal = _evalLfoWaveform(shapeVal, pct, phaseOffset);
-        var canvasX = padding + lx;
-        var canvasY = centerY - yVal * (graphH / 2);
-        if (lx === 0) ctxLocal.moveTo(canvasX, canvasY);
-        else ctxLocal.lineTo(canvasX, canvasY);
+      for (let lx = 0; lx < graphW; lx++) {
+        const pct = lx / graphW;
+        const yVal = _evalLfoWaveform(shapeVal, pct, phaseOffset);
+        const canvasX = padding + lx;
+        const canvasY = centerY - yVal * (graphH / 2);
+        if (lx === 0) {ctxLocal.moveTo(canvasX, canvasY);}
+        else {ctxLocal.lineTo(canvasX, canvasY);}
       }
       ctxLocal.stroke();
 
@@ -1997,20 +1997,20 @@ describe('drawPanelGraphic — canvas rendering', () => {
       ctxLocal.strokeStyle = hexToRgba(brandColor, 0.08);
       ctxLocal.lineWidth = 1;
       ctxLocal.beginPath();
-      var ghostPhase = phaseOffset - freq * Math.PI * 0.2;
-      for (var lx2 = 0; lx2 < graphW; lx2++) {
-        var pct2 = lx2 / graphW;
-        var yVal2 = _evalLfoWaveform(shapeVal, pct2, ghostPhase);
-        var canvasX2 = padding + lx2;
-        var canvasY2 = centerY - yVal2 * (graphH / 2);
-        if (lx2 === 0) ctxLocal.moveTo(canvasX2, canvasY2);
-        else ctxLocal.lineTo(canvasX2, canvasY2);
+      const ghostPhase = phaseOffset - freq * Math.PI * 0.2;
+      for (let lx2 = 0; lx2 < graphW; lx2++) {
+        const pct2 = lx2 / graphW;
+        const yVal2 = _evalLfoWaveform(shapeVal, pct2, ghostPhase);
+        const canvasX2 = padding + lx2;
+        const canvasY2 = centerY - yVal2 * (graphH / 2);
+        if (lx2 === 0) {ctxLocal.moveTo(canvasX2, canvasY2);}
+        else {ctxLocal.lineTo(canvasX2, canvasY2);}
       }
       ctxLocal.stroke();
 
     } else if (currentPanelMode === 'VCF' || currentPanelMode === 'HPF') {
-      var cutoff = 0.5;
-      var resonance = 0.0;
+      let cutoff = 0.5;
+      let resonance = 0.0;
       if (currentPanelMode === 'VCF') {
         cutoff = typeof cache['vcf_cutoff'] !== 'undefined' ? cache['vcf_cutoff'] : 0.5;
         resonance = typeof cache['vcf_resonance'] !== 'undefined' ? cache['vcf_resonance'] : 0.0;
@@ -2025,33 +2025,33 @@ describe('drawPanelGraphic — canvas rendering', () => {
       var graphH = h - 20;
       var startY = h - 10;
 
-      for (var fx = 0; fx < graphW; fx++) {
-        var freq2 = fx / graphW;
-        var gain = 1.0;
+      for (let fx = 0; fx < graphW; fx++) {
+        const freq2 = fx / graphW;
+        let gain = 1.0;
         if (currentPanelMode === 'VCF') {
           if (freq2 < cutoff) {
-            var dist = cutoff - freq2;
-            if (dist < 0.1) gain = 1.0 + resonance * 1.8 * (1.0 - dist / 0.1);
+            const dist = cutoff - freq2;
+            if (dist < 0.1) {gain = 1.0 + resonance * 1.8 * (1.0 - dist / 0.1);}
           } else {
-            var dist2 = freq2 - cutoff;
+            const dist2 = freq2 - cutoff;
             gain = (1.0 + resonance * 1.8) / (1.0 + (dist2 * 12.0) * (dist2 * 12.0));
           }
         } else {
-          if (freq2 > cutoff) gain = 1.0;
-          else gain = 1.0 / (1.0 + ((cutoff - freq2) * 15.0) * ((cutoff - freq2) * 15.0));
+          if (freq2 > cutoff) {gain = 1.0;}
+          else {gain = 1.0 / (1.0 + ((cutoff - freq2) * 15.0) * ((cutoff - freq2) * 15.0));}
         }
-        var canvasX3 = 10 + fx;
-        var canvasY3 = startY - gain * (graphH * 0.7);
-        if (fx === 0) ctxLocal.moveTo(canvasX3, canvasY3);
-        else ctxLocal.lineTo(canvasX3, canvasY3);
+        const canvasX3 = 10 + fx;
+        const canvasY3 = startY - gain * (graphH * 0.7);
+        if (fx === 0) {ctxLocal.moveTo(canvasX3, canvasY3);}
+        else {ctxLocal.lineTo(canvasX3, canvasY3);}
       }
       ctxLocal.stroke();
 
     } else if (currentPanelMode === 'OSC') {
-      var sawEn = typeof cache['osc1_saw_enable'] !== 'undefined' ? cache['osc1_saw_enable'] > 0.5 : true;
-      var sqEn = typeof cache['osc1_square_enable'] !== 'undefined' ? cache['osc1_square_enable'] > 0.5 : false;
-      var osc2Lvl = typeof cache['osc2_level'] !== 'undefined' ? cache['osc2_level'] : 0.5;
-      var osc2Pitch = typeof cache['osc2_pitch'] !== 'undefined' ? cache['osc2_pitch'] : 0.5;
+      const sawEn = typeof cache['osc1_saw_enable'] !== 'undefined' ? cache['osc1_saw_enable'] > 0.5 : true;
+      const sqEn = typeof cache['osc1_square_enable'] !== 'undefined' ? cache['osc1_square_enable'] > 0.5 : false;
+      const osc2Lvl = typeof cache['osc2_level'] !== 'undefined' ? cache['osc2_level'] : 0.5;
+      const osc2Pitch = typeof cache['osc2_pitch'] !== 'undefined' ? cache['osc2_pitch'] : 0.5;
       ctxLocal.strokeStyle = brandColor;
       ctxLocal.lineWidth = 2;
       ctxLocal.beginPath();
@@ -2059,14 +2059,14 @@ describe('drawPanelGraphic — canvas rendering', () => {
       var graphW = w - padding * 2;
       var graphH = h - padding * 2;
       var centerY = h / 2;
-      var oscPhase = (_animTime / 1000) * Math.PI * 2 * 2.2;
-      for (var ox = 0; ox < graphW; ox++) {
-        var pct3 = ox / graphW;
-        var yVal3 = _evalOscWaveform(sawEn, sqEn, osc2Lvl, osc2Pitch, pct3, oscPhase);
-        var canvasX4 = padding + ox;
-        var canvasY4 = centerY - yVal3 * (graphH / 2);
-        if (ox === 0) ctxLocal.moveTo(canvasX4, canvasY4);
-        else ctxLocal.lineTo(canvasX4, canvasY4);
+      const oscPhase = (_animTime / 1000) * Math.PI * 2 * 2.2;
+      for (let ox = 0; ox < graphW; ox++) {
+        const pct3 = ox / graphW;
+        const yVal3 = _evalOscWaveform(sawEn, sqEn, osc2Lvl, osc2Pitch, pct3, oscPhase);
+        const canvasX4 = padding + ox;
+        const canvasY4 = centerY - yVal3 * (graphH / 2);
+        if (ox === 0) {ctxLocal.moveTo(canvasX4, canvasY4);}
+        else {ctxLocal.lineTo(canvasX4, canvasY4);}
       }
       ctxLocal.stroke();
 
@@ -2074,14 +2074,14 @@ describe('drawPanelGraphic — canvas rendering', () => {
       ctxLocal.strokeStyle = hexToRgba(brandColor, 0.06);
       ctxLocal.lineWidth = 1;
       ctxLocal.beginPath();
-      var ghostOscPhase = oscPhase - Math.PI * 0.5;
-      for (var ox2 = 0; ox2 < graphW; ox2++) {
-        var pct4 = ox2 / graphW;
-        var yVal4 = _evalOscWaveform(sawEn, sqEn, osc2Lvl, osc2Pitch, pct4, ghostOscPhase);
-        var canvasX5 = padding + ox2;
-        var canvasY5 = centerY - yVal4 * (graphH / 2);
-        if (ox2 === 0) ctxLocal.moveTo(canvasX5, canvasY5);
-        else ctxLocal.lineTo(canvasX5, canvasY5);
+      const ghostOscPhase = oscPhase - Math.PI * 0.5;
+      for (let ox2 = 0; ox2 < graphW; ox2++) {
+        const pct4 = ox2 / graphW;
+        const yVal4 = _evalOscWaveform(sawEn, sqEn, osc2Lvl, osc2Pitch, pct4, ghostOscPhase);
+        const canvasX5 = padding + ox2;
+        const canvasY5 = centerY - yVal4 * (graphH / 2);
+        if (ox2 === 0) {ctxLocal.moveTo(canvasX5, canvasY5);}
+        else {ctxLocal.lineTo(canvasX5, canvasY5);}
       }
       ctxLocal.stroke();
 
@@ -2092,19 +2092,19 @@ describe('drawPanelGraphic — canvas rendering', () => {
       var graphW = w - padding * 2;
       var graphH = h - padding * 2;
       var centerY = h / 2;
-      var arpRate = typeof cache['arp_rate'] !== 'undefined' ? cache['arp_rate'] : 0.5;
-      var bpm = 20 + arpRate * 220;
-      var beatMs = 60000 / bpm;
-      var stepDuration = beatMs / 4;
-      var stepIndex = Math.floor((_animTime % (stepDuration * 8)) / stepDuration);
+      const arpRate = typeof cache['arp_rate'] !== 'undefined' ? cache['arp_rate'] : 0.5;
+      const bpm = 20 + arpRate * 220;
+      const beatMs = 60000 / bpm;
+      const stepDuration = beatMs / 4;
+      const stepIndex = Math.floor((_animTime % (stepDuration * 8)) / stepDuration);
       ctxLocal.beginPath();
-      var steps = 8;
-      var stepW = graphW / steps;
-      for (var ai = 0; ai <= steps; ai++) {
-        var ax = padding + ai * stepW;
-        var ay = centerY + (ai % 4 - 2) * (graphH / 4);
-        if (ai === 0) ctxLocal.moveTo(ax, ay);
-        else ctxLocal.lineTo(ax, ay);
+      const steps = 8;
+      const stepW = graphW / steps;
+      for (let ai = 0; ai <= steps; ai++) {
+        const ax = padding + ai * stepW;
+        const ay = centerY + (ai % 4 - 2) * (graphH / 4);
+        if (ai === 0) {ctxLocal.moveTo(ax, ay);}
+        else {ctxLocal.lineTo(ax, ay);}
       }
       ctxLocal.stroke();
     }
@@ -2333,10 +2333,10 @@ describe('initDynamicSliders — touch/mouse drag interaction', () => {
 
   function initDynamicSliders(containerEl) {
     containerEl.querySelectorAll('.v-slider').forEach(function(slider) {
-      var handle = slider.querySelector('.handle');
-      if (!handle) return;
+      const handle = slider.querySelector('.handle');
+      if (!handle) {return;}
 
-      var isDragging = false;
+      let isDragging = false;
 
       function onStart(clientY) {
         isDragging = true;
@@ -2345,12 +2345,12 @@ describe('initDynamicSliders — touch/mouse drag interaction', () => {
       }
 
       function onMove(clientY) {
-        if (!isDragging) return;
+        if (!isDragging) {return;}
         updateValue(clientY);
       }
 
       function onEnd() {
-        if (!isDragging) return;
+        if (!isDragging) {return;}
         isDragging = false;
         document.body.style.userSelect = '';
       }
@@ -2380,18 +2380,18 @@ describe('initDynamicSliders — touch/mouse drag interaction', () => {
       });
 
       function updateValue(clientY) {
-        var rect = slider.getBoundingClientRect();
-        var handleHeight = 16;
-        var totalH = rect.height - handleHeight;
-        if (totalH <= 0) return;
-        var relativeY = clientY - rect.top - (handleHeight / 2);
+        const rect = slider.getBoundingClientRect();
+        const handleHeight = 16;
+        const totalH = rect.height - handleHeight;
+        if (totalH <= 0) {return;}
+        let relativeY = clientY - rect.top - (handleHeight / 2);
         relativeY = Math.max(0, Math.min(relativeY, totalH));
-        var val = 1.0 - (relativeY / totalH);
+        const val = 1.0 - (relativeY / totalH);
         handle.style.top = relativeY + 'px';
 
-        var ctrlUnit = slider.closest('[data-param]');
+        const ctrlUnit = slider.closest('[data-param]');
         if (ctrlUnit) {
-          var paramId = ctrlUnit.getAttribute('data-param');
+          const paramId = ctrlUnit.getAttribute('data-param');
           if (paramId && window.dualMidiBridge) {
             window.dualMidiBridge.setParameter(paramId, val);
           }
@@ -2416,12 +2416,12 @@ describe('initDynamicSliders — touch/mouse drag interaction', () => {
   });
 
   it('registers touchstart and mousedown listeners on each v-slider', () => {
-    var sliderUnit = _makeSlider('vcf_cutoff', 100);
+    const sliderUnit = _makeSlider('vcf_cutoff', 100);
     container._vSliders = [sliderUnit.querySelector('.v-slider')];
 
     initDynamicSliders(container);
 
-    var slider = container._vSliders[0];
+    const slider = container._vSliders[0];
     expect(slider._listeners['touchstart']).toBeDefined();
     expect(slider._listeners['touchstart'].length).toBe(1);
     expect(slider._listeners['mousedown']).toBeDefined();
@@ -2429,7 +2429,7 @@ describe('initDynamicSliders — touch/mouse drag interaction', () => {
   });
 
   it('skips slider when handle is missing', () => {
-    var slider = _createFakeEl('div');
+    const slider = _createFakeEl('div');
     slider.classList.add('v-slider');
     slider._subElements['.handle'] = null;
     container._vSliders = [slider];
@@ -2442,13 +2442,13 @@ describe('initDynamicSliders — touch/mouse drag interaction', () => {
   });
 
   it('mousedown sets userSelect none and registers document listeners', () => {
-    var sliderUnit = _makeSlider('vca_level', 100);
+    const sliderUnit = _makeSlider('vca_level', 100);
     container._vSliders = [sliderUnit.querySelector('.v-slider')];
 
     initDynamicSliders(container);
 
-    var slider = container._vSliders[0];
-    var mouseEvent = { clientY: 50, preventDefault: vi.fn() };
+    const slider = container._vSliders[0];
+    const mouseEvent = { clientY: 50, preventDefault: vi.fn() };
     slider._listeners['mousedown'][0](mouseEvent);
 
     expect(document.body.style.userSelect).toBe('none');
@@ -2462,29 +2462,29 @@ describe('initDynamicSliders — touch/mouse drag interaction', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('_updatePanelStepVisual — SEQ step bar visual', () => {
-  var stepsContainer;
-  var stepWraps;
-  var _panelSeqValues;
-  var _panelSeqRaw;
+  let stepsContainer;
+  let stepWraps;
+  let _panelSeqValues;
+  let _panelSeqRaw;
 
   function _updatePanelStepVisual(idx) {
-    var wraps = stepsContainer ? stepsContainer.children : [];
-    if (idx < 0 || idx >= wraps.length) return;
-    var wrap = wraps[idx];
-    var val = _panelSeqValues[idx];
-    var raw = _panelSeqRaw[idx];
-    if (val === undefined || raw === undefined) return;
-    var fillBar = wrap.querySelector('.panel-seq-fill');
-    var skipBadge = wrap.querySelector('.panel-seq-skip');
-    var numLabel = wrap.querySelector('.panel-seq-num');
-    var isSkip = raw === 0;
+    const wraps = stepsContainer ? stepsContainer.children : [];
+    if (idx < 0 || idx >= wraps.length) {return;}
+    const wrap = wraps[idx];
+    const val = _panelSeqValues[idx];
+    const raw = _panelSeqRaw[idx];
+    if (val === undefined || raw === undefined) {return;}
+    const fillBar = wrap.querySelector('.panel-seq-fill');
+    const skipBadge = wrap.querySelector('.panel-seq-skip');
+    const numLabel = wrap.querySelector('.panel-seq-num');
+    const isSkip = raw === 0;
 
-    var signStr = val >= 0 ? '+' : '';
+    const signStr = val >= 0 ? '+' : '';
     wrap.title = isSkip
       ? 'Step ' + (idx + 1) + ': SKIP (raw: ' + raw + ')'
       : 'Step ' + (idx + 1) + ': ' + signStr + val + ' (raw: ' + raw + ')';
 
-    if (skipBadge) skipBadge.style.display = isSkip ? 'block' : 'none';
+    if (skipBadge) {skipBadge.style.display = isSkip ? 'block' : 'none';}
     if (fillBar) {
       if (isSkip) {
         fillBar.style.height = '0%';
@@ -2512,13 +2512,13 @@ describe('_updatePanelStepVisual — SEQ step bar visual', () => {
 
     stepsContainer = _createFakeEl('div');
     stepWraps = [];
-    for (var i = 0; i < 32; i++) {
-      var wrap = _createFakeEl('div');
-      var fillBar = _createFakeEl('div');
+    for (let i = 0; i < 32; i++) {
+      const wrap = _createFakeEl('div');
+      const fillBar = _createFakeEl('div');
       fillBar.classList.add('panel-seq-fill');
-      var skipBadge = _createFakeEl('div');
+      const skipBadge = _createFakeEl('div');
       skipBadge.classList.add('panel-seq-skip');
-      var numLabel = _createFakeEl('div');
+      const numLabel = _createFakeEl('div');
       numLabel.classList.add('panel-seq-num');
       wrap._subElements['.panel-seq-fill'] = fillBar;
       wrap._subElements['.panel-seq-skip'] = skipBadge;
@@ -2548,9 +2548,9 @@ describe('_updatePanelStepVisual — SEQ step bar visual', () => {
     _panelSeqRaw[2] = 0;
     _updatePanelStepVisual(2);
     expect(stepWraps[2].title).toContain('SKIP');
-    var skipBadge = stepWraps[2].querySelector('.panel-seq-skip');
+    const skipBadge = stepWraps[2].querySelector('.panel-seq-skip');
     expect(skipBadge.style.display).toBe('block');
-    var fillBar = stepWraps[2].querySelector('.panel-seq-fill');
+    const fillBar = stepWraps[2].querySelector('.panel-seq-fill');
     expect(fillBar.style.background).toBe('transparent');
     expect(fillBar.style.borderTop).toContain('dashed');
   });
@@ -2559,7 +2559,7 @@ describe('_updatePanelStepVisual — SEQ step bar visual', () => {
     _panelSeqValues[3] = 63;
     _panelSeqRaw[3] = 191;
     _updatePanelStepVisual(3);
-    var fillBar = stepWraps[3].querySelector('.panel-seq-fill');
+    const fillBar = stepWraps[3].querySelector('.panel-seq-fill');
     expect(fillBar.style.bottom).toBe('50%');
     expect(parseFloat(fillBar.style.height)).toBeCloseTo(24.8, 0);
     expect(fillBar.style.background).toBe('var(--accent-pink)');
@@ -2569,7 +2569,7 @@ describe('_updatePanelStepVisual — SEQ step bar visual', () => {
     _panelSeqValues[4] = -64;
     _panelSeqRaw[4] = 64;
     _updatePanelStepVisual(4);
-    var fillBar = stepWraps[4].querySelector('.panel-seq-fill');
+    const fillBar = stepWraps[4].querySelector('.panel-seq-fill');
     expect(parseFloat(fillBar.style.bottom)).toBeCloseTo(25, 1);
     expect(fillBar.style.height).toBe('25%');
     expect(fillBar.style.background).toContain('accent-pink');
@@ -2591,19 +2591,19 @@ describe('_updatePanelStepVisual — SEQ step bar visual', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('_syncPanelSeqFromCache — step value sync', () => {
-  var mockBridge;
-  var _panelSeqValues;
-  var _panelSeqRaw;
-  var _updatePanelStepVisual;
+  let mockBridge;
+  let _panelSeqValues;
+  let _panelSeqRaw;
+  let _updatePanelStepVisual;
 
   function _syncPanelSeqFromCache() {
-    var bridge = mockBridge;
-    if (!bridge) return;
-    for (var si = 0; si < 32; si++) {
-      var paramId = 'seq_step_' + (si + 1);
-      var norm = bridge.parameterCache[paramId];
+    const bridge = mockBridge;
+    if (!bridge) {return;}
+    for (let si = 0; si < 32; si++) {
+      const paramId = 'seq_step_' + (si + 1);
+      const norm = bridge.parameterCache[paramId];
       if (norm !== undefined) {
-        var rawByte = Math.round(norm * 255);
+        const rawByte = Math.round(norm * 255);
         _panelSeqRaw[si] = rawByte;
         _panelSeqValues[si] = rawByte === 0 ? 0 : rawByte - 128;
         if (typeof _updatePanelStepVisual === 'function') {
@@ -2652,7 +2652,7 @@ describe('_syncPanelSeqFromCache — step value sync', () => {
   });
 
   it('syncs all 32 steps from cache', () => {
-    for (var i = 0; i < 32; i++) {
+    for (let i = 0; i < 32; i++) {
       mockBridge.parameterCache['seq_step_' + (i + 1)] = (i % 5) / 4;
     }
     _syncPanelSeqFromCache();
@@ -2678,73 +2678,73 @@ describe('_syncPanelSeqFromCache — step value sync', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('_updatePolyAssignUI — poly chord assignment', () => {
-  var container;
-  var mockBridge;
-  var keyLabel, summaryEl;
-  var selectedKeyIdx = 0;
-  var noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-  var chordTypeNames = ['Memory','Major','Minor','Maj7','Min7','Dom7','Sus4','Pwr'];
+  let container;
+  let mockBridge;
+  let keyLabel, summaryEl;
+  let selectedKeyIdx = 0;
+  const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const chordTypeNames = ['Memory','Major','Minor','Maj7','Min7','Dom7','Sus4','Pwr'];
 
   function _updatePolyAssignUI() {
-    var bridge = mockBridge;
-    if (!bridge) return;
-    var polyMap = bridge.parameterCache['poly_chord_map'];
-    if (!polyMap) return;
+    const bridge = mockBridge;
+    if (!bridge) {return;}
+    const polyMap = bridge.parameterCache['poly_chord_map'];
+    if (!polyMap) {return;}
 
-    var keyLabelEl = document.getElementById('poly-selected-key-label');
-    if (keyLabelEl) keyLabelEl.textContent = noteNames[selectedKeyIdx];
+    const keyLabelEl = document.getElementById('poly-selected-key-label');
+    if (keyLabelEl) {keyLabelEl.textContent = noteNames[selectedKeyIdx];}
 
     container.querySelectorAll('.poly-key-select-row').forEach(function(row) {
-      var idx = parseInt(row.getAttribute('data-keyidx'));
+      const idx = parseInt(row.getAttribute('data-keyidx'));
       row.classList.toggle('active', idx === selectedKeyIdx);
     });
 
-    var assign = polyMap[selectedKeyIdx];
-    if (!assign) return;
+    const assign = polyMap[selectedKeyIdx];
+    if (!assign) {return;}
 
     container.querySelectorAll('.poly-root-row').forEach(function(row) {
-      var val = parseInt(row.getAttribute('data-val'));
+      const val = parseInt(row.getAttribute('data-val'));
       row.classList.toggle('active', val === assign.rootKey);
     });
 
     container.querySelectorAll('.poly-type-row').forEach(function(row) {
-      var val = parseInt(row.getAttribute('data-val'));
+      const val = parseInt(row.getAttribute('data-val'));
       row.classList.toggle('active', val === assign.chordType);
     });
   }
 
   function _updatePolyChordSummary() {
-    var bridge = mockBridge;
-    if (!bridge) return;
-    var polyMap = bridge.parameterCache['poly_chord_map'];
-    if (!polyMap) return;
+    const bridge = mockBridge;
+    if (!bridge) {return;}
+    const polyMap = bridge.parameterCache['poly_chord_map'];
+    if (!polyMap) {return;}
 
-    var summaryEl = document.getElementById('poly-chord-summary');
-    if (!summaryEl) return;
+    const summaryEl = document.getElementById('poly-chord-summary');
+    if (!summaryEl) {return;}
 
-    var html = '';
-    for (var i = 0; i < 12; i++) {
-      var a = polyMap[i] || { rootKey: i, chordType: 1 };
-      var typeName = chordTypeNames[a.chordType] || 'Major';
+    let html = '';
+    for (let i = 0; i < 12; i++) {
+      const a = polyMap[i] || { rootKey: i, chordType: 1 };
+      const typeName = chordTypeNames[a.chordType] || 'Major';
       html += '<div style="font-size:7px;color:var(--text-dim);padding:2px">' + noteNames[i] + ': ' + typeName + '</div>';
     }
     summaryEl.innerHTML = html;
   }
 
   function _createPolyKeySelectRow(keyIdx) {
-    var row = _createFakeEl('div', { 'data-keyidx': String(keyIdx) });
+    const row = _createFakeEl('div', { 'data-keyidx': String(keyIdx) });
     row.classList.add('poly-key-select-row');
     return row;
   }
 
   function _createPolyRootRow(val) {
-    var row = _createFakeEl('div', { 'data-val': String(val) });
+    const row = _createFakeEl('div', { 'data-val': String(val) });
     row.classList.add('poly-root-row');
     return row;
   }
 
   function _createPolyTypeRow(val) {
-    var row = _createFakeEl('div', { 'data-val': String(val) });
+    const row = _createFakeEl('div', { 'data-val': String(val) });
     row.classList.add('poly-type-row');
     return row;
   }
@@ -2762,22 +2762,22 @@ describe('_updatePolyAssignUI — poly chord assignment', () => {
     container = _createFakeEl('div');
     container._selectorAll = {};
 
-    var keyRows = [];
-    for (var i = 0; i < 12; i++) keyRows.push(_createPolyKeySelectRow(i));
+    const keyRows = [];
+    for (let i = 0; i < 12; i++) {keyRows.push(_createPolyKeySelectRow(i));}
     container._selectorAll['.poly-key-select-row'] = keyRows;
 
-    var rootRows = [];
-    for (var i2 = 0; i2 < 12; i2++) rootRows.push(_createPolyRootRow(i2));
+    const rootRows = [];
+    for (let i2 = 0; i2 < 12; i2++) {rootRows.push(_createPolyRootRow(i2));}
     container._selectorAll['.poly-root-row'] = rootRows;
 
-    var typeRows = [];
-    for (var i3 = 0; i3 < 8; i3++) typeRows.push(_createPolyTypeRow(i3));
+    const typeRows = [];
+    for (let i3 = 0; i3 < 8; i3++) {typeRows.push(_createPolyTypeRow(i3));}
     container._selectorAll['.poly-type-row'] = typeRows;
 
-    var mockDoc = {
+    const mockDoc = {
       getElementById: function(id) {
-        if (id === 'poly-selected-key-label') return keyLabel;
-        if (id === 'poly-chord-summary') return summaryEl;
+        if (id === 'poly-selected-key-label') {return keyLabel;}
+        if (id === 'poly-chord-summary') {return summaryEl;}
         return null;
       },
       addEventListener: vi.fn(),
@@ -2805,7 +2805,7 @@ describe('_updatePolyAssignUI — poly chord assignment', () => {
     mockBridge.parameterCache['poly_chord_map'] = { 3: { rootKey: 0, chordType: 1 } };
     selectedKeyIdx = 3;
     _updatePolyAssignUI();
-    var keyRows = container._selectorAll['.poly-key-select-row'];
+    const keyRows = container._selectorAll['.poly-key-select-row'];
     keyRows.forEach(function(row, i) {
       expect(row.classList.contains('active')).toBe(i === 3);
     });
@@ -2816,12 +2816,12 @@ describe('_updatePolyAssignUI — poly chord assignment', () => {
     selectedKeyIdx = 0;
     _updatePolyAssignUI();
 
-    var rootRows = container._selectorAll['.poly-root-row'];
+    const rootRows = container._selectorAll['.poly-root-row'];
     rootRows.forEach(function(row, i) {
       expect(row.classList.contains('active')).toBe(i === 7);
     });
 
-    var typeRows = container._selectorAll['.poly-type-row'];
+    const typeRows = container._selectorAll['.poly-type-row'];
     typeRows.forEach(function(row, i) {
       expect(row.classList.contains('active')).toBe(i === 4);
     });
@@ -2860,7 +2860,7 @@ describe('_updatePolyAssignUI — poly chord assignment', () => {
   it('generates 12 div entries in summary', () => {
     mockBridge.parameterCache['poly_chord_map'] = {};
     _updatePolyChordSummary();
-    var matches = summaryEl.innerHTML.match(/<div /g);
+    const matches = summaryEl.innerHTML.match(/<div /g);
     expect(matches).toHaveLength(12);
   });
 
@@ -2894,7 +2894,7 @@ describe('_updatePolyAssignUI — poly chord assignment', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('_stopAudioWaveformPolling — polling lifecycle', () => {
-  var _audioWaveformTimer;
+  let _audioWaveformTimer;
 
   function _stopAudioWaveformPolling() {
     if (_audioWaveformTimer) {
@@ -2934,10 +2934,10 @@ describe('_stopAudioWaveformPolling — polling lifecycle', () => {
 });
 
 describe('_updateAudioWaveformPolling — polling start/stop logic', () => {
-  var _audioWaveformTimer;
-  var panel;
-  var isRealScopeCollapsed;
-  var mockBridge;
+  let _audioWaveformTimer;
+  let panel;
+  let isRealScopeCollapsed;
+  let mockBridge;
 
   function _stopAudioWaveformPolling() {
     if (_audioWaveformTimer) {
@@ -2952,7 +2952,7 @@ describe('_updateAudioWaveformPolling — polling start/stop logic', () => {
   }
 
   function _updateAudioWaveformPolling() {
-    var shouldPoll = panel.classList.contains('active')
+    const shouldPoll = panel.classList.contains('active')
       && !isRealScopeCollapsed
       && mockBridge
       && mockBridge.isJuce;
@@ -3033,9 +3033,9 @@ describe('_updateAudioWaveformPolling — polling start/stop logic', () => {
     mockBridge.isJuce = true;
 
     _updateAudioWaveformPolling();
-    var timer1 = _audioWaveformTimer;
+    const timer1 = _audioWaveformTimer;
     _updateAudioWaveformPolling();
-    var timer2 = _audioWaveformTimer;
+    const timer2 = _audioWaveformTimer;
 
     expect(timer1).not.toBeNull();
     expect(timer2).not.toBeNull();
@@ -3047,32 +3047,32 @@ describe('_updateAudioWaveformPolling — polling start/stop logic', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('_updatePanelStepVisual — active length dimming', () => {
-  var stepsContainer;
-  var stepWraps;
-  var _panelSeqValues;
-  var _panelSeqRaw;
-  var lenSel;
+  let stepsContainer;
+  let stepWraps;
+  let _panelSeqValues;
+  let _panelSeqRaw;
+  let lenSel;
 
   function _updatePanelStepVisual(idx) {
-    var wraps = stepsContainer ? stepsContainer.children : [];
-    if (idx < 0 || idx >= wraps.length) return;
-    var wrap = wraps[idx];
-    var val = _panelSeqValues[idx];
-    var raw = _panelSeqRaw[idx];
-    if (val === undefined || raw === undefined) return;
-    var fillBar = wrap.querySelector('.panel-seq-fill');
-    var skipBadge = wrap.querySelector('.panel-seq-skip');
-    var numLabel = wrap.querySelector('.panel-seq-num');
-    var activeLen = lenSel ? (parseInt(lenSel.value) + 2) : 16;
-    var isActive = idx < activeLen;
-    var isSkip = raw === 0;
+    const wraps = stepsContainer ? stepsContainer.children : [];
+    if (idx < 0 || idx >= wraps.length) {return;}
+    const wrap = wraps[idx];
+    const val = _panelSeqValues[idx];
+    const raw = _panelSeqRaw[idx];
+    if (val === undefined || raw === undefined) {return;}
+    const fillBar = wrap.querySelector('.panel-seq-fill');
+    const skipBadge = wrap.querySelector('.panel-seq-skip');
+    const numLabel = wrap.querySelector('.panel-seq-num');
+    const activeLen = lenSel ? (parseInt(lenSel.value) + 2) : 16;
+    const isActive = idx < activeLen;
+    const isSkip = raw === 0;
 
-    var signStr = val >= 0 ? '+' : '';
+    const signStr = val >= 0 ? '+' : '';
     wrap.title = isSkip
       ? 'Step ' + (idx + 1) + ': SKIP (raw: ' + raw + ')'
       : 'Step ' + (idx + 1) + ': ' + signStr + val + ' (raw: ' + raw + ')';
 
-    if (skipBadge) skipBadge.style.display = isSkip ? 'block' : 'none';
+    if (skipBadge) {skipBadge.style.display = isSkip ? 'block' : 'none';}
     if (numLabel) {
       numLabel.style.color = isActive ? 'var(--text-faint)' : 'var(--text-dim)';
       numLabel.style.opacity = isActive ? '1' : '0.3';
@@ -3109,13 +3109,13 @@ describe('_updatePanelStepVisual — active length dimming', () => {
 
     stepsContainer = _createFakeEl('div');
     stepWraps = [];
-    for (var i = 0; i < 32; i++) {
-      var wrap = _createFakeEl('div');
-      var fillBar = _createFakeEl('div');
+    for (let i = 0; i < 32; i++) {
+      const wrap = _createFakeEl('div');
+      const fillBar = _createFakeEl('div');
       fillBar.classList.add('panel-seq-fill');
-      var skipBadge = _createFakeEl('div');
+      const skipBadge = _createFakeEl('div');
       skipBadge.classList.add('panel-seq-skip');
-      var numLabel = _createFakeEl('div');
+      const numLabel = _createFakeEl('div');
       numLabel.classList.add('panel-seq-num');
       wrap._subElements['.panel-seq-fill'] = fillBar;
       wrap._subElements['.panel-seq-skip'] = skipBadge;
@@ -3125,9 +3125,9 @@ describe('_updatePanelStepVisual — active length dimming', () => {
     stepsContainer._children = stepWraps;
     stepsContainer.children = stepWraps;
 
-    var mockDoc = {
+    const mockDoc = {
       getElementById: function(id) {
-        if (id === 'panel-seq-length-select') return lenSel;
+        if (id === 'panel-seq-length-select') {return lenSel;}
         return null;
       },
       addEventListener: vi.fn(),
@@ -3155,8 +3155,8 @@ describe('_updatePanelStepVisual — active length dimming', () => {
     _panelSeqRaw[2] = 158;
     _updatePanelStepVisual(0);
     _updatePanelStepVisual(2);
-    var zeroLabel = stepWraps[0].querySelector('.panel-seq-num');
-    var twoLabel = stepWraps[2].querySelector('.panel-seq-num');
+    const zeroLabel = stepWraps[0].querySelector('.panel-seq-num');
+    const twoLabel = stepWraps[2].querySelector('.panel-seq-num');
     expect(zeroLabel.style.color).toBe('var(--text-faint)');
     expect(zeroLabel.style.opacity).toBe('1');
     expect(twoLabel.style.color).toBe('var(--text-dim)');
@@ -3184,9 +3184,9 @@ describe('_updatePanelStepVisual — active length dimming', () => {
     _panelSeqValues[3] = -128;
     _panelSeqRaw[3] = 0;
     _updatePanelStepVisual(3);
-    var skipBadge = stepWraps[3].querySelector('.panel-seq-skip');
+    const skipBadge = stepWraps[3].querySelector('.panel-seq-skip');
     expect(skipBadge.style.display).toBe('block');
-    var fillBar = stepWraps[3].querySelector('.panel-seq-fill');
+    const fillBar = stepWraps[3].querySelector('.panel-seq-fill');
     expect(fillBar.style.background).toBe('transparent');
   });
 
@@ -3201,25 +3201,25 @@ describe('_updatePanelStepVisual — active length dimming', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('SEQ skip button — toggle skip/center', () => {
-  var mockBridge;
-  var _panelSeqValues;
-  var _panelSeqRaw;
-  var _panelLastSeqStep;
-  var _updatePanelStepVisual;
+  let mockBridge;
+  let _panelSeqValues;
+  let _panelSeqRaw;
+  let _panelLastSeqStep;
+  let _updatePanelStepVisual;
 
   function handleSkipClick() {
-    var idx = typeof _panelLastSeqStep === 'number' ? _panelLastSeqStep : 0;
-    var currentRaw = _panelSeqRaw && _panelSeqRaw[idx];
+    const idx = typeof _panelLastSeqStep === 'number' ? _panelLastSeqStep : 0;
+    const currentRaw = _panelSeqRaw && _panelSeqRaw[idx];
     if (currentRaw === 0) {
       _panelSeqValues[idx] = 0;
       _panelSeqRaw[idx] = 128;
-      if (mockBridge) mockBridge.setParameter('seq_step_' + (idx + 1), 0.5);
+      if (mockBridge) {mockBridge.setParameter('seq_step_' + (idx + 1), 0.5);}
     } else {
       _panelSeqValues[idx] = -128;
       _panelSeqRaw[idx] = 0;
-      if (mockBridge) mockBridge.setParameter('seq_step_' + (idx + 1), 0.0);
+      if (mockBridge) {mockBridge.setParameter('seq_step_' + (idx + 1), 0.0);}
     }
-    if (typeof _updatePanelStepVisual === 'function') _updatePanelStepVisual(idx);
+    if (typeof _updatePanelStepVisual === 'function') {_updatePanelStepVisual(idx);}
   }
 
   beforeEach(() => {
@@ -3283,19 +3283,19 @@ describe('SEQ skip button — toggle skip/center', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('SEQ double-click — reset step to center', () => {
-  var mockBridge;
-  var _panelSeqValues;
-  var _panelSeqRaw;
-  var _panelLastSeqStep;
-  var _updatePanelStepVisual;
+  let mockBridge;
+  let _panelSeqValues;
+  let _panelSeqRaw;
+  let _panelLastSeqStep;
+  let _updatePanelStepVisual;
 
   function handleDblClick(stepIdx) {
-    var idx = stepIdx;
+    const idx = stepIdx;
     _panelLastSeqStep = idx;
     _panelSeqValues[idx] = 0;
     _panelSeqRaw[idx] = 128;
-    if (mockBridge) mockBridge.setParameter('seq_step_' + (idx + 1), 0.5);
-    if (typeof _updatePanelStepVisual === 'function') _updatePanelStepVisual(idx);
+    if (mockBridge) {mockBridge.setParameter('seq_step_' + (idx + 1), 0.5);}
+    if (typeof _updatePanelStepVisual === 'function') {_updatePanelStepVisual(idx);}
   }
 
   beforeEach(() => {
@@ -3346,29 +3346,29 @@ describe('SEQ double-click — reset step to center', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('SEQ selectors — clock/length/keyloop init from cache', () => {
-  var mockBridge;
-  var clockSel, lenSel, klSel;
+  let mockBridge;
+  let clockSel, lenSel, klSel;
 
   function initSeqSelectors() {
     if (clockSel) {
-      var cv = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_clock'] || 0 : 0;
+      const cv = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_clock'] || 0 : 0;
       clockSel.value = Math.round(cv * 15);
       clockSel.addEventListener('change', function() {
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('seq_clock', parseInt(this.value) / 15.0);
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_clock', parseInt(this.value) / 15.0);}
       });
     }
     if (lenSel) {
-      var lv = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_length'] || 0 : 0;
+      const lv = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_length'] || 0 : 0;
       lenSel.value = Math.round(lv * 31);
       lenSel.addEventListener('change', function() {
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('seq_length', parseInt(this.value) / 31.0);
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_length', parseInt(this.value) / 31.0);}
       });
     }
     if (klSel) {
-      var kv = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_key_loop'] || 0 : 0;
+      const kv = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_key_loop'] || 0 : 0;
       klSel.value = Math.round(kv * 2);
       klSel.addEventListener('change', function() {
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('seq_key_loop', parseInt(this.value) / 2.0);
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_key_loop', parseInt(this.value) / 2.0);}
       });
     }
   }
@@ -3376,20 +3376,20 @@ describe('SEQ selectors — clock/length/keyloop init from cache', () => {
   beforeEach(() => {
     clockSel = _createFakeEl('select', { id: 'panel-seq-clock-select' });
     clockSel.options = [];
-    for (var i = 0; i < 16; i++) clockSel.options.push(_createFakeEl('option'));
+    for (let i = 0; i < 16; i++) {clockSel.options.push(_createFakeEl('option'));}
     lenSel = _createFakeEl('select', { id: 'panel-seq-length-select' });
     lenSel.options = [];
-    for (var j = 0; j < 31; j++) lenSel.options.push(_createFakeEl('option'));
+    for (let j = 0; j < 31; j++) {lenSel.options.push(_createFakeEl('option'));}
     klSel = _createFakeEl('select', { id: 'panel-seq-keyloop-select' });
     klSel.options = [];
-    for (var k = 0; k < 3; k++) klSel.options.push(_createFakeEl('option'));
+    for (let k = 0; k < 3; k++) {klSel.options.push(_createFakeEl('option'));}
     mockBridge = { parameterCache: {}, setParameter: vi.fn() };
     vi.stubGlobal('window', { dualMidiBridge: mockBridge });
-    var mockDoc = {
+    const mockDoc = {
       getElementById: function(id) {
-        if (id === 'panel-seq-clock-select') return clockSel;
-        if (id === 'panel-seq-length-select') return lenSel;
-        if (id === 'panel-seq-keyloop-select') return klSel;
+        if (id === 'panel-seq-clock-select') {return clockSel;}
+        if (id === 'panel-seq-length-select') {return lenSel;}
+        if (id === 'panel-seq-keyloop-select') {return klSel;}
         return null;
       },
       addEventListener: vi.fn(),
@@ -3441,46 +3441,46 @@ describe('SEQ selectors — clock/length/keyloop init from cache', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('ARP mode — toggle and select wiring', () => {
-  var mockBridge;
-  var arpBox, holdBox, keySyncBox, clockSel, velGateSel, modeSel, octaveSel;
+  let mockBridge;
+  let arpBox, holdBox, keySyncBox, clockSel, velGateSel, modeSel, octaveSel;
 
   function wireArpControls() {
     if (arpBox) {
       arpBox.addEventListener('click', function() {
-        var active = arpBox.classList.contains('active');
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('arp_enable', active ? 0.0 : 1.0);
+        const active = arpBox.classList.contains('active');
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('arp_enable', active ? 0.0 : 1.0);}
       });
     }
     if (holdBox) {
       holdBox.addEventListener('click', function() {
-        var active = holdBox.classList.contains('active');
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('arp_hold', active ? 0.0 : 1.0);
+        const active = holdBox.classList.contains('active');
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('arp_hold', active ? 0.0 : 1.0);}
       });
     }
     if (keySyncBox) {
       keySyncBox.addEventListener('click', function() {
-        var active = keySyncBox.classList.contains('active');
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('arp_key_sync', active ? 0.0 : 1.0);
+        const active = keySyncBox.classList.contains('active');
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('arp_key_sync', active ? 0.0 : 1.0);}
       });
     }
     if (clockSel) {
       clockSel.addEventListener('change', function() {
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('arp_clock_divider', parseInt(this.value) / 12.0);
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('arp_clock_divider', parseInt(this.value) / 12.0);}
       });
     }
     if (velGateSel) {
       velGateSel.addEventListener('change', function() {
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('arp_velocity_gate', parseInt(this.value) / 2.0);
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('arp_velocity_gate', parseInt(this.value) / 2.0);}
       });
     }
     if (modeSel) {
       modeSel.addEventListener('change', function() {
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('arp_mode', parseInt(this.value) / 10.0);
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('arp_mode', parseInt(this.value) / 10.0);}
       });
     }
     if (octaveSel) {
       octaveSel.addEventListener('change', function() {
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('arp_octave', parseInt(this.value) / 3.0);
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('arp_octave', parseInt(this.value) / 3.0);}
       });
     }
   }
@@ -3493,16 +3493,16 @@ describe('ARP mode — toggle and select wiring', () => {
     keySyncBox = _createFakeEl('div', { id: 'panel-arp-keysync-box' });
     clockSel = _createFakeEl('select', { id: 'panel-arp-clock-select' });
     clockSel.options = [];
-    for (var i = 0; i < 13; i++) clockSel.options.push(_createFakeEl('option'));
+    for (let i = 0; i < 13; i++) {clockSel.options.push(_createFakeEl('option'));}
     velGateSel = _createFakeEl('select', { id: 'panel-arp-velgate-select' });
     velGateSel.options = [];
-    for (var j = 0; j < 3; j++) velGateSel.options.push(_createFakeEl('option'));
+    for (let j = 0; j < 3; j++) {velGateSel.options.push(_createFakeEl('option'));}
     modeSel = _createFakeEl('select', { id: 'panel-arp-mode-select' });
     modeSel.options = [];
-    for (var k = 0; k < 10; k++) modeSel.options.push(_createFakeEl('option'));
+    for (let k = 0; k < 10; k++) {modeSel.options.push(_createFakeEl('option'));}
     octaveSel = _createFakeEl('select', { id: 'panel-arp-octave-select' });
     octaveSel.options = [];
-    for (var l = 0; l < 4; l++) octaveSel.options.push(_createFakeEl('option'));
+    for (let l = 0; l < 4; l++) {octaveSel.options.push(_createFakeEl('option'));}
   });
 
   it('wires arp enable toggle', () => {
@@ -3568,7 +3568,7 @@ describe('ARP mode — toggle and select wiring', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('VCF/HPF/VCA toggle click handlers', () => {
-  var mockBridge;
+  let mockBridge;
 
   function wireVcfPoleBtns(pole2Btn, pole4Btn) {
     if (pole2Btn && pole4Btn) {
@@ -3661,80 +3661,80 @@ describe('VCF/HPF/VCA toggle click handlers', () => {
   });
 
   it('VCF 2-Pole sets vcf_pole_mode=0.0', () => {
-    var pole2 = _createFakeEl('div', { id: 'panel-vcf-pole-2' });
-    var pole4 = _createFakeEl('div', { id: 'panel-vcf-pole-4' });
+    const pole2 = _createFakeEl('div', { id: 'panel-vcf-pole-2' });
+    const pole4 = _createFakeEl('div', { id: 'panel-vcf-pole-4' });
     wireVcfPoleBtns(pole2, pole4);
     pole2._listeners['click'][0]();
     expect(mockBridge.setParameter).toHaveBeenCalledWith('vcf_pole_mode', 0.0);
   });
 
   it('VCF 4-Pole sets vcf_pole_mode=1.0', () => {
-    var pole2 = _createFakeEl('div', { id: 'panel-vcf-pole-2' });
-    var pole4 = _createFakeEl('div', { id: 'panel-vcf-pole-4' });
+    const pole2 = _createFakeEl('div', { id: 'panel-vcf-pole-2' });
+    const pole4 = _createFakeEl('div', { id: 'panel-vcf-pole-4' });
     wireVcfPoleBtns(pole2, pole4);
     pole4._listeners['click'][0]();
     expect(mockBridge.setParameter).toHaveBeenCalledWith('vcf_pole_mode', 1.0);
   });
 
   it('VCF Normal polarity', () => {
-    var norm = _createFakeEl('div', { id: 'panel-vcf-pol-normal' });
-    var inv = _createFakeEl('div', { id: 'panel-vcf-pol-inverted' });
+    const norm = _createFakeEl('div', { id: 'panel-vcf-pol-normal' });
+    const inv = _createFakeEl('div', { id: 'panel-vcf-pol-inverted' });
     wireVcfPolBtns(norm, inv);
     norm._listeners['click'][0]();
     expect(mockBridge.setParameter).toHaveBeenCalledWith('vcf_env_polarity', 1.0);
   });
 
   it('VCF Inverted polarity', () => {
-    var norm = _createFakeEl('div', { id: 'panel-vcf-pol-normal' });
-    var inv = _createFakeEl('div', { id: 'panel-vcf-pol-inverted' });
+    const norm = _createFakeEl('div', { id: 'panel-vcf-pol-normal' });
+    const inv = _createFakeEl('div', { id: 'panel-vcf-pol-inverted' });
     wireVcfPolBtns(norm, inv);
     inv._listeners['click'][0]();
     expect(mockBridge.setParameter).toHaveBeenCalledWith('vcf_env_polarity', 0.0);
   });
 
   it('VCF LFO Source 1', () => {
-    var src1 = _createFakeEl('div', { id: 'panel-vcf-lfosrc-1' });
-    var src2 = _createFakeEl('div', { id: 'panel-vcf-lfosrc-2' });
+    const src1 = _createFakeEl('div', { id: 'panel-vcf-lfosrc-1' });
+    const src2 = _createFakeEl('div', { id: 'panel-vcf-lfosrc-2' });
     wireVcfLfoSrcBtns(src1, src2);
     src1._listeners['click'][0]();
     expect(mockBridge.setParameter).toHaveBeenCalledWith('vcf_lfo_select', 0.0);
   });
 
   it('VCF LFO Source 2', () => {
-    var src1 = _createFakeEl('div', { id: 'panel-vcf-lfosrc-1' });
-    var src2 = _createFakeEl('div', { id: 'panel-vcf-lfosrc-2' });
+    const src1 = _createFakeEl('div', { id: 'panel-vcf-lfosrc-1' });
+    const src2 = _createFakeEl('div', { id: 'panel-vcf-lfosrc-2' });
     wireVcfLfoSrcBtns(src1, src2);
     src2._listeners['click'][0]();
     expect(mockBridge.setParameter).toHaveBeenCalledWith('vcf_lfo_select', 1.0);
   });
 
   it('HPF Boost Off', () => {
-    var off = _createFakeEl('div', { id: 'panel-hpf-boost-off' });
-    var on = _createFakeEl('div', { id: 'panel-hpf-boost-on' });
+    const off = _createFakeEl('div', { id: 'panel-hpf-boost-off' });
+    const on = _createFakeEl('div', { id: 'panel-hpf-boost-on' });
     wireHpfBoostBtns(off, on);
     off._listeners['click'][0]();
     expect(mockBridge.setParameter).toHaveBeenCalledWith('hpf_boost_enable', 0.0);
   });
 
   it('HPF Boost On', () => {
-    var off = _createFakeEl('div', { id: 'panel-hpf-boost-off' });
-    var on = _createFakeEl('div', { id: 'panel-hpf-boost-on' });
+    const off = _createFakeEl('div', { id: 'panel-hpf-boost-off' });
+    const on = _createFakeEl('div', { id: 'panel-hpf-boost-on' });
     wireHpfBoostBtns(off, on);
     on._listeners['click'][0]();
     expect(mockBridge.setParameter).toHaveBeenCalledWith('hpf_boost_enable', 1.0);
   });
 
   it('VCA Transparent', () => {
-    var trans = _createFakeEl('div', { id: 'panel-vca-mode-transparent' });
-    var ballsy = _createFakeEl('div', { id: 'panel-vca-mode-ballsy' });
+    const trans = _createFakeEl('div', { id: 'panel-vca-mode-transparent' });
+    const ballsy = _createFakeEl('div', { id: 'panel-vca-mode-ballsy' });
     wireVcaModeBtns(trans, ballsy);
     trans._listeners['click'][0]();
     expect(mockBridge.setParameter).toHaveBeenCalledWith('vca_mode', 0.0);
   });
 
   it('VCA Ballsy', () => {
-    var trans = _createFakeEl('div', { id: 'panel-vca-mode-transparent' });
-    var ballsy = _createFakeEl('div', { id: 'panel-vca-mode-ballsy' });
+    const trans = _createFakeEl('div', { id: 'panel-vca-mode-transparent' });
+    const ballsy = _createFakeEl('div', { id: 'panel-vca-mode-ballsy' });
     wireVcaModeBtns(trans, ballsy);
     ballsy._listeners['click'][0]();
     expect(mockBridge.setParameter).toHaveBeenCalledWith('vca_mode', 1.0);
@@ -3750,15 +3750,15 @@ describe('VCF/HPF/VCA toggle click handlers', () => {
 
   it('does not crash without bridge', () => {
     vi.stubGlobal('window', {});
-    var pole2 = _createFakeEl('div', { id: 'panel-vcf-pole-2' });
-    var pole4 = _createFakeEl('div', { id: 'panel-vcf-pole-4' });
+    const pole2 = _createFakeEl('div', { id: 'panel-vcf-pole-2' });
+    const pole4 = _createFakeEl('div', { id: 'panel-vcf-pole-4' });
     wireVcfPoleBtns(pole2, pole4);
     expect(function() { pole2._listeners['click'][0](); }).not.toThrow();
   });
 
   it('calls handleParameterChangeFromBackend', () => {
-    var norm = _createFakeEl('div', { id: 'panel-vcf-pol-normal' });
-    var inv = _createFakeEl('div', { id: 'panel-vcf-pol-inverted' });
+    const norm = _createFakeEl('div', { id: 'panel-vcf-pol-normal' });
+    const inv = _createFakeEl('div', { id: 'panel-vcf-pol-inverted' });
     wireVcfPolBtns(norm, inv);
     norm._listeners['click'][0]();
     expect(mockBridge.handleParameterChangeFromBackend).toHaveBeenCalledWith('vcf_env_polarity', 1.0);
@@ -3770,16 +3770,16 @@ describe('VCF/HPF/VCA toggle click handlers', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('SEQ enable box — init and toggle', () => {
-  var mockBridge;
-  var seqBox;
+  let mockBridge;
+  let seqBox;
 
   function initSeqEnableBox() {
     if (seqBox) {
-      var enVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_enable'] : 0;
+      const enVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_enable'] : 0;
       seqBox.classList.toggle('active', enVal > 0.5);
       seqBox.addEventListener('click', function() {
-        var active = this.classList.contains('active');
-        if (window.dualMidiBridge) window.dualMidiBridge.setParameter('seq_enable', active ? 0.0 : 1.0);
+        const active = this.classList.contains('active');
+        if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_enable', active ? 0.0 : 1.0);}
       });
     }
   }
@@ -3842,8 +3842,8 @@ describe('SEQ enable box — init and toggle', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('Outside click — close panel on document click', () => {
-  var panelEl;
-  var handler;
+  let panelEl;
+  let handler;
 
   function setupOutsideClickHandler() {
     handler = function(e) {
@@ -3872,7 +3872,7 @@ describe('Outside click — close panel on document click', () => {
 
   it('does not close when clicking inside panel', () => {
     panelEl.classList.add('active');
-    var insideEl = _createFakeEl('div');
+    const insideEl = _createFakeEl('div');
     panelEl._children = [insideEl];
     panelEl.contains = function(el) { return el === insideEl || this._children.includes(el); };
     handler({ target: insideEl });
@@ -3881,7 +3881,7 @@ describe('Outside click — close panel on document click', () => {
 
   it('does not close when clicking edit-panel-btn', () => {
     panelEl.classList.add('active');
-    var editBtn = _createFakeEl('button');
+    const editBtn = _createFakeEl('button');
     editBtn.classList.add('edit-panel-btn');
     handler({ target: editBtn });
     expect(panelEl.classList.contains('active')).toBe(true);
@@ -3903,22 +3903,22 @@ describe('Outside click — close panel on document click', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('Panel titles per mode', () => {
-  var titleEl;
+  let titleEl;
 
   function setTitle(mode, activeLfo, activeEnv, activeOsc) {
-    if (mode === 'LFO') titleEl.innerText = 'LFO ' + (activeLfo || 1) + ' Editor';
-    else if (mode === 'VCA') titleEl.innerText = 'VCA Editor';
+    if (mode === 'LFO') {titleEl.innerText = 'LFO ' + (activeLfo || 1) + ' Editor';}
+    else if (mode === 'VCA') {titleEl.innerText = 'VCA Editor';}
     else if (mode === 'ENV') {
-      var envName = activeEnv === 1 ? 'VCA' : (activeEnv === 2 ? 'VCF' : 'MOD');
+      const envName = activeEnv === 1 ? 'VCA' : (activeEnv === 2 ? 'VCF' : 'MOD');
       titleEl.innerText = envName + ' Env Editor';
-    } else if (mode === 'HPF') titleEl.innerText = 'HPF Editor';
-    else if (mode === 'VCF') titleEl.innerText = 'VCF Filter Editor';
-    else if (mode === 'OSC') titleEl.innerText = 'OSC ' + (activeOsc || 1) + ' Editor';
-    else if (mode === 'POLY') titleEl.innerText = 'Polyphony & Unison';
-    else if (mode === 'PORTA') titleEl.innerText = 'Glide & Voice Settings';
-    else if (mode === 'CHORD') titleEl.innerText = 'Chord Memory';
-    else if (mode === 'POLY_CHORD') titleEl.innerText = 'Poly Chord';
-    else if (mode === 'ARP') titleEl.innerText = 'Arpeggiator Settings';
+    } else if (mode === 'HPF') {titleEl.innerText = 'HPF Editor';}
+    else if (mode === 'VCF') {titleEl.innerText = 'VCF Filter Editor';}
+    else if (mode === 'OSC') {titleEl.innerText = 'OSC ' + (activeOsc || 1) + ' Editor';}
+    else if (mode === 'POLY') {titleEl.innerText = 'Polyphony & Unison';}
+    else if (mode === 'PORTA') {titleEl.innerText = 'Glide & Voice Settings';}
+    else if (mode === 'CHORD') {titleEl.innerText = 'Chord Memory';}
+    else if (mode === 'POLY_CHORD') {titleEl.innerText = 'Poly Chord';}
+    else if (mode === 'ARP') {titleEl.innerText = 'Arpeggiator Settings';}
   }
 
   beforeEach(() => {

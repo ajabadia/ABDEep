@@ -1,0 +1,122 @@
+name: WebUI CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      export_calibration:
+        description: "Generate and upload Calibration Lab artifacts"
+        required: false
+        default: "true"
+  pull_request:
+    paths:
+      - "WebUI/**"
+      - "docs/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/webui-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "WebUI/**"
+      - "docs/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/webui-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webui-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-export:
+    name: Test WebUI and export calibration artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      CI: true
+      CALIBRATION_INPUT_DIR: WebUI/tmp/calibration-exports
+      CALIBRATION_OUTPUT_DIR: artifacts/calibration-runs
+      CALIBRATION_RUN_ID: ${{ github.run_id }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run JavaScript lint
+        run: npm run lint:ci
+
+      - name: Run full Vitest suite
+        run: npm run test:ci
+
+      - name: Verify WebUI serves correctly
+        run: |
+          cd WebUI
+          python3 -m http.server 8080 &
+          SERVER_PID=$!
+          sleep 2
+          curl -sf http://localhost:8080/index.html > /dev/null && echo "WebUI serves OK"
+          curl -sf http://localhost:8080/js/calibration_store.js > /dev/null && echo "JS assets serve OK"
+          kill $SERVER_PID 2>/dev/null || true
+
+      - name: Prepare calibration directories
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.export_calibration == 'true')
+        run: |
+          mkdir -p "${CALIBRATION_INPUT_DIR}"
+          mkdir -p "${CALIBRATION_OUTPUT_DIR}"
+
+      - name: Export Calibration Lab reports
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.export_calibration == 'true')
+        run: >
+          npm run calibration:export:ci --
+          --input-dir "${CALIBRATION_INPUT_DIR}"
+          --output-dir "${CALIBRATION_OUTPUT_DIR}"
+          --run-id "${CALIBRATION_RUN_ID}"
+
+      - name: Verify calibration artifact contents
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.export_calibration == 'true')
+        run: |
+          test -d "${CALIBRATION_OUTPUT_DIR}"
+          find "${CALIBRATION_OUTPUT_DIR}" -maxdepth 2 -type f | sort
+          test -f "${CALIBRATION_OUTPUT_DIR}/manifest.json"
+
+      - name: Upload calibration artifact bundle
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.export_calibration == 'true')
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibration-runs-${{ github.run_id }}
+          path: artifacts/calibration-runs/
+          if-no-files-found: error
+          retention-days: 14
+
+      # ── Phase 5: Audio A/B Validation CI verification ──
+      - name: Verify Audio A/B outputs & manifest structure
+        if: always()
+        run: |
+          if [ -d "artifacts/audio-ab" ]; then
+            echo "Verificando artefactos de Audio A/B generados durante las pruebas..."
+            find artifacts/audio-ab -type f | sort
+          else
+            echo "No se generaron corridas de Audio A/B físicas en el entorno headless de CI (esperado)."
+          fi
+
+      - name: Upload Audio A/B artifact bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-ab-runs-${{ github.run_id }}
+          path: artifacts/audio-ab/
+          if-no-files-found: ignore
+          retention-days: 14

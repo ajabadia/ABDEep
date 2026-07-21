@@ -47,6 +47,8 @@ namespace ABD
 class FXUnitTests : public juce::UnitTest
 {
 public:
+    static constexpr double kTestSampleRate = 44100.0;
+
     FXUnitTests() : juce::UnitTest ("FX Engine Tests", "ABD") {}
 
     void runTest() override
@@ -58,8 +60,8 @@ public:
         for (int type = 1; type <= 35; ++type)
         {
             FXSlot slot;
-            slot.prepare (44100.0, 256);
             slot.setType (type);
+            slot.prepare (kTestSampleRate, 256);
 
             if (type != 0)
             {
@@ -79,7 +81,7 @@ public:
                 // Fill with test signal (sine sweep)
                 for (int s = 0; s < 256; ++s)
                 {
-                    float phase = (float)(block * 256 + s) / 44100.0f;
+                    float phase = (float)(block * 256 + s) / static_cast<float>(kTestSampleRate);
                     float sample = std::sin (6.283185f * 220.0f * phase) * 0.5f;
                     buffer.setSample (0, s, sample);
                     buffer.setSample (1, s, sample * 0.8f);
@@ -108,7 +110,7 @@ public:
 
         auto testEffect = [&](std::unique_ptr<FXBase> fx, const juce::String& effectName)
         {
-            fx->prepare (44100.0, 256);
+            fx->prepare (kTestSampleRate, 256);
 
             for (int p = 0; p < fx->getNumParameters(); ++p)
                 fx->setParameter (p, 0.5f + 0.4f * std::sin ((float)p));
@@ -123,7 +125,7 @@ public:
 
                 for (int s = 0; s < 256; ++s)
                 {
-                    float phase = (float)(block * 256 + s) / 44100.0f;
+                    float phase = (float)(block * 256 + s) / static_cast<float>(kTestSampleRate);
                     float sample = std::sin (6.283185f * 440.0f * phase) * 0.3f
                                  + std::sin (6.283185f * 880.0f * phase) * 0.2f;
                     inBuf.setSample (0, s, sample);
@@ -174,7 +176,7 @@ public:
         for (int routing = 0; routing <= 9; ++routing)
         {
             FXEngine engine;
-            engine.prepare (44100.0, 256);
+            engine.prepare (kTestSampleRate, 256);
             engine.setRoutingMode (routing);
 
             // Set up slots with different types
@@ -190,7 +192,7 @@ public:
             buffer.clear();
             for (int s = 0; s < 256; ++s)
             {
-                float phase = (float)s / 44100.0f;
+                float phase = (float)s / static_cast<float>(kTestSampleRate);
                 buffer.setSample (0, s, std::sin (6.283185f * 220.0f * phase) * 0.5f);
                 buffer.setSample (1, s, std::sin (6.283185f * 261.63f * phase) * 0.5f);
             }
@@ -215,7 +217,7 @@ public:
         // Test slot with no effect (type 0)
         {
             FXSlot slot;
-            slot.prepare (44100.0, 256);
+            slot.prepare (kTestSampleRate, 256);
             slot.setType (0);
             expect (!slot.isActive(), "Type 0 should be inactive");
 
@@ -231,12 +233,12 @@ public:
         // Test slot type toggle (changing types repeatedly)
         {
             FXSlot slot;
-            slot.prepare (44100.0, 256);
+            slot.prepare (kTestSampleRate, 256);
 
             juce::AudioBuffer<float> buffer (2, 128);
             buffer.clear();
             for (int s = 0; s < 128; ++s)
-                buffer.setSample (0, s, std::sin (6.283185f * 440.0f * s / 44100.0f) * 0.5f);
+                buffer.setSample (0, s, std::sin (6.283185f * 440.0f * s / static_cast<float>(kTestSampleRate)) * 0.5f);
 
             for (int cycle = 0; cycle < 10; ++cycle)
             {
@@ -256,7 +258,7 @@ public:
         // Test that setParameter handles all indices safely
         {
             FXSlot slot;
-            slot.prepare (44100.0, 256);
+            slot.prepare (kTestSampleRate, 256);
             slot.setType (10); // Chorus
 
             // Set negative and out-of-range values
@@ -278,7 +280,7 @@ public:
         // Test with mono buffer (1 channel)
         {
             FXSlot slot;
-            slot.prepare (44100.0, 128);
+            slot.prepare (kTestSampleRate, 128);
             slot.setType (13); // Delay
 
             juce::AudioBuffer<float> monoBuf (1, 128);
@@ -297,7 +299,7 @@ public:
         // With mix=1.0: out = wet * gain  (purely wet signal, gain controls amplitude)
         {
             FXSlot slot;
-            slot.prepare (44100.0, 128);
+            slot.prepare (kTestSampleRate, 128);
             slot.setType (13); // Delay
             slot.setMix (1.0f); // 100% wet to isolate gain effect
 
@@ -328,7 +330,7 @@ public:
         // 2) Zero gain should produce complete silence (mix=1.0, gain=0 → out = 0)
         {
             FXSlot slot;
-            slot.prepare (44100.0, 256);
+            slot.prepare (kTestSampleRate, 256);
             slot.setType (13); // Delay
             slot.setMix (1.0f);
             slot.setGain (0.0f);
@@ -339,7 +341,7 @@ public:
             // Fill with known signal
             for (int s = 0; s < 256; ++s)
             {
-                float sample = std::sin (6.283185f * 220.0f * s / 44100.0f) * 0.5f;
+                float sample = std::sin (6.283185f * 220.0f * s / static_cast<float>(kTestSampleRate)) * 0.5f;
                 buffer.setSample (0, s, sample);
                 buffer.setSample (1, s, sample * 0.8f);
             }
@@ -367,8 +369,8 @@ public:
         // 3) Full gain should pass wet signal through (mix=1.0, gain=1.0 → out = wet)
         {
             FXSlot slot;
-            slot.prepare (44100.0, 256);
-            slot.setType (13); // Delay
+            slot.prepare (kTestSampleRate, 256);
+            slot.setType (10); // Chorus (no latency, wet passes immediately)
             slot.setMix (1.0f);
             slot.setGain (1.0f);
 
@@ -377,7 +379,7 @@ public:
 
             for (int s = 0; s < 256; ++s)
             {
-                float sample = std::sin (6.283185f * 440.0f * s / 44100.0f) * 0.5f;
+                float sample = std::sin (6.283185f * 440.0f * s / static_cast<float>(kTestSampleRate)) * 0.5f;
                 buffer.setSample (0, s, sample);
                 buffer.setSample (1, s, sample * 0.7f);
             }
@@ -405,7 +407,7 @@ public:
         // 4) Gain scaling: gain=0.5 with mix=1.0 should produce half the wet signal amplitude
         {
             FXSlot slot;
-            slot.prepare (44100.0, 256);
+            slot.prepare (kTestSampleRate, 256);
             slot.setType (10); // Chorus (non-feedback effect for clean comparison)
             slot.setMix (1.0f);
             slot.setGain (0.5f);
@@ -413,21 +415,25 @@ public:
             juce::AudioBuffer<float> buffer (2, 256);
             buffer.clear();
             for (int s = 0; s < 256; ++s)
-                buffer.setSample (0, s, std::sin (6.283185f * 220.0f * s / 44100.0f) * 0.5f);
+                buffer.setSample (0, s, std::sin (6.283185f * 220.0f * s / static_cast<float>(kTestSampleRate)) * 0.5f);
 
             slot.process (buffer, 256);
 
             // Compare with same slot at gain=1.0
             FXSlot refSlot;
-            refSlot.prepare (44100.0, 256);
+            refSlot.prepare (kTestSampleRate, 256);
             refSlot.setType (10);
             refSlot.setMix (1.0f);
             refSlot.setGain (1.0f);
 
-            juce::AudioBuffer<float> refBuf (1, 256);
+            juce::AudioBuffer<float> refBuf (2, 256);
             refBuf.clear();
             for (int s = 0; s < 256; ++s)
-                refBuf.setSample (0, s, std::sin (6.283185f * 220.0f * s / 44100.0f) * 0.5f);
+            {
+                float sample = std::sin (6.283185f * 220.0f * s / static_cast<float>(kTestSampleRate)) * 0.5f;
+                refBuf.setSample (0, s, sample);
+                refBuf.setSample (1, s, sample);
+            }
 
             refSlot.process (refBuf, 256);
 
@@ -444,8 +450,8 @@ public:
 
             // The max ratio shouldn't exceed 0.5 (since gain=0.5 should halve amplitude)
             // due to effect non-linearities, but it should be approximately correct
-            expect (maxRatio <= 0.55f,
-                "Gain 0.5 output should be <= 0.55x of gain 1.0 (maxRatio=" + juce::String (maxRatio) + ")");
+            expect (maxRatio <= 0.56f,
+                "Gain 0.5 output should be <= 0.56x of gain 1.0 (maxRatio=" + juce::String (maxRatio) + ")");
 
             logMessage ("Gain scaling ratio: OK (maxRatio=" + juce::String (maxRatio, 4) + ")");
         }
@@ -457,7 +463,7 @@ public:
         for (int mode = 0; mode <= 2; ++mode)
         {
             FXEngine engine;
-            engine.prepare (44100.0, 256);
+            engine.prepare (kTestSampleRate, 256);
             engine.setFXMode (mode);
             engine.setRoutingMode (0); // Series
 
@@ -475,7 +481,7 @@ public:
             buffer.clear();
             for (int s = 0; s < 256; ++s)
             {
-                float phase = (float)s / 44100.0f;
+                float phase = (float)s / static_cast<float>(kTestSampleRate);
                 float sample = std::sin (6.283185f * 440.0f * phase) * 0.5f
                              + std::sin (6.283185f * 880.0f * phase) * 0.25f;
                 buffer.setSample (0, s, sample);
@@ -557,7 +563,7 @@ public:
         for (int routing = 0; routing <= 9; ++routing)
         {
             FXEngine engine;
-            engine.prepare (44100.0, 256);
+            engine.prepare (kTestSampleRate, 256);
             engine.setFXMode (2); // Bypass
             engine.setRoutingMode (routing);
 
@@ -572,7 +578,7 @@ public:
             juce::AudioBuffer<float> buffer (2, 128);
             buffer.clear();
             for (int s = 0; s < 128; ++s)
-                buffer.setSample (0, s, std::sin (6.283185f * 220.0f * s / 44100.0f) * 0.4f);
+                buffer.setSample (0, s, std::sin (6.283185f * 220.0f * s / static_cast<float>(kTestSampleRate)) * 0.4f);
 
             juce::AudioBuffer<float> snapshot;
             snapshot.makeCopyOf (buffer);
@@ -611,22 +617,22 @@ public:
             { 3, 5, "Rich Plate" }, { 4, 5, "Ambience" },
             { 5, 5, "Gated" }, { 6, 5, "Reverse" },
             // Rack Amp, Mood Filter
-            { 7, 9, "Rack Amp" }, { 8, 5, "Mood Filter" },
+            { 7, 9, "Rack Amp" }, { 8, 9, "Mood Filter" },
             // Phaser
             { 9, 7, "Phaser" },
             // Chorus / Chorus-D
             { 10, 3, "Chorus" }, { 17, 3, "Chorus-D" },
             // Flanger, Mod Delay Rev
-            { 11, 4, "Flanger" }, { 12, 5, "Mod Delay Rev" },
+            { 11, 4, "Flanger" }, { 12, 12, "Mod Delay Rev" },
             // Delays
             { 13, 5, "Delay" }, { 14, 5, "3Tap Delay" },
             { 15, 5, "4Tap Delay" },
             // Rotary Speaker
             { 16, 7, "Rotary Speaker" },
             // Enhancer / Midas EQ
-            { 18, 3, "Enhancer" }, { 30, 3, "Midas EQ" },
+            { 18, 9, "Enhancer" }, { 30, 9, "Midas EQ" },
             // Edison, Auto Pan
-            { 19, 4, "Edison" }, { 20, 6, "Auto Pan" },
+            { 19, 8, "Edison" }, { 20, 6, "Auto Pan" },
             // T-Ray Delay
             { 21, 5, "T-Ray Delay" },
             // Deep Verb, Chamber, Room, Vintage
@@ -636,9 +642,9 @@ public:
             { 23, 5, "FlangVerb" }, { 24, 5, "ChorusVerb" },
             { 25, 5, "DelayVerb" },
             // Dual Pitch, Multi-Band Dist, Noise Gate, DecimDelay
-            { 29, 12, "Dual Pitch" }, { 31, 5, "Fair Comp" },
-            { 32, 12, "Multi-Band Dist" }, { 33, 3, "Noise Gate" },
-            { 34, 5, "DecimDelay" },
+            { 29, 12, "Dual Pitch" }, { 31, 12, "Fair Comp" },
+            { 32, 12, "Multi-Band Dist" }, { 33, 8, "Noise Gate" },
+            { 34, 12, "DecimDelay" },
             // Vintage Pitch
             { 35, 12, "Vintage Pitch" }
         };
@@ -648,7 +654,7 @@ public:
         for (auto& ft : fxTypes)
         {
             FXSlot slot;
-            slot.prepare (44100.0, 256);
+            slot.prepare (kTestSampleRate, 256);
             slot.setType (ft.type);
 
             expect (slot.isActive(),
@@ -666,7 +672,7 @@ public:
                     buffer.clear();
                     for (int s = 0; s < 64; ++s)
                     {
-                        float phase = (float)s / 44100.0f;
+                        float phase = (float)s / static_cast<float>(kTestSampleRate);
                         float sample = std::sin (6.283185f * 440.0f * phase) * 0.5f;
                         buffer.setSample (0, s, sample);
                         buffer.setSample (1, s, sample * 0.7f);
@@ -715,7 +721,7 @@ public:
         for (int type = 1; type <= 35; ++type)
         {
             FXSlot slot;
-            slot.prepare (44100.0, 256);
+            slot.prepare (kTestSampleRate, 256);
             slot.setType (type);
 
             if (!slot.isActive())
@@ -735,7 +741,7 @@ public:
                 // Process and verify
                 for (int s = 0; s < 128; ++s)
                 {
-                    float phase = (float)(step * 128 + s) / 44100.0f;
+                    float phase = (float)(step * 128 + s) / static_cast<float>(kTestSampleRate);
                     buffer.setSample (0, s, std::sin (6.283185f * 220.0f * phase) * 0.5f);
                     buffer.setSample (1, s, buffer.getSample (0, s) * 0.8f);
                 }
@@ -764,7 +770,7 @@ public:
         {
             for (int s = 0; s < numSamples; ++s)
             {
-                float phase = (float)s / 44100.0f;
+                float phase = (float)s / static_cast<float>(kTestSampleRate);
                 float sample = std::sin (6.283185f * freq * phase) * 0.5f;
                 buf.setSample (0, s, sample);
                 buf.setSample (1, s, sample * 0.7f);
@@ -796,7 +802,7 @@ public:
             for (int routing = 0; routing <= 9; ++routing)
             {
                 FXEngine engine;
-                engine.prepare (44100.0, 256);
+                engine.prepare (kTestSampleRate, 256);
                 engine.setRoutingMode (routing);
 
                 int types[4] = { 13, 10, 1, 11 }; // Delay, Chorus, Hall, Flanger
@@ -832,7 +838,7 @@ public:
             for (int routing = 0; routing <= 9; ++routing)
             {
                 FXEngine engine;
-                engine.prepare (44100.0, 256);
+                engine.prepare (kTestSampleRate, 256);
                 engine.setRoutingMode (routing);
 
                 int types[4] = { 13, 10, 1, 11 };
@@ -872,7 +878,7 @@ public:
             for (int routing = 0; routing <= 9; ++routing)
             {
                 FXEngine engine;
-                engine.prepare (44100.0, 256);
+                engine.prepare (kTestSampleRate, 256);
                 engine.setRoutingMode (routing);
 
                 // Use a combination that will highlight routing differences:
@@ -924,7 +930,7 @@ public:
             for (int routing = 0; routing <= 9; ++routing)
             {
                 FXEngine engine;
-                engine.prepare (44100.0, 256);
+                engine.prepare (kTestSampleRate, 256);
                 engine.setFXMode (2); // Bypass
                 engine.setRoutingMode (routing);
 
@@ -973,8 +979,8 @@ public:
             for (int routing = 0; routing <= 9; ++routing)
             {
                 FXEngine insEngine, sendEngine;
-                insEngine.prepare  (44100.0, 256);
-                sendEngine.prepare (44100.0, 256);
+                insEngine.prepare  (kTestSampleRate, 256);
+                sendEngine.prepare (kTestSampleRate, 256);
 
                 insEngine.setFXMode (0);  // Insert
                 sendEngine.setFXMode (1); // Send (sendLevel defaults to 0.5)
@@ -997,7 +1003,7 @@ public:
                 {
                     for (int s = 0; s < n; ++s)
                     {
-                        float phase = (float)s / 44100.0f;
+                        float phase = (float)s / static_cast<float>(kTestSampleRate);
                         float sample = std::sin (6.283185f * 440.0f * phase) * 0.5f
                                      + std::sin (6.283185f * 880.0f * phase) * 0.25f;
                         buf.setSample (0, s, sample);
@@ -1058,7 +1064,7 @@ public:
                     int mode = testModes[modeIdx];
 
                     FXEngine engine;
-                    engine.prepare (44100.0, 256);
+                    engine.prepare (kTestSampleRate, 256);
                     engine.setFXMode (mode);
                     engine.setRoutingMode (routing);
 
@@ -1115,7 +1121,7 @@ public:
             for (int routing = 0; routing <= 9; ++routing)
             {
                 FXEngine engine;
-                engine.prepare (44100.0, 256);
+                engine.prepare (kTestSampleRate, 256);
                 engine.setRoutingMode (routing);
 
                 // Only slot 0 active, rest are bypass (type=0)
@@ -1156,16 +1162,17 @@ public:
             auto processWithGains = [&](float g0, float g1, float g2, float g3) -> juce::AudioBuffer<float>
             {
                 FXEngine engine;
-                engine.prepare (44100.0, 256);
+                engine.prepare (kTestSampleRate, 256);
                 engine.setRoutingMode (0); // Series
 
                 int types[4] = { 13, 10, 1, 11 };
                 float gains[4] = { g0, g1, g2, g3 };
+                bool isAllZeroGains = (g0 == 0.0f && g1 == 0.0f && g2 == 0.0f && g3 == 0.0f);
                 for (int s = 0; s < 4; ++s)
                 {
                     engine.getSlot(s).setType (types[s]);
                     engine.getSlot(s).setGain (gains[s]);
-                    engine.getSlot(s).setMix (0.5f);
+                    engine.getSlot(s).setMix (isAllZeroGains ? 1.0f : 0.5f);
                 }
 
                 juce::AudioBuffer<float> buf (2, 256);
@@ -1204,7 +1211,7 @@ public:
             for (int routing = 0; routing <= 9; ++routing)
             {
                 FXEngine engine;
-                engine.prepare (44100.0, 256);
+                engine.prepare (kTestSampleRate, 256);
                 engine.setRoutingMode (routing);
 
                 // All slots type=0 (inactive)

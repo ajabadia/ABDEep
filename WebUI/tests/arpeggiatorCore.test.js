@@ -31,7 +31,7 @@ const ARP_MODE_NAMES = ['UP','DOWN','UP-DOWN','UP-INV','DOWN-INV','UP-DN-INV','U
 const ARP_VELGATE_NAMES = ['Gate','Velocity','Seq'];
 
 function _calcHandlePos(v, sh, hh) {
-  if (sh <= 0) return 0;
+  if (sh <= 0) {return 0;}
   return (1.0 - v) * (sh - hh);
 }
 
@@ -67,7 +67,7 @@ function makeMockArpStepUnit() {
     title: 'Step 1: GATE OFF',
     appendChild: vi.fn(function(el) { this._lastChild = el; }),
     querySelector: vi.fn(function(sel) {
-      if (sel === 'div') return stepBar;
+      if (sel === 'div') {return stepBar;}
       return null;
     }),
     addEventListener: vi.fn(),
@@ -248,9 +248,9 @@ function _arpCloseModal(backdrop, isBackdropClick, eventTarget) {
 
 /** Simulate arp reset button handler (mirrors resetBtn click handler) */
 function _arpResetClick(bridge, genFillBar, genLcdBarHtml, lcdSafeUpdate, lcdText) {
-  if (!bridge || !bridge._arpEngine) return { stopped: false, wasRunning: false };
+  if (!bridge || !bridge._arpEngine) {return { stopped: false, wasRunning: false };}
 
-  var wasRunning = bridge._arpEngine.running;
+  const wasRunning = bridge._arpEngine.running;
   bridge._arpEngine.stop();
   bridge._arpEngine.stepIndex = 0;
   bridge._arpEngine.heldNotes = [];
@@ -259,10 +259,10 @@ function _arpResetClick(bridge, genFillBar, genLcdBarHtml, lcdSafeUpdate, lcdTex
 
   // LCD bar visual
   if (genFillBar && genLcdBarHtml && lcdSafeUpdate && lcdText) {
-    var aNotes = bridge._arpEngine.heldNotes.length;
-    var aStep = bridge._arpEngine.stepIndex;
-    var aBar = genFillBar(Math.round((aNotes / 12) * 18), 18);
-    var arpHtml = genLcdBarHtml('arp', {
+    const aNotes = bridge._arpEngine.heldNotes.length;
+    const aStep = bridge._arpEngine.stepIndex;
+    const aBar = genFillBar(Math.round((aNotes / 12) * 18), 18);
+    const arpHtml = genLcdBarHtml('arp', {
       header: 'ARPEGGIATOR RESET',
       stepInfo: 'Step ' + aStep + ' \u00B7 ' + aNotes + ' notes held',
       bar: aBar
@@ -271,7 +271,7 @@ function _arpResetClick(bridge, genFillBar, genLcdBarHtml, lcdSafeUpdate, lcdTex
   }
 
   // Button flash CSS
-  var btn = { style: {} };
+  const btn = { style: {} };
   btn.style.transition = 'background 60ms ease-out, box-shadow 60ms ease-out';
   btn.style.background = 'color-mix(in srgb, var(--color-danger) 70%, transparent)';
   btn.style.boxShadow = '0 0 16px var(--color-danger)';
@@ -293,7 +293,7 @@ function _arpResetClick(bridge, genFillBar, genLcdBarHtml, lcdSafeUpdate, lcdTex
 
 /** Simulate syncArpModalUI (mirrors source: reads patch bytes and updates controls) */
 function _syncArpModalUI(patch, controls, selectors, sliders) {
-  if (!patch || !patch.unpackedBytes) return { synced: false };
+  if (!patch || !patch.unpackedBytes) {return { synced: false };}
 
   const bytes = patch.unpackedBytes;
   const arpEn = bytes[155] > 0.5;
@@ -305,30 +305,30 @@ function _syncArpModalUI(patch, controls, selectors, sliders) {
   const velGateVal = bytes[112] || 0;
 
   // Toggle boxes
-  if (controls.arpBox) controls.arpBox.classList.toggle('active', arpEn);
-  if (controls.holdBox) controls.holdBox.classList.toggle('active', holdEn);
-  if (controls.keySyncBox) controls.keySyncBox.classList.toggle('active', keySyncEn);
+  if (controls.arpBox) {controls.arpBox.classList.toggle('active', arpEn);}
+  if (controls.holdBox) {controls.holdBox.classList.toggle('active', holdEn);}
+  if (controls.keySyncBox) {controls.keySyncBox.classList.toggle('active', keySyncEn);}
 
   // Selects
-  if (selectors.clock) selectors.clock.value = Math.round(clockVal);
-  if (selectors.velGate) selectors.velGate.value = Math.round(velGateVal);
-  if (selectors.mode) selectors.mode.value = Math.round(modeVal);
-  if (selectors.octave) selectors.octave.value = Math.round(octaveVal);
+  if (selectors.clock) {selectors.clock.value = Math.round(clockVal);}
+  if (selectors.velGate) {selectors.velGate.value = Math.round(velGateVal);}
+  if (selectors.mode) {selectors.mode.value = Math.round(modeVal);}
+  if (selectors.octave) {selectors.octave.value = Math.round(octaveVal);}
 
   // Slider handle positions
-  var sliderData = [
+  const sliderData = [
     { el: sliders.swing, val: bytes[163] / 25.0 },
     { el: sliders.rate, val: bytes[157] / 255.0 },
     { el: sliders.gateTime, val: bytes[160] / 255.0 },
   ];
   sliderData.forEach(function(sd) {
-    if (!sd.el) return;
-    var handle = sd.el.querySelector('.handle');
-    if (!handle) return;
-    var rect = sd.el.getBoundingClientRect();
+    if (!sd.el) {return;}
+    const handle = sd.el.querySelector('.handle');
+    if (!handle) {return;}
+    const rect = sd.el.getBoundingClientRect();
     if (rect.height > 0) {
-      var handleHeight = 16;
-      var pos = (1.0 - sd.val) * (rect.height - handleHeight);
+      const handleHeight = 16;
+      const pos = (1.0 - sd.val) * (rect.height - handleHeight);
       handle.style.top = pos + 'px';
     }
   });
@@ -347,7 +347,7 @@ function _syncArpModalUI(patch, controls, selectors, sliders) {
 
 /** Simulate onParameterChanged handler (mirrors source) */
 function _arpDispatchParamChange(paramId, val, backdrop, controls, selectors, sliders) {
-  if (backdrop.style.display === 'none') return { dispatched: false };
+  if (backdrop.style.display === 'none') {return { dispatched: false };}
 
   if (paramId === 'arp_enable' && controls.arpBox) {
     controls.arpBox.classList.toggle('active', val > 0.5);
@@ -371,13 +371,13 @@ function _arpDispatchParamChange(paramId, val, backdrop, controls, selectors, sl
     selectors.octave.value = Math.round(val * 3.0);
   }
   if (paramId === 'arp_swing' || paramId === 'arp_rate' || paramId === 'arp_gate_time') {
-    var sliderEl = sliders[paramId];
+    const sliderEl = sliders[paramId];
     if (sliderEl) {
-      var handle = sliderEl.querySelector('.handle');
-      var rect = sliderEl.getBoundingClientRect();
+      const handle = sliderEl.querySelector('.handle');
+      const rect = sliderEl.getBoundingClientRect();
       if (rect.height > 0) {
-        var handleHeight = 16;
-        var pos = (1.0 - val) * (rect.height - handleHeight);
+        const handleHeight = 16;
+        const pos = (1.0 - val) * (rect.height - handleHeight);
         handle.style.top = pos + 'px';
       }
     }
@@ -1411,8 +1411,8 @@ describe('Arp preset patterns — Default, Disco, Random generation', () => {
     let hasOff = false;
     for (let trial = 0; trial < 10; trial++) {
       const pattern = generateRandomPattern();
-      if (pattern.some(Boolean)) hasOn = true;
-      if (pattern.some(v => !v)) hasOff = true;
+      if (pattern.some(Boolean)) {hasOn = true;}
+      if (pattern.some(v => !v)) {hasOff = true;}
     }
     expect(hasOn).toBe(true);
     expect(hasOff).toBe(true);
@@ -1464,11 +1464,11 @@ describe('Arp param change — arp_enable LCD bar with engine notes', () => {
     const lcdText = { innerHTML: '' };
     // Simulate the source code pattern:
     // if (val > 0.5 && window.dualMidiBridge._arpEngine) { ... show LCD bar ... }
-    var result = { showedLcdBar: false, notesCount: 0, stepIndex: 0 };
+    const result = { showedLcdBar: false, notesCount: 0, stepIndex: 0 };
     if (val > 0.5) {
-      var engine = { heldNotes: engineNotes || [], stepIndex: engineStep || 0 };
-      var aNotes = engine.heldNotes.length;
-      var aStep = engine.stepIndex;
+      const engine = { heldNotes: engineNotes || [], stepIndex: engineStep || 0 };
+      const aNotes = engine.heldNotes.length;
+      const aStep = engine.stepIndex;
       result.showedLcdBar = true;
       result.notesCount = aNotes;
       result.stepIndex = aStep;
@@ -1521,7 +1521,7 @@ describe('Arp pattern editor — full lifecycle', () => {
   });
 
   it('clicking same step twice returns to OFF', () => {
-    let pattern = Array(32).fill(false);
+    const pattern = Array(32).fill(false);
     const unit = makeMockArpStepUnit();
     const bar = makeMockStepBar();
 

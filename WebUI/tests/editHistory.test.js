@@ -9,52 +9,52 @@ globalThis.window = globalThis.window || {};
 
 // ===== Extracted Source =====
 
-var maxHistory = 50;
-var undoStack = [];
-var redoStack = [];
-var isHistoryAction = false;
+const maxHistory = 50;
+let undoStack = [];
+let redoStack = [];
+let isHistoryAction = false;
 
 function captureParamSnapshot(bridge) {
-    if (!bridge) return null;
+    if (!bridge) {return null;}
     return JSON.stringify(bridge.parameterCache);
 }
 
 function restoreParamSnapshot(snapshotStr, bridge, getElementById, callbacks) {
     callbacks = callbacks || {};
-    if (!snapshotStr || !bridge) return;
+    if (!snapshotStr || !bridge) {return;}
     isHistoryAction = true;
 
-    var cache = JSON.parse(snapshotStr);
+    const cache = JSON.parse(snapshotStr);
     Object.keys(cache).forEach(function(paramId) {
-        var val = cache[paramId];
+        const val = cache[paramId];
         bridge.setParameter(paramId, val);
         bridge.handleParameterChangeFromBackend(paramId, val);
     });
 
-    if (typeof callbacks.updateLfoSliders === 'function') callbacks.updateLfoSliders();
-    if (typeof callbacks.updateEnvSliders === 'function') callbacks.updateEnvSliders();
-    if (typeof callbacks.updateOscSliders === 'function') callbacks.updateOscSliders();
+    if (typeof callbacks.updateLfoSliders === 'function') {callbacks.updateLfoSliders();}
+    if (typeof callbacks.updateEnvSliders === 'function') {callbacks.updateEnvSliders();}
+    if (typeof callbacks.updateOscSliders === 'function') {callbacks.updateOscSliders();}
 
     isHistoryAction = false;
 
-    var lcdText = getElementById ? getElementById('lcd-text') : null;
+    const lcdText = getElementById ? getElementById('lcd-text') : null;
     if (lcdText) {
         lcdText.innerHTML = '<span style="font-size:10px; opacity:0.6;">EDIT HISTORY</span><br><strong>STATE RESTORED</strong>';
     }
 }
 
 function triggerUndo(stack, redo, bridge, getElementById, callbacks) {
-    if (stack.length <= 1) return { alert: "No hay más cambios que deshacer." };
-    var current = stack.pop();
+    if (stack.length <= 1) {return { alert: 'No hay más cambios que deshacer.' };}
+    const current = stack.pop();
     redo.push(current);
-    var previous = stack[stack.length - 1];
+    const previous = stack[stack.length - 1];
     restoreParamSnapshot(previous, bridge, getElementById, callbacks);
     return { alert: null };
 }
 
 function triggerRedo(stack, redo, bridge, getElementById, callbacks) {
-    if (redo.length === 0) return { alert: "No hay cambios para rehacer." };
-    var nextState = redo.pop();
+    if (redo.length === 0) {return { alert: 'No hay cambios para rehacer.' };}
+    const nextState = redo.pop();
     stack.push(nextState);
     restoreParamSnapshot(nextState, bridge, getElementById, callbacks);
     return { alert: null };
@@ -68,30 +68,30 @@ describe('captureParamSnapshot', function() {
     });
 
     it('returns JSON string of parameterCache', function() {
-        var bridge = { parameterCache: { osc1_pitch: 0.5, vcf_cutoff: 0.8 } };
-        var snap = captureParamSnapshot(bridge);
+        const bridge = { parameterCache: { osc1_pitch: 0.5, vcf_cutoff: 0.8 } };
+        const snap = captureParamSnapshot(bridge);
         expect(typeof snap).toBe('string');
-        var parsed = JSON.parse(snap);
+        const parsed = JSON.parse(snap);
         expect(parsed.osc1_pitch).toBe(0.5);
         expect(parsed.vcf_cutoff).toBe(0.8);
     });
 
     it('handles empty cache', function() {
-        var bridge = { parameterCache: {} };
-        var snap = captureParamSnapshot(bridge);
+        const bridge = { parameterCache: {} };
+        const snap = captureParamSnapshot(bridge);
         expect(JSON.parse(snap)).toEqual({});
     });
 
     it('handles null cache gracefully', function() {
-        var bridge = { parameterCache: null };
+        const bridge = { parameterCache: null };
         // JSON.stringify(null) returns 'null', not null
-        var snap = captureParamSnapshot(bridge);
+        const snap = captureParamSnapshot(bridge);
         expect(snap).toBe('null');
     });
 });
 
 describe('restoreParamSnapshot', function() {
-    var bridge, setParamCalls, handleBackendCalls, lcdHtml;
+    let bridge, setParamCalls, handleBackendCalls, lcdHtml;
 
     beforeEach(function() {
         setParamCalls = [];
@@ -116,7 +116,7 @@ describe('restoreParamSnapshot', function() {
     });
 
     it('restores all parameters from snapshot', function() {
-        var snap = JSON.stringify({ osc1_pitch: 0.5, vcf_cutoff: 0.8 });
+        const snap = JSON.stringify({ osc1_pitch: 0.5, vcf_cutoff: 0.8 });
         restoreParamSnapshot(snap, bridge);
         expect(setParamCalls).toEqual([
             ['osc1_pitch', 0.5],
@@ -130,14 +130,14 @@ describe('restoreParamSnapshot', function() {
 
     it('sets isHistoryAction flag during restore', function() {
         isHistoryAction = false;
-        var snap = JSON.stringify({ a: 0.5 });
+        const snap = JSON.stringify({ a: 0.5 });
         restoreParamSnapshot(snap, bridge);
         expect(isHistoryAction).toBe(false);
     });
 
     it('calls optional callbacks after restore', function() {
-        var lfoCalled = false, envCalled = false, oscCalled = false;
-        var snap = JSON.stringify({ a: 0.5 });
+        let lfoCalled = false, envCalled = false, oscCalled = false;
+        const snap = JSON.stringify({ a: 0.5 });
         restoreParamSnapshot(snap, bridge, null, {
             updateLfoSliders: function() { lfoCalled = true; },
             updateEnvSliders: function() { envCalled = true; },
@@ -149,13 +149,13 @@ describe('restoreParamSnapshot', function() {
     });
 
     it('updates LCD if getElementById returns an element', function() {
-        var getEl = function(id) {
+        const getEl = function(id) {
             if (id === 'lcd-text') {
                 return { innerHTML: '' };
             }
             return null;
         };
-        var snap = JSON.stringify({ a: 0.5 });
+        const snap = JSON.stringify({ a: 0.5 });
         restoreParamSnapshot(snap, bridge, getEl);
         // LCD was updated (no assert on content needed)
         expect(setParamCalls.length).toBe(1);
@@ -163,7 +163,7 @@ describe('restoreParamSnapshot', function() {
 });
 
 describe('triggerUndo', function() {
-    var bridge, getEl, callbacks;
+    let bridge, getEl, callbacks;
 
     beforeEach(function() {
         bridge = { parameterCache: {}, setParameter: function() {}, handleParameterChangeFromBackend: function() {} };
@@ -176,7 +176,7 @@ describe('triggerUndo', function() {
 
     it('returns alert when stack has 1 or 0 items', function() {
         undoStack = [JSON.stringify({ a: 0.5 })];
-        var result = triggerUndo(undoStack, redoStack, bridge, getEl, callbacks);
+        let result = triggerUndo(undoStack, redoStack, bridge, getEl, callbacks);
         expect(result.alert).toBe('No hay más cambios que deshacer.');
 
         undoStack = [];
@@ -190,7 +190,7 @@ describe('triggerUndo', function() {
             JSON.stringify({ val: 0.5 }),
             JSON.stringify({ val: 0.8 })
         ];
-        var result = triggerUndo(undoStack, redoStack, bridge, getEl, callbacks);
+        const result = triggerUndo(undoStack, redoStack, bridge, getEl, callbacks);
         expect(result.alert).toBeNull();
         expect(undoStack.length).toBe(2);
         expect(undoStack[undoStack.length - 1]).toBe(JSON.stringify({ val: 0.5 }));
@@ -203,7 +203,7 @@ describe('triggerUndo', function() {
             JSON.stringify({ osc1: 0.2 }),
             JSON.stringify({ osc1: 0.5 })
         ];
-        var setCalls = [];
+        const setCalls = [];
         bridge.setParameter = function(id, v) { setCalls.push([id, v]); };
         bridge.handleParameterChangeFromBackend = function(id, v) {};
 
@@ -213,7 +213,7 @@ describe('triggerUndo', function() {
 });
 
 describe('triggerRedo', function() {
-    var bridge, getEl, callbacks;
+    let bridge, getEl, callbacks;
 
     beforeEach(function() {
         bridge = { parameterCache: {}, setParameter: function() {}, handleParameterChangeFromBackend: function() {} };
@@ -225,7 +225,7 @@ describe('triggerRedo', function() {
     });
 
     it('returns alert when redo stack is empty', function() {
-        var result = triggerRedo(undoStack, redoStack, bridge, getEl, callbacks);
+        const result = triggerRedo(undoStack, redoStack, bridge, getEl, callbacks);
         expect(result.alert).toBe('No hay cambios para rehacer.');
     });
 
@@ -233,7 +233,7 @@ describe('triggerRedo', function() {
         redoStack = [JSON.stringify({ val: 0.8 })];
         undoStack = [JSON.stringify({ val: 0.2 }), JSON.stringify({ val: 0.5 })];
 
-        var result = triggerRedo(undoStack, redoStack, bridge, getEl, callbacks);
+        const result = triggerRedo(undoStack, redoStack, bridge, getEl, callbacks);
         expect(result.alert).toBeNull();
         expect(undoStack.length).toBe(3);
         expect(undoStack[undoStack.length - 1]).toBe(JSON.stringify({ val: 0.8 }));
@@ -243,7 +243,7 @@ describe('triggerRedo', function() {
     it('restores the next state from redo', function() {
         redoStack = [JSON.stringify({ osc1: 0.8 })];
         undoStack = [JSON.stringify({ osc1: 0.2 }), JSON.stringify({ osc1: 0.5 })];
-        var setCalls = [];
+        const setCalls = [];
         bridge.setParameter = function(id, v) { setCalls.push([id, v]); };
         bridge.handleParameterChangeFromBackend = function(id, v) {};
 
@@ -265,7 +265,7 @@ describe('undo/redo stack integrity', function() {
             JSON.stringify({ a: 1 })
         ];
         redoStack = [];
-        var bridge = { parameterCache: {}, setParameter: function() {}, handleParameterChangeFromBackend: function() {} };
+        const bridge = { parameterCache: {}, setParameter: function() {}, handleParameterChangeFromBackend: function() {} };
 
         triggerUndo(undoStack, redoStack, bridge, function() { return null; }, {});
         expect(redoStack).toEqual([JSON.stringify({ a: 1 })]);
@@ -274,7 +274,7 @@ describe('undo/redo stack integrity', function() {
     it('redo returns state to undo stack', function() {
         undoStack = [JSON.stringify({ a: 0 }), JSON.stringify({ a: 1 })];
         redoStack = [JSON.stringify({ a: 2 })];
-        var bridge = { parameterCache: {}, setParameter: function() {}, handleParameterChangeFromBackend: function() {} };
+        const bridge = { parameterCache: {}, setParameter: function() {}, handleParameterChangeFromBackend: function() {} };
 
         triggerRedo(undoStack, redoStack, bridge, function() { return null; }, {});
         expect(undoStack[undoStack.length - 1]).toBe(JSON.stringify({ a: 2 }));
@@ -282,12 +282,12 @@ describe('undo/redo stack integrity', function() {
     });
 
     it('enforces maxHistory limit of 50', function() {
-        var bridge = { parameterCache: {}, setParameter: function() {}, handleParameterChangeFromBackend: function() {} };
+        const bridge = { parameterCache: {}, setParameter: function() {}, handleParameterChangeFromBackend: function() {} };
 
         // Explicitly push 51 items to simulate history limit
-        for (var i = 0; i <= 50; i++) {
+        for (let i = 0; i <= 50; i++) {
             undoStack.push(JSON.stringify({ step: i }));
-            if (undoStack.length > maxHistory) undoStack.shift();
+            if (undoStack.length > maxHistory) {undoStack.shift();}
         }
         expect(undoStack.length).toBe(50);
         // Oldest item (step 0 at index 0) should have been shifted off

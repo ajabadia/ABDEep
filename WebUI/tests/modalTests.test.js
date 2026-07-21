@@ -35,17 +35,17 @@ const ARP_MODE_NAMES = ['UP','DOWN','UP-DOWN','UP-INV','DOWN-INV','UP-DN-INV','U
 const ARP_VELGATE_NAMES = ['Gate','Velocity','Seq'];
 
 function _getArpClockName(idx) {
-  if (idx < 0 || idx >= ARP_CLOCK_NAMES.length) return '';
+  if (idx < 0 || idx >= ARP_CLOCK_NAMES.length) {return '';}
   return ARP_CLOCK_NAMES[idx];
 }
 
 function _getArpModeName(idx) {
-  if (idx < 0 || idx >= ARP_MODE_NAMES.length) return '';
+  if (idx < 0 || idx >= ARP_MODE_NAMES.length) {return '';}
   return ARP_MODE_NAMES[idx];
 }
 
 function _getArpVelGateName(idx) {
-  if (idx < 0 || idx >= ARP_VELGATE_NAMES.length) return '';
+  if (idx < 0 || idx >= ARP_VELGATE_NAMES.length) {return '';}
   return ARP_VELGATE_NAMES[idx];
 }
 
@@ -81,7 +81,7 @@ function _getStepGateTooltip(stepIndex, isOn) {
 
 /** Extract ARP state from patch unpackedBytes (offsets 155-164) */
 function _extractArpStateFromPatch(unpackedBytes) {
-  if (!unpackedBytes) return {};
+  if (!unpackedBytes) {return {};}
   return {
     arpEn:       unpackedBytes[155] > 0.5,
     modeVal:     unpackedBytes[156] || 0,
@@ -102,13 +102,13 @@ function _extractArpStateFromPatch(unpackedBytes) {
  *    rate/gate: byte / 255.0
  */
 function _arpSliderNormalized(id, rawByte) {
-  if (id === 'arp_swing') return rawByte / 25.0;
+  if (id === 'arp_swing') {return rawByte / 25.0;}
   return rawByte / 255.0;
 }
 
 /** Compute fader handle position from normalized value */
 function _calcHandlePos(normalizedVal, sliderHeight, handleHeight) {
-  if (sliderHeight <= 0) return 0;
+  if (sliderHeight <= 0) {return 0;}
   const limit = sliderHeight - handleHeight;
   return (1.0 - normalizedVal) * limit;
 }
@@ -134,7 +134,7 @@ function _isStepActive(index, activeLength) {
 
 /** Calculate bipolar value from raw byte (0=skip, 128=center, 1-127=negative, 129-255=positive) */
 function _rawToBipolar(rawByte) {
-  if (rawByte === 0) return 0; // SKIP
+  if (rawByte === 0) {return 0;} // SKIP
   return rawByte - 128;        // -128..+127
 }
 
@@ -287,7 +287,7 @@ function _calcBipolarFromY(clientY, rectTop, rectHeight) {
   const normVal = 1.0 - relY; // invert since Y grows down
   let bipolar = Math.round((normVal * 255) - 128);
   // Snap to center when near zero
-  if (Math.abs(bipolar) <= 2) bipolar = 0;
+  if (Math.abs(bipolar) <= 2) {bipolar = 0;}
   return bipolar;
 }
 
@@ -300,7 +300,7 @@ function _bipolarToRaw(bipolar) {
 
 /** Extract SEQ state from patch unpackedBytes (offsets 117-154) */
 function _extractSeqStateFromPatch(unpackedBytes) {
-  if (!unpackedBytes) return {};
+  if (!unpackedBytes) {return {};}
   const steps = [];
   for (let i = 0; i < 32; i++) {
     const rawByte = unpackedBytes[123 + i] || 0;
@@ -1312,8 +1312,8 @@ function _arpToggleStep(pattern, index) {
  * Returns the new pattern array.
  */
 function _arpApplyPreset(text) {
-  if (text.includes('Default')) return _genDefaultArpPattern();
-  if (text.includes('Disco')) return _genDiscoArpPattern();
+  if (text.includes('Default')) {return _genDefaultArpPattern();}
+  if (text.includes('Disco')) {return _genDiscoArpPattern();}
   return _genRandomArpPattern();
 }
 
@@ -1411,7 +1411,7 @@ function _seqPollTick(bridge, backdropDisplay, currentActiveStep, currentSkip, l
  * Returns { [element]: value } map of UI changes.
  */
 function _arpDispatchParamChange(paramId, val, backdropVisible) {
-  if (!backdropVisible) return { skipped: true };
+  if (!backdropVisible) {return { skipped: true };}
   const result = {};
   if (paramId === 'arp_enable') {
     result.arpBoxActive = val > 0.5;
@@ -1437,11 +1437,11 @@ function _arpDispatchParamChange(paramId, val, backdropVisible) {
  * SEQ parameter change dispatch: simulates onParameterChanged handler.
  */
 function _seqDispatchParamChange(paramId, val, backdropVisible) {
-  if (!backdropVisible) return { skipped: true };
+  if (!backdropVisible) {return { skipped: true };}
   const result = {};
   if (paramId === 'seq_enable') {
     result.seqBoxActive = val > 0.5;
-    if (val < 0.5) result.cleared = true;
+    if (val < 0.5) {result.cleared = true;}
   } else if (paramId === 'seq_clock') {
     result.clockValue = Math.round(val * 15.0);
   } else if (paramId === 'seq_length') {
@@ -1547,7 +1547,7 @@ describe('Arpeggiator — step click toggle (UI interaction)', () => {
     expect(result.pattern[3]).toBe(!saved[3]);
     // Other steps unchanged
     for (let i = 0; i < 32; i++) {
-      if (i !== 3) expect(result.pattern[i]).toBe(saved[i]);
+      if (i !== 3) {expect(result.pattern[i]).toBe(saved[i]);}
     }
   });
 

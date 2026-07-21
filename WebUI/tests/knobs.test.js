@@ -38,7 +38,7 @@ function _createFakeEl(tag, attrs) {
     dataset: {},
     classList: {
       _classes: [],
-      add(c) { if (!this._classes.includes(c)) this._classes.push(c); },
+      add(c) { if (!this._classes.includes(c)) {this._classes.push(c);} },
       remove(c) { this._classes = this._classes.filter(x => x !== c); },
       contains(c) { return this._classes.includes(c); },
       toggle(c, force) {
@@ -51,7 +51,7 @@ function _createFakeEl(tag, attrs) {
     setAttribute(name, val) { this._attrs[name] = val; },
     hasAttribute(name) { return name in this._attrs; },
     addEventListener(event, handler) {
-      if (!this._listeners[event]) this._listeners[event] = [];
+      if (!this._listeners[event]) {this._listeners[event] = [];}
       this._listeners[event].push(handler);
     },
     removeEventListener() {},
@@ -93,12 +93,12 @@ function initKnobs() {
     const paramId = knobUnit.getAttribute('data-param');
     const ring = knobUnit.querySelector('.knob-ring');
     const pointer = knobUnit.querySelector('.knob-pointer');
-    if (!ring || !pointer) return;
+    if (!ring || !pointer) {return;}
 
     let isDragging = false;
     let startY = 0;
     let baseValue = 0.0;
-    if (paramId === 'global_volume') baseValue = 0.8;
+    if (paramId === 'global_volume') {baseValue = 0.8;}
 
     ring.addEventListener('pointerdown', (e) => {
       isDragging = true;
@@ -108,7 +108,7 @@ function initKnobs() {
     });
 
     ring.addEventListener('pointermove', (e) => {
-      if (!isDragging) return;
+      if (!isDragging) {return;}
       const deltaY = startY - e.clientY;
       startY = e.clientY;
 
@@ -122,7 +122,7 @@ function initKnobs() {
 
         const lcdText = document.getElementById('lcd-text');
         if (lcdText) {
-          var displayVal = typeof window.formatParamValue === 'function'
+          const displayVal = typeof window.formatParamValue === 'function'
             ? window.formatParamValue(paramId, baseValue)
             : baseValue.toFixed(2);
           lcdText.innerHTML = '<span style="font-size:10px; opacity:0.6;">PERFORMANCE</span><br><strong>' + paramId.toUpperCase() + '</strong><br><span style="font-size:15px; color:var(--color-gold);">' + displayVal + '</span>';
@@ -166,11 +166,11 @@ describe('initKnobs', () => {
 
     _mockDoc = {
       getElementById(id) {
-        if (id === 'lcd-text') return _lcdEl;
+        if (id === 'lcd-text') {return _lcdEl;}
         return null;
       },
       querySelectorAll(sel) {
-        if (sel === '.performance-matrix-panel .ctrl-unit') return _knobUnits;
+        if (sel === '.performance-matrix-panel .ctrl-unit') {return _knobUnits;}
         return [];
       },
       querySelector() { return null; },

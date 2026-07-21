@@ -66,12 +66,12 @@ function _resetBridge() {
   };
 }
 
-let _curveStorage = {
+const _curveStorage = {
   aftertouch: 'linear',
   modwheel: 'linear',
   pitchbend: 'linear',
 };
-let _customPoints = {
+const _customPoints = {
   aftertouch: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
   modwheel: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
   pitchbend: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
@@ -149,14 +149,14 @@ function _createFakeElement(tag, attrs) {
     dataset: {},
     classList: {
       _classes: [],
-      add(c) { if (!this._classes.includes(c)) this._classes.push(c); },
+      add(c) { if (!this._classes.includes(c)) {this._classes.push(c);} },
       remove(c) { this._classes = this._classes.filter((x) => x !== c); },
       contains(c) { return this._classes.includes(c); },
     },
     getAttribute(name) { return this._attrs[name]; },
     setAttribute(name, val) { this._attrs[name] = val; },
     addEventListener(event, handler) {
-      if (!this._listeners[event]) this._listeners[event] = [];
+      if (!this._listeners[event]) {this._listeners[event] = [];}
       this._listeners[event].push(handler);
     },
     removeEventListener() {},
@@ -197,7 +197,7 @@ function _createFakeElement(tag, attrs) {
     },
     setPointerCapture() {},
     click() {
-      if (this._listeners.click) this._listeners.click.forEach(h => h({ preventDefault: () => {}, target: this }));
+      if (this._listeners.click) {this._listeners.click.forEach(h => h({ preventDefault: () => {}, target: this }));}
     },
     querySelectorAll: (sel) => [],
     querySelector: (sel) => null,
@@ -225,7 +225,7 @@ function _triggerInput(el, newValue) {
 
 function initFadeSpeed() {
   const fadeSel = document.getElementById('settings-fade-speed');
-  if (!fadeSel) return;
+  if (!fadeSel) {return;}
   const saved = localStorage.getItem('abd-eep-fade-speed') || 'normal';
   fadeSel.value = saved;
   fadeSel.addEventListener('change', () => {
@@ -235,7 +235,7 @@ function initFadeSpeed() {
 
 function initLcdTimeoutSetting() {
   const sel = document.getElementById('settings-lcd-timeout');
-  if (!sel) return;
+  if (!sel) {return;}
   const saved = localStorage.getItem('abd-eep-lcd-timeout') || '2000';
   sel.value = saved;
   sel.addEventListener('change', () => {
@@ -245,7 +245,7 @@ function initLcdTimeoutSetting() {
 
 function initLcdVelocitySetting() {
   const velSel = document.getElementById('settings-lcd-velocity');
-  if (!velSel) return;
+  if (!velSel) {return;}
   const saved = localStorage.getItem('abd-eep-lcd-velocity') || 'show';
   velSel.value = saved;
   velSel.addEventListener('change', () => {
@@ -256,20 +256,20 @@ function initLcdVelocitySetting() {
 function initPbSensitivitySetting() {
   const pbSlider = document.getElementById('settings-pb-sensitivity');
   const pbVal = document.getElementById('settings-pb-sensitivity-val');
-  if (!pbSlider) return;
+  if (!pbSlider) {return;}
   const saved = localStorage.getItem('abd-eep-pb-sensitivity') || '6';
   pbSlider.value = saved;
-  if (pbVal) pbVal.textContent = saved + 'px';
+  if (pbVal) {pbVal.textContent = saved + 'px';}
   pbSlider.addEventListener('input', () => {
     const val = pbSlider.value;
     localStorage.setItem('abd-eep-pb-sensitivity', val);
-    if (pbVal) pbVal.textContent = val + 'px';
+    if (pbVal) {pbVal.textContent = val + 'px';}
   });
 }
 
 function initMidiClockSetting() {
   const sel = document.getElementById('settings-midi-clock');
-  if (!sel) return;
+  if (!sel) {return;}
   const saved = localStorage.getItem('abd-eep-midi-clock') || 'internal';
   sel.value = saved;
   sel.addEventListener('change', function() {
@@ -283,27 +283,27 @@ function initMidiClockSetting() {
 function initLcdContrastSetting() {
   const slider = document.getElementById('settings-lcd-contrast');
   const valEl = document.getElementById('settings-lcd-contrast-val');
-  if (!slider) return;
+  if (!slider) {return;}
   const saved = localStorage.getItem('abd-eep-lcd-contrast') || '70';
   slider.value = saved;
-  if (valEl) valEl.textContent = saved + '%';
+  if (valEl) {valEl.textContent = saved + '%';}
   function updateContrast(v) {
     const lcdEl = document.querySelector('.lcd-screen, #lcd-screen, .lcd');
-    if (lcdEl) lcdEl.style.opacity = (v / 100).toFixed(2);
+    if (lcdEl) {lcdEl.style.opacity = (v / 100).toFixed(2);}
     document.documentElement.style.setProperty('--lcd-opacity', (v / 100).toFixed(2));
   }
   updateContrast(parseInt(saved));
   slider.addEventListener('input', function() {
     const val = this.value;
     localStorage.setItem('abd-eep-lcd-contrast', val);
-    if (valEl) valEl.textContent = val + '%';
+    if (valEl) {valEl.textContent = val + '%';}
     updateContrast(parseInt(val));
   });
 }
 
 function initBarStyleSetting() {
   const sel = document.getElementById('settings-bar-style');
-  if (!sel) return;
+  if (!sel) {return;}
   const saved = localStorage.getItem('abd-eep-bar-style') || 'solid';
   sel.value = saved;
   sel.addEventListener('change', () => {
@@ -313,7 +313,7 @@ function initBarStyleSetting() {
 
 function initPitchBendModeSetting() {
   const sel = document.getElementById('settings-pitch-bend-mode');
-  if (!sel) return;
+  if (!sel) {return;}
   const saved = localStorage.getItem('abd-eep-pitch-bend-mode') || 'all';
   sel.value = saved;
   sel.addEventListener('change', function() {
@@ -378,14 +378,14 @@ function initPolyChainSettings() {
 function initRoutingSettings() {
   function wireSelect(id, storageKey, defaultValue) {
     const el = document.getElementById(id);
-    if (!el) return;
+    if (!el) {return;}
     const saved = localStorage.getItem(storageKey) || defaultValue;
     el.value = saved;
     el.addEventListener('change', function() { localStorage.setItem(storageKey, this.value); });
   }
   function wireCheckbox(id, storageKey, defaultChecked) {
     const el = document.getElementById(id);
-    if (!el) return;
+    if (!el) {return;}
     el.checked = localStorage.getItem(storageKey) === 'on' || (!localStorage.getItem(storageKey) && defaultChecked);
     el.addEventListener('change', function() { localStorage.setItem(storageKey, this.checked ? 'on' : 'off'); });
   }
@@ -419,12 +419,12 @@ function setActiveTheme(theme) {
   }
   localStorage.setItem('abd-eep-theme', theme);
   const themeSelect = document.getElementById('settings-theme-select');
-  if (themeSelect) themeSelect.value = theme;
+  if (themeSelect) {themeSelect.value = theme;}
 }
 
 function initThemeSelector() {
   const themeSelect = document.getElementById('settings-theme-select');
-  if (!themeSelect) return;
+  if (!themeSelect) {return;}
   const savedTheme = localStorage.getItem('abd-eep-theme') || 'default';
   setActiveTheme(savedTheme);
   themeSelect.value = savedTheme;
@@ -444,7 +444,7 @@ function initNavbarThemeSelector() {
   };
   Object.keys(themeMap).forEach(id => {
     const el = document.getElementById(id);
-    if (!el) return;
+    if (!el) {return;}
     el.addEventListener('click', (e) => {
       e.preventDefault();
       setActiveTheme(themeMap[id]);
@@ -455,16 +455,16 @@ function initNavbarThemeSelector() {
 // ── Compare Mode ──
 
 function _computeCompareDiff(snapshotStr) {
-  if (!snapshotStr || !window.dualMidiBridge) return 0;
+  if (!snapshotStr || !window.dualMidiBridge) {return 0;}
   try {
-    var snap = JSON.parse(snapshotStr);
-    var cache = window.dualMidiBridge.parameterCache;
-    var count = 0;
-    for (var paramId in snap) {
+    const snap = JSON.parse(snapshotStr);
+    const cache = window.dualMidiBridge.parameterCache;
+    let count = 0;
+    for (const paramId in snap) {
       if (snap.hasOwnProperty(paramId)) {
-        var cached = cache[paramId];
-        var snapped = snap[paramId];
-        if (typeof snapped === 'object' || typeof cached === 'object') continue;
+        const cached = cache[paramId];
+        const snapped = snap[paramId];
+        if (typeof snapped === 'object' || typeof cached === 'object') {continue;}
         if (cached === undefined || Math.abs(cached - snapped) > 0.001) {
           count++;
         }
@@ -498,7 +498,7 @@ function getRegionColor(region) {
 
 function formatTooltip(info, val) {
   const pct = (val / 255 * 100).toFixed(1);
-  let lines = [`Byte ${info.idx} — ${info.param}`];
+  const lines = [`Byte ${info.idx} — ${info.param}`];
   lines.push(`Region: ${info.region} | Type: ${info.type}`);
   lines.push(`Value: ${val} (0x${val.toString(16).toUpperCase().padStart(2,'0')}) [${pct}%]`);
   if (info.type === 'toggle') {
@@ -509,8 +509,8 @@ function formatTooltip(info, val) {
   } else if (info.type === 'bipolar') {
     const bipolar = val - 128;
     lines.push(`→ Bipolar: ${bipolar} (center=0, range -128..+127)`);
-    if (val === 128) lines.push('→ Center (no modulation)');
-    else if (val === 0) lines.push('→ Skip step (seq) or min');
+    if (val === 128) {lines.push('→ Center (no modulation)');}
+    else if (val === 0) {lines.push('→ Skip step (seq) or min');}
   } else if (info.type === 'time') {
     const secs = (val / 255 * 10).toFixed(3);
     lines.push(`→ ${secs}s`);
@@ -518,7 +518,7 @@ function formatTooltip(info, val) {
     const ch = val >= 32 && val < 127 ? String.fromCharCode(val) : '·';
     lines.push(`→ '${ch}'`);
   }
-  if (info.desc) lines.push(`Note: ${info.desc}`);
+  if (info.desc) {lines.push(`Note: ${info.desc}`);}
   return lines.join('\n');
 }
 
@@ -530,21 +530,21 @@ function initMidiLearnEditor() {
 }
 
 function refreshMappingsList() {
-  var container = document.getElementById('midi-learn-mappings-list');
-  var countEl = document.getElementById('midi-learn-mapping-count');
-  if (!container) return;
-  var bridge = window.dualMidiBridge;
+  const container = document.getElementById('midi-learn-mappings-list');
+  const countEl = document.getElementById('midi-learn-mapping-count');
+  if (!container) {return;}
+  const bridge = window.dualMidiBridge;
   if (!bridge || !bridge.midiLearnMappings || Object.keys(bridge.midiLearnMappings).length === 0) {
     container.innerHTML = '<div class="text-dim text-center" style="padding:20px;font-size:var(--text-sm)">No mappings yet. Use MIDI LEARN on the main panel to create mappings.</div>';
-    if (countEl) countEl.textContent = '0 mappings';
+    if (countEl) {countEl.textContent = '0 mappings';}
     return;
   }
-  var html = '';
-  var keys = Object.keys(bridge.midiLearnMappings);
+  let html = '';
+  const keys = Object.keys(bridge.midiLearnMappings);
   keys.forEach(function(key) {
-    var paramId = bridge.midiLearnMappings[key];
-    var displayKey = key.replace('nrpn:', 'NRPN ').replace('cc:', 'CC ');
-    var paramName = bridge._getParamName ? bridge._getParamName(paramId) : paramId;
+    const paramId = bridge.midiLearnMappings[key];
+    const displayKey = key.replace('nrpn:', 'NRPN ').replace('cc:', 'CC ');
+    const paramName = bridge._getParamName ? bridge._getParamName(paramId) : paramId;
     html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-bottom:1px solid var(--border-dim);font-size:var(--text-sm)">'
       + '<span style="color:var(--accent-blue);font-weight:bold;font-family:\'Share Tech Mono\',monospace;min-width:80px">' + displayKey + '</span>'
       + '<span style="color:var(--text-secondary)">→</span>'
@@ -553,7 +553,7 @@ function refreshMappingsList() {
       + '</div>';
   });
   container.innerHTML = html;
-  if (countEl) countEl.textContent = keys.length + ' mapping' + (keys.length === 1 ? '' : 's');
+  if (countEl) {countEl.textContent = keys.length + ' mapping' + (keys.length === 1 ? '' : 's');}
 }
 
 // ── Controller Curves UI ──
@@ -562,9 +562,9 @@ function _getActiveCustomCtrlName() {
   const atSel = document.getElementById('settings-curve-aftertouch');
   const mwSel = document.getElementById('settings-curve-modwheel');
   const pbSel = document.getElementById('settings-curve-pitchbend');
-  if (atSel && atSel.value === 'custom') return 'aftertouch';
-  if (mwSel && mwSel.value === 'custom') return 'modwheel';
-  if (pbSel && pbSel.value === 'custom') return 'pitchbend';
+  if (atSel && atSel.value === 'custom') {return 'aftertouch';}
+  if (mwSel && mwSel.value === 'custom') {return 'modwheel';}
+  if (pbSel && pbSel.value === 'custom') {return 'pitchbend';}
   return null;
 }
 
@@ -575,7 +575,7 @@ function drawCurvePreview(curveType, bipolar) {
   _lastCurveType = curveType;
   _lastCurveIsBipolar = !!bipolar;
   const canvas = document.getElementById('curve-preview-canvas');
-  if (!canvas) return;
+  if (!canvas) {return;}
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
@@ -633,8 +633,8 @@ function drawCurvePreview(curveType, bipolar) {
       canvasY = pad + graphH - y * graphH;
     }
     const canvasX = pad + px;
-    if (px === 0) ctx.moveTo(canvasX, canvasY);
-    else ctx.lineTo(canvasX, canvasY);
+    if (px === 0) {ctx.moveTo(canvasX, canvasY);}
+    else {ctx.lineTo(canvasX, canvasY);}
   }
   ctx.stroke();
   // Label
@@ -690,7 +690,7 @@ function initControllerCurves() {
       drawCurvePreview(pbCurveSel.value, true);
     });
   }
-  if (atCurveSel) drawCurvePreview(atCurveSel.value);
+  if (atCurveSel) {drawCurvePreview(atCurveSel.value);}
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1714,7 +1714,7 @@ describe('initMidiLearnEditor - clear all', () => {
 
     // Wire the clear handler manually (initMidiLearnEditor does this)
     clearBtn.addEventListener('click', function() {
-      if (!window.dualMidiBridge) return;
+      if (!window.dualMidiBridge) {return;}
       if (confirm('Delete all MIDI Learn mappings?')) {
         window.dualMidiBridge.clearMidiLearnMappings();
         refreshMappingsList();
@@ -1734,7 +1734,7 @@ describe('initMidiLearnEditor - clear all', () => {
     _bridge.midiLearnMappings = { 'nrpn:42': 'vcf_cutoff' };
 
     clearBtn.addEventListener('click', function() {
-      if (!window.dualMidiBridge) return;
+      if (!window.dualMidiBridge) {return;}
       if (confirm('Delete all MIDI Learn mappings?')) {
         window.dualMidiBridge.clearMidiLearnMappings();
         refreshMappingsList();
@@ -1779,11 +1779,11 @@ describe('initMidiLearnEditor - export', () => {
     };
 
     exportBtn.addEventListener('click', function() {
-      var bridge = window.dualMidiBridge;
-      if (!bridge || !bridge.midiLearnMappings) return;
-      var json = JSON.stringify(bridge.midiLearnMappings, null, 2);
-      var blob = new Blob([json], { type: 'application/json' });
-      var link = document.createElement('a');
+      const bridge = window.dualMidiBridge;
+      if (!bridge || !bridge.midiLearnMappings) {return;}
+      const json = JSON.stringify(bridge.midiLearnMappings, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = 'abd-eep-midi-learn-mappings.json';
       link.click();
@@ -1809,13 +1809,13 @@ describe('initMidiLearnEditor - import', () => {
     _registerElement('midi-learn-import-status', importStatus);
 
     // Mock FileReader
-    let readerOnload = null;
+    const readerOnload = null;
     vi.stubGlobal('FileReader', function() {
       this.onload = null;
       this.readAsText = function(file) {
         // Simulate async read completion
         this.result = '{"nrpn:42":"vcf_cutoff"}';
-        if (this.onload) this.onload({ target: this });
+        if (this.onload) {this.onload({ target: this });}
       };
     });
 
@@ -1834,7 +1834,7 @@ describe('initMidiLearnEditor - import', () => {
             }
           },
           addEventListener: function(event, handler) {
-            if (!this._listeners[event]) this._listeners[event] = [];
+            if (!this._listeners[event]) {this._listeners[event] = [];}
             this._listeners[event].push(handler);
           },
         };
@@ -1846,26 +1846,26 @@ describe('initMidiLearnEditor - import', () => {
     _registerElement('midi-learn-mappings-list', container);
 
     importBtn.addEventListener('click', function() {
-      var input = document.createElement('input');
+      const input = document.createElement('input');
       input.type = 'file';
       input.accept = '.json';
       input.addEventListener('change', function(e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
+        const file = e.target.files[0];
+        if (!file) {return;}
+        const reader = new FileReader();
         reader.onload = function(ev) {
           try {
-            var parsed = JSON.parse(ev.target.result);
-            var bridge = window.dualMidiBridge;
-            if (!bridge) return;
+            const parsed = JSON.parse(ev.target.result);
+            const bridge = window.dualMidiBridge;
+            if (!bridge) {return;}
             Object.keys(parsed).forEach(function(key) {
               bridge.midiLearnMappings[key] = parsed[key];
             });
-            if (bridge._saveMidiLearnMappings) bridge._saveMidiLearnMappings();
+            if (bridge._saveMidiLearnMappings) {bridge._saveMidiLearnMappings();}
             refreshMappingsList();
-            if (importStatus) importStatus.textContent = '✅ Imported 1 mappings';
+            if (importStatus) {importStatus.textContent = '✅ Imported 1 mappings';}
           } catch(e) {
-            if (importStatus) importStatus.textContent = '❌ Invalid JSON';
+            if (importStatus) {importStatus.textContent = '❌ Invalid JSON';}
           }
         };
         reader.readAsText(file);
@@ -1890,7 +1890,7 @@ describe('initMidiLearnEditor - import', () => {
       this.onload = null;
       this.readAsText = function(file) {
         this.result = 'not valid json';
-        if (this.onload) this.onload({ target: this });
+        if (this.onload) {this.onload({ target: this });}
       };
     });
 
@@ -1909,7 +1909,7 @@ describe('initMidiLearnEditor - import', () => {
             }
           },
           addEventListener: function(event, handler) {
-            if (!this._listeners[event]) this._listeners[event] = [];
+            if (!this._listeners[event]) {this._listeners[event] = [];}
             this._listeners[event].push(handler);
           },
         };
@@ -1918,18 +1918,18 @@ describe('initMidiLearnEditor - import', () => {
     };
 
     importBtn.addEventListener('click', function() {
-      var input = document.createElement('input');
+      const input = document.createElement('input');
       input.type = 'file';
       input.accept = '.json';
       input.addEventListener('change', function(e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
+        const file = e.target.files[0];
+        if (!file) {return;}
+        const reader = new FileReader();
         reader.onload = function(ev) {
           try {
             JSON.parse(ev.target.result);
           } catch(e) {
-            if (importStatus) importStatus.textContent = '❌ Invalid JSON';
+            if (importStatus) {importStatus.textContent = '❌ Invalid JSON';}
           }
         };
         reader.readAsText(file);
@@ -2000,9 +2000,9 @@ describe('drawCurvePreview', () => {
     _resetStorage(); _resetElements(); _resetBridge(); _setupGlobals();
     // Provide a simple applyControllerCurve
     window.applyControllerCurve = (val, curve) => {
-      if (curve === 'expo2') return val * val;
-      if (curve === 'expo3') return val * val * val;
-      if (curve === 'log') return Math.sqrt(val);
+      if (curve === 'expo2') {return val * val;}
+      if (curve === 'expo3') {return val * val * val;}
+      if (curve === 'log') {return Math.sqrt(val);}
       return val; // linear, s-curve, etc.
     };
     window.applyBipolarCurve = (val, curve) => {

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abdeep/schemas/audio-ab-manifest/1.0.0",
+  "title": "AudioABManifest",
+  "type": "OBJECT",
+  "required": [
+    "schema_version",
+    "run_id",
+    "patch_name",
+    "started_at_utc",
+    "engine",
+    "files",
+    "hardware",
+    "software",
+    "comparison"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "STRING",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "run_id": {
+      "type": "STRING",
+      "minLength": 1
+    },
+    "patch_name": {
+      "type": "STRING"
+    },
+    "started_at_utc": {
+      "type": "STRING"
+    },
+    "engine": {
+      "type": "OBJECT",
+      "required": [
+        "sample_rate",
+        "bit_depth",
+        "channels",
+        "note",
+        "velocity",
+        "note_duration_sec",
+        "tail_duration_sec"
+      ],
+      "properties": {
+        "sample_rate": { "type": "NUMBER" },
+        "bit_depth": { "type": "INTEGER" },
+        "channels": { "type": "INTEGER" },
+        "note": { "type": "INTEGER" },
+        "velocity": { "type": "INTEGER" },
+        "note_duration_sec": { "type": "NUMBER" },
+        "tail_duration_sec": { "type": "NUMBER" }
+      }
+    },
+    "files": {
+      "type": "OBJECT",
+      "required": ["hardware_wav", "software_wav", "patch_snapshot_json"],
+      "properties": {
+        "hardware_wav": { "type": "STRING" },
+        "software_wav": { "type": "STRING" },
+        "patch_snapshot_json": { "type": "STRING" }
+      }
+    },
+    "hardware": {
+      "type": "OBJECT",
+      "required": ["num_samples", "duration_sec", "peak_dbfs", "rms_dbfs"],
+      "properties": {
+        "num_samples": { "type": "INTEGER" },
+        "duration_sec": { "type": "NUMBER" },
+        "peak_dbfs": { "type": "NUMBER" },
+        "rms_dbfs": { "type": "NUMBER" }
+      }
+    },
+    "software": {
+      "type": "OBJECT",
+      "required": ["num_samples", "duration_sec", "peak_dbfs", "rms_dbfs"],
+      "properties": {
+        "num_samples": { "type": "INTEGER" },
+        "duration_sec": { "type": "NUMBER" },
+        "peak_dbfs": { "type": "NUMBER" },
+        "rms_dbfs": { "type": "NUMBER" }
+      }
+    },
+    "comparison": {
+      "type": "OBJECT",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "STRING",
+          "enum": ["pending", "aligned", "mismatch", "error"]
+        },
+        "latency_offset_samples": { "type": ["INTEGER", "NULL"] },
+        "rms_delta_db": { "type": ["NUMBER", "NULL"] },
+        "spectral_distance": { "type": ["NUMBER", "NULL"] }
+      }
+    }
+  }
+}

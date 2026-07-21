@@ -56,7 +56,7 @@ function applyMidiLearnPrototype(bridge, opts) {
   };
 
   bridge.startMidiLearn = function() {
-    if (this.midiLearnActive) return;
+    if (this.midiLearnActive) {return;}
     this.midiLearnActive = true;
     this.midiLearnTargetParam = null;
     this.midiLearnPendingCC = null;
@@ -65,7 +65,7 @@ function applyMidiLearnPrototype(bridge, opts) {
   };
 
   bridge.stopMidiLearn = function() {
-    if (!this.midiLearnActive) return;
+    if (!this.midiLearnActive) {return;}
     this.midiLearnActive = false;
     this.midiLearnTargetParam = null;
     this.midiLearnPendingCC = null;
@@ -73,7 +73,7 @@ function applyMidiLearnPrototype(bridge, opts) {
   };
 
   bridge.setMidiLearnTarget = function(paramId) {
-    if (!this.midiLearnActive) return;
+    if (!this.midiLearnActive) {return;}
     this.midiLearnTargetParam = paramId;
     if (this.midiLearnPendingCC) {
       this._completeMidiLearnMapping(paramId, this.midiLearnPendingCC);
@@ -84,8 +84,8 @@ function applyMidiLearnPrototype(bridge, opts) {
   };
 
   bridge._captureMidiLearnMessage = function(ccNum, val, nrpnInfo) {
-    if (!this.midiLearnActive) return;
-    var key, desc;
+    if (!this.midiLearnActive) {return;}
+    let key, desc;
     if (nrpnInfo) {
       key = 'nrpn:' + nrpnInfo.msb + ':' + nrpnInfo.lsb;
       desc = 'NRPN ' + nrpnInfo.msb + ':' + String(nrpnInfo.lsb).padStart(2, '0');
@@ -102,7 +102,7 @@ function applyMidiLearnPrototype(bridge, opts) {
   };
 
   bridge._completeMidiLearnMapping = function(paramId, captured) {
-    var key = captured.key;
+    const key = captured.key;
     this.midiLearnMappings[key] = paramId;
     this._saveMidiLearnMappings();
     this._notifyMidiLearnChange();
@@ -111,14 +111,14 @@ function applyMidiLearnPrototype(bridge, opts) {
   bridge._getParamName = mockGetParamName;
 
   bridge._showLcdLearnPrompt = function(msg) {
-    var lcd = opts.document ? opts.document.getElementById('lcd-text') : null;
-    if (!lcd) return;
+    const lcd = opts.document ? opts.document.getElementById('lcd-text') : null;
+    if (!lcd) {return;}
     lcd._midiLearnLcd = true;
     mockLcdSafeUpdate(lcd, msg);
   };
 
   bridge._notifyMidiLearnChange = function() {
-    var self = this;
+    const self = this;
     this.midiLearnChangeCallbacks.forEach(function(cb) { cb(self.midiLearnActive, self.midiLearnTargetParam); });
   };
 
@@ -148,7 +148,7 @@ function applyMidiLearnPrototype(bridge, opts) {
 
   bridge._loadMidiLearnMappings = function() {
     try {
-      var raw = localStorage.getItem('abd-eep-midi-learn');
+      const raw = localStorage.getItem('abd-eep-midi-learn');
       if (raw) {
         this.midiLearnMappings = JSON.parse(raw);
       }
@@ -158,14 +158,14 @@ function applyMidiLearnPrototype(bridge, opts) {
   };
 
   bridge._applyMidiLearnMapping = function(key, val, nrpnInfo) {
-    var paramId = this.midiLearnMappings[key];
-    if (!paramId) return false;
+    const paramId = this.midiLearnMappings[key];
+    if (!paramId) {return false;}
 
-    var BRIDGE_PARAM_MAPS = opts.bridgeParamMaps || (typeof window !== 'undefined' ? window.BRIDGE_PARAM_MAPS : null);
-    var byteOffset = BRIDGE_PARAM_MAPS ? BRIDGE_PARAM_MAPS.PARAM_TO_BYTE_OFFSET[paramId] : undefined;
-    var normalized;
+    const BRIDGE_PARAM_MAPS = opts.bridgeParamMaps || (typeof window !== 'undefined' ? window.BRIDGE_PARAM_MAPS : null);
+    const byteOffset = BRIDGE_PARAM_MAPS ? BRIDGE_PARAM_MAPS.PARAM_TO_BYTE_OFFSET[paramId] : undefined;
+    let normalized;
     if (byteOffset !== undefined && BRIDGE_PARAM_MAPS && typeof BRIDGE_PARAM_MAPS.rawToNormalized === 'function') {
-      var rawVal = nrpnInfo ? (val & 0xFF) : Math.round(val * 255.0 / 127.0);
+      const rawVal = nrpnInfo ? (val & 0xFF) : Math.round(val * 255.0 / 127.0);
       normalized = BRIDGE_PARAM_MAPS.rawToNormalized(byteOffset, rawVal);
     } else {
       normalized = val / 127.0;
@@ -191,8 +191,8 @@ function createBridgeParamMapsMock() {
     },
     rawToNormalized: function(byteOffset, rawVal) {
       // Simplified version matching BRIDGE_PARAM_MAPS behavior
-      var bipolarBytes = [42, 83, 91];
-      var enumBytes = { 2: 6, 14: 2 };
+      const bipolarBytes = [42, 83, 91];
+      const enumBytes = { 2: 6, 14: 2 };
       if (bipolarBytes.indexOf(byteOffset) !== -1) {
         return Math.max(0, Math.min(1, ((rawVal - 128) / 127.0 + 1) / 2));
       }
@@ -320,7 +320,7 @@ describe('MIDI Learn — setMidiLearnTarget', () => {
 
   it('auto-completes mapping when pendingCC exists', () => {
     bridge.startMidiLearn();
-    var pendingCC = { key: 'cc:23', desc: 'CC 23', cc: 23, val: 64 };
+    const pendingCC = { key: 'cc:23', desc: 'CC 23', cc: 23, val: 64 };
     bridge.midiLearnPendingCC = pendingCC;
     const completeSpy = vi.spyOn(bridge, '_completeMidiLearnMapping');
 
@@ -427,7 +427,7 @@ describe('MIDI Learn — _completeMidiLearnMapping', () => {
       getItem: vi.fn(function(k) { return lsStore[k] || null; }),
       setItem: vi.fn(function(k, v) { lsStore[k] = String(v); }),
       removeItem: vi.fn(function(k) { delete lsStore[k]; }),
-      clear: vi.fn(function() { for (const k in lsStore) delete lsStore[k]; }),
+      clear: vi.fn(function() { for (const k in lsStore) {delete lsStore[k];} }),
     });
     applyMidiLearnPrototype(bridge);
   });
@@ -489,7 +489,7 @@ describe('MIDI Learn — remove/clear mappings', () => {
       getItem: vi.fn(function(k) { return lsStore[k] || null; }),
       setItem: vi.fn(function(k, v) { lsStore[k] = String(v); }),
       removeItem: vi.fn(function(k) { delete lsStore[k]; }),
-      clear: vi.fn(function() { for (const k in lsStore) delete lsStore[k]; }),
+      clear: vi.fn(function() { for (const k in lsStore) {delete lsStore[k];} }),
     });
     applyMidiLearnPrototype(bridge);
     // Pre-populate mappings
@@ -564,7 +564,7 @@ describe('MIDI Learn — persistence save/load', () => {
       getItem: vi.fn(function(k) { return lsStore[k] || null; }),
       setItem: vi.fn(function(k, v) { lsStore[k] = String(v); }),
       removeItem: vi.fn(function(k) { delete lsStore[k]; }),
-      clear: vi.fn(function() { for (const k in lsStore) delete lsStore[k]; }),
+      clear: vi.fn(function() { for (const k in lsStore) {delete lsStore[k];} }),
     });
     applyMidiLearnPrototype(bridge);
   });
@@ -730,13 +730,13 @@ describe('MIDI Learn — _getParamName', () => {
 
   function createGetParamName(opts) {
     opts = opts || {};
-    var paramMaps = opts.bridgeParamMaps || { PARAM_TO_BYTE_OFFSET: { 'vcf_cutoff': 39 } };
-    var byteMap = opts.byteMap || { 39: { param: 'VCF Cutoff' } };
+    const paramMaps = opts.bridgeParamMaps || { PARAM_TO_BYTE_OFFSET: { 'vcf_cutoff': 39 } };
+    const byteMap = opts.byteMap || { 39: { param: 'VCF Cutoff' } };
 
     return function(paramId) {
-      var byteOffset = paramMaps.PARAM_TO_BYTE_OFFSET[paramId];
-      var info = byteMap ? byteMap[byteOffset] : null;
-      if (info) return info.param;
+      const byteOffset = paramMaps.PARAM_TO_BYTE_OFFSET[paramId];
+      const info = byteMap ? byteMap[byteOffset] : null;
+      if (info) {return info.param;}
       return paramId.replace(/_/g, ' ');
     };
   }
@@ -845,7 +845,7 @@ describe('MIDI Learn — full lifecycle flows', () => {
       getItem: vi.fn(function(k) { return lsStore[k] || null; }),
       setItem: vi.fn(function(k, v) { lsStore[k] = String(v); }),
       removeItem: vi.fn(function(k) { delete lsStore[k]; }),
-      clear: vi.fn(function() { for (const k in lsStore) delete lsStore[k]; }),
+      clear: vi.fn(function() { for (const k in lsStore) {delete lsStore[k];} }),
     });
     applyMidiLearnPrototype(bridge, {
       bridgeParamMaps: createBridgeParamMapsMock(),
@@ -889,7 +889,7 @@ describe('MIDI Learn — full lifecycle flows', () => {
     bridge.stopMidiLearn();
 
     // Simulate fresh bridge (clear in-memory mappings)
-    var mappingCopy = JSON.parse(JSON.stringify(bridge.midiLearnMappings));
+    const mappingCopy = JSON.parse(JSON.stringify(bridge.midiLearnMappings));
     bridge.midiLearnMappings = {};
 
     // Load from storage

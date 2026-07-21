@@ -1,7 +1,6 @@
 #include "LFO.h"
 #include <cmath>
 #include <algorithm>
-#include <cstdlib>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -22,7 +21,7 @@ namespace ABD
 
     void LFO::setRate(float rateHz)
     {
-        rate = std::clamp(rateHz, 0.01f, 100.0f);
+        rate = std::clamp(rateHz, 0.005f, 1280.0f);
         updatePhaseIncrement();
     }
 
@@ -80,6 +79,12 @@ namespace ABD
         phaseIncrement = rate / sampleRate;
     }
 
+    float LFO::nextRandomFloat()
+    {
+        randomSeed = randomSeed * 1664525u + 1013904223u;
+        return -1.0f + 2.0f * (static_cast<float>(randomSeed & 0x7FFFFFFFu) / 2147483647.0f);
+    }
+
     float LFO::generateRawWave()
     {
         float out = 0.0f;
@@ -114,7 +119,6 @@ namespace ABD
 
             case Shape::kSampleHold:
             case Shape::kSampleGlide:
-                // Se recalcula al inicio del ciclo
                 break;
         }
 
@@ -123,15 +127,28 @@ namespace ABD
 
     float LFO::nextSample()
     {
-        // 1. Manejo del retraso (Delay)
-        double delaySamples = delayTime * sampleRate;
-        if (delaySamplesElapsed < delaySamples)
+        // 1. Fade-in: 40% silent delay time, 60% linear amplitude ramp (Behringer DeepMind 12 specs)
+        float fadeGain = 1.0f;
+        if (delayTime > 0.0f)
         {
-            delaySamplesElapsed += 1.0;
-            return 0.0f; // Silencio durante el delay
+            double delaySamples = delayTime * sampleRate;
+            if (delaySamplesElapsed < delaySamples)
+            {
+                double silentSamples = delaySamples * 0.4;
+                if (delaySamplesElapsed < silentSamples)
+                {
+                    fadeGain = 0.0f;
+                }
+                else
+                {
+                    double fadeSamples = delaySamples * 0.6;
+                    fadeGain = static_cast<float>((delaySamplesElapsed - silentSamples) / (fadeSamples > 0.0 ? fadeSamples : 1.0));
+                }
+                delaySamplesElapsed += 1.0;
+            }
         }
 
-        // 2. Comprobación de wrap-around del ciclo de fase
+        // 2. Phase advancement
         bool phaseWrapped = false;
         double nextPhase = phase + phaseIncrement;
         if (nextPhase >= 1.0)
@@ -141,17 +158,17 @@ namespace ABD
         }
         phase = nextPhase;
 
-        // 3. Lógica para Sample & Hold / Sample & Glide
+        // 3. Sample & Hold / Sample & Glide random target generation (LCG)
         if (phaseWrapped || (currentSH == 0.0f && targetSH == 0.0f))
         {
-            float randVal = -1.0f + 2.0f * ((float)std::rand() / (float)RAND_MAX);
-            targetSH = randVal;
+            targetSH = nextRandomFloat();
             if (currentShape == Shape::kSampleHold)
             {
                 currentSH = targetSH;
             }
         }
 
+        // 4. Generate raw waveform value
         float rawOutput = 0.0f;
         if (currentShape == Shape::kSampleHold)
         {
@@ -159,8 +176,11 @@ namespace ABD
         }
         else if (currentShape == Shape::kSampleGlide)
         {
-            // Glidado simple hacia el target
-            currentSH += (targetSH - currentSH) * 0.05f;
+            // Glide constant proportional to LFO period, SR-independent
+            float periodSec = 1.0f / std::max(0.01f, rate);
+            float glideTimeSec = periodSec * 0.1f;
+            float k = 1.0f - std::exp(-1.0f / (glideTimeSec * static_cast<float>(sampleRate)));
+            currentSH += (targetSH - currentSH) * std::clamp(k, 0.001f, 1.0f);
             rawOutput = currentSH;
         }
         else
@@ -168,18 +188,23 @@ namespace ABD
             rawOutput = generateRawWave();
         }
 
-        // 4. Aplicación de Slew Rate (Limita cambios bruscos)
+        // 5. Slew rate limiting (sample-rate independent, time-domain constant)
         if (slew > 0.0f)
         {
-            float maxChange = 1.0f - slew; // a mayor slew, menor cambio permitido
-            maxChange = std::max(0.001f, maxChange * 0.1f);
-            float change = rawOutput - lastOutput;
-            change = std::clamp(change, -maxChange, maxChange);
-            rawOutput = lastOutput + change;
+            float transitionTimeSec = slew * 0.5f;
+            if (transitionTimeSec > 0.0001f)
+            {
+                float maxChangePerSample = 2.0f / (transitionTimeSec * static_cast<float>(sampleRate));
+                float change = rawOutput - lastOutput;
+                change = std::clamp(change, -maxChangePerSample, maxChangePerSample);
+                rawOutput = lastOutput + change;
+            }
         }
 
         lastOutput = rawOutput;
-        return rawOutput;
+
+        // 6. Apply fade-in gain
+        return rawOutput * fadeGain;
     }
 
     float LFO::getUnipolar() const

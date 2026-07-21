@@ -30,8 +30,8 @@ function unpack7to8(packedBytes) {
     for (let i = 0; i < packedBytes.length; i += 8) {
         const msbFlags = packedBytes[i];
         for (let k = 1; k < 8; k++) {
-            if (i + k >= packedBytes.length) break;
-            if (writeIdx >= 242) break;
+            if (i + k >= packedBytes.length) {break;}
+            if (writeIdx >= 242) {break;}
             let val = packedBytes[i + k];
             if (msbFlags & (1 << (k - 1))) {
                 val |= 0x80;
@@ -51,7 +51,7 @@ function pack8to7(unpackedBytes) {
         const startWriteIdx = writeIdx;
         writeIdx++;
         for (let k = 1; k < 8; k++) {
-            if (readIdx >= 242) break;
+            if (readIdx >= 242) {break;}
             let val = unpackedBytes[readIdx++];
             if (val & 0x80) {
                 msbFlags |= (1 << (k - 1));
@@ -67,14 +67,14 @@ function pack8to7(unpackedBytes) {
 
 function extractNameFromRawSysex(rawSysex, baseOffset) {
     baseOffset = baseOffset || 0;
-    var rawOffsets = [];
-    for (var j = 265; j <= 271; j++) rawOffsets.push(j);
-    for (var j = 273; j <= 279; j++) rawOffsets.push(j);
+    const rawOffsets = [];
+    for (var j = 265; j <= 271; j++) {rawOffsets.push(j);}
+    for (var j = 273; j <= 279; j++) {rawOffsets.push(j);}
     rawOffsets.push(281);
 
-    var nameChars = [];
-    for (var idx = 0; idx < rawOffsets.length; idx++) {
-        var c = rawSysex[baseOffset + rawOffsets[idx]];
+    const nameChars = [];
+    for (let idx = 0; idx < rawOffsets.length; idx++) {
+        const c = rawSysex[baseOffset + rawOffsets[idx]];
         if (c >= 32 && c < 127) {
             nameChars.push(String.fromCharCode(c));
         } else if (c === 0) {
@@ -85,8 +85,8 @@ function extractNameFromRawSysex(rawSysex, baseOffset) {
 }
 
 function buildSingleSysex(patch) {
-    var packed = pack8to7(patch.unpackedBytes);
-    var syxMsg = new Uint8Array(291);
+    const packed = pack8to7(patch.unpackedBytes);
+    const syxMsg = new Uint8Array(291);
     syxMsg[0] = 0xF0;
     syxMsg[1] = 0x00;
     syxMsg[2] = 0x20;
@@ -107,11 +107,11 @@ function buildSingleSysex(patch) {
 function makeRawSysexWithName(name, offset) {
     offset = offset || 0;
     const raw = new Uint8Array(offset + 282);
-    var nameOffsets = [];
-    for (var j = 265; j <= 271; j++) nameOffsets.push(j);
-    for (var j = 273; j <= 279; j++) nameOffsets.push(j);
+    const nameOffsets = [];
+    for (var j = 265; j <= 271; j++) {nameOffsets.push(j);}
+    for (var j = 273; j <= 279; j++) {nameOffsets.push(j);}
     nameOffsets.push(281);
-    for (var k = 0; k < Math.min(name.length, 15); k++) {
+    for (let k = 0; k < Math.min(name.length, 15); k++) {
         raw[offset + nameOffsets[k]] = name.charCodeAt(k);
     }
     return raw;
@@ -192,7 +192,7 @@ describe('unpack7to8 — bit-unpacking', () => {
         // So 35 groups total = 35*8=280 packed bytes.
         const packed = new Uint8Array(280).fill(0x41);
         // Set MSB flags to 0 for each group (every 8th byte)
-        for (let g = 0; g < 280; g += 8) packed[g] = 0;
+        for (let g = 0; g < 280; g += 8) {packed[g] = 0;}
         const result = unpack7to8(packed);
         expect(result.length).toBe(242);
         // All bytes should be 0x41 (no MSB flags set)
@@ -221,7 +221,7 @@ describe('unpack7to8 — bit-unpacking', () => {
         packed[16] = 0x20; // Group 2: bit 5 → 6th data byte
         // Fill data bytes with values
         for (let i = 1; i < 24; i++) {
-            if (i % 8 !== 0) packed[i] = 0x55; // 01010101
+            if (i % 8 !== 0) {packed[i] = 0x55;} // 01010101
         }
         const result = unpack7to8(packed);
         // Group 0: bit 6 → byte 0x55 | 0x80 = 0xD5
@@ -246,7 +246,7 @@ describe('pack8to7 — bit-packing', () => {
 
     it('packs data without MSB → MSB flags byte is 0', () => {
         const unpacked = new Uint8Array(242);
-        for (let i = 0; i < 242; i++) unpacked[i] = i & 0x7F; // all < 128
+        for (let i = 0; i < 242; i++) {unpacked[i] = i & 0x7F;} // all < 128
         const result = pack8to7(unpacked);
         // First group MSB flags should be 0
         expect(result[0]).toBe(0);
@@ -281,7 +281,7 @@ describe('pack8to7 — bit-packing', () => {
     it('each group packs exactly 7 bytes from unpacked input', () => {
         // Sequential bytes: 0, 1, 2, ..., 241
         const unpacked = new Uint8Array(242);
-        for (let i = 0; i < 242; i++) unpacked[i] = i;
+        for (let i = 0; i < 242; i++) {unpacked[i] = i;}
         const result = pack8to7(unpacked);
         // Group 0 data bytes should be positions 0..6
         expect(result[1]).toBe(0);
@@ -299,7 +299,7 @@ describe('pack8to7 — bit-packing', () => {
         // Partial 35th group has 4 data bytes = 272+1+4 = 277 packed bytes
         // Check last group boundaries
         const unpacked = new Uint8Array(242);
-        for (let i = 0; i < 242; i++) unpacked[i] = 0x40 + (i & 0x3F);
+        for (let i = 0; i < 242; i++) {unpacked[i] = 0x40 + (i & 0x3F);}
         const result = pack8to7(unpacked);
         // Result should be 278 (max size for Uint8Array(278))
         // The last group is partial: 238..241 (4 bytes)
@@ -355,7 +355,7 @@ describe('Packing round-trip — pack8to7 + unpack7to8', () => {
 
     it('ascending values 0-241 round-trip correctly', () => {
         const original = new Uint8Array(242);
-        for (let i = 0; i < 242; i++) original[i] = i;
+        for (let i = 0; i < 242; i++) {original[i] = i;}
         const packed = pack8to7(original);
         const unpacked = unpack7to8(packed);
         for (let i = 0; i < 242; i++) {
@@ -365,7 +365,7 @@ describe('Packing round-trip — pack8to7 + unpack7to8', () => {
 
     it('descending values 255-14 round-trip correctly', () => {
         const original = new Uint8Array(242);
-        for (let i = 0; i < 242; i++) original[i] = 255 - i;
+        for (let i = 0; i < 242; i++) {original[i] = 255 - i;}
         const packed = pack8to7(original);
         const unpacked = unpack7to8(packed);
         for (let i = 0; i < 242; i++) {
@@ -375,7 +375,7 @@ describe('Packing round-trip — pack8to7 + unpack7to8', () => {
 
     it('alternating 0xAA/0x55 pattern round-trips correctly', () => {
         const original = new Uint8Array(242);
-        for (let i = 0; i < 242; i++) original[i] = (i % 2 === 0) ? 0xAA : 0x55;
+        for (let i = 0; i < 242; i++) {original[i] = (i % 2 === 0) ? 0xAA : 0x55;}
         const packed = pack8to7(original);
         const unpacked = unpack7to8(packed);
         for (let i = 0; i < 242; i++) {
@@ -509,13 +509,13 @@ describe('extractNameFromRawSysex', () => {
         // Name offsets: 265..271 (7), skip 272, 273..279 (7), skip 280, 281 (1) = 15 total
         // Write a character to each valid offset to verify
         const raw = new Uint8Array(282);
-        var offsets = [];
-        for (var j = 265; j <= 271; j++) offsets.push(j);
-        for (var j = 273; j <= 279; j++) offsets.push(j);
+        const offsets = [];
+        for (var j = 265; j <= 271; j++) {offsets.push(j);}
+        for (var j = 273; j <= 279; j++) {offsets.push(j);}
         offsets.push(281);
-        var name = 'ABCDEFGHIJKLMNO'; // 15 unique chars
+        const name = 'ABCDEFGHIJKLMNO'; // 15 unique chars
         offsets.forEach(function(off, idx) {
-            if (idx < name.length) raw[off] = name.charCodeAt(idx);
+            if (idx < name.length) {raw[off] = name.charCodeAt(idx);}
         });
         // Also set the skipped offsets to something that shouldn't appear
         raw[272] = 0x58; // 'X' — should be skipped
@@ -604,7 +604,7 @@ describe('buildSingleSysex — SysEx message construction', () => {
     it('builds valid SysEx with non-zero MSB values in patch', () => {
         const patch = createDefaultPatch();
         // Set many MSB bytes across groups
-        for (let i = 0; i < 242; i += 3) patch.unpackedBytes[i] = 0x80 + (i % 127);
+        for (let i = 0; i < 242; i += 3) {patch.unpackedBytes[i] = 0x80 + (i % 127);}
         const syx = buildSingleSysex(patch);
         // Verify it's valid SysEx: header starts with F0, ends with F7
         expect(syx[0]).toBe(0xF0);
@@ -624,18 +624,18 @@ describe('Integration — pack8to7 → unpack7to8 → extractNameFromRawSysex', 
     it('pack then extract name from built SysEx', () => {
         const patch = createDefaultPatch();
         patch.name = 'BASS PATCH';
-        for (var k = 0; k < 15; k++) {
+        for (let k = 0; k < 15; k++) {
             patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
         }
         const syx = buildSingleSysex(patch);
         const packedPayload = syx.slice(8, 8 + 278);
         const unpacked = unpack7to8(packedPayload);
         // Extract name from unpacked: name starts at byte 224, 15 chars
-        var nameChars = [];
-        for (var n = 0; n < 15; n++) {
-            var ch = unpacked[224 + n];
-            if (ch >= 32 && ch < 127) nameChars.push(String.fromCharCode(ch));
-            else if (ch === 0) break;
+        const nameChars = [];
+        for (let n = 0; n < 15; n++) {
+            const ch = unpacked[224 + n];
+            if (ch >= 32 && ch < 127) {nameChars.push(String.fromCharCode(ch));}
+            else if (ch === 0) {break;}
         }
         const recoveredName = nameChars.join('').trim();
         expect(recoveredName).toBe('BASS PATCH');
@@ -644,7 +644,7 @@ describe('Integration — pack8to7 → unpack7to8 → extractNameFromRawSysex', 
     it('buildSingleSysex → extractNameFromRawSysex via rawSysEx', () => {
         const patch = createDefaultPatch();
         patch.name = 'SYNTH LEAD';
-        for (var k = 0; k < 15; k++) {
+        for (let k = 0; k < 15; k++) {
             patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
         }
         const syx = buildSingleSysex(patch);

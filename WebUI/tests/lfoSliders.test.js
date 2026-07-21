@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // ══════════════════════════════════════════════════════════════════
 
 let _parameterCache = {};
-let _bridge = { parameterCache: _parameterCache };
+const _bridge = { parameterCache: _parameterCache };
 let _elementRegistry = {};
 
 function _resetCache() {
@@ -62,7 +62,7 @@ function _createFakeElement(tag, attrs) {
     dataset: {},
     classList: {
       _classes: [],
-      add(c) { if (!this._classes.includes(c)) this._classes.push(c); },
+      add(c) { if (!this._classes.includes(c)) {this._classes.push(c);} },
       remove(c) { this._classes = this._classes.filter((x) => x !== c); },
       contains(c) { return this._classes.includes(c); },
     },
@@ -70,7 +70,7 @@ function _createFakeElement(tag, attrs) {
     getAttribute(name) { return this._attrs[name] || null; },
     setAttribute(name, val) { this._attrs[name] = val; },
     addEventListener(event, handler) {
-      if (!this._listeners[event]) this._listeners[event] = [];
+      if (!this._listeners[event]) {this._listeners[event] = [];}
       this._listeners[event].push(handler);
     },
     removeEventListener() {},
@@ -117,9 +117,9 @@ function _makeSliderUnit(id, paramId, height) {
 // ══════════════════════════════════════════════════════════════════
 
 function updateSliderPosition(sliderUnit, val) {
-  if (!sliderUnit) return;
+  if (!sliderUnit) {return;}
   const handle = sliderUnit.querySelector('.handle');
-  if (!handle) return;
+  if (!handle) {return;}
   const rect = sliderUnit.getBoundingClientRect();
   const height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
   const handleHeight = 16;
@@ -128,42 +128,42 @@ function updateSliderPosition(sliderUnit, val) {
 }
 
 function updateEnvSlidersFromCurrentPreset() {
-  if (!window.dualMidiBridge) return;
+  if (!window.dualMidiBridge) {return;}
   const cache = window.dualMidiBridge.parameterCache;
   const ids = ['env-ctrl-attack', 'env-ctrl-decay', 'env-ctrl-sustain', 'env-ctrl-release'];
   ids.forEach(function (id) {
     const el = document.getElementById(id);
-    if (!el) return;
+    if (!el) {return;}
     const paramId = el.getAttribute('data-param');
-    if (!paramId) return;
+    if (!paramId) {return;}
     const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
     updateSliderPosition(el.querySelector('.v-slider'), val);
   });
 }
 
 function updateLfoSlidersFromCurrentPreset() {
-  if (!window.dualMidiBridge) return;
+  if (!window.dualMidiBridge) {return;}
   const cache = window.dualMidiBridge.parameterCache;
   const ids = ['lfo-ctrl-rate', 'lfo-ctrl-delay'];
   ids.forEach(function (id) {
     const el = document.getElementById(id);
-    if (!el) return;
+    if (!el) {return;}
     const paramId = el.getAttribute('data-param');
-    if (!paramId) return;
+    if (!paramId) {return;}
     const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
     updateSliderPosition(el.querySelector('.v-slider'), val);
   });
 }
 
 function updateOscSlidersFromCurrentPreset() {
-  if (!window.dualMidiBridge) return;
+  if (!window.dualMidiBridge) {return;}
   const cache = window.dualMidiBridge.parameterCache;
   const ids = ['osc-ctrl-pitchmod', 'osc-ctrl-pwm-tone', 'osc-ctrl-pitch', 'osc-ctrl-level'];
   ids.forEach(function (id) {
     const el = document.getElementById(id);
-    if (!el) return;
+    if (!el) {return;}
     const paramId = el.getAttribute('data-param');
-    if (!paramId) return;
+    if (!paramId) {return;}
     const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
     updateSliderPosition(el.querySelector('.v-slider'), val);
   });

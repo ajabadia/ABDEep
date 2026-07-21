@@ -165,3 +165,41 @@
     }
 }
 
+/* ── CANVAS COMPONENTS ── */
+canvas.chord-display-canvas {
+    display: block;
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-xs);
+    background: var(--bg-deepest);
+    margin: 2px 0;
+}
+
+canvas.chord-display-canvas:not([_chordDisplay]) {
+    opacity: 0.5;
+}
+
+canvas.modmatrix-canvas,
+canvas.seq-steps-canvas {
+    image-rendering: auto;
+    -ms-interpolation-mode: nearest-neighbor;
+}
+
+.seq-view-toggle .seq-toggle-btn.active,
+.modmatrix-view-toggle .modmatrix-toggle-btn.active {
+    background: var(--bg-header);
+    color: var(--text-primary);
+    border-color: var(--accent-blue);
+}
+
+.seq-toggle-btn,
+.modmatrix-toggle-btn {
+    transition: all 0.12s ease;
+}
+
+.seq-toggle-btn:hover,
+.modmatrix-toggle-btn:hover {
+    filter: brightness(1.3);
+}
+

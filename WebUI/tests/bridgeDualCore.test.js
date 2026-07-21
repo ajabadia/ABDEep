@@ -67,7 +67,7 @@ class DualMidiBridge {
   }
 
   async initWebMidi() {
-    if (!this._navigator || !this._navigator.requestMIDIAccess) return;
+    if (!this._navigator || !this._navigator.requestMIDIAccess) {return;}
 
     try {
       this.midiAccess = await this._navigator.requestMIDIAccess({ sysex: true });
@@ -81,7 +81,7 @@ class DualMidiBridge {
   }
 
   scanMidiDevices() {
-    if (!this.midiAccess) return;
+    if (!this.midiAccess) {return;}
 
     const outputs = Array.from(this.midiAccess.outputs.values());
     const inputs = Array.from(this.midiAccess.inputs.values());
@@ -104,6 +104,7 @@ class DualMidiBridge {
       if (typeof window !== 'undefined' && window.juce && typeof window.juce.setParameter === 'function') {
         window.juce.setParameter(paramId, normalizedValue);
       }
+      this.handleParameterChangeFromBackend(paramId, normalizedValue);
     } else {
       this.sendWebMidiParameter(paramId, normalizedValue);
       this.handleParameterChangeFromBackend(paramId, normalizedValue);
@@ -130,7 +131,7 @@ class DualMidiBridge {
   }
 
   sendWebMidiParameter(paramId, normalizedValue) {
-    if (!this.midiOutput) return;
+    if (!this.midiOutput) {return;}
 
     const ccMappings = {
       'osc1_saw_enable': 15,
@@ -154,7 +155,7 @@ class DualMidiBridge {
 
   handleIncomingMidi(midiMessage) {
     const data = midiMessage.data;
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) {return;}
 
     const status = data[0] & 0xF0;
 
@@ -168,10 +169,10 @@ class DualMidiBridge {
           const progIndex = unpackedBytes[1] & 0x7F;
           const bankLetter = String.fromCharCode(65 + bankIndex);
 
-          let nameChars = [];
+          const nameChars = [];
           for (let j = 265; j <= 281; j++) {
             const b = data[j];
-            if (b > 0) nameChars.push(String.fromCharCode(b));
+            if (b > 0) {nameChars.push(String.fromCharCode(b));}
           }
           const patchName = nameChars.join('').trim() || ('Hw Patch ' + (progIndex + 1));
 
@@ -522,6 +523,15 @@ describe('DualMidiBridge — setParameter()', () => {
     vi.unstubAllGlobals();
   });
 
+  it('calls handleParameterChangeFromBackend in JUCE mode', () => {
+    const bridge = new DualMidiBridge({ skipInit: true, isJuce: true });
+    const handlerSpy = vi.spyOn(bridge, 'handleParameterChangeFromBackend');
+
+    bridge.setParameter('vcf_cutoff', 0.8);
+
+    expect(handlerSpy).toHaveBeenCalledWith('vcf_cutoff', 0.8);
+  });
+
   it('does not call sendWebMidiParameter in JUCE mode', () => {
     const bridge = new DualMidiBridge({ skipInit: true, isJuce: true });
     const sendSpy = vi.spyOn(bridge, 'sendWebMidiParameter');
@@ -800,7 +810,7 @@ describe('DualMidiBridge — handleIncomingMidi() SysEx', () => {
     data[5] = 0x00;
     data[6] = 0x02; // program dump
     // Payload bytes 8-285 (packed)
-    for (let i = 8; i < 286; i++) data[i] = 0;
+    for (let i = 8; i < 286; i++) {data[i] = 0;}
     // Name in bytes 265-281
     data[265] = 0x54; // 'T'
     data[266] = 0x45; // 'E'

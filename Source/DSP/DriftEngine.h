@@ -26,7 +26,9 @@ namespace ABD
         /** Configura los parámetros de drift (llamar desde updateParameters) */
         void setDriftParams(float voiceDriftNorm, float paramDriftNorm, float driftRateNorm);
 
-        /** Prepara el motor para una nueva nota (resetea targets con nuevos valores aleatorios) */
+        /** Prepara el motor para una nueva nota.
+         *  Solo re-randomiza el timing offset; NO toca targets ni currentValue
+         *  (el drift es un proceso Browniano continuo en background). */
         void resetForNote(float voiceIndex);
 
         /**

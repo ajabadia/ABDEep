@@ -6,10 +6,10 @@
 (function() {
     window._lastCurveType = 'linear';
     window._lastCurveIsBipolar = false;
-    let _customCurveState = null;
+    const _customCurveState = null;
 
     function _evalCustomCurve(x, points) {
-        if (!points || points.length < 2) return x;
+        if (!points || points.length < 2) {return x;}
         for (let i = 0; i < points.length - 1; i++) {
             const a = points[i], b = points[i + 1];
             if (x >= a.x && x <= b.x) {
@@ -24,9 +24,9 @@
         const atSel = document.getElementById('settings-curve-aftertouch');
         const mwSel = document.getElementById('settings-curve-modwheel');
         const pbSel = document.getElementById('settings-curve-pitchbend');
-        if (atSel && atSel.value === 'custom') return 'aftertouch';
-        if (mwSel && mwSel.value === 'custom') return 'modwheel';
-        if (pbSel && pbSel.value === 'custom') return 'pitchbend';
+        if (atSel && atSel.value === 'custom') {return 'aftertouch';}
+        if (mwSel && mwSel.value === 'custom') {return 'modwheel';}
+        if (pbSel && pbSel.value === 'custom') {return 'pitchbend';}
         return null;
     }
 
@@ -34,7 +34,7 @@
         window._lastCurveType = curveType;
         window._lastCurveIsBipolar = bipolar;
         const canvas = document.getElementById('curve-preview-canvas');
-        if (!canvas) return;
+        if (!canvas) {return;}
         const ctx = canvas.getContext('2d');
         const w = canvas.width;
         const h = canvas.height;
@@ -85,7 +85,7 @@
         let customPoints = null;
         if (curveType === 'custom') {
             const ctrlName = _getActiveCustomCtrlName();
-            if (ctrlName) customPoints = window.getCustomCurvePoints(ctrlName);
+            if (ctrlName) {customPoints = window.getCustomCurvePoints(ctrlName);}
         }
 
         for (let px = 0; px <= graphW; px++) {
@@ -118,8 +118,8 @@
             }
 
             const canvasX = pad + px;
-            if (px === 0) ctx.moveTo(canvasX, canvasY);
-            else ctx.lineTo(canvasX, canvasY);
+            if (px === 0) {ctx.moveTo(canvasX, canvasY);}
+            else {ctx.lineTo(canvasX, canvasY);}
         }
         ctx.stroke();
 
@@ -193,7 +193,7 @@
 
     window._setupCustomCurveCanvas = function() {
         const canvas = document.getElementById('curve-preview-canvas');
-        if (!canvas || canvas._customCurveSetupDone) return;
+        if (!canvas || canvas._customCurveSetupDone) {return;}
         canvas._customCurveSetupDone = true;
 
         let dragState = null;
@@ -228,18 +228,18 @@
                 const px = curveToCanvasX(points[i].x);
                 const py = curveToCanvasY(points[i].y, bipolar);
                 const dx = cvX - px, dy = cvY - py;
-                if (dx * dx + dy * dy < 100) return i;
+                if (dx * dx + dy * dy < 100) {return i;}
             }
             return -1;
         }
 
         function addPoint(cvX, cvY, ctrlName, bipolar) {
-            let nx = Math.max(0.01, Math.min(0.99, canvasXToCurve(cvX)));
+            const nx = Math.max(0.01, Math.min(0.99, canvasXToCurve(cvX)));
             let ny = Math.max(0, Math.min(1, canvasYToCurve(cvY, bipolar)));
-            if (bipolar) ny = Math.max(-1, Math.min(1, ny));
+            if (bipolar) {ny = Math.max(-1, Math.min(1, ny));}
             const points = window.getCustomCurvePoints(ctrlName);
             const intermediates = points.filter(p => p.x > 0.001 && p.x < 0.999);
-            if (intermediates.length >= 5) return;
+            if (intermediates.length >= 5) {return;}
             intermediates.push({x: nx, y: ny});
             intermediates.sort((a, b) => a.x - b.x);
             window.setCustomCurvePoints(ctrlName, intermediates);
@@ -247,7 +247,7 @@
         }
 
         function deletePoint(idx, points, ctrlName) {
-            if (idx <= 0 || idx >= points.length - 1) return;
+            if (idx <= 0 || idx >= points.length - 1) {return;}
             const intermediates = points.filter(p => p.x > 0.001 && p.x < 0.999);
             intermediates.splice(idx - 1, 1);
             window.setCustomCurvePoints(ctrlName, intermediates);
@@ -260,8 +260,8 @@
 
         canvas.addEventListener('pointerdown', (e) => {
             const ctrlName = _getActiveCustomCtrlName();
-            if (!ctrlName) return;
-            if (window._lastCurveType !== 'custom') return;
+            if (!ctrlName) {return;}
+            if (window._lastCurveType !== 'custom') {return;}
             const rect = canvas.getBoundingClientRect();
             const cvX = e.clientX - rect.left;
             const cvY = e.clientY - rect.top;
@@ -282,21 +282,21 @@
         });
 
         canvas.addEventListener('pointermove', (e) => {
-            if (!dragState) return;
+            if (!dragState) {return;}
             const rect = canvas.getBoundingClientRect();
             const cvX = e.clientX - rect.left;
             const cvY = e.clientY - rect.top;
             const points = window.getCustomCurvePoints(dragState.ctrlName);
-            if (dragState.idx < 0 || dragState.idx >= points.length) return;
+            if (dragState.idx < 0 || dragState.idx >= points.length) {return;}
             let nx = Math.max(0, Math.min(1, canvasXToCurve(cvX - dragState.offsetX)));
             let ny = Math.max(0, Math.min(1, canvasYToCurve(cvY - dragState.offsetY, window._lastCurveIsBipolar)));
-            if (window._lastCurveIsBipolar) ny = Math.max(-1, Math.min(1, ny));
+            if (window._lastCurveIsBipolar) {ny = Math.max(-1, Math.min(1, ny));}
             
             if (dragState.idx === 0) { nx = 0; ny = 0; }
             if (dragState.idx === points.length - 1) { nx = 1; ny = 1; }
             
-            if (dragState.idx > 0) nx = Math.max(nx, points[dragState.idx - 1].x + 0.01);
-            if (dragState.idx < points.length - 1) nx = Math.min(nx, points[dragState.idx + 1].x - 0.01);
+            if (dragState.idx > 0) {nx = Math.max(nx, points[dragState.idx - 1].x + 0.01);}
+            if (dragState.idx < points.length - 1) {nx = Math.min(nx, points[dragState.idx + 1].x - 0.01);}
             points[dragState.idx].x = nx;
             points[dragState.idx].y = ny;
             
@@ -316,7 +316,7 @@
 
         canvas.addEventListener('contextmenu', (e) => {
             const ctrlName = _getActiveCustomCtrlName();
-            if (!ctrlName || window._lastCurveType !== 'custom') return;
+            if (!ctrlName || window._lastCurveType !== 'custom') {return;}
             const rect = canvas.getBoundingClientRect();
             const cvX = e.clientX - rect.left;
             const cvY = e.clientY - rect.top;

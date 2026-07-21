@@ -7,7 +7,24 @@
 (function () {
     const template = `
         <div class="module flex-col items-center justify-center" id="programmer-section" style="flex:5.5;min-width:0">
-            <div class="module-header w-full text-center">Programmer</div>
+            <div class="module-header w-full flex-row justify-between items-center" style="padding:0 10px;box-sizing:border-box">
+                <span>Programmer</span>
+                <div class="voice-leds-container flex-row" style="gap:3px;align-items:center">
+                    <span style="font-size:7px;color:var(--text-dim);margin-right:2px;font-family:'Share Tech Mono',monospace;font-weight:bold">VOICES:</span>
+                    <div class="voice-led" id="voice-led-0" data-ctrl-tooltip="Voice 1 State">1</div>
+                    <div class="voice-led" id="voice-led-1" data-ctrl-tooltip="Voice 2 State">2</div>
+                    <div class="voice-led" id="voice-led-2" data-ctrl-tooltip="Voice 3 State">3</div>
+                    <div class="voice-led" id="voice-led-3" data-ctrl-tooltip="Voice 4 State">4</div>
+                    <div class="voice-led" id="voice-led-4" data-ctrl-tooltip="Voice 5 State">5</div>
+                    <div class="voice-led" id="voice-led-5" data-ctrl-tooltip="Voice 6 State">6</div>
+                    <div class="voice-led" id="voice-led-6" data-ctrl-tooltip="Voice 7 State">7</div>
+                    <div class="voice-led" id="voice-led-7" data-ctrl-tooltip="Voice 8 State">8</div>
+                    <div class="voice-led" id="voice-led-8" data-ctrl-tooltip="Voice 9 State">9</div>
+                    <div class="voice-led" id="voice-led-9" data-ctrl-tooltip="Voice 10 State">10</div>
+                    <div class="voice-led" id="voice-led-10" data-ctrl-tooltip="Voice 11 State">11</div>
+                    <div class="voice-led" id="voice-led-11" data-ctrl-tooltip="Voice 12 State">12</div>
+                </div>
+            </div>
             
             <div class="flex-row" style="gap:6px;width:98%;align-items:stretch;margin-bottom:5px">
                 <div class="sysex-monitor-container widescreen-inline" id="programmer-sysex-monitor" style="flex:1;margin:0;min-width:0">
@@ -80,6 +97,18 @@
             if (this.children.length === 0) {
                 this.innerHTML = template;
             }
+
+            // Registrar manejador para iluminar los 12 LEDs con las voces reales del DSP
+            window._handleVoiceStates = (statesArray) => {
+                if (Array.isArray(statesArray)) {
+                    for (let i = 0; i < 12; ++i) {
+                        const led = this.querySelector(`#voice-led-${i}`);
+                        if (led) {
+                            led.classList.toggle('active', !!statesArray[i]);
+                        }
+                    }
+                }
+            };
         }
     }
     customElements.define('programmer-section', ProgrammerSection);

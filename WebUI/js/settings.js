@@ -5,10 +5,10 @@
 
 function initSettingsAndModals() {
     function _requestGlobalDumpAndUpdate(statusElId) {
-        if (!window.dualMidiBridge || !window.dualMidiBridge._connected) return;
+        if (!window.dualMidiBridge || !window.dualMidiBridge._connected) {return;}
         
         statusElId = statusElId || 'settings-global-dump-status';
-        var statusEl = document.getElementById(statusElId);
+        const statusEl = document.getElementById(statusElId);
         if (statusEl) {
             if (statusEl._hideTimer) {
                 clearTimeout(statusEl._hideTimer);
@@ -56,6 +56,7 @@ function initSettingsAndModals() {
                 _ensureGlobalDumpButton();
                 _wireGlobalDumpButton();
                 _requestGlobalDumpAndUpdate();
+                if (typeof window._syncAdvancedSettingsUI === 'function') {window._syncAdvancedSettingsUI();}
             }
         }
         
@@ -63,26 +64,26 @@ function initSettingsAndModals() {
         if (e.target.closest('#menu-about')) {
             e.preventDefault();
             const modal = document.getElementById('about-modal-backdrop');
-            if (modal) modal.style.display = 'flex';
+            if (modal) {modal.style.display = 'flex';}
         }
 
         // Close About
         if (e.target.closest('#about-modal-close-btn') || e.target.id === 'about-modal-backdrop') {
             const modal = document.getElementById('about-modal-backdrop');
-            if (modal) modal.style.display = 'none';
+            if (modal) {modal.style.display = 'none';}
         }
 
         // Close Settings
         if (e.target.closest('#settings-modal-close-btn') || e.target.id === 'settings-modal-backdrop') {
             const modal = document.getElementById('settings-modal-backdrop');
-            if (modal) modal.style.display = 'none';
+            if (modal) {modal.style.display = 'none';}
         }
     });
 
         function populateMidiPortsLists() {
             const inputsContainer = document.getElementById('settings-midi-inputs-list');
             const outputsContainer = document.getElementById('settings-midi-outputs-list');
-            if (!inputsContainer || !outputsContainer) return;
+            if (!inputsContainer || !outputsContainer) {return;}
 
             inputsContainer.innerHTML = '';
             outputsContainer.innerHTML = '';
@@ -136,25 +137,25 @@ function initSettingsAndModals() {
         }
 
         function _ensureGlobalDumpButton() {
-            if (document.getElementById('settings-request-global-dump')) return;
-            var infoSection = document.querySelector('#settings-view-connections > .flex-col:last-child');
-            if (!infoSection) return;
-            var btn = document.createElement('button');
+            if (document.getElementById('settings-request-global-dump')) {return;}
+            const infoSection = document.querySelector('#settings-view-connections > .flex-col:last-child');
+            if (!infoSection) {return;}
+            const btn = document.createElement('button');
             btn.id = 'settings-request-global-dump';
             btn.className = 'btn btn-sm';
             btn.textContent = 'Refresh';
             btn.title = 'Request Global Dump from hardware to refresh MIDI Channel, Device ID, Master Tune and Transpose';
             btn.style.cssText = 'font-size:9px;padding:2px 8px;margin-top:6px;margin-left:auto;display:block';
-            var container = infoSection.querySelector('.text-center.text-uppercase.text-dim');
+            const container = infoSection.querySelector('.text-center.text-uppercase.text-dim');
             if (container) {
                 container.appendChild(btn);
             }
         }
 
         function _wireGlobalDumpButton() {
-            var btn = document.getElementById('settings-request-global-dump');
-            if (!btn) return;
-            if (btn._wired) return;
+            const btn = document.getElementById('settings-request-global-dump');
+            if (!btn) {return;}
+            if (btn._wired) {return;}
             btn._wired = true;
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -163,26 +164,47 @@ function initSettingsAndModals() {
         }
 
         function _updateSettingsHardwareInfo() {
-            var bridge = window.dualMidiBridge;
-            if (!bridge) return;
-            var info = bridge.getHardwareInfo();
-            if (!info) return;
+            const bridge = window.dualMidiBridge;
+            if (!bridge) {return;}
+            const info = bridge.getHardwareInfo();
+            if (!info) {return;}
+
+            // Fetch build model from JUCE native bridge
+            if (window.juce && typeof window.juce.getBuildInfo === 'function') {
+                window.juce.getBuildInfo().then(function(res) {
+                    if (res && res.model) {
+                        window.buildModel = res.model;
+                        const modelEl = document.getElementById('settings-build-model');
+                        if (modelEl) {modelEl.textContent = res.model;}
+                        if (typeof window._applyVoicingConstraint === 'function') {
+                            window._applyVoicingConstraint();
+                        }
+                    }
+                });
+            } else {
+                window.buildModel = 'Classic'; // default/fallback when running in browser
+                const modelEl = document.getElementById('settings-build-model');
+                if (modelEl) {modelEl.textContent = window.buildModel;}
+                if (typeof window._applyVoicingConstraint === 'function') {
+                    window._applyVoicingConstraint();
+                }
+            }
             
-            var hostEl = document.getElementById('settings-synth-host-version');
-            var voiceEl = document.getElementById('settings-synth-voice-version');
-            var dspEl = document.getElementById('settings-synth-dsp-version');
-            var bootEl = document.getElementById('settings-synth-boot-version');
-            var wifiEl = document.getElementById('settings-synth-wifi-version');
-            var connectionTypeEl = document.getElementById('settings-connection-type');
+            const hostEl = document.getElementById('settings-synth-host-version');
+            const voiceEl = document.getElementById('settings-synth-voice-version');
+            const dspEl = document.getElementById('settings-synth-dsp-version');
+            const bootEl = document.getElementById('settings-synth-boot-version');
+            const wifiEl = document.getElementById('settings-synth-wifi-version');
+            const connectionTypeEl = document.getElementById('settings-connection-type');
             
-            if (hostEl) hostEl.textContent = info.hostVersion || '-';
-            if (voiceEl) voiceEl.textContent = info.voiceVersion || '-';
-            if (dspEl) dspEl.textContent = info.dspVersion || '-';
-            if (bootEl) bootEl.textContent = info.bootVersion || '-';
-            if (wifiEl) wifiEl.textContent = info.wifiVersion || '-';
+            if (hostEl) {hostEl.textContent = info.hostVersion || '-';}
+            if (voiceEl) {voiceEl.textContent = info.voiceVersion || '-';}
+            if (dspEl) {dspEl.textContent = info.dspVersion || '-';}
+            if (bootEl) {bootEl.textContent = info.bootVersion || '-';}
+            if (wifiEl) {wifiEl.textContent = info.wifiVersion || '-';}
             
-            var synthDevIdEl = document.getElementById('settings-synth-device-id');
-            var synthMidiChEl = document.getElementById('settings-synth-midi-channel');
+            const synthDevIdEl = document.getElementById('settings-synth-device-id');
+            const synthMidiChEl = document.getElementById('settings-synth-midi-channel');
             if (synthDevIdEl) {
                 synthDevIdEl.textContent = info.deviceId !== '-' ? String(parseInt(info.deviceId) + 1) : '-';
             }
@@ -190,7 +212,7 @@ function initSettingsAndModals() {
                 synthMidiChEl.textContent = info.midiChannel ? String(info.midiChannel) : '-';
             }
             
-            var deviceIdSelect = document.getElementById('settings-device-id');
+            const deviceIdSelect = document.getElementById('settings-device-id');
             if (deviceIdSelect && info.deviceId !== '-') {
                 deviceIdSelect.value = String(parseInt(info.deviceId) + 1);
             }
@@ -201,7 +223,7 @@ function initSettingsAndModals() {
                     : 'No Hardware';
             }
             
-            var midiChSel = document.getElementById('settings-midi-channel');
+            const midiChSel = document.getElementById('settings-midi-channel');
             if (midiChSel && info.midiChannel) {
                 midiChSel.value = String(info.midiChannel);
                 if (bridge.midiChannel !== info.midiChannel) {
@@ -210,24 +232,24 @@ function initSettingsAndModals() {
                 }
             }
             
-            var masterTuneSel = document.getElementById('settings-master-tune');
-            var globalTune = bridge.parameterCache && bridge.parameterCache['global_tune'];
+            const masterTuneSel = document.getElementById('settings-master-tune');
+            const globalTune = bridge.getGlobalParameter ? bridge.getGlobalParameter('global_tune') : bridge.parameterCache && bridge.parameterCache['global_tune'];
             if (masterTuneSel && globalTune !== undefined) {
-                var tuneCents = Math.round(globalTune * 255 - 128);
+                const tuneCents = Math.round(globalTune * 255 - 128);
                 masterTuneSel.value = (tuneCents > 0 ? '+' : '') + tuneCents + '¢';
             }
             
-            var transposeSel = document.getElementById('settings-transpose');
-            var transposeVal = bridge.parameterCache && bridge.parameterCache['transpose'];
+            const transposeSel = document.getElementById('settings-transpose');
+            const transposeVal = bridge.getGlobalParameter ? bridge.getGlobalParameter('transpose') : bridge.parameterCache && bridge.parameterCache['transpose'];
             if (transposeSel && transposeVal !== undefined) {
-                var transpSemi = Math.round(transposeVal * 96 - 48);
+                const transpSemi = Math.round(transposeVal * 96 - 48);
                 transposeSel.value = String(transpSemi);
             }
             
-            var devIdEl = document.getElementById('settings-global-device-id');
-            var midiChGlEl = document.getElementById('settings-global-midi-channel');
-            var tuneEl = document.getElementById('settings-global-master-tune');
-            var transpEl = document.getElementById('settings-global-transpose');
+            const devIdEl = document.getElementById('settings-global-device-id');
+            const midiChGlEl = document.getElementById('settings-global-midi-channel');
+            const tuneEl = document.getElementById('settings-global-master-tune');
+            const transpEl = document.getElementById('settings-global-transpose');
             
             if (devIdEl) {
                 devIdEl.textContent = info.deviceId !== '-' ? String(parseInt(info.deviceId) + 1) : '-';
@@ -237,48 +259,48 @@ function initSettingsAndModals() {
             }
             
             if (tuneEl) {
-                var tuneNorm = bridge.parameterCache && bridge.parameterCache['global_tune'];
+                const tuneNorm = bridge.getGlobalParameter ? bridge.getGlobalParameter('global_tune') : bridge.parameterCache && bridge.parameterCache['global_tune'];
                 tuneEl.textContent = tuneNorm !== undefined
                     ? (Math.round(tuneNorm * 255 - 128) > 0 ? '+' : '') + Math.round(tuneNorm * 255 - 128) + '¢'
                     : '-';
             }
             
             if (transpEl) {
-                var transpNorm = bridge.parameterCache && bridge.parameterCache['transpose'];
+                const transpNorm = bridge.getGlobalParameter ? bridge.getGlobalParameter('transpose') : bridge.parameterCache && bridge.parameterCache['transpose'];
                 transpEl.textContent = transpNorm !== undefined
                     ? String(Math.round(transpNorm * 96 - 48)) + ' st'
                     : '-';
             }
             
-            var velCurveSel = document.getElementById('settings-velocity-curve');
-            var velCurveVal = bridge.parameterCache && bridge.parameterCache['velocity_curve'];
+            const velCurveSel = document.getElementById('settings-velocity-curve');
+            const velCurveVal = bridge.getGlobalParameter ? bridge.getGlobalParameter('velocity_curve') : bridge.parameterCache && bridge.parameterCache['velocity_curve'];
             if (velCurveSel && velCurveVal !== undefined) {
-                var VEL_CURVE_MAP = ['normal', 'soft', 'hard', 'linear', 'fixed'];
-                var curveIdx = Math.round(velCurveVal * 4);
+                const VEL_CURVE_MAP = ['normal', 'soft', 'hard', 'linear', 'fixed'];
+                const curveIdx = Math.round(velCurveVal * 4);
                 velCurveSel.value = VEL_CURVE_MAP[curveIdx] || 'normal';
             }
             
-            var pedalPolSel = document.getElementById('settings-pedal-polarity');
-            var pedalPolVal = bridge.parameterCache && bridge.parameterCache['pedal_polarity'];
+            const pedalPolSel = document.getElementById('settings-pedal-polarity');
+            const pedalPolVal = bridge.getGlobalParameter ? bridge.getGlobalParameter('pedal_polarity') : bridge.parameterCache && bridge.parameterCache['pedal_polarity'];
             if (pedalPolSel && pedalPolVal !== undefined) {
                 pedalPolSel.value = pedalPolVal > 0.5 ? 'norm-closed' : 'norm-open';
             }
 
-            var lcdContrastSlider = document.getElementById('settings-lcd-contrast');
-            var lcdContrastVal = document.getElementById('settings-lcd-contrast-val');
-            var lcdContrastNorm = bridge.parameterCache && bridge.parameterCache['lcd_contrast'];
+            const lcdContrastSlider = document.getElementById('settings-lcd-contrast');
+            const lcdContrastVal = document.getElementById('settings-lcd-contrast-val');
+            const lcdContrastNorm = bridge.getGlobalParameter ? bridge.getGlobalParameter('lcd_contrast') : bridge.parameterCache && bridge.parameterCache['lcd_contrast'];
             if (lcdContrastSlider && lcdContrastNorm !== undefined) {
-                var pctVal = Math.round(lcdContrastNorm * 100);
+                const pctVal = Math.round(lcdContrastNorm * 100);
                 lcdContrastSlider.value = String(pctVal);
-                if (lcdContrastVal) lcdContrastVal.textContent = pctVal + '%';
+                if (lcdContrastVal) {lcdContrastVal.textContent = pctVal + '%';}
                 if (typeof window.updateLcdContrast === 'function') {
                     window.updateLcdContrast(pctVal);
                 }
             }
             
-            var statusEl = document.getElementById('settings-global-status');
+            const statusEl = document.getElementById('settings-global-status');
             if (statusEl) {
-                var hasGlobalDump = bridge._hardwareInfo && bridge._hardwareInfo.globalDumpBytes;
+                const hasGlobalDump = bridge._hardwareInfo && bridge._hardwareInfo.globalDumpBytes;
                 if (bridge._connected && hasGlobalDump) {
                     statusEl.textContent = '✅ Global Dump loaded';
                     statusEl.style.color = 'var(--accent-green)';
@@ -294,7 +316,7 @@ function initSettingsAndModals() {
         
         window._updateSettingsHardwareInfo = _updateSettingsHardwareInfo;
 
-        var globalRefreshBtn = document.getElementById('settings-global-refresh');
+        const globalRefreshBtn = document.getElementById('settings-global-refresh');
         if (globalRefreshBtn) {
             globalRefreshBtn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -305,7 +327,7 @@ function initSettingsAndModals() {
         const resyncBtn = document.getElementById('settings-midi-resync');
         if (resyncBtn) {
             resyncBtn.addEventListener('click', async () => {
-                if (!window.dualMidiBridge) return;
+                if (!window.dualMidiBridge) {return;}
                 resyncBtn.disabled = true;
                 resyncBtn.textContent = 'Scanning...';
                 resyncBtn.classList.add('btn-loading');
@@ -321,7 +343,7 @@ function initSettingsAndModals() {
         const synthInfoRefreshBtn = document.getElementById('settings-synth-info-refresh');
         if (synthInfoRefreshBtn) {
             synthInfoRefreshBtn.addEventListener('click', async () => {
-                if (!window.dualMidiBridge) return;
+                if (!window.dualMidiBridge) {return;}
                 synthInfoRefreshBtn.disabled = true;
                 synthInfoRefreshBtn.textContent = '...';
                 try {
@@ -374,12 +396,12 @@ function initSettingsAndModals() {
         }
         localStorage.setItem('abd-eep-theme', theme);
         const themeSelect = document.getElementById('settings-theme-select');
-        if (themeSelect) themeSelect.value = theme;
+        if (themeSelect) {themeSelect.value = theme;}
     }
 
     function initThemeSelector() {
         const themeSelect = document.getElementById('settings-theme-select');
-        if (!themeSelect) return;
+        if (!themeSelect) {return;}
         const savedTheme = localStorage.getItem('abd-eep-theme') || 'default';
         setActiveTheme(savedTheme);
         themeSelect.value = savedTheme;
@@ -391,7 +413,7 @@ function initSettingsAndModals() {
 
     function initFadeSpeed() {
         const fadeSel = document.getElementById('settings-fade-speed');
-        if (!fadeSel) return;
+        if (!fadeSel) {return;}
         const saved = localStorage.getItem('abd-eep-fade-speed') || 'normal';
         fadeSel.value = saved;
         fadeSel.addEventListener('change', () => {
@@ -402,7 +424,7 @@ function initSettingsAndModals() {
 
     function initLcdTimeoutSetting() {
         const sel = document.getElementById('settings-lcd-timeout');
-        if (!sel) return;
+        if (!sel) {return;}
         const saved = localStorage.getItem('abd-eep-lcd-timeout') || '2000';
         sel.value = saved;
         sel.addEventListener('change', () => {
@@ -413,7 +435,7 @@ function initSettingsAndModals() {
 
     function initLcdVelocitySetting() {
         const velSel = document.getElementById('settings-lcd-velocity');
-        if (!velSel) return;
+        if (!velSel) {return;}
         const saved = localStorage.getItem('abd-eep-lcd-velocity') || 'show';
         velSel.value = saved;
         velSel.addEventListener('change', () => {
@@ -425,40 +447,40 @@ function initSettingsAndModals() {
     function initPbSensitivitySetting() {
         const pbSlider = document.getElementById('settings-pb-sensitivity');
         const pbVal = document.getElementById('settings-pb-sensitivity-val');
-        if (!pbSlider) return;
+        if (!pbSlider) {return;}
         const saved = localStorage.getItem('abd-eep-pb-sensitivity') || '6';
         pbSlider.value = saved;
-        if (pbVal) pbVal.textContent = saved + 'px';
+        if (pbVal) {pbVal.textContent = saved + 'px';}
         pbSlider.addEventListener('input', () => {
             const val = pbSlider.value;
             localStorage.setItem('abd-eep-pb-sensitivity', val);
-            if (pbVal) pbVal.textContent = val + 'px';
+            if (pbVal) {pbVal.textContent = val + 'px';}
         });
     }
     initPbSensitivitySetting();
 
     function initMidiChannelSetting() {
         const sel = document.getElementById('settings-midi-channel');
-        if (!sel || !window.dualMidiBridge) return;
+        if (!sel || !window.dualMidiBridge) {return;}
         sel.value = String(window.dualMidiBridge.midiChannel);
         sel.addEventListener('change', function() {
-            var ch = parseInt(this.value);
+            const ch = parseInt(this.value);
             if (window.dualMidiBridge) {
                 window.dualMidiBridge.midiChannel = ch;
                 localStorage.setItem('abd-eep-midi-channel', String(ch));
                 if (window.dualMidiBridge._hardwareInfo && window.dualMidiBridge._hardwareInfo.globalDumpBytes) {
-                    var cached = window.dualMidiBridge._hardwareInfo.globalDumpBytes;
-                    var devId = parseInt(window.dualMidiBridge._hardwareInfo.deviceId) || 0;
-                    var payload = new Uint8Array(cached);
+                    const cached = window.dualMidiBridge._hardwareInfo.globalDumpBytes;
+                    const devId = parseInt(window.dualMidiBridge._hardwareInfo.deviceId) || 0;
+                    const payload = new Uint8Array(cached);
                     payload[0] = ((devId & 0x0F) << 4) | ((ch - 1) & 0x0F);
                     window.dualMidiBridge.sendGlobalDump(Array.from(payload));
                 }
             }
         });
-        var saved = localStorage.getItem('abd-eep-midi-channel');
+        const saved = localStorage.getItem('abd-eep-midi-channel');
         if (saved) {
             sel.value = saved;
-            if (window.dualMidiBridge) window.dualMidiBridge.midiChannel = parseInt(saved);
+            if (window.dualMidiBridge) {window.dualMidiBridge.midiChannel = parseInt(saved);}
         }
     }
     if (window.dualMidiBridge) {
@@ -474,15 +496,15 @@ function initSettingsAndModals() {
 
     function initVelocityCurveSetting() {
         const sel = document.getElementById('settings-velocity-curve');
-        if (!sel) return;
+        if (!sel) {return;}
         const saved = localStorage.getItem('abd-eep-velocity-curve') || 'normal';
         sel.value = saved;
         sel.addEventListener('change', function() {
             localStorage.setItem('abd-eep-velocity-curve', this.value);
             drawVelocityCurvePreview();
             if (window.dualMidiBridge) {
-                var curveMap = { 'normal': 0, 'soft': 1, 'hard': 2, 'linear': 3, 'fixed': 4 };
-                var idx = curveMap[this.value];
+                const curveMap = { 'normal': 0, 'soft': 1, 'hard': 2, 'linear': 3, 'fixed': 4 };
+                const idx = curveMap[this.value];
                 if (idx !== undefined) {
                     window.dualMidiBridge.setGlobalParameter('velocity_curve', idx / 4.0);
                 }
@@ -493,7 +515,7 @@ function initSettingsAndModals() {
 
     function drawVelocityCurvePreview() {
         const canvas = document.getElementById('velocity-curve-preview');
-        if (!canvas) return;
+        if (!canvas) {return;}
         const ctx = canvas.getContext('2d');
         const w = canvas.width;
         const h = canvas.height;
@@ -539,8 +561,8 @@ function initSettingsAndModals() {
             }
             const canvasX = padL + px;
             const canvasY = padT + graphH - y * graphH;
-            if (px === 0) ctx.moveTo(canvasX, canvasY);
-            else ctx.lineTo(canvasX, canvasY);
+            if (px === 0) {ctx.moveTo(canvasX, canvasY);}
+            else {ctx.lineTo(canvasX, canvasY);}
         }
         ctx.stroke();
 
@@ -561,7 +583,7 @@ function initSettingsAndModals() {
 
     function initPedalPolaritySetting() {
         const sel = document.getElementById('settings-pedal-polarity');
-        if (!sel) return;
+        if (!sel) {return;}
         const saved = localStorage.getItem('abd-eep-pedal-polarity') || 'norm-open';
         sel.value = saved;
         sel.addEventListener('change', function() {
@@ -575,22 +597,35 @@ function initSettingsAndModals() {
 
     function initMasterTuneSetting() {
         const sel = document.getElementById('settings-master-tune');
-        if (!sel) return;
-        var saved = localStorage.getItem('abd-eep-master-tune');
-        if (saved) sel.value = saved;
+        if (!sel) {return;}
+        const saved = localStorage.getItem('abd-eep-master-tune');
+        if (saved) {sel.value = saved;}
         sel.addEventListener('change', function() {
             localStorage.setItem('abd-eep-master-tune', this.value);
             if (window.dualMidiBridge) {
-                var idx = parseInt(this.value.match(/[+-]?\d+/));
+                const idx = parseInt(this.value.match(/[+-]?\d+/));
                 window.dualMidiBridge.setGlobalParameter('global_tune', (idx + 128) / 255.0);
             }
         });
+        if (saved && window.dualMidiBridge) {
+            const idx = parseInt(saved.match(/[+-]?\d+/));
+            window.dualMidiBridge.setGlobalParameter('global_tune', (idx + 128) / 255.0);
+        }
     }
-    initMasterTuneSetting();
+    if (window.dualMidiBridge) {
+        initMasterTuneSetting();
+    } else {
+        var _tuneTimer = setInterval(function() {
+            if (window.dualMidiBridge) {
+                clearInterval(_tuneTimer);
+                initMasterTuneSetting();
+            }
+        }, 100);
+    }
 
     function initMidiClockSetting() {
         const sel = document.getElementById('settings-midi-clock');
-        if (!sel) return;
+        if (!sel) {return;}
         const saved = localStorage.getItem('abd-eep-midi-clock') || 'internal';
         sel.value = saved;
         sel.addEventListener('change', function() {
@@ -605,13 +640,13 @@ function initSettingsAndModals() {
     function initLcdContrastSetting() {
         const slider = document.getElementById('settings-lcd-contrast');
         const valEl = document.getElementById('settings-lcd-contrast-val');
-        if (!slider) return;
+        if (!slider) {return;}
         const saved = localStorage.getItem('abd-eep-lcd-contrast') || '70';
         slider.value = saved;
-        if (valEl) valEl.textContent = saved + '%';
+        if (valEl) {valEl.textContent = saved + '%';}
         function updateContrast(v) {
             const lcdEl = document.querySelector('.lcd-screen, #lcd-screen, .lcd');
-            if (lcdEl) lcdEl.style.opacity = (v / 100).toFixed(2);
+            if (lcdEl) {lcdEl.style.opacity = (v / 100).toFixed(2);}
             document.documentElement.style.setProperty('--lcd-opacity', (v / 100).toFixed(2));
         }
         window.updateLcdContrast = updateContrast;
@@ -619,7 +654,7 @@ function initSettingsAndModals() {
         slider.addEventListener('input', function() {
             const val = this.value;
             localStorage.setItem('abd-eep-lcd-contrast', val);
-            if (valEl) valEl.textContent = val + '%';
+            if (valEl) {valEl.textContent = val + '%';}
             updateContrast(parseInt(val));
             if (window.dualMidiBridge) {
                 window.dualMidiBridge.setGlobalParameter('lcd_contrast', parseInt(val) / 100.0);
@@ -630,7 +665,7 @@ function initSettingsAndModals() {
 
     function initBarStyleSetting() {
         const sel = document.getElementById('settings-bar-style');
-        if (!sel) return;
+        if (!sel) {return;}
         const saved = localStorage.getItem('abd-eep-bar-style') || 'solid';
         sel.value = saved;
         sel.addEventListener('change', () => {
@@ -641,7 +676,7 @@ function initSettingsAndModals() {
 
     function initPitchBendModeSetting() {
         const sel = document.getElementById('settings-pitch-bend-mode');
-        if (!sel) return;
+        if (!sel) {return;}
         const saved = localStorage.getItem('abd-eep-pitch-bend-mode') || 'all';
         sel.value = saved;
         sel.addEventListener('change', function() {
@@ -709,14 +744,14 @@ function initSettingsAndModals() {
     function initRoutingSettings() {
         function wireSelect(id, storageKey, defaultValue) {
             const el = document.getElementById(id);
-            if (!el) return;
+            if (!el) {return;}
             const saved = localStorage.getItem(storageKey) || defaultValue;
             el.value = saved;
             el.addEventListener('change', function() { localStorage.setItem(storageKey, this.value); });
         }
         function wireCheckbox(id, storageKey, defaultChecked) {
             const el = document.getElementById(id);
-            if (!el) return;
+            if (!el) {return;}
             el.checked = localStorage.getItem(storageKey) === 'on' || (!localStorage.getItem(storageKey) && defaultChecked);
             el.addEventListener('change', function() { localStorage.setItem(storageKey, this.checked ? 'on' : 'off'); });
         }
@@ -743,24 +778,207 @@ function initSettingsAndModals() {
         wireCheckbox('settings-wifi-midi-thru', 'abd-eep-wifi-midi-thru', false);
         wireCheckbox('settings-wifi-usb-thru', 'abd-eep-wifi-usb-thru', false);
 
-        wireSelect('settings-device-id', 'abd-eep-device-id', '1');
     }
     initRoutingSettings();
 
-    function initTransposeSetting() {
-        const sel = document.getElementById('settings-transpose');
-        if (!sel) return;
-        var saved = localStorage.getItem('abd-eep-transpose');
-        if (saved) sel.value = saved;
+    function initDeviceIdSetting() {
+        const sel = document.getElementById('settings-device-id');
+        if (!sel) {return;}
+        const saved = localStorage.getItem('abd-eep-device-id') || '1';
+        sel.value = saved;
+        if (window.dualMidiBridge && window.dualMidiBridge._hardwareInfo && window.dualMidiBridge._hardwareInfo.deviceId !== '-') {
+            sel.value = String(parseInt(window.dualMidiBridge._hardwareInfo.deviceId) + 1);
+        }
         sel.addEventListener('change', function() {
-            localStorage.setItem('abd-eep-transpose', this.value);
+            const val = parseInt(this.value);
+            localStorage.setItem('abd-eep-device-id', this.value);
             if (window.dualMidiBridge) {
-                var semitones = parseInt(this.value);
-                window.dualMidiBridge.setGlobalParameter('transpose', (semitones + 48) / 96.0);
+                window.dualMidiBridge.setGlobalParameter('device_id', (val - 1) / 15.0);
             }
         });
     }
-    initTransposeSetting();
+    if (window.dualMidiBridge) {
+        initDeviceIdSetting();
+    } else {
+        var _devIdTimer = setInterval(function() {
+            if (window.dualMidiBridge) {
+                clearInterval(_devIdTimer);
+                initDeviceIdSetting();
+            }
+        }, 100);
+    }
+
+    function initAdvancedSettings() {
+        const oversampleSelect = document.getElementById('settings-vcf-oversample');
+        const voicingSelect = document.getElementById('settings-vcf-voicing');
+        if (!oversampleSelect) {return;}
+
+        // Sync UI from bridge cache (called when modal opens or param changes)
+        function syncAdvancedUI() {
+            const bridge = window.dualMidiBridge;
+            if (!bridge) {return;}
+            
+            // Sync Oversample
+            const valOversample = bridge.parameterCache && bridge.parameterCache['vcf_oversample'];
+            if (valOversample !== undefined) {
+                oversampleSelect.value = String(Math.round(valOversample * 2));
+            }
+
+            // Sync Voicing Mode
+            if (voicingSelect) {
+                const valVoicing = bridge.parameterCache && bridge.parameterCache['vcf_voicing_mode'];
+                if (valVoicing !== undefined) {
+                    voicingSelect.value = String(Math.round(valVoicing)); // 0 = DeepMind, 1 = Juno-106
+                }
+            }
+            applyVoicingConstraint();
+        }
+
+        function applyVoicingConstraint() {
+            if (voicingSelect) {
+                if (window.buildModel === 'Classic') {
+                    voicingSelect.value = '0'; // Force DeepMind
+                    voicingSelect.disabled = true;
+                    voicingSelect.title = 'VCF Voicing is locked to DeepMind in Classic model';
+                } else {
+                    voicingSelect.disabled = false;
+                    voicingSelect.title = '';
+                }
+            }
+        }
+        window._applyVoicingConstraint = applyVoicingConstraint;
+
+        // Send param to engine on change
+        oversampleSelect.addEventListener('change', function() {
+            const idx = parseInt(this.value) || 0; // 0=1x, 1=2x, 2=4x
+            const normalized = idx / 2.0; // 0=0, 1=0.5, 2=1.0
+            if (window.dualMidiBridge) {
+                window.dualMidiBridge.setParameter('vcf_oversample', normalized);
+            }
+            localStorage.setItem('abd-eep-vcf-oversample', this.value);
+        });
+
+        if (voicingSelect) {
+            voicingSelect.addEventListener('change', function() {
+                if (window.buildModel === 'Classic') {
+                    this.value = '0';
+                    return;
+                }
+                const val = parseInt(this.value) || 0; // 0=DeepMind, 1=Juno-106
+                if (window.dualMidiBridge) {
+                    window.dualMidiBridge.setParameter('vcf_voicing_mode', val);
+                }
+                localStorage.setItem('abd-eep-vcf-voicing', this.value);
+            });
+            const savedVoicing = localStorage.getItem('abd-eep-vcf-voicing');
+            if (savedVoicing) {voicingSelect.value = savedVoicing;}
+        }
+
+        // Restore saved value
+        const saved = localStorage.getItem('abd-eep-vcf-oversample');
+        if (saved) {oversampleSelect.value = saved;}
+
+        // Expose for modal-open sync
+        window._syncAdvancedSettingsUI = syncAdvancedUI;
+    }
+    initAdvancedSettings();
+
+    function initCalibrationSettings() {
+        const exportBtn = document.getElementById('settings-cal-export-btn');
+        const importBtn = document.getElementById('settings-cal-import-btn');
+        const fileInput = document.getElementById('settings-cal-file-input');
+        const statusEl = document.getElementById('settings-cal-status');
+        const previewEl = document.getElementById('settings-cal-preview');
+        if (!exportBtn) {return;}
+
+        function setStatus(msg, duration) {
+            statusEl.textContent = msg;
+            if (duration) {setTimeout(function() { statusEl.textContent = ''; }, duration);}
+        }
+
+        exportBtn.addEventListener('click', function() {
+            if (!window.dualMidiBridge || !window.dualMidiBridge.getCalibration) {
+                setStatus('Bridge not ready', 3000);
+                return;
+            }
+            window.dualMidiBridge.getCalibration(function(json) {
+                if (!json || typeof json !== 'string') {
+                    setStatus('Failed to get calibration', 3000);
+                    return;
+                }
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'abdeep-calibration.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setStatus('Exported', 3000);
+            });
+        });
+
+        importBtn.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function() {
+            const file = this.files && this.files[0];
+            if (!file) {return;}
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                try {
+                    const parsed = JSON.parse(text);
+                    previewEl.textContent = JSON.stringify(parsed, null, 2);
+                    previewEl.style.display = 'block';
+                } catch (err) {
+                    previewEl.textContent = 'Invalid JSON: ' + err.message;
+                    previewEl.style.display = 'block';
+                }
+                if (!window.dualMidiBridge || !window.dualMidiBridge.setCalibration) {
+                    setStatus('Bridge not ready', 3000);
+                    return;
+                }
+                window.dualMidiBridge.setCalibration(text, function(ok) {
+                    setStatus(ok ? 'Imported' : 'Import failed', 3000);
+                    if (ok) {previewEl.style.display = 'none';}
+                });
+            };
+            reader.readAsText(file);
+            this.value = '';
+        });
+    }
+    initCalibrationSettings();
+
+    function initTransposeSetting() {
+        const sel = document.getElementById('settings-transpose');
+        if (!sel) {return;}
+        const saved = localStorage.getItem('abd-eep-transpose');
+        if (saved) {sel.value = saved;}
+        sel.addEventListener('change', function() {
+            localStorage.setItem('abd-eep-transpose', this.value);
+            if (window.dualMidiBridge) {
+                const semitones = parseInt(this.value);
+                window.dualMidiBridge.setGlobalParameter('transpose', (semitones + 48) / 96.0);
+            }
+        });
+        if (saved && window.dualMidiBridge) {
+            const semitones = parseInt(saved);
+            window.dualMidiBridge.setGlobalParameter('transpose', (semitones + 48) / 96.0);
+        }
+    }
+    if (window.dualMidiBridge) {
+        initTransposeSetting();
+    } else {
+        var _transpTimer = setInterval(function() {
+            if (window.dualMidiBridge) {
+                clearInterval(_transpTimer);
+                initTransposeSetting();
+            }
+        }, 100);
+    }
 
     function initControllerCurves() {
         const atCurveSel = document.getElementById('settings-curve-aftertouch');
@@ -837,6 +1055,7 @@ function initSettingsAndModals() {
                 _ensureGlobalDumpButton();
                 _wireGlobalDumpButton();
                 _requestGlobalDumpAndUpdate();
+                if (typeof window._syncAdvancedSettingsUI === 'function') {window._syncAdvancedSettingsUI();}
             }
         });
     }
@@ -848,16 +1067,16 @@ function initSettingsAndModals() {
     let preComparePatchName = '';
     
     function _computeCompareDiff(snapshotStr) {
-        if (!snapshotStr || !window.dualMidiBridge) return 0;
+        if (!snapshotStr || !window.dualMidiBridge) {return 0;}
         try {
-            var snap = JSON.parse(snapshotStr);
-            var cache = window.dualMidiBridge.parameterCache;
-            var count = 0;
-            for (var paramId in snap) {
+            const snap = JSON.parse(snapshotStr);
+            const cache = window.dualMidiBridge.parameterCache;
+            let count = 0;
+            for (const paramId in snap) {
                 if (snap.hasOwnProperty(paramId)) {
-                    var cached = cache[paramId];
-                    var snapped = snap[paramId];
-                    if (typeof snapped === 'object' || typeof cached === 'object') continue;
+                    const cached = cache[paramId];
+                    const snapped = snap[paramId];
+                    if (typeof snapped === 'object' || typeof cached === 'object') {continue;}
                     if (cached === undefined || Math.abs(cached - snapped) > 0.001) {
                         count++;
                     }
@@ -870,27 +1089,27 @@ function initSettingsAndModals() {
     }
     
     function _exitCompareMode() {
-        if (!compareActive) return;
-        var lcdText = document.getElementById('lcd-text');
+        if (!compareActive) {return;}
+        const lcdText = document.getElementById('lcd-text');
         
         if (preCompareSnapshot && window.dualMidiBridge) {
             try {
-                var cache = JSON.parse(preCompareSnapshot);
-                var paramIds = Object.keys(cache);
+                const cache = JSON.parse(preCompareSnapshot);
+                const paramIds = Object.keys(cache);
                 paramIds.forEach(function(paramId) {
-                    var val = cache[paramId];
+                    const val = cache[paramId];
                     window.dualMidiBridge.parameterCache[paramId] = val;
                     window.dualMidiBridge.onParameterChangedCallbacks.forEach(function(cb) {
                         try { cb(paramId, val); } catch(e) {}
                     });
                 });
                 
-                if (typeof window.updateLfoSlidersFromCurrentPreset === 'function') window.updateLfoSlidersFromCurrentPreset();
-                if (typeof window.updateEnvSlidersFromCurrentPreset === 'function') window.updateEnvSlidersFromCurrentPreset();
-                if (typeof window.updateOscSlidersFromCurrentPreset === 'function') window.updateOscSlidersFromCurrentPreset();
+                if (typeof window.updateLfoSlidersFromCurrentPreset === 'function') {window.updateLfoSlidersFromCurrentPreset();}
+                if (typeof window.updateEnvSlidersFromCurrentPreset === 'function') {window.updateEnvSlidersFromCurrentPreset();}
+                if (typeof window.updateOscSlidersFromCurrentPreset === 'function') {window.updateOscSlidersFromCurrentPreset();}
                 
                 if (lcdText && preComparePatchName) {
-                    var html = '<span style="font-size:10px; opacity:0.6;">COMPARE — RESTORED</span><br>'
+                    const html = '<span style="font-size:10px; opacity:0.6;">COMPARE — RESTORED</span><br>'
                         + '<strong style="color:var(--accent-green);">' + preComparePatchName.toUpperCase() + '</strong><br>'
                         + '<span style="font-size:9px; color:var(--text-dim);">EDITED BUFFER RESTORED</span>';
                     window.lcdSafeUpdate(lcdText, html);
@@ -912,19 +1131,19 @@ function initSettingsAndModals() {
     
     if (compareBtn) {
         compareBtn.addEventListener('click', function() {
-            var lcdText = document.getElementById('lcd-text');
-            if (!lcdText) return;
+            const lcdText = document.getElementById('lcd-text');
+            if (!lcdText) {return;}
 
             if (!compareActive) {
-                var bridge = window.dualMidiBridge;
-                if (!bridge) return;
+                const bridge = window.dualMidiBridge;
+                if (!bridge) {return;}
                 
-                var activeBank = window.loadedBanks[window.currentActiveBank];
-                var activePatch = activeBank && activeBank[window.currentActivePatchIndex];
+                const activeBank = window.loadedBanks[window.currentActiveBank];
+                const activePatch = activeBank && activeBank[window.currentActivePatchIndex];
                 preComparePatchName = activePatch ? activePatch.name : 'UNKNOWN PATCH';
                 preCompareSnapshot = JSON.stringify(bridge.parameterCache);
                 
-                var initialDiff = _computeCompareDiff(preCompareSnapshot);
+                const initialDiff = _computeCompareDiff(preCompareSnapshot);
                 if (activePatch && activePatch.unpackedBytes && window.triggerMidiDump) {
                     window.triggerMidiDump(activePatch);
                 }
@@ -947,7 +1166,7 @@ function initSettingsAndModals() {
     window._exitCompareMode = _exitCompareMode;
     window._updateCompareDiff = function() {
         if (compareActive) {
-            var diff = _computeCompareDiff(preCompareSnapshot);
+            const diff = _computeCompareDiff(preCompareSnapshot);
             if (compareBtn) {
                 compareBtn.textContent = 'Compare (' + diff + ')';
                 compareBtn.title = diff + ' parameters differ from original';
@@ -970,7 +1189,7 @@ function initSettingsAndModals() {
             if (saveBtn) {
                 saveBtn.click();
             } else {
-                alert("Selecciona primero un preset de usuario en el Bank Manager para sobrescribir.");
+                alert('Selecciona primero un preset de usuario en el Bank Manager para sobrescribir.');
             }
         });
     }
@@ -978,15 +1197,16 @@ function initSettingsAndModals() {
     const bankUpBtn = document.getElementById('programmer-bank-up-btn');
     if (bankUpBtn) {
         bankUpBtn.addEventListener('click', () => {
-            if (window.currentActivePatchIndex === -1) return;
+            if (typeof window.playKeyLedAnimation === 'function') {window.playKeyLedAnimation('bank-up');}
+            if (window.currentActivePatchIndex === -1) {return;}
             const nextIdx = (window.currentActivePatchIndex + 1) % 128;
             window.currentActivePatchIndex = nextIdx;
             
             const activeBank = window.loadedBanks[window.currentActiveBank];
             if (activeBank && activeBank[nextIdx]) {
                 const patch = activeBank[nextIdx];
-                if (window.triggerMidiDump) window.triggerMidiDump(patch);
-                if (typeof window.renderPatchesForBank === 'function') window.renderPatchesForBank(window.currentActiveBank);
+                if (window.triggerMidiDump) {window.triggerMidiDump(patch);}
+                if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(window.currentActiveBank);}
             }
         });
     }
@@ -994,15 +1214,16 @@ function initSettingsAndModals() {
     const bankDownBtn = document.getElementById('programmer-bank-down-btn');
     if (bankDownBtn) {
         bankDownBtn.addEventListener('click', () => {
-            if (window.currentActivePatchIndex === -1) return;
+            if (typeof window.playKeyLedAnimation === 'function') {window.playKeyLedAnimation('bank-down');}
+            if (window.currentActivePatchIndex === -1) {return;}
             const prevIdx = (window.currentActivePatchIndex - 1 + 128) % 128;
             window.currentActivePatchIndex = prevIdx;
 
             const activeBank = window.loadedBanks[window.currentActiveBank];
             if (activeBank && activeBank[prevIdx]) {
                 const patch = activeBank[prevIdx];
-                if (window.triggerMidiDump) window.triggerMidiDump(patch);
-                if (typeof window.renderPatchesForBank === 'function') window.renderPatchesForBank(window.currentActiveBank);
+                if (window.triggerMidiDump) {window.triggerMidiDump(patch);}
+                if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(window.currentActiveBank);}
             }
         });
 }

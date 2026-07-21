@@ -118,7 +118,9 @@ namespace ABD
 
         // Redimensionar buffers comb
         combBufferL.setSize(4, combLen[0] + combLen[1] + combLen[2] + combLen[3] + 10);
+        combBufferL.clear();
         combBufferR.setSize(4, combLen[0] + combLen[1] + combLen[2] + combLen[3] + 10);
+        combBufferR.clear();
         
         size_t offset = 0;
         for (int i = 0; i < 4; ++i)
@@ -153,7 +155,9 @@ namespace ABD
         for (int i = 0; i < 3; ++i) apTotal += std::max(1, apLen[i]);
 
         allpassBufferL.setSize(3, apTotal + 10);
+        allpassBufferL.clear();
         allpassBufferR.setSize(3, apTotal + 10);
+        allpassBufferR.clear();
         
         offset = 0;
         for (int i = 0; i < 3; ++i)

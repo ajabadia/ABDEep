@@ -2,12 +2,17 @@
 setlocal enabledelayedexpansion
 
 rem ============================================================================
-rem build.bat — Build ABD Eep for a specific model (Classic vs Advanced)
+rem build.bat — Build ABD Eep for a specific model
+rem ============================================================================
+
+rem Mate a todos los posibles ejecutables abiertos que bloqueen la compilacion
+taskkill /f /im "ABD Eep Calibration Lab.exe" >nul 2>&1
+taskkill /f /im "ABD Eep.exe" >nul 2>&1
 rem
 rem Usage:
 rem   build.bat [model] [build_dir]
 rem
-rem   model      0=Classic DeepMind Clone (default), 1=Advanced Expanded Synth
+rem   model      0=MIDI Controller (default), 1=Classic (DeepMind Clone), 2=Enhanced (Expanded Synth)
 rem   build_dir  Optional output directory (default: build)
 rem ============================================================================
 
@@ -36,24 +41,25 @@ if "%2"=="" (
 )
 
 rem --- Resolve model name for display ---
-if %MODEL%==0 set "MODEL_NAME=ABD Eep - Classic (DeepMind Clone)"
-if %MODEL%==1 set "MODEL_NAME=ABD Eep - Advanced (Expanded Synthesis)"
+if %MODEL%==0 set "MODEL_NAME=ABD Eep - MIDI Controller"
+if %MODEL%==1 set "MODEL_NAME=ABD Eep - Classic (DeepMind Clone)"
+if %MODEL%==2 set "MODEL_NAME=ABD Eep - Enhanced (Expanded Synthesis)"
 
 echo ========================================
 echo Building: %MODEL_NAME%
-echo EEP_TARGET_MODEL=%MODEL%
+echo DEEP_TARGET_MODEL=%MODEL%
 echo Build dir: %BUILD_DIR%
 echo ========================================
 
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 
 echo [INFO] Configuring CMake...
-"%CMAKE_PATH%" -S . -B "%BUILD_DIR%" -G "Visual Studio 18 2026" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.26100.0 -DEEP_TARGET_MODEL=%MODEL%
+    "%CMAKE_PATH%" -S . -B "%BUILD_DIR%" -G "Visual Studio 18 2026" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.26100.0 -D DEEP_TARGET_MODEL=%MODEL%
 if %ERRORLEVEL% NEQ 0 (
     echo [WARNING] CMake configuration failed. Clearing CMakeCache.txt and retrying...
     if exist "%BUILD_DIR%\CMakeCache.txt" del /q "%BUILD_DIR%\CMakeCache.txt"
     if exist "%BUILD_DIR%\CMakeFiles" rmdir /s /q "%BUILD_DIR%\CMakeFiles"
-    "%CMAKE_PATH%" -S . -B "%BUILD_DIR%" -G "Visual Studio 18 2026" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.26100.0 -DEEP_TARGET_MODEL=%MODEL%
+"%CMAKE_PATH%" -S . -B "%BUILD_DIR%" -G "Visual Studio 18 2026" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.26100.0 -D DEEP_TARGET_MODEL=%MODEL%
     if !ERRORLEVEL! NEQ 0 (
         echo [ERROR] CMake configuration failed again with code !ERRORLEVEL!
         goto error
@@ -61,7 +67,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [INFO] Building VST3 and Standalone...
-"%CMAKE_PATH%" --build "%BUILD_DIR%" --config Debug --parallel
+"%CMAKE_PATH%" --build "%BUILD_DIR%" --config Release --parallel
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Build failed with code %ERRORLEVEL%
     goto error

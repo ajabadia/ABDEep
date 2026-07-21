@@ -6,18 +6,27 @@ namespace ABD
 {
     DriftEngine::DriftEngine()
     {
-        // Inicializar cada oscilador con valores aleatorios iniciales
+        // Initialize to silent state — no random offsets.
+        // setDriftParams() kicks the oscillators into motion when
+        // the user actually turns up drift amount.
         for (auto* osc : { &osc1Pitch, &osc2Pitch, &vcfCutoff, &vcfResonance, &envTime })
         {
-            osc->targetValue = (-1.0f + 2.0f * ((float)std::rand() / (float)RAND_MAX)) * 0.1f;
-            osc->currentValue = osc->targetValue;
-            osc->samplesUntilNextTarget = 0.0; // forzar primer target de inmediato
+            osc->targetValue  = 0.0f;
+            osc->currentValue = 0.0f;
+            osc->samplesUntilNextTarget = 0.0;
         }
     }
 
     void DriftEngine::setSampleRate(double newSampleRate)
     {
         sampleRate = std::max(1.0, newSampleRate);
+
+        // Recalculate target intervals for all oscillators at the new sample rate
+        double interval = computeTargetInterval();
+        for (auto* osc : { &osc1Pitch, &osc2Pitch, &vcfCutoff, &vcfResonance, &envTime })
+        {
+            osc->targetIntervalSamples = interval;
+        }
     }
 
     void DriftEngine::setDriftParams(float voiceDriftNorm, float paramDriftNorm, float driftRateNorm)
@@ -51,34 +60,17 @@ namespace ABD
         return std::max(minInterval, interval);
     }
 
-    void DriftEngine::resetForNote(float voiceIndex)
+    void DriftEngine::resetForNote(float /*voiceIndex*/)
     {
-        // Al iniciar una nota, generar nuevos targets aleatorios para cada oscilador,
-        // escalados por los montos de drift y con una pequeña variación por voiceIndex
-        // para que cada voz tenga un carácter de drift único.
-
-        float voiceOffset = voiceIndex * 0.1f; // pequeña variación por voz
-
-        auto resetOsc = [&](DriftOsc& osc, float baseScale)
+        // Drift is a continuous background process — reset state on Note-On to start
+        // clean, which also ensures correct parameter scaling.
+        for (auto* osc : { &osc1Pitch, &osc2Pitch, &vcfCutoff, &vcfResonance, &envTime })
         {
-            float scale = baseScale * (0.8f + voiceOffset);
-            osc.pickNewTarget(scale);
-            osc.currentValue = osc.targetValue * 0.5f; // comenzar desde la mitad del target
-            osc.samplesUntilNextTarget = osc.targetIntervalSamples * (0.5f + 0.5f * ((float)std::rand() / (float)RAND_MAX));
-        };
-
-        resetOsc(osc1Pitch, voiceDriftAmount);
-        resetOsc(osc2Pitch, voiceDriftAmount);
-        resetOsc(vcfCutoff, paramDriftAmount);
-        resetOsc(vcfResonance, paramDriftAmount);
-        resetOsc(envTime, paramDriftAmount);
-
-        // Sincronizar salidas inmediatamente
-        osc1PitchDrift = osc1Pitch.currentValue;
-        osc2PitchDrift = osc2Pitch.currentValue;
-        vcfCutoffDrift = vcfCutoff.currentValue;
-        vcfResonanceDrift = vcfResonance.currentValue;
-        envTimeDrift = envTime.currentValue;
+            osc->currentValue = 0.0f;
+            osc->targetValue = 0.0f;
+            osc->samplesUntilNextTarget = osc->targetIntervalSamples
+                * (0.5 + 0.5 * ((float)std::rand() / (float)RAND_MAX));
+        }
     }
 
     void DriftEngine::nextSample()
@@ -93,6 +85,16 @@ namespace ABD
 
     void DriftEngine::updateOscillator(DriftOsc& osc, float amplitudeScale, float& output)
     {
+        // When amplitudeScale is zero, no drift is requested — hold at zero
+        // deterministically.  This makes drift=0 useful for calibration.
+        if (amplitudeScale <= 0.0f)
+        {
+            osc.currentValue = 0.0f;
+            osc.targetValue  = 0.0f;
+            output = 0.0f;
+            return;
+        }
+
         // 1. Decrementar contador de samples hasta el próximo target
         osc.samplesUntilNextTarget -= 1.0;
 
@@ -102,7 +104,7 @@ namespace ABD
             osc.pickNewTarget(amplitudeScale);
             // El slew factor determina cuán rápido llegar al target
             // Más driftRate → slew más rápido (cambios más abruptos)
-            double slewBase = 0.0001 + driftRate * 0.01;
+            double slewBase = (0.0001 + driftRate * 0.01) * (44100.0 / sampleRate);
             // Variar el slew aleatoriamente en cada nuevo target
             osc.slewFactor = (float)(slewBase * (0.5 + (double)std::rand() / (double)RAND_MAX));
             // Programar el próximo cambio de target con un poco de jitter
@@ -114,10 +116,10 @@ namespace ABD
         float diff = osc.targetValue - osc.currentValue;
         osc.currentValue += diff * osc.slewFactor;
 
-        // 3. Escalar por amplitudeScale (si amplitudeScale es 0, no hay drift)
-        float scaledOutput = osc.currentValue * amplitudeScale;
+        // 3. currentValue already scaled by amplitudeScale in pickNewTarget
+        //    (removed double-scaling that produced amplitudeScale² output)
 
         // 4. Saturación suave para evitar valores extremos
-        output = std::tanh(scaledOutput * 2.0f) / 2.0f;
+        output = std::tanh(osc.currentValue * 2.0f) / 2.0f;
     }
 }

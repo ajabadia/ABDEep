@@ -49,6 +49,7 @@
                 </div>
             </div>
 
+            <canvas class="chord-display-canvas" style="width:100%;height:48px;border:1px solid var(--border-dim);border-radius:var(--radius-xs);background:var(--bg-deepest);margin:2px 0"></canvas>
             <div id="ivory-keys-bed"></div>
         </div>
     `;
@@ -57,6 +58,9 @@
         connectedCallback() {
             if (this.children.length === 0) {
                 this.innerHTML = template;
+                if (typeof window.initKnobs === 'function') {
+                    window.initKnobs();
+                }
             }
         }
     }

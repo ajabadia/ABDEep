@@ -21,7 +21,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // ══════════════════════════════════════════════════════════════════
 
 function _createFakeEl(tag, attrs) {
-  var el = {
+  const el = {
     tagName: (tag || 'div').toUpperCase(),
     id: (attrs && attrs.id) || '',
     _attrs: attrs || {},
@@ -37,7 +37,7 @@ function _createFakeEl(tag, attrs) {
     dataset: {},
     classList: {
       _classes: [],
-      add: function(c) { if (!this._classes.includes(c)) this._classes.push(c); },
+      add: function(c) { if (!this._classes.includes(c)) {this._classes.push(c);} },
       remove: function(c) { this._classes = this._classes.filter(function(x) { return x !== c; }); },
       contains: function(c) { return this._classes.includes(c); },
       toggle: function(c, force) {
@@ -51,14 +51,14 @@ function _createFakeEl(tag, attrs) {
     setAttribute: function(name, val) { this._attrs[name] = val; },
     hasAttribute: function(name) { return name in this._attrs; },
     addEventListener: function(event, handler) {
-      if (!this._listeners[event]) this._listeners[event] = [];
+      if (!this._listeners[event]) {this._listeners[event] = [];}
       this._listeners[event].push(handler);
     },
     removeEventListener: function() {},
     dispatchEvent: function() {},
     closest: function(sel) {
       if (sel === '.hex-byte') {
-        if (this.classList.contains('hex-byte')) return this;
+        if (this.classList.contains('hex-byte')) {return this;}
         return this._parent && this._parent.classList && this._parent.classList.contains('hex-byte') ? this._parent : null;
       }
       return null;
@@ -67,7 +67,7 @@ function _createFakeEl(tag, attrs) {
     querySelectorAll: function(sel) {
       if (sel === '.hex-byte.selected' || sel === '.hex-byte') {
         return (this._hexByteEls || []).filter(function(el) {
-          if (sel === '.hex-byte') return true;
+          if (sel === '.hex-byte') {return true;}
           return el.classList.contains('selected');
         });
       }
@@ -86,12 +86,12 @@ function _createFakeEl(tag, attrs) {
 
 function _makeTestBytes(len) {
   len = len || 242;
-  var arr = new Uint8Array(len);
-  var hexLog = _createFakeEl('div', { id: 'sysex-hex-log' });
+  const arr = new Uint8Array(len);
+  const hexLog = _createFakeEl('div', { id: 'sysex-hex-log' });
   hexLog._hexByteEls = [];
-  for (var i = 0; i < len; i++) {
+  for (let i = 0; i < len; i++) {
     arr[i] = (i * 17) % 256; // deterministic pattern
-    var byteEl = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': String(i) });
+    const byteEl = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': String(i) });
     byteEl.classList.add('hex-byte');
     byteEl._parent = hexLog;
     hexLog._hexByteEls.push(byteEl);
@@ -107,42 +107,42 @@ function _makeTestBytes(len) {
 // ══════════════════════════════════════════════════════════════════
 
 describe('updateSysExMonitor — hex byte rendering', () => {
-  var hexLog, infoEl, patchLabel, mockBridge;
+  let hexLog, infoEl, patchLabel, mockBridge;
 
   function updateSysExMonitor(bytes, highlightIndex, patchNameOverride) {
-    var monitor = document.getElementById('sysex-hex-log');
-    if (!monitor) return;
+    const monitor = document.getElementById('sysex-hex-log');
+    if (!monitor) {return;}
 
     monitor._bytes = bytes;
     window._liveUnpackedBytes = null;
 
-    var html = '';
-    for (var i = 0; i < bytes.length; i++) {
-      var hexVal = bytes[i].toString(16).toUpperCase().padStart(2, '0');
-      var isChanged = (i === highlightIndex) ? 'changed' : 'normal';
+    let html = '';
+    for (let i = 0; i < bytes.length; i++) {
+      const hexVal = bytes[i].toString(16).toUpperCase().padStart(2, '0');
+      const isChanged = (i === highlightIndex) ? 'changed' : 'normal';
       html += '<span class="hex-byte ' + isChanged + '" data-idx="' + i + '" title="Byte ' + i + ': 0x' + hexVal + '">' + hexVal + '</span> ';
     }
     monitor.innerHTML = html;
 
     monitor._selectedIndices = [];
-    var infoEl = document.getElementById('sysex-selection-info');
-    if (infoEl) infoEl.textContent = 'Click a hex byte to select it. Shift+click to select range. Ctrl+click to toggle.';
+    const infoEl = document.getElementById('sysex-selection-info');
+    if (infoEl) {infoEl.textContent = 'Click a hex byte to select it. Shift+click to select range. Ctrl+click to toggle.';}
 
-    var patchLabel = document.getElementById('sysex-active-patch-label');
+    const patchLabel = document.getElementById('sysex-active-patch-label');
     if (patchLabel) {
       if (patchNameOverride) {
         patchLabel.innerText = 'LOADED PATCH: ' + patchNameOverride.toUpperCase();
       } else {
-        var activeBankName = window.currentActiveBank || 'Factory Bank A';
-        var activeIdx = window.currentActivePatchIndex !== undefined ? window.currentActivePatchIndex : 0;
-        var patchName = 'INIT PATCH';
+        const activeBankName = window.currentActiveBank || 'Factory Bank A';
+        const activeIdx = window.currentActivePatchIndex !== undefined ? window.currentActivePatchIndex : 0;
+        let patchName = 'INIT PATCH';
         if (window.loadedBanks && window.loadedBanks[activeBankName] && window.loadedBanks[activeBankName][activeIdx]) {
           patchName = window.loadedBanks[activeBankName][activeIdx].name;
         } else if (window.hardwareBanks && window.currentHwBankLetter && window.hardwareBanks[window.currentHwBankLetter] && window.currentHwPatchIndex !== -1) {
-          var hwPatch = window.hardwareBanks[window.currentHwBankLetter][window.currentHwPatchIndex];
-          if (hwPatch) patchName = hwPatch.name;
+          const hwPatch = window.hardwareBanks[window.currentHwBankLetter][window.currentHwPatchIndex];
+          if (hwPatch) {patchName = hwPatch.name;}
         }
-        var slotStr = (activeIdx !== -1) ? (activeIdx + 1).toString().padStart(3, '0') : '001';
+        const slotStr = (activeIdx !== -1) ? (activeIdx + 1).toString().padStart(3, '0') : '001';
         patchLabel.innerText = 'LOADED PATCH: ' + patchName.toUpperCase() + ' [' + activeBankName + ' - SLOT ' + slotStr + ']';
       }
       patchLabel.style.display = 'block';
@@ -150,15 +150,15 @@ describe('updateSysExMonitor — hex byte rendering', () => {
 
     if (highlightIndex !== -1) {
       setTimeout(function() {
-        var el = monitor.querySelector('.changed');
-        if (el) el.classList.remove('changed');
+        const el = monitor.querySelector('.changed');
+        if (el) {el.classList.remove('changed');}
       }, 1000);
     }
   }
 
   beforeEach(function() {
     vi.useFakeTimers();
-    var registry = {};
+    const registry = {};
 
     hexLog = _createFakeEl('div', { id: 'sysex-hex-log' });
     hexLog._hexByteEls = [];
@@ -211,7 +211,7 @@ describe('updateSysExMonitor — hex byte rendering', () => {
   });
 
   it('renders all 242 bytes as hex spans', function() {
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     updateSysExMonitor(data.bytes);
 
     expect(hexLog.innerHTML).toContain('class="hex-byte normal"');
@@ -223,7 +223,7 @@ describe('updateSysExMonitor — hex byte rendering', () => {
   });
 
   it('renders bytes with correct hex values', function() {
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     updateSysExMonitor(data.bytes);
 
     // Byte 0: 0 → "00"
@@ -235,7 +235,7 @@ describe('updateSysExMonitor — hex byte rendering', () => {
   });
 
   it('marks highlighted byte with changed class', function() {
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     updateSysExMonitor(data.bytes, 5);
 
     // Byte 5 should have class "changed"
@@ -244,16 +244,16 @@ describe('updateSysExMonitor — hex byte rendering', () => {
   });
 
   it('removes changed class after 1000ms', function() {
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     hexLog._hexByteEls = data.hexLog._hexByteEls;
     hexLog._selectedIndices = [];
 
     // Override querySelector so '.changed' returns the first byte
-    var origQuery = hexLog.querySelector;
+    const origQuery = hexLog.querySelector;
     hexLog.querySelector = function(sel) {
       if (sel === '.changed' && hexLog._hexByteEls.length > 0) {
         // Return the highlightIndex-th element or first
-        var highlightIdx = 0;
+        const highlightIdx = 0;
         return hexLog._hexByteEls[highlightIdx];
       }
       return origQuery.call(this, sel);
@@ -261,7 +261,7 @@ describe('updateSysExMonitor — hex byte rendering', () => {
 
     updateSysExMonitor(data.bytes, 0);
 
-    var changedEl = hexLog._hexByteEls[0];
+    const changedEl = hexLog._hexByteEls[0];
     changedEl.classList.add('changed');
 
     vi.advanceTimersByTime(1000);
@@ -270,14 +270,14 @@ describe('updateSysExMonitor — hex byte rendering', () => {
 
   it('clears _liveUnpackedBytes on each call', function() {
     window._liveUnpackedBytes = new Uint8Array(242);
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
 
     updateSysExMonitor(data.bytes);
     expect(window._liveUnpackedBytes).toBeNull();
   });
 
   it('resets _selectedIndices on each call', function() {
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     hexLog._selectedIndices = [1, 2, 3];
 
     updateSysExMonitor(data.bytes);
@@ -285,7 +285,7 @@ describe('updateSysExMonitor — hex byte rendering', () => {
   });
 
   it('resets selection info text on each call', function() {
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     infoEl.textContent = 'old selection text';
 
     updateSysExMonitor(data.bytes);
@@ -293,7 +293,7 @@ describe('updateSysExMonitor — hex byte rendering', () => {
   });
 
   it('stores bytes reference on monitor', function() {
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     updateSysExMonitor(data.bytes);
     expect(hexLog._bytes).toBe(data.bytes);
   });
@@ -301,13 +301,13 @@ describe('updateSysExMonitor — hex byte rendering', () => {
   // ── Patch label ──
 
   it('uses patchNameOverride if provided', function() {
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     updateSysExMonitor(data.bytes, -1, 'RANDOM PATCH');
     expect(patchLabel.innerText).toContain('RANDOM PATCH');
   });
 
   it('shows INIT PATCH when no bank data available', function() {
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     updateSysExMonitor(data.bytes);
     expect(patchLabel.innerText).toContain('INIT PATCH');
     expect(patchLabel.style.display).toBe('block');
@@ -322,7 +322,7 @@ describe('updateSysExMonitor — hex byte rendering', () => {
     window.currentActiveBank = 'User Bank A';
     window.currentActivePatchIndex = 0;
 
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     updateSysExMonitor(data.bytes);
     expect(patchLabel.innerText).toContain('DEEP PAD');
     expect(patchLabel.innerText).toContain('SLOT 001');
@@ -337,7 +337,7 @@ describe('updateSysExMonitor — hex byte rendering', () => {
     window.currentHwBankLetter = 'A';
     window.currentHwPatchIndex = 0;
 
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     updateSysExMonitor(data.bytes);
     expect(patchLabel.innerText).toContain('HARD LEAD');
   });
@@ -345,7 +345,7 @@ describe('updateSysExMonitor — hex byte rendering', () => {
   it('shows slot number with zero-padding', function() {
     window.currentActivePatchIndex = 9; // 10th patch
 
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     updateSysExMonitor(data.bytes);
     expect(patchLabel.innerText).toContain('SLOT 010');
   });
@@ -353,7 +353,7 @@ describe('updateSysExMonitor — hex byte rendering', () => {
   it('shows bank name in label', function() {
     window.currentActiveBank = 'Factory Bank C';
 
-    var data = _makeTestBytes(242);
+    const data = _makeTestBytes(242);
     updateSysExMonitor(data.bytes);
     expect(patchLabel.innerText).toContain('Factory Bank C');
   });
@@ -364,19 +364,19 @@ describe('updateSysExMonitor — hex byte rendering', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('updateNrpnTrafficCounters — NRPN counter display', () => {
-  var txEl, rxEl, pktEl;
+  let txEl, rxEl, pktEl;
 
   function updateNrpnTrafficCounters(stats) {
-    var txEl = document.getElementById('nrpn-tx-count');
-    var rxEl = document.getElementById('nrpn-rx-count');
-    var pktEl = document.getElementById('nrpn-pkt-count');
-    if (txEl) txEl.textContent = stats.tx;
-    if (rxEl) rxEl.textContent = stats.rx;
-    if (pktEl) pktEl.textContent = stats.pkts;
+    const txEl = document.getElementById('nrpn-tx-count');
+    const rxEl = document.getElementById('nrpn-rx-count');
+    const pktEl = document.getElementById('nrpn-pkt-count');
+    if (txEl) {txEl.textContent = stats.tx;}
+    if (rxEl) {rxEl.textContent = stats.rx;}
+    if (pktEl) {pktEl.textContent = stats.pkts;}
   }
 
   beforeEach(function() {
-    var registry = {};
+    const registry = {};
     txEl = _createFakeEl('span', { id: 'nrpn-tx-count' });
     rxEl = _createFakeEl('span', { id: 'nrpn-rx-count' });
     pktEl = _createFakeEl('span', { id: 'nrpn-pkt-count' });
@@ -422,7 +422,7 @@ describe('updateNrpnTrafficCounters — NRPN counter display', () => {
   });
 
   it('updates only available elements', function() {
-    var registry = {};
+    const registry = {};
     registry['nrpn-tx-count'] = txEl;
     vi.stubGlobal('document', {
       getElementById: function(id) { return registry[id] || null; },
@@ -438,35 +438,35 @@ describe('updateNrpnTrafficCounters — NRPN counter display', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('_updateHexSelectionInfo — hex byte selection info', () => {
-  var infoEl;
+  let infoEl;
 
   function _updateHexSelectionInfo(monitor) {
-    var infoEl = document.getElementById('sysex-selection-info');
-    if (!infoEl || !monitor || !monitor._selectedIndices) return;
+    const infoEl = document.getElementById('sysex-selection-info');
+    if (!infoEl || !monitor || !monitor._selectedIndices) {return;}
 
-    var selected = monitor._selectedIndices;
-    var bytes = monitor._bytes;
+    const selected = monitor._selectedIndices;
+    const bytes = monitor._bytes;
 
     if (selected.length === 0) {
       infoEl.textContent = 'Click a hex byte to select it. Shift+click to select range. Ctrl+click to toggle.';
       return;
     }
 
-    var parts = [];
-    var nm = selected.length;
-    var showIndices = selected.slice(0, 3);
+    const parts = [];
+    const nm = selected.length;
+    const showIndices = selected.slice(0, 3);
     showIndices.forEach(function(idx) {
-      var val = bytes ? bytes[idx] : 0;
-      var hex = val.toString(16).toUpperCase().padStart(2, '0');
-      var paramName = '';
-      var bm = window.BYTE_MAP && window.BYTE_MAP[idx];
+      const val = bytes ? bytes[idx] : 0;
+      const hex = val.toString(16).toUpperCase().padStart(2, '0');
+      let paramName = '';
+      const bm = window.BYTE_MAP && window.BYTE_MAP[idx];
       if (bm && bm.param) {
         paramName = ' ' + bm.param;
       }
       parts.push('b[' + idx + ']=0x' + hex + paramName);
     });
 
-    var text = parts.join(' | ');
+    let text = parts.join(' | ');
     if (nm > 3) {
       text += ' | … +' + (nm - 3) + ' more';
     }
@@ -475,7 +475,7 @@ describe('_updateHexSelectionInfo — hex byte selection info', () => {
 
   beforeEach(function() {
     infoEl = _createFakeEl('div', { id: 'sysex-selection-info' });
-    var registry = { 'sysex-selection-info': infoEl };
+    const registry = { 'sysex-selection-info': infoEl };
 
     vi.stubGlobal('document', {
       getElementById: function(id) { return registry[id] || null; },
@@ -485,26 +485,26 @@ describe('_updateHexSelectionInfo — hex byte selection info', () => {
   });
 
   it('shows default message when selection is empty', function() {
-    var monitor = { _selectedIndices: [], _bytes: new Uint8Array(242) };
+    const monitor = { _selectedIndices: [], _bytes: new Uint8Array(242) };
     _updateHexSelectionInfo(monitor);
     expect(infoEl.textContent).toContain('Click a hex byte to select');
   });
 
   it('shows byte index and hex value for single selection', function() {
-    var bytes = new Uint8Array(242);
+    const bytes = new Uint8Array(242);
     bytes[42] = 255;
-    var monitor = { _selectedIndices: [42], _bytes: bytes };
+    const monitor = { _selectedIndices: [42], _bytes: bytes };
     _updateHexSelectionInfo(monitor);
     expect(infoEl.textContent).toContain('b[42]');
     expect(infoEl.textContent).toContain('0xFF');
   });
 
   it('shows multiple selected indexes separated by pipe', function() {
-    var bytes = new Uint8Array(242);
+    const bytes = new Uint8Array(242);
     bytes[0] = 0;
     bytes[5] = 128;
     bytes[10] = 255;
-    var monitor = { _selectedIndices: [0, 5, 10], _bytes: bytes };
+    const monitor = { _selectedIndices: [0, 5, 10], _bytes: bytes };
     _updateHexSelectionInfo(monitor);
     expect(infoEl.textContent).toContain('b[0]');
     expect(infoEl.textContent).toContain('b[5]');
@@ -518,21 +518,21 @@ describe('_updateHexSelectionInfo — hex byte selection info', () => {
     window.BYTE_MAP[42] = { param: 'vcf_cutoff' };
     window.BYTE_MAP[43] = { param: 'vcf_resonance' };
 
-    var bytes = new Uint8Array(242);
-    var monitor = { _selectedIndices: [42, 43], _bytes: bytes };
+    const bytes = new Uint8Array(242);
+    const monitor = { _selectedIndices: [42, 43], _bytes: bytes };
     _updateHexSelectionInfo(monitor);
     expect(infoEl.textContent).toContain('vcf_cutoff');
     expect(infoEl.textContent).toContain('vcf_resonance');
   });
 
   it('shows overflow count when more than 3 selected', function() {
-    var monitor = { _selectedIndices: [0, 1, 2, 3, 4], _bytes: new Uint8Array(242) };
+    const monitor = { _selectedIndices: [0, 1, 2, 3, 4], _bytes: new Uint8Array(242) };
     _updateHexSelectionInfo(monitor);
     expect(infoEl.textContent).toContain('+2 more');
   });
 
   it('handles null bytes gracefully', function() {
-    var monitor = { _selectedIndices: [0], _bytes: null };
+    const monitor = { _selectedIndices: [0], _bytes: null };
     _updateHexSelectionInfo(monitor);
     expect(infoEl.textContent).toContain('b[0]');
     expect(infoEl.textContent).toContain('0x00');
@@ -552,9 +552,9 @@ describe('_updateHexSelectionInfo — hex byte selection info', () => {
   });
 
   it('shows hex value for byte with zero value', function() {
-    var bytes = new Uint8Array(242);
+    const bytes = new Uint8Array(242);
     bytes[17] = 0;
-    var monitor = { _selectedIndices: [17], _bytes: bytes };
+    const monitor = { _selectedIndices: [17], _bytes: bytes };
     _updateHexSelectionInfo(monitor);
     expect(infoEl.textContent).toContain('0x00');
   });
@@ -563,7 +563,7 @@ describe('_updateHexSelectionInfo — hex byte selection info', () => {
     window.BYTE_MAP = {};
     window.BYTE_MAP[10] = { description: 'Some byte' };
 
-    var monitor = { _selectedIndices: [10], _bytes: new Uint8Array(242) };
+    const monitor = { _selectedIndices: [10], _bytes: new Uint8Array(242) };
     _updateHexSelectionInfo(monitor);
     // Should not add param name since there's no .param property
     expect(infoEl.textContent).toContain('b[10]');
@@ -576,8 +576,8 @@ describe('_updateHexSelectionInfo — hex byte selection info', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('DOMContentLoaded — button wiring', () => {
-  var zoomBtn, container, exportBtn, copyBtn, resetBtn, hexLog;
-  var registry;
+  let zoomBtn, container, exportBtn, copyBtn, resetBtn, hexLog;
+  let registry;
 
   beforeEach(function() {
     registry = {};
@@ -656,10 +656,10 @@ describe('DOMContentLoaded — button wiring', () => {
       // Export button
       if (exportBtn) {
         exportBtn.addEventListener('click', function() {
-          var bytes = window._lastUnpackedBytes;
+          let bytes = window._lastUnpackedBytes;
           if (!bytes || bytes.length < 242) {
-            var bank = window.loadedBanks && window.loadedBanks[window.currentActiveBank];
-            var patch = bank && bank[window.currentActivePatchIndex];
+            const bank = window.loadedBanks && window.loadedBanks[window.currentActiveBank];
+            const patch = bank && bank[window.currentActivePatchIndex];
             if (patch && patch.unpackedBytes) {
               bytes = patch.unpackedBytes;
             }
@@ -668,9 +668,9 @@ describe('DOMContentLoaded — button wiring', () => {
             return; // Would alert in real code
           }
 
-          var patchName = window._lastPresetName || 'UNKNOWN_PATCH';
-          var blob = new Blob([new Uint8Array(291)], { type: 'application/octet-stream' });
-          var link = document.createElement('a');
+          const patchName = window._lastPresetName || 'UNKNOWN_PATCH';
+          const blob = new Blob([new Uint8Array(291)], { type: 'application/octet-stream' });
+          const link = document.createElement('a');
           link.href = URL.createObjectURL(blob);
           link.download = patchName.replace(/[^a-zA-Z0-9_\-]/g, '_') + '.syx';
           document.body.appendChild(link);
@@ -694,16 +694,16 @@ describe('DOMContentLoaded — button wiring', () => {
       // Copy button
       if (copyBtn) {
         copyBtn.addEventListener('click', function() {
-          var monitor = document.getElementById('sysex-hex-log');
-          if (!monitor) return;
+          const monitor = document.getElementById('sysex-hex-log');
+          if (!monitor) {return;}
 
-          var textToCopy;
-          var selected = monitor._selectedIndices;
-          var bytes = monitor._bytes;
+          let textToCopy;
+          const selected = monitor._selectedIndices;
+          const bytes = monitor._bytes;
 
           if (selected && selected.length > 0 && bytes) {
             textToCopy = selected.map(function(idx) {
-              var hex = bytes[idx].toString(16).toUpperCase().padStart(2, '0');
+              const hex = bytes[idx].toString(16).toUpperCase().padStart(2, '0');
               return idx + ':' + hex;
             }).join(' ');
           } else {
@@ -719,30 +719,30 @@ describe('DOMContentLoaded — button wiring', () => {
       // Hex byte click selection
       if (hexLog) {
         hexLog.addEventListener('click', function(e) {
-          var byteEl = e.target.closest('.hex-byte');
+          const byteEl = e.target.closest('.hex-byte');
           if (!byteEl) {
-            if (hexLog._selectedIndices) hexLog._selectedIndices = [];
+            if (hexLog._selectedIndices) {hexLog._selectedIndices = [];}
             return;
           }
 
-          var idx = parseInt(byteEl.getAttribute('data-idx'), 10);
-          if (isNaN(idx)) return;
+          const idx = parseInt(byteEl.getAttribute('data-idx'), 10);
+          if (isNaN(idx)) {return;}
 
-          if (!hexLog._selectedIndices) hexLog._selectedIndices = [];
+          if (!hexLog._selectedIndices) {hexLog._selectedIndices = [];}
 
           if (e.shiftKey && hexLog._selectedIndices.length > 0) {
-            var lastIdx = hexLog._selectedIndices[hexLog._selectedIndices.length - 1];
-            var start = Math.min(lastIdx, idx);
-            var end = Math.max(lastIdx, idx);
-            for (var si = start; si <= end; si++) {
+            const lastIdx = hexLog._selectedIndices[hexLog._selectedIndices.length - 1];
+            const start = Math.min(lastIdx, idx);
+            const end = Math.max(lastIdx, idx);
+            for (let si = start; si <= end; si++) {
               if (hexLog._selectedIndices.indexOf(si) === -1) {
                 hexLog._selectedIndices.push(si);
-                var el = hexLog.querySelector('.hex-byte[data-idx="' + si + '"]');
-                if (el) el.classList.add('selected');
+                const el = hexLog.querySelector('.hex-byte[data-idx="' + si + '"]');
+                if (el) {el.classList.add('selected');}
               }
             }
           } else if (e.ctrlKey || e.metaKey) {
-            var existingIdx = hexLog._selectedIndices.indexOf(idx);
+            const existingIdx = hexLog._selectedIndices.indexOf(idx);
             if (existingIdx >= 0) {
               hexLog._selectedIndices.splice(existingIdx, 1);
               byteEl.classList.remove('selected');
@@ -795,7 +795,7 @@ describe('DOMContentLoaded — button wiring', () => {
 
   it('export button uses _lastUnpackedBytes when available', function() {
     window._lastUnpackedBytes = new Uint8Array(242);
-    var appendSpy = vi.spyOn(document.body, 'appendChild');
+    const appendSpy = vi.spyOn(document.body, 'appendChild');
 
     exportBtn._listeners['click'][0]();
     expect(appendSpy).toHaveBeenCalled();
@@ -805,7 +805,7 @@ describe('DOMContentLoaded — button wiring', () => {
     window._lastUnpackedBytes = new Uint8Array(242);
     window._lastPresetName = 'MY PATCH';
 
-    var createElementSpy = vi.fn(function(tag) {
+    const createElementSpy = vi.fn(function(tag) {
       return { href: '', click: function() {}, download: '', style: {} };
     });
     vi.stubGlobal('document', {
@@ -828,7 +828,7 @@ describe('DOMContentLoaded — button wiring', () => {
     window.currentActiveBank = 'User Bank';
     window.currentActivePatchIndex = 0;
 
-    var appendSpy = vi.spyOn(document.body, 'appendChild');
+    const appendSpy = vi.spyOn(document.body, 'appendChild');
     exportBtn._listeners['click'][0]();
     expect(appendSpy).toHaveBeenCalled();
   });
@@ -836,7 +836,7 @@ describe('DOMContentLoaded — button wiring', () => {
   // ── NRPN Reset button ──
 
   it('reset button calls _resetNrpnCounters on bridge', function() {
-    var resetFn = vi.fn();
+    const resetFn = vi.fn();
     window.dualMidiBridge = { _resetNrpnCounters: resetFn };
 
     resetBtn._listeners['click'][0]();
@@ -878,7 +878,7 @@ describe('DOMContentLoaded — button wiring', () => {
   // ── Hex byte click ──
 
   it('click on hex byte selects it', function() {
-    var byteEl = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': '42' });
+    const byteEl = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': '42' });
     byteEl.classList.add('hex-byte');
 
     hexLog._listeners['click'][0]({ target: byteEl, shiftKey: false, ctrlKey: false, metaKey: false });
@@ -892,7 +892,7 @@ describe('DOMContentLoaded — button wiring', () => {
   });
 
   it('ctrl+click toggles hex byte selection', function() {
-    var byteEl = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': '42' });
+    const byteEl = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': '42' });
     byteEl.classList.add('hex-byte');
 
     // First click selects
@@ -905,7 +905,7 @@ describe('DOMContentLoaded — button wiring', () => {
   });
 
   it('shift+click selects range from last selection', function() {
-    var byteEl0 = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': '0' });
+    const byteEl0 = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': '0' });
     byteEl0.classList.add('hex-byte');
     byteEl0._parent = hexLog;
     hexLog._hexByteEls.push(byteEl0);
@@ -913,7 +913,7 @@ describe('DOMContentLoaded — button wiring', () => {
     // First click: select byte 0
     hexLog._listeners['click'][0]({ target: byteEl0, shiftKey: false, ctrlKey: false, metaKey: false });
 
-    var byteEl5 = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': '5' });
+    const byteEl5 = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': '5' });
     byteEl5.classList.add('hex-byte');
     byteEl5._parent = hexLog;
     hexLog._hexByteEls.push(byteEl5);
@@ -933,31 +933,31 @@ describe('DOMContentLoaded — button wiring', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('patch label edge cases', () => {
-  var hexLog, infoEl, patchLabel;
+  let hexLog, infoEl, patchLabel;
 
   function updateSysExMonitor(bytes, highlightIndex, patchNameOverride) {
-    var monitor = document.getElementById('sysex-hex-log');
-    if (!monitor) return;
+    const monitor = document.getElementById('sysex-hex-log');
+    if (!monitor) {return;}
 
     monitor._bytes = bytes;
     window._liveUnpackedBytes = null;
 
     monitor._selectedIndices = [];
-    var patchLabel = document.getElementById('sysex-active-patch-label');
+    const patchLabel = document.getElementById('sysex-active-patch-label');
     if (patchLabel) {
       if (patchNameOverride) {
         patchLabel.innerText = 'LOADED PATCH: ' + patchNameOverride.toUpperCase();
       } else {
-        var activeBankName = window.currentActiveBank || 'Factory Bank A';
-        var activeIdx = window.currentActivePatchIndex !== undefined ? window.currentActivePatchIndex : 0;
-        var patchName = 'INIT PATCH';
+        const activeBankName = window.currentActiveBank || 'Factory Bank A';
+        const activeIdx = window.currentActivePatchIndex !== undefined ? window.currentActivePatchIndex : 0;
+        let patchName = 'INIT PATCH';
         if (window.loadedBanks && window.loadedBanks[activeBankName] && window.loadedBanks[activeBankName][activeIdx]) {
           patchName = window.loadedBanks[activeBankName][activeIdx].name;
         } else if (window.hardwareBanks && window.currentHwBankLetter && window.hardwareBanks[window.currentHwBankLetter] && window.currentHwPatchIndex !== -1) {
-          var hwPatch = window.hardwareBanks[window.currentHwBankLetter][window.currentHwPatchIndex];
-          if (hwPatch) patchName = hwPatch.name;
+          const hwPatch = window.hardwareBanks[window.currentHwBankLetter][window.currentHwPatchIndex];
+          if (hwPatch) {patchName = hwPatch.name;}
         }
-        var slotStr = (activeIdx !== -1) ? (activeIdx + 1).toString().padStart(3, '0') : '001';
+        const slotStr = (activeIdx !== -1) ? (activeIdx + 1).toString().padStart(3, '0') : '001';
         patchLabel.innerText = 'LOADED PATCH: ' + patchName.toUpperCase() + ' [' + activeBankName + ' - SLOT ' + slotStr + ']';
       }
       patchLabel.style.display = 'block';
@@ -968,7 +968,7 @@ describe('patch label edge cases', () => {
     hexLog = _createFakeEl('div', { id: 'sysex-hex-log' });
     infoEl = _createFakeEl('div', { id: 'sysex-selection-info' });
     patchLabel = _createFakeEl('div', { id: 'sysex-active-patch-label' });
-    var registry = { 'sysex-hex-log': hexLog, 'sysex-selection-info': infoEl, 'sysex-active-patch-label': patchLabel };
+    const registry = { 'sysex-hex-log': hexLog, 'sysex-selection-info': infoEl, 'sysex-active-patch-label': patchLabel };
 
     vi.stubGlobal('document', {
       getElementById: function(id) { return registry[id] || null; },
@@ -1046,19 +1046,19 @@ describe('patch label edge cases', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('updateSysExMonitor — edge cases and boundaries', () => {
-  var hexLog, infoEl;
+  let hexLog, infoEl;
 
   function updateSysExMonitor(bytes, highlightIndex) {
-    var monitor = document.getElementById('sysex-hex-log');
-    if (!monitor) return;
+    const monitor = document.getElementById('sysex-hex-log');
+    if (!monitor) {return;}
 
     monitor._bytes = bytes;
     window._liveUnpackedBytes = null;
 
-    var html = '';
-    for (var i = 0; i < bytes.length; i++) {
-      var hexVal = bytes[i].toString(16).toUpperCase().padStart(2, '0');
-      var isChanged = (i === highlightIndex) ? 'changed' : 'normal';
+    let html = '';
+    for (let i = 0; i < bytes.length; i++) {
+      const hexVal = bytes[i].toString(16).toUpperCase().padStart(2, '0');
+      const isChanged = (i === highlightIndex) ? 'changed' : 'normal';
       html += '<span class="hex-byte ' + isChanged + '" data-idx="' + i + '">' + hexVal + '</span> ';
     }
     monitor.innerHTML = html;
@@ -1068,7 +1068,7 @@ describe('updateSysExMonitor — edge cases and boundaries', () => {
   beforeEach(function() {
     hexLog = _createFakeEl('div', { id: 'sysex-hex-log' });
     infoEl = _createFakeEl('div', { id: 'sysex-selection-info' });
-    var registry = { 'sysex-hex-log': hexLog, 'sysex-selection-info': infoEl };
+    const registry = { 'sysex-hex-log': hexLog, 'sysex-selection-info': infoEl };
     vi.stubGlobal('document', { getElementById: function(id) { return registry[id] || null; } });
     vi.stubGlobal('window', {});
   });
@@ -1085,14 +1085,14 @@ describe('updateSysExMonitor — edge cases and boundaries', () => {
   });
 
   it('renders all bytes with FF when data is all 255', function() {
-    var bytes = new Uint8Array(5);
-    for (var i = 0; i < 5; i++) bytes[i] = 255;
+    const bytes = new Uint8Array(5);
+    for (let i = 0; i < 5; i++) {bytes[i] = 255;}
     updateSysExMonitor(bytes);
     expect(hexLog.innerHTML.match(/FF/g).length).toBe(5);
   });
 
   it('renders all zeros correctly', function() {
-    var bytes = new Uint8Array(3);
+    const bytes = new Uint8Array(3);
     updateSysExMonitor(bytes);
     expect(hexLog.innerHTML).toContain('00');
     expect(hexLog.innerHTML.match(/00/g).length).toBe(3);
@@ -1104,15 +1104,15 @@ describe('updateSysExMonitor — edge cases and boundaries', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('hex byte selection — detailed behavior', () => {
-  var hexLog;
+  let hexLog;
 
   beforeEach(function() {
     hexLog = _createFakeEl('div', { id: 'sysex-hex-log' });
     hexLog._hexByteEls = [];
     hexLog._selectedIndices = [];
 
-    for (var i = 0; i < 10; i++) {
-      var byteEl = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': String(i) });
+    for (let i = 0; i < 10; i++) {
+      const byteEl = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': String(i) });
       byteEl.classList.add('hex-byte');
       byteEl._parent = hexLog;
       hexLog._hexByteEls.push(byteEl);
@@ -1121,29 +1121,29 @@ describe('hex byte selection — detailed behavior', () => {
 
     // Register click handler (extracted from source)
     hexLog.addEventListener('click', function(e) {
-      var byteEl = e.target.closest('.hex-byte');
+      const byteEl = e.target.closest('.hex-byte');
       if (!byteEl) {
         hexLog._selectedIndices = [];
         return;
       }
 
-      var idx = parseInt(byteEl.getAttribute('data-idx'), 10);
-      if (isNaN(idx)) return;
-      if (!hexLog._selectedIndices) hexLog._selectedIndices = [];
+      const idx = parseInt(byteEl.getAttribute('data-idx'), 10);
+      if (isNaN(idx)) {return;}
+      if (!hexLog._selectedIndices) {hexLog._selectedIndices = [];}
 
       if (e.shiftKey && hexLog._selectedIndices.length > 0) {
-        var lastIdx = hexLog._selectedIndices[hexLog._selectedIndices.length - 1];
-        var start = Math.min(lastIdx, idx);
-        var end = Math.max(lastIdx, idx);
-        for (var si = start; si <= end; si++) {
+        const lastIdx = hexLog._selectedIndices[hexLog._selectedIndices.length - 1];
+        const start = Math.min(lastIdx, idx);
+        const end = Math.max(lastIdx, idx);
+        for (let si = start; si <= end; si++) {
           if (hexLog._selectedIndices.indexOf(si) === -1) {
             hexLog._selectedIndices.push(si);
-            var el = hexLog.querySelector('.hex-byte[data-idx="' + si + '"]');
-            if (el) el.classList.add('selected');
+            const el = hexLog.querySelector('.hex-byte[data-idx="' + si + '"]');
+            if (el) {el.classList.add('selected');}
           }
         }
       } else if (e.ctrlKey || e.metaKey) {
-        var existingIdx = hexLog._selectedIndices.indexOf(idx);
+        const existingIdx = hexLog._selectedIndices.indexOf(idx);
         if (existingIdx >= 0) {
           hexLog._selectedIndices.splice(existingIdx, 1);
           byteEl.classList.remove('selected');
@@ -1160,8 +1160,8 @@ describe('hex byte selection — detailed behavior', () => {
 
   it('shifts click after ctrl+click from different start', function() {
     // Ctrl+click to select byte 0 and byte 2
-    var el0 = hexLog._subElements['.hex-byte[data-idx="0"]'];
-    var el2 = hexLog._subElements['.hex-byte[data-idx="2"]'];
+    const el0 = hexLog._subElements['.hex-byte[data-idx="0"]'];
+    const el2 = hexLog._subElements['.hex-byte[data-idx="2"]'];
 
     hexLog._listeners['click'][0]({ target: el0, shiftKey: false, ctrlKey: true, metaKey: false });
     hexLog._listeners['click'][0]({ target: el2, shiftKey: false, ctrlKey: true, metaKey: false });
@@ -1169,7 +1169,7 @@ describe('hex byte selection — detailed behavior', () => {
     expect(hexLog._selectedIndices).toEqual([0, 2]);
 
     // Shift+click from byte 2 to byte 5
-    var el5 = hexLog._subElements['.hex-byte[data-idx="5"]'];
+    const el5 = hexLog._subElements['.hex-byte[data-idx="5"]'];
     hexLog._listeners['click'][0]({ target: el5, shiftKey: true, ctrlKey: false, metaKey: false });
 
     expect(hexLog._selectedIndices).toContain(2);
@@ -1180,11 +1180,11 @@ describe('hex byte selection — detailed behavior', () => {
 
   it('shift+click selects backward range (higher to lower index)', function() {
     // First select byte 6
-    var el6 = hexLog._subElements['.hex-byte[data-idx="6"]'];
+    const el6 = hexLog._subElements['.hex-byte[data-idx="6"]'];
     hexLog._listeners['click'][0]({ target: el6, shiftKey: false, ctrlKey: false, metaKey: false });
 
     // Shift+click byte 2 → should select 2-6
-    var el2 = hexLog._subElements['.hex-byte[data-idx="2"]'];
+    const el2 = hexLog._subElements['.hex-byte[data-idx="2"]'];
     hexLog._listeners['click'][0]({ target: el2, shiftKey: true, ctrlKey: false, metaKey: false });
 
     expect(hexLog._selectedIndices).toContain(2);
@@ -1194,7 +1194,7 @@ describe('hex byte selection — detailed behavior', () => {
   });
 
   it('placeholder for NaN data-idx is handled', function() {
-    var badEl = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': 'not-a-number' });
+    const badEl = _createFakeEl('span', { 'class': 'hex-byte', 'data-idx': 'not-a-number' });
     badEl.classList.add('hex-byte');
 
     expect(function() {

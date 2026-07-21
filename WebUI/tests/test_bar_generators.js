@@ -10,17 +10,17 @@
 // ── Extract functions under test ──────────────────────────────────
 // Copied verbatim from script.js lines 1954-1969
 function _genFillBar(fillLen, totalLen, fillChar, emptyChar) {
-    if (totalLen === undefined) totalLen = 18;
-    if (fillChar === undefined) fillChar = '\u2588';
-    if (emptyChar === undefined) emptyChar = '\u2591';
+    if (totalLen === undefined) {totalLen = 18;}
+    if (fillChar === undefined) {fillChar = '\u2588';}
+    if (emptyChar === undefined) {emptyChar = '\u2591';}
     fillLen = Math.max(0, Math.round(fillLen));
     return fillChar.repeat(Math.min(fillLen, totalLen)) + emptyChar.repeat(Math.max(0, totalLen - fillLen));
 }
 
 function _genPosBar(pos, totalLen, fillChar, emptyChar) {
-    if (totalLen === undefined) totalLen = 18;
-    if (fillChar === undefined) fillChar = '\u2588';
-    if (emptyChar === undefined) emptyChar = '\u2591';
+    if (totalLen === undefined) {totalLen = 18;}
+    if (fillChar === undefined) {fillChar = '\u2588';}
+    if (emptyChar === undefined) {emptyChar = '\u2591';}
     pos = Math.max(0, Math.min(Math.round(pos), totalLen - 1));
     return emptyChar.repeat(pos) + fillChar + emptyChar.repeat(Math.max(0, totalLen - pos - 1));
 }

@@ -1,0 +1,115 @@
+# ============================================================================
+# PRESET PATRÓN: Bass HPF + Bass Boost (4-pole)
+# ----------------------------------------------------------------------------
+# Propósito: calibración A/B hardware↔plugin del voicing DeepMind.
+# Uso: grabar el mismo patrón MIDI en hardware y plugin, comparar.
+#
+# Fórmulas de mapeo (verificadas en código):
+#   cutoffHz    = 50 * 400^cutoffLvl           (50 Hz – 20 kHz)
+#   envTime(s)  = 0.002 * 32768^(rawVal*0.1)   (2 ms – 65.5 s)
+#   HPF cutoff  = valor directo en Hz (20–2000), PCHIP interna
+#   resonance   = valor directo 0–1
+# ============================================================================
+
+# --- OSCILADORES ---
+osc1_saw_enable     = 1.0     # Saw ON
+osc1_square_enable  = 0.0     # Pulse OFF
+osc1_range          = 1       # 8' (enum index 1)
+osc1_pwm_amount     = 0.5     # Neutro (pwm_source = Manual, amount irrelevante)
+osc1_pwm_source     = 0       # Manual
+
+osc2_level          = 0.0     # OSC2 OFF (no contamina lectura de filtro)
+osc2_range          = 1       # 8'
+
+noise_level         = 0.0     # Sin ruido
+sub_level           = 0.0     # Sin sub
+
+# --- VCF LPF (4-pole) ---
+vcf_cutoff          = 0.30    # → 50 * 400^0.30 = 302 Hz
+vcf_resonance       = 0.30    # Audible, sin self-osc
+vcf_env_depth       = 0.40    # Moderada
+vcf_env_polarity    = 1       # Normal (enum: 0=Inverted, 1=Normal)
+vcf_pole_mode       = 0       # 4-Pole 24dB (enum: 0=4-Pole, 1=2-Pole)
+vcf_key_tracking    = 0.0     # Sin key tracking
+vcf_lfo_depth       = 0.0     # Sin LFO→VCF
+vcf_oversample      = 0       # 1x (Off) — simplicidad para A/B
+vcf_voicing_mode    = 0       # DeepMind (enum: 0=DeepMind, 1=Juno-106)
+vcf_env_vel         = 0.0     # Sin velocity→env
+vcf_pitch_bend      = 0.0     # Sin pitch bend→cutoff
+
+# --- ENV2 (VCF) ---
+# Mapeo: rawVal → 0.002 * 32768^(rawVal*0.1) segundos
+env2_attack         = 1.55    # → ~10 ms
+env2_decay          = 4.64    # → ~250 ms
+env2_sustain        = 0.50    # Mitad
+env2_release        = 4.43    # → ~200 ms
+env2_attack_curve   = 0.5     # Lineal
+env2_decay_curve    = 0.5     # Lineal
+env2_sustain_curve  = 0.5     # Lineal
+env2_release_curve  = 0.5     # Lineal
+env2_trigger_mode   = 0       # Key
+
+# --- HPF + BASS BOOST ---
+hpf_cutoff          = 250.0   # Hz directo (PCHIP: ~250 Hz, zona audible de low-cut)
+hpf_boost_enable    = 1.0     # Bass Boost ON
+hpf_bass_boost_gain = 1.0     # Default — baseline para comparación
+
+# --- VCA ---
+vca_mode            = 0       # Transparent (enum: 0=Transparent, 1=Ballsy)
+vca_level           = 0.80
+vca_env_depth       = 1.0     # Env1 controla VCA completamente
+vca_vel_sens        = 0.0     # Sin velocity
+
+# --- ENV1 (VCA) ---
+env1_attack         = 1.55    # → ~10 ms
+env1_decay          = 4.43    # → ~200 ms
+env1_sustain        = 0.70
+env1_release        = 4.43    # → ~200 ms
+env1_attack_curve   = 0.5
+env1_decay_curve    = 0.5
+env1_sustain_curve  = 0.5
+env1_release_curve  = 0.5
+env1_trigger_mode   = 0       # Key
+
+# --- DRIFT / ESTABILIDAD ---
+voice_drift         = 0.0     # Sin drift de voz
+param_drift         = 0.0     # Sin drift de parámetros
+drift_rate          = 0.0
+
+# --- LFOs (OFF) ---
+lfo1_rate           = 0.5
+lfo1_depth         = 0.0
+lfo2_rate           = 0.5
+lfo2_depth         = 0.0
+
+# --- FX (BYPASS) ---
+# Todos los FX off/bypass por defecto
+
+# --- PORTAMENTO ---
+global_portamento   = 0.0
+
+# ============================================================================
+# VERIFICACIÓN EN DEBUG PANEL
+# ============================================================================
+# Después de cargar el preset, confirmar:
+#   lastModVcfCutoffHz ≈ 302 Hz  (±10 Hz)
+#   vcfResonance = 0.30
+#   vcfPoleMode = 1 (4-Pole)
+#   vcfVoicingMode = 0 (DeepMind)
+#   hpfCutoffHz ≈ 250 Hz
+#   hpfBassBoost = true
+#   hpfBassBoostGain = 1.0
+#
+# VALORES ESPERADOS DE HARDWARE (DeepMind 12):
+#   LPF Cutoff fader ≈ 30% (zona baja-intermedia)
+#   LPF Resonance fader ≈ 30%
+#   HPF fader ≈ 25–30% (zona audible)
+#   Bass Boost = ON
+#   Pole Mode = 4-Pole
+#
+# PRUEBAS A REALIZAR:
+#   1. Bass Boost OFF vs ON   → escuchar punch de graves
+#   2. Resonancia 0.30 → 0.50 → 0.70 → comparar pérdida de nivel
+#   3. HPF en 150 Hz / 250 Hz / 400 Hz → punto de limpieza
+#   4. Autooscilación: subir resonancia hasta ~0.90–0.95
+# ============================================================================

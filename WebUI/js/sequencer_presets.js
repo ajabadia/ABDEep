@@ -5,11 +5,11 @@
 
 const DEFAULT_SEQ_PRESETS = [
     {
-        name: "Staircase",
+        name: 'Staircase',
         steps: Array(32).fill(0).map((_, i) => Math.round((i / 31) * 255))
     },
     {
-        name: "Triangle Wave",
+        name: 'Triangle Wave',
         steps: Array(32).fill(0).map((_, i) => {
             const phase = (i / 16) % 2.0;
             const val = phase < 1.0 ? phase : 2.0 - phase;
@@ -17,17 +17,17 @@ const DEFAULT_SEQ_PRESETS = [
         })
     },
     {
-        name: "Random Walk",
+        name: 'Random Walk',
         steps: Array(32).fill(0).map(() => Math.round(Math.random() * 255))
     }
 ];
 
 function _loadUserSeqPresets() {
     try {
-        var raw = localStorage.getItem('abd-eep-seq-presets');
+        const raw = localStorage.getItem('abd-eep-seq-presets');
         if (raw) {
-            var parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) return parsed;
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {return parsed;}
         } else {
             localStorage.setItem('abd-eep-seq-presets', JSON.stringify(DEFAULT_SEQ_PRESETS));
             return DEFAULT_SEQ_PRESETS;
@@ -43,7 +43,7 @@ window.initSequencerPresets = function() {
     const savePresetBtn = document.getElementById('modal-seq-save-preset');
 
     function renderPresetsList() {
-        if (!presetsList) return;
+        if (!presetsList) {return;}
         presetsList.innerHTML = '';
 
         // Render User Presets
@@ -58,10 +58,10 @@ window.initSequencerPresets = function() {
             item.style.justifyContent = 'space-between';
             item.style.alignItems = 'center';
             item.innerHTML = `<span style="font-weight:bold;color:var(--accent-pink)">${p.name}</span>` +
-                             `<span class="delete-seq-preset-btn" style="color:var(--text-faint);font-size:10px;cursor:pointer;padding:0 4px;">✕</span>`;
+                             '<span class="delete-seq-preset-btn" style="color:var(--text-faint);font-size:10px;cursor:pointer;padding:0 4px;">✕</span>';
             
             item.addEventListener('click', (e) => {
-                if (e.target.classList.contains('delete-seq-preset-btn')) return;
+                if (e.target.classList.contains('delete-seq-preset-btn')) {return;}
                 selectItem(item, p);
             });
 
@@ -142,17 +142,17 @@ window.initSequencerPresets = function() {
                     }
                 }
                 
-                var _presetName_ = selectedPreset.name;
-                var _lcd_ = document.getElementById('lcd-text');
+                const _presetName_ = selectedPreset.name;
+                const _lcd_ = document.getElementById('lcd-text');
                 if (_lcd_) {
-                    var _sum_ = 0, _count_ = 0;
-                    for (var _pi_ = 0; _pi_ < 32; _pi_++) {
-                        var _abs_ = Math.abs(window.seqStepsValues[_pi_]);
+                    let _sum_ = 0, _count_ = 0;
+                    for (let _pi_ = 0; _pi_ < 32; _pi_++) {
+                        const _abs_ = Math.abs(window.seqStepsValues[_pi_]);
                         if (_abs_ > 5) { _sum_ += _pi_; _count_++; }
                     }
-                    var _avgPos_ = _count_ > 0 ? Math.round(_sum_ / _count_) : 16;
-                    var _bar_ = window._genPosBar(_avgPos_, 18);
-                    var _presetHtml_ = window._genLcdBarHtml('seq_preset', {
+                    const _avgPos_ = _count_ > 0 ? Math.round(_sum_ / _count_) : 16;
+                    const _bar_ = window._genPosBar(_avgPos_, 18);
+                    const _presetHtml_ = window._genLcdBarHtml('seq_preset', {
                         header: 'SEQ PRESET LOADED',
                         presetName: _presetName_,
                         bar: _bar_,
@@ -170,10 +170,10 @@ window.initSequencerPresets = function() {
                 alert('Cannot save sequences on factory patches. Please copy this patch to a User Bank first.');
                 return;
             }
-            const name = prompt("Enter a name for the new sequence preset:");
+            const name = prompt('Enter a name for the new sequence preset:');
             if (name && name.trim()) {
                 const cleanName = name.trim().replace(/[<>"'&]/g, '');
-                if (!cleanName) return;
+                if (!cleanName) {return;}
 
                 const currentSteps = [];
                 for (let i = 0; i < 32; i++) {

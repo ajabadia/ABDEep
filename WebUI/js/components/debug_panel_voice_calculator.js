@@ -4,25 +4,25 @@
  */
 
 window.DEBUG_VOICE_MODE_NAMES = [
-    "Poly", "Uni2", "Uni3", "Uni4", "Uni6", "Uni12",
-    "Mono", "Mono2", "Mono3", "Mono4", "Mono6",
-    "Poly6", "Poly8"
+    'Poly', 'Uni2', 'Uni3', 'Uni4', 'Uni6', 'Uni12',
+    'Mono', 'Mono2', 'Mono3', 'Mono4', 'Mono6',
+    'Poly6', 'Poly8'
 ];
 
 window.DEBUG_VOICES_PER_MODE = [1, 2, 3, 4, 6, 12, 1, 2, 3, 4, 6, 1, 1];
 
-const DEBUG_NOTE_NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-window.DEBUG_CHORD_TYPE_NAMES = ["Memory","Major","Minor","Maj7","Min7","Dom7","Sus4","Power","Aug","Dim","Sus2","7th"];
+const DEBUG_NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+window.DEBUG_CHORD_TYPE_NAMES = ['Memory','Major','Minor','Maj7','Min7','Dom7','Sus4','Power','Aug','Dim','Sus2','7th'];
 
 window.debugMidiNoteToName = function(note) {
-    if (note < 0 || note > 127) return "—";
+    if (note < 0 || note > 127) {return '—';}
     const octave = Math.floor(note / 12) - 1;
     return DEBUG_NOTE_NAMES[note % 12] + octave;
 };
 
 window.calculateUnisonParams = function(voiceMode, unisonDetune, vcaPanSpread) {
     const totalVoices = window.DEBUG_VOICES_PER_MODE[voiceMode] || 1;
-    if (totalVoices <= 1) return [];
+    if (totalVoices <= 1) {return [];}
 
     const maxDetuneCents = unisonDetune * 50.0;
     const results = [];

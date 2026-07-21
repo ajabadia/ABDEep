@@ -4,29 +4,29 @@
  */
 
 window.saveFxPreset = function(presetName, slotNumber) {
-    if (!presetName || presetName.trim() === '') return;
+    if (!presetName || presetName.trim() === '') {return;}
     presetName = presetName.trim().replace(/[<>"'&]/g, '');
-    if (!presetName) return;
+    if (!presetName) {return;}
     slotNumber = slotNumber || window._selectedFxSlot || 1;
-    var bridge = window.dualMidiBridge;
-    if (!bridge || !bridge.parameterCache) return;
+    const bridge = window.dualMidiBridge;
+    if (!bridge || !bridge.parameterCache) {return;}
     
-    var preset = {
+    const preset = {
         name: presetName.trim(),
         slot: slotNumber,
         type: window._readFxParamValue('fx' + slotNumber + '_type', slotNumber === 1 ? 166 : (slotNumber === 2 ? 179 : (slotNumber === 3 ? 192 : 205)), 0.0),
         params: [],
         created: Date.now()
     };
-    for (var i = 1; i <= 12; i++) {
-        var offsetStart = slotNumber === 1 ? 167 : (slotNumber === 2 ? 180 : (slotNumber === 3 ? 193 : 206));
+    for (let i = 1; i <= 12; i++) {
+        const offsetStart = slotNumber === 1 ? 167 : (slotNumber === 2 ? 180 : (slotNumber === 3 ? 193 : 206));
         preset.params.push(window._readFxParamValue('fx' + slotNumber + '_param' + i, offsetStart + i - 1, 0.5));
     }
     preset.gain = window._readFxParamValue('fx' + slotNumber + '_gain', slotNumber === 1 ? 218 : (slotNumber === 2 ? 219 : (slotNumber === 3 ? 220 : 221)), 1.0);
     
-    var allPresets = _loadAllFxPresets();
-    var existingIdx = -1;
-    for (var j = 0; j < allPresets.length; j++) {
+    const allPresets = _loadAllFxPresets();
+    let existingIdx = -1;
+    for (let j = 0; j < allPresets.length; j++) {
         if (allPresets[j].name === preset.name) {
             existingIdx = j;
             break;
@@ -47,14 +47,14 @@ window.saveFxPreset = function(presetName, slotNumber) {
     _renderFxPresetList();
     
     if (typeof window.lcdSafeUpdate === 'function') {
-        var lcd = document.getElementById('lcd-screen-main');
-        if (lcd) window.lcdSafeUpdate(lcd, 'FX Preset Saved: ' + preset.name, null, { useQueue: false });
+        const lcd = document.getElementById('lcd-screen-main');
+        if (lcd) {window.lcdSafeUpdate(lcd, 'FX Preset Saved: ' + preset.name, null, { useQueue: false });}
     }
 };
 
 const DEFAULT_FX_PRESETS = [
     {
-        name: "Lush Chorus-D",
+        name: 'Lush Chorus-D',
         slot: 1,
         type: 29 / 35.0,
         gain: 1.0,
@@ -62,7 +62,7 @@ const DEFAULT_FX_PRESETS = [
         created: 1720000000000
     },
     {
-        name: "Stereo Delay PingPong",
+        name: 'Stereo Delay PingPong',
         slot: 1,
         type: 22 / 35.0,
         gain: 0.8,
@@ -70,7 +70,7 @@ const DEFAULT_FX_PRESETS = [
         created: 1720000000001
     },
     {
-        name: "TC Deep Reverb Hall",
+        name: 'TC Deep Reverb Hall',
         slot: 1,
         type: 2 / 35.0,
         gain: 0.9,
@@ -78,7 +78,7 @@ const DEFAULT_FX_PRESETS = [
         created: 1720000000002
     },
     {
-        name: "Vintage Room Ambience",
+        name: 'Vintage Room Ambience',
         slot: 1,
         type: 4 / 35.0,
         gain: 1.0,
@@ -86,7 +86,7 @@ const DEFAULT_FX_PRESETS = [
         created: 1720000000003
     },
     {
-        name: "Lush Stereo Phaser",
+        name: 'Lush Stereo Phaser',
         slot: 1,
         type: 31 / 35.0,
         gain: 1.0,
@@ -97,10 +97,10 @@ const DEFAULT_FX_PRESETS = [
 
 function _loadAllFxPresets() {
     try {
-        var raw = localStorage.getItem('abd-eep-fx-presets');
+        const raw = localStorage.getItem('abd-eep-fx-presets');
         if (raw) {
-            var parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) return parsed;
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {return parsed;}
         } else {
             // Guardar por defecto para arrancar con presets de ejemplo
             localStorage.setItem('abd-eep-fx-presets', JSON.stringify(DEFAULT_FX_PRESETS));
@@ -113,12 +113,12 @@ window._loadAllFxPresets = _loadAllFxPresets;
 
 window.applyFxPreset = function(presetData, slotNumber) {
     slotNumber = slotNumber || window._selectedFxSlot || 1;
-    var bridge = window.dualMidiBridge;
-    if (!bridge) return;
+    const bridge = window.dualMidiBridge;
+    if (!bridge) {return;}
     
     bridge.setParameter('fx' + slotNumber + '_type', presetData.type);
     
-    for (var i = 0; i < 12 && i < presetData.params.length; i++) {
+    for (let i = 0; i < 12 && i < presetData.params.length; i++) {
         bridge.setParameter('fx' + slotNumber + '_param' + (i + 1), presetData.params[i]);
     }
     
@@ -126,12 +126,12 @@ window.applyFxPreset = function(presetData, slotNumber) {
         bridge.setParameter('fx' + slotNumber + '_gain', presetData.gain);
     }
     
-    var selectEl = document.querySelector('.fx-type-select[data-slot="' + slotNumber + '"]');
+    const selectEl = document.querySelector('.fx-type-select[data-slot="' + slotNumber + '"]');
     if (selectEl) {
-        var typeVal = Math.round(presetData.type * 35.0);
+        const typeVal = Math.round(presetData.type * 35.0);
         selectEl.value = typeVal;
-        var displayEl = document.getElementById('fx' + slotNumber + '-type-mini-display');
-        if (displayEl) displayEl.innerText = window.FX_TYPE_NAMES[typeVal] || 'Bypass';
+        const displayEl = document.getElementById('fx' + slotNumber + '-type-mini-display');
+        if (displayEl) {displayEl.innerText = window.FX_TYPE_NAMES[typeVal] || 'Bypass';}
     }
     if (typeof window._setGainSliderPos === 'function') {
         window._setGainSliderPos('fx' + slotNumber + '_gain', slotNumber === 1 ? 218 : (slotNumber === 2 ? 219 : (slotNumber === 3 ? 220 : 221)));
@@ -144,15 +144,15 @@ window.applyFxPreset = function(presetData, slotNumber) {
     }
     
     if (typeof window.lcdSafeUpdate === 'function') {
-        var lcd = document.getElementById('lcd-screen-main');
-        if (lcd) window.lcdSafeUpdate(lcd, 'FX Preset Loaded: ' + presetData.name + ' → FX' + slotNumber, null, { useQueue: false });
+        const lcd = document.getElementById('lcd-screen-main');
+        if (lcd) {window.lcdSafeUpdate(lcd, 'FX Preset Loaded: ' + presetData.name + ' → FX' + slotNumber, null, { useQueue: false });}
     }
 };
 
 window.deleteFxPreset = function(presetName) {
-    var allPresets = _loadAllFxPresets();
-    var filtered = [];
-    for (var i = 0; i < allPresets.length; i++) {
+    const allPresets = _loadAllFxPresets();
+    const filtered = [];
+    for (let i = 0; i < allPresets.length; i++) {
         if (allPresets[i].name !== presetName) {
             filtered.push(allPresets[i]);
         }
@@ -166,17 +166,17 @@ window.deleteFxPreset = function(presetName) {
 };
 
 function _renderFxPresetList() {
-    var listEl = document.getElementById('fx-preset-list');
-    if (!listEl) return;
-    var presets = _loadAllFxPresets();
+    const listEl = document.getElementById('fx-preset-list');
+    if (!listEl) {return;}
+    const presets = _loadAllFxPresets();
     if (presets.length === 0) {
         listEl.innerHTML = '<div style="color:var(--text-faint);font-size:var(--text-xs);padding:4px;text-align:center">No FX presets saved yet</div>';
         return;
     }
-    var html = '';
-    for (var i = presets.length - 1; i >= 0; i--) {
-        var p = presets[i];
-        var typeName = window.FX_TYPE_NAMES[Math.round(p.type * 35)] || 'Bypass';
+    let html = '';
+    for (let i = presets.length - 1; i >= 0; i--) {
+        const p = presets[i];
+        const typeName = window.FX_TYPE_NAMES[Math.round(p.type * 35)] || 'Bypass';
         html += '<div class="fx-preset-item" data-preset-index="' + i + '" style="display:flex;justify-content:space-between;align-items:center;padding:3px 4px;border-bottom:1px solid var(--bg-hover);gap:4px">' +
             '<div style="flex:1;min-width:0;font-size:var(--text-xs);cursor:pointer" title="Apply ' + escapeHtml(p.name) + ' to FX' + (window._selectedFxSlot || 1) + '">' +
                 '<span style="font-weight:bold;color:var(--accent-blue)">' + escapeHtml(p.name) + '</span> ' +
@@ -188,12 +188,12 @@ function _renderFxPresetList() {
     listEl.innerHTML = html;
 
     listEl.querySelectorAll('.fx-preset-item').forEach(function(item) {
-        var idx = parseInt(item.getAttribute('data-preset-index'));
-        if (isNaN(idx) || idx < 0 || idx >= presets.length) return;
+        const idx = parseInt(item.getAttribute('data-preset-index'));
+        if (isNaN(idx) || idx < 0 || idx >= presets.length) {return;}
         item.querySelector('div[title]').addEventListener('click', function() {
             window.applyFxPreset(presets[idx], window._selectedFxSlot || 1);
         });
-        var delBtn = item.querySelector('.fx-preset-delete-btn');
+        const delBtn = item.querySelector('.fx-preset-delete-btn');
         if (delBtn) {
             delBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -209,22 +209,22 @@ function escapeHtml(str) {
 }
 
 window.findMatchingFxPresetName = function(type, gain, params) {
-    if (type === 0.0) return "Bypass";
+    if (type === 0.0) {return 'Bypass';}
     
     // Buscar en presets de usuario primero
-    var userPresets = _loadAllFxPresets();
+    const userPresets = _loadAllFxPresets();
     for (var i = 0; i < userPresets.length; i++) {
         var p = userPresets[i];
         if (Math.round(p.type * 35) === Math.round(type * 35)) {
             var match = true;
-            if (Math.abs(p.gain - gain) > 0.03) match = false;
+            if (Math.abs(p.gain - gain) > 0.03) {match = false;}
             for (var j = 0; j < 12 && j < p.params.length; j++) {
                 if (Math.abs(p.params[j] - params[j]) > 0.03) {
                     match = false;
                     break;
                 }
             }
-            if (match) return p.name;
+            if (match) {return p.name;}
         }
     }
     
@@ -234,14 +234,14 @@ window.findMatchingFxPresetName = function(type, gain, params) {
             var p = window.FACTORY_FX_PRESETS[i];
             if (Math.round(p.type * 35) === Math.round(type * 35)) {
                 var match = true;
-                if (Math.abs(p.gain - gain) > 0.03) match = false;
+                if (Math.abs(p.gain - gain) > 0.03) {match = false;}
                 for (var j = 0; j < 12 && j < p.params.length; j++) {
                     if (Math.abs(p.params[j] - params[j]) > 0.03) {
                         match = false;
                         break;
                     }
                 }
-                if (match) return p.name;
+                if (match) {return p.name;}
             }
         }
     }
@@ -249,16 +249,16 @@ window.findMatchingFxPresetName = function(type, gain, params) {
 };
 
 window.extractAndSaveNewPresetsFromBank = function(bankName, patches) {
-    if (!Array.isArray(patches)) return;
+    if (!Array.isArray(patches)) {return;}
     
-    var userFxPresets = _loadAllFxPresets();
-    var userSeqPresets = typeof window._loadUserSeqPresets === 'function' ? window._loadUserSeqPresets() : [];
-    var newFxCount = 0;
-    var newSeqCount = 0;
+    const userFxPresets = _loadAllFxPresets();
+    const userSeqPresets = typeof window._loadUserSeqPresets === 'function' ? window._loadUserSeqPresets() : [];
+    let newFxCount = 0;
+    let newSeqCount = 0;
 
     patches.forEach(function(patch) {
-        if (!patch || !patch.unpackedBytes) return;
-        var b = patch.unpackedBytes;
+        if (!patch || !patch.unpackedBytes) {return;}
+        const b = patch.unpackedBytes;
         
         // 1. Escanear ranuras FX
         const fxSlots = [
@@ -269,24 +269,24 @@ window.extractAndSaveNewPresetsFromBank = function(bankName, patches) {
         ];
 
         fxSlots.forEach(function(slot) {
-            var typeVal = b[slot.typeByte];
+            const typeVal = b[slot.typeByte];
             if (typeVal > 0 && typeVal < window.FX_TYPE_NAMES.length) {
-                var typeName = window.FX_TYPE_NAMES[typeVal];
-                var typeValNorm = typeVal / 35.0;
-                var gain = b[slot.gainByte] / 255.0;
-                var params = [];
-                for (var p = 0; p < 12; p++) {
+                const typeName = window.FX_TYPE_NAMES[typeVal];
+                const typeValNorm = typeVal / 35.0;
+                const gain = b[slot.gainByte] / 255.0;
+                const params = [];
+                for (let p = 0; p < 12; p++) {
                     params.push(b[slot.paramStart + p] / 255.0);
                 }
 
                 // Check si ya existe en presets de fábrica o de usuario
-                var alreadyExists = false;
+                let alreadyExists = false;
                 if (window.FACTORY_FX_PRESETS) {
                     for (var i = 0; i < window.FACTORY_FX_PRESETS.length; i++) {
-                        var fp = window.FACTORY_FX_PRESETS[i];
+                        const fp = window.FACTORY_FX_PRESETS[i];
                         if (Math.round(fp.type * 35) === typeVal) {
                             var match = true;
-                            if (Math.abs(fp.gain - gain) > 0.03) match = false;
+                            if (Math.abs(fp.gain - gain) > 0.03) {match = false;}
                             for (var j = 0; j < 12; j++) {
                                 if (Math.abs(fp.params[j] - params[j]) > 0.03) {
                                     match = false;
@@ -299,10 +299,10 @@ window.extractAndSaveNewPresetsFromBank = function(bankName, patches) {
                 }
                 if (!alreadyExists) {
                     for (var i = 0; i < userFxPresets.length; i++) {
-                        var up = userFxPresets[i];
+                        const up = userFxPresets[i];
                         if (Math.round(up.type * 35) === typeVal) {
                             var match = true;
-                            if (Math.abs(up.gain - gain) > 0.03) match = false;
+                            if (Math.abs(up.gain - gain) > 0.03) {match = false;}
                             for (var j = 0; j < 12; j++) {
                                 if (Math.abs(up.params[j] - params[j]) > 0.03) {
                                     match = false;
@@ -315,7 +315,7 @@ window.extractAndSaveNewPresetsFromBank = function(bankName, patches) {
                 }
 
                 if (!alreadyExists) {
-                    var presetName = typeName + " (" + patch.name + ")";
+                    const presetName = typeName + ' (' + patch.name + ')';
                     userFxPresets.push({
                         name: presetName,
                         slot: slot.id,
@@ -330,23 +330,23 @@ window.extractAndSaveNewPresetsFromBank = function(bankName, patches) {
         });
 
         // 2. Escanear pasos del secuenciador
-        var steps = [];
-        var max = 0;
-        var min = 255;
-        var isZero = true;
-        for (var s = 0; s < 32; s++) {
-            var val = b[123 + s];
+        const steps = [];
+        let max = 0;
+        let min = 255;
+        let isZero = true;
+        for (let s = 0; s < 32; s++) {
+            const val = b[123 + s];
             steps.push(val);
-            if (val !== 128) isZero = false;
-            if (val > max) max = val;
-            if (val < min) min = val;
+            if (val !== 128) {isZero = false;}
+            if (val > max) {max = val;}
+            if (val < min) {min = val;}
         }
 
         if (!isZero && (max - min) >= 15) {
-            var alreadyExists = false;
+            let alreadyExists = false;
             if (window.FACTORY_SEQ_PRESETS) {
                 for (var i = 0; i < window.FACTORY_SEQ_PRESETS.length; i++) {
-                    var fp = window.FACTORY_SEQ_PRESETS[i];
+                    const fp = window.FACTORY_SEQ_PRESETS[i];
                     var match = true;
                     for (var j = 0; j < 32; j++) {
                         if (Math.abs(fp.steps[j] - steps[j]) > 5) {
@@ -359,7 +359,7 @@ window.extractAndSaveNewPresetsFromBank = function(bankName, patches) {
             }
             if (!alreadyExists) {
                 for (var i = 0; i < userSeqPresets.length; i++) {
-                    var up = userSeqPresets[i];
+                    const up = userSeqPresets[i];
                     var match = true;
                     for (var j = 0; j < 32; j++) {
                         if (Math.abs(up.steps[j] - steps[j]) > 5) {
@@ -372,7 +372,7 @@ window.extractAndSaveNewPresetsFromBank = function(bankName, patches) {
             }
 
             if (!alreadyExists) {
-                var presetName = patch.name + " Seq";
+                const presetName = patch.name + ' Seq';
                 userSeqPresets.push({
                     name: presetName,
                     steps: steps
@@ -384,14 +384,14 @@ window.extractAndSaveNewPresetsFromBank = function(bankName, patches) {
 
     if (newFxCount > 0) {
         localStorage.setItem('abd-eep-fx-presets', JSON.stringify(userFxPresets));
-        if (typeof window._renderFxPresetList === 'function') window._renderFxPresetList();
+        if (typeof window._renderFxPresetList === 'function') {window._renderFxPresetList();}
     }
     if (newSeqCount > 0) {
         localStorage.setItem('abd-eep-seq-presets', JSON.stringify(userSeqPresets));
-        if (typeof window.initSequencerPresets === 'function') window.initSequencerPresets();
+        if (typeof window.initSequencerPresets === 'function') {window.initSequencerPresets();}
     }
 
     if (newFxCount > 0 || newSeqCount > 0) {
-        console.log("[AutoExtractor] Extracted from bank '" + bankName + "': " + newFxCount + " new FX presets and " + newSeqCount + " new Sequence presets.");
+        console.log("[AutoExtractor] Extracted from bank '" + bankName + "': " + newFxCount + ' new FX presets and ' + newSeqCount + ' new Sequence presets.');
     }
 };

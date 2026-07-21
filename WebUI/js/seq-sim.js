@@ -14,8 +14,8 @@
 (function() {
     // Esperar a que el bridge esté listo
     var checkInterval = setInterval(function() {
-        var bridge = window.dualMidiBridge;
-        if (!bridge || !bridge._ready) return;
+        const bridge = window.dualMidiBridge;
+        if (!bridge || !bridge._ready) {return;}
         clearInterval(checkInterval);
         
         // Solo activar en modo navegador puro (sin JUCE)
@@ -37,8 +37,8 @@
             
             // Generar un patrón sawtooth para los 32 steps: -96..+96 progresivo
             // raw 0-255, center=128, skip=0
-            var sawPattern = [];
-            for (var i = 0; i < 32; i++) {
+            const sawPattern = [];
+            for (let i = 0; i < 32; i++) {
                 // Progresión lineal de -96 a +96 con algunos steps a 0 para variar
                 var bipolar, raw;
                 if (i === 0) {
@@ -49,7 +49,7 @@
                     bipolar = -96;   // -96 (alto negativo)
                 } else {
                     // Interpolación suave entre los puntos
-                    var phase = i / 31;
+                    const phase = i / 31;
                     bipolar = Math.round(96 * Math.cos(phase * Math.PI * 2));
                 }
                 raw = Math.max(1, Math.min(255, bipolar + 128)); // raw, nunca 0 para evitar SKIP
@@ -59,8 +59,8 @@
             sawPattern[7] = 0;
             
             // Poblar el cache de parámetros
-            for (var si = 0; si < 32; si++) {
-                var normalized = sawPattern[si] / 255.0;
+            for (let si = 0; si < 32; si++) {
+                const normalized = sawPattern[si] / 255.0;
                 bridge.parameterCache['seq_step_' + (si + 1)] = normalized;
             }
             
@@ -73,7 +73,7 @@
             
             // Poblar el panel si ya está abierto (o lo estará pronto)
             if (window._panelSeqValues && window._panelSeqRaw) {
-                for (var pi = 0; pi < 32; pi++) {
+                for (let pi = 0; pi < 32; pi++) {
                     window._panelSeqRaw[pi] = sawPattern[pi];
                     window._panelSeqValues[pi] = sawPattern[pi] === 0 ? -128 : sawPattern[pi] - 128;
                     if (typeof window._updatePanelStepVisual === 'function') {

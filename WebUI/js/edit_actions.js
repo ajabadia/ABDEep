@@ -5,7 +5,7 @@
 
 function initEditActions() {
     let globalClipboardBytes = null;
-    let globalClipboardName = "";
+    let globalClipboardName = '';
 
     if (typeof window.initEditHistory === 'function') {
         window.initEditHistory();
@@ -19,13 +19,13 @@ function initEditActions() {
         // Undo
         if (e.target.closest('#menu-undo')) {
             e.preventDefault();
-            if (typeof window.triggerUndo === 'function') window.triggerUndo();
+            if (typeof window.triggerUndo === 'function') {window.triggerUndo();}
         }
 
         // Redo
         if (e.target.closest('#menu-redo')) {
             e.preventDefault();
-            if (typeof window.triggerRedo === 'function') window.triggerRedo();
+            if (typeof window.triggerRedo === 'function') {window.triggerRedo();}
         }
 
         // Copy
@@ -33,7 +33,7 @@ function initEditActions() {
             e.preventDefault();
             const activeBank = window.loadedBanks[window.currentActiveBank];
             if (!activeBank || window.currentActivePatchIndex === -1) {
-                alert("Selecciona primero un preset del Bank Manager para copiar.");
+                alert('Selecciona primero un preset del Bank Manager para copiar.');
                 return;
             }
             const patch = activeBank[window.currentActivePatchIndex];
@@ -41,7 +41,7 @@ function initEditActions() {
                 globalClipboardBytes = new Uint8Array(patch.unpackedBytes);
                 globalClipboardName = patch.name;
                 const lcdText = document.getElementById('lcd-text');
-                if (lcdText) lcdText.innerHTML = `<strong>COPIED</strong><br><span style="font-size:11px;">${patch.name.toUpperCase()}</span>`;
+                if (lcdText) {lcdText.innerHTML = `<strong>COPIED</strong><br><span style="font-size:11px;">${patch.name.toUpperCase()}</span>`;}
             }
         }
 
@@ -49,12 +49,12 @@ function initEditActions() {
         if (e.target.closest('#menu-paste-preset')) {
             e.preventDefault();
             if (!globalClipboardBytes) {
-                alert("El portapapeles está vacío. Copia un preset primero.");
+                alert('El portapapeles está vacío. Copia un preset primero.');
                 return;
             }
             const activeBank = window.loadedBanks[window.currentActiveBank];
             if (!activeBank || window.currentActivePatchIndex === -1) {
-                alert("Selecciona un slot de destino en el Bank Manager.");
+                alert('Selecciona un slot de destino en el Bank Manager.');
                 return;
             }
             
@@ -63,7 +63,7 @@ function initEditActions() {
                 'Factory Bank E', 'Factory Bank F', 'Factory Bank G', 'Factory Bank H'
             ];
             if (FACTORY_BANKS.includes(window.currentActiveBank)) {
-                alert("No está permitido modificar o pegar presets en los bancos de fábrica.");
+                alert('No está permitido modificar o pegar presets en los bancos de fábrica.');
                 return;
             }
 
@@ -76,8 +76,8 @@ function initEditActions() {
                     patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
                 }
 
-                if (window.triggerMidiDump) window.triggerMidiDump(patch);
-                if (typeof window.renderPatchesForBank === 'function') window.renderPatchesForBank(window.currentActiveBank);
+                if (window.triggerMidiDump) {window.triggerMidiDump(patch);}
+                if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(window.currentActiveBank);}
                 
                 if (typeof window._saveUserBanksToStorage === 'function') {
                     window._saveUserBanksToStorage();
@@ -91,24 +91,24 @@ function initEditActions() {
             switch (e.key.toLowerCase()) {
                 case 'z':
                     e.preventDefault();
-                    if (typeof window.triggerUndo === 'function') window.triggerUndo();
+                    if (typeof window.triggerUndo === 'function') {window.triggerUndo();}
                     break;
                 case 'y':
                     e.preventDefault();
-                    if (typeof window.triggerRedo === 'function') window.triggerRedo();
+                    if (typeof window.triggerRedo === 'function') {window.triggerRedo();}
                     break;
                 case 'c':
-                    if (window.getSelection().toString() === "") {
+                    if (window.getSelection().toString() === '') {
                         e.preventDefault();
                         const copyBtn = document.getElementById('menu-copy-preset');
-                        if (copyBtn) copyBtn.click();
+                        if (copyBtn) {copyBtn.click();}
                     }
                     break;
                 case 'v':
                     if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
                         e.preventDefault();
                         const pasteBtn = document.getElementById('menu-paste-preset');
-                        if (pasteBtn) pasteBtn.click();
+                        if (pasteBtn) {pasteBtn.click();}
                     }
                     break;
             }

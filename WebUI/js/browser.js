@@ -3,14 +3,14 @@
 // Ofrece dos paneles: Izquierdo (Hardware Device, Bank A-H) y Derecho (Librería Local).
 // Permite copiar y arrastrar/intercambiar presets entre ambos entornos.
 
-let loadedBanks = {};
+const loadedBanks = {};
 window.loadedBanks = loadedBanks;
 let currentActiveBank = 'Factory Bank A';
 window.currentActiveBank = currentActiveBank;
 let currentActivePatchIndex = 0;
 window.currentActivePatchIndex = currentActivePatchIndex;
 
-let hardwareBanks = {
+const hardwareBanks = {
     'A': window.createEmptyBank(),
     'B': window.createEmptyBank(),
     'C': window.createEmptyBank(),
@@ -38,13 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function updateLocalBanksDropdown() {
     const select = document.getElementById('local-bank-select');
-    if (!select) return;
+    if (!select) {return;}
     select.innerHTML = '';
     Object.keys(loadedBanks).forEach(bankName => {
         const opt = document.createElement('option');
         opt.value = bankName;
         opt.innerText = bankName;
-        if (bankName === currentActiveBank) opt.selected = true;
+        if (bankName === currentActiveBank) {opt.selected = true;}
         select.appendChild(opt);
     });
 }
@@ -52,7 +52,7 @@ window.updateLocalBanksDropdown = updateLocalBanksDropdown;
 
 function renderHardwarePatches() {
     const grid = document.getElementById('hw-patches-grid');
-    if (!grid) return;
+    if (!grid) {return;}
     grid.innerHTML = '';
 
     const patches = hardwareBanks[currentHwBankLetter] || [];
@@ -61,7 +61,7 @@ function renderHardwarePatches() {
         const el = document.createElement('div');
         el.className = 'patch-item';
         el.draggable = true;
-        if (i === currentHwPatchIndex) el.classList.add('active');
+        if (i === currentHwPatchIndex) {el.classList.add('active');}
         el.innerText = `${currentHwBankLetter}-${(i+1).toString().padStart(3, '0')}: ${patch.name}`;
 
         el.addEventListener('dragstart', (e) => {
@@ -93,26 +93,26 @@ function renderHardwarePatches() {
 window.renderHardwarePatches = renderHardwarePatches;
 
 function showPatchContextMenu(e, bankName, idx, source) {
-    var oldMenu = document.querySelector('.patch-context-menu');
-    if (oldMenu) oldMenu.remove();
+    const oldMenu = document.querySelector('.patch-context-menu');
+    if (oldMenu) {oldMenu.remove();}
     
-    var patch = (source === 'hw')
+    const patch = (source === 'hw')
         ? hardwareBanks[bankName][idx]
         : loadedBanks[bankName][idx];
-    if (!patch || !patch.unpackedBytes) return;
+    if (!patch || !patch.unpackedBytes) {return;}
     
-    var menu = document.createElement('div');
+    const menu = document.createElement('div');
     menu.className = 'patch-context-menu';
     menu.style.cssText = 'position:fixed;z-index:10000;background:var(--bg-elevated,#1a1a1a);border:1px solid var(--border-dim,#333);border-radius:4px;padding:4px 0;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,0.6);font-size:11px;font-family:sans-serif;';
     menu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
     menu.style.top = Math.min(e.clientY, window.innerHeight - 120) + 'px';
     
-    var title = document.createElement('div');
+    const title = document.createElement('div');
     title.style.cssText = 'padding:4px 10px;color:var(--text-dim,#888);font-size:9px;border-bottom:1px solid var(--border-dim,#333);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.5px;';
     title.textContent = patch.name;
     menu.appendChild(title);
     
-    var exportItem = _createContextMenuItem('Export .syx', function() {
+    const exportItem = _createContextMenuItem('Export .syx', function() {
         if (typeof window.exportSinglePatch === 'function') {
             window.exportSinglePatch(patch, (idx + 1).toString().padStart(3, '0') + '_' + patch.name.replace(/[^a-zA-Z0-9_\-]/g, '_') + '.syx');
         }
@@ -121,29 +121,29 @@ function showPatchContextMenu(e, bankName, idx, source) {
     menu.appendChild(exportItem);
     
     if (source === 'hw') {
-        var loadItem = _createContextMenuItem('Load to Editor', function() {
-            if (typeof window.triggerMidiDump === 'function') window.triggerMidiDump(patch);
+        const loadItem = _createContextMenuItem('Load to Editor', function() {
+            if (typeof window.triggerMidiDump === 'function') {window.triggerMidiDump(patch);}
             menu.remove();
         });
         menu.appendChild(loadItem);
     }
     
     if (source === 'local' && !FACTORY_BANKS_LIST.includes(bankName)) {
-        var renameItem = _createContextMenuItem('Rename...', function() {
-            var newName = prompt('New name:', patch.name);
+        const renameItem = _createContextMenuItem('Rename...', function() {
+            const newName = prompt('New name:', patch.name);
             if (newName && newName.trim()) {
                 patch.name = newName.trim();
-                for (var k = 0; k < 15; k++) {
+                for (let k = 0; k < 15; k++) {
                     patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
                 }
                 renderPatchesForBank(currentActiveBank);
-                if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+                if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
             }
             menu.remove();
         });
         menu.appendChild(renameItem);
         
-        var catItem = _createContextMenuItem('Set Category ▸', function() {
+        const catItem = _createContextMenuItem('Set Category ▸', function() {
             menu.remove();
             showCategoryPicker(patch, bankName, idx);
         });
@@ -151,12 +151,12 @@ function showPatchContextMenu(e, bankName, idx, source) {
     }
 
     if (source === 'local' && !FACTORY_BANKS_LIST.includes(bankName)) {
-        var isFav = patch.meta && patch.meta.favorite;
-        var favItem = _createContextMenuItem(isFav ? '★ Unfavorite' : '☆ Favorite', function() {
-            if (!patch.meta) patch.meta = window.createDefaultMeta();
+        const isFav = patch.meta && patch.meta.favorite;
+        const favItem = _createContextMenuItem(isFav ? '★ Unfavorite' : '☆ Favorite', function() {
+            if (!patch.meta) {patch.meta = window.createDefaultMeta();}
             patch.meta.favorite = !patch.meta.favorite;
             renderPatchesForBank(currentActiveBank);
-            if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+            if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
             menu.remove();
         });
         menu.appendChild(favItem);
@@ -164,7 +164,7 @@ function showPatchContextMenu(e, bankName, idx, source) {
     
     document.body.appendChild(menu);
     
-    var closeMenu = function(ev) {
+    const closeMenu = function(ev) {
         if (!menu.contains(ev.target)) {
             menu.remove();
             document.removeEventListener('click', closeMenu);
@@ -176,7 +176,7 @@ function showPatchContextMenu(e, bankName, idx, source) {
 }
 
 function _createContextMenuItem(text, callback) {
-    var item = document.createElement('div');
+    const item = document.createElement('div');
     item.style.cssText = 'padding:6px 10px;cursor:pointer;color:var(--text-primary,#ddd);transition:background 0.1s;';
     item.textContent = text;
     item.addEventListener('mouseenter', function() {
@@ -190,41 +190,41 @@ function _createContextMenuItem(text, callback) {
 }
 
 function showCategoryPicker(patch) {
-    var CATEGORIES = ['', 'Bass', 'Lead', 'Pad', 'FX', 'Keys', 'Perc', 'Synth', 'Other'];
-    var current = patch.meta && patch.meta.category ? patch.meta.category : '';
+    const CATEGORIES = ['', 'Bass', 'Lead', 'Pad', 'FX', 'Keys', 'Perc', 'Synth', 'Other'];
+    const current = patch.meta && patch.meta.category ? patch.meta.category : '';
     
-    var promptMsg = 'Set category for "' + patch.name + '":\n\n';
+    let promptMsg = 'Set category for "' + patch.name + '":\n\n';
     CATEGORIES.forEach(function(c, i) {
-        var marker = c === current ? ' ●' : '';
+        const marker = c === current ? ' ●' : '';
         promptMsg += (i + 1) + '. ' + c + marker + '\n';
     });
     promptMsg += '\nEnter number (1-' + CATEGORIES.length + ') or leave empty to cancel:';
     
-    var choice = prompt(promptMsg);
-    if (choice === null) return;
-    var num = parseInt(choice, 10);
-    if (isNaN(num) || num < 1 || num > CATEGORIES.length) return;
+    const choice = prompt(promptMsg);
+    if (choice === null) {return;}
+    const num = parseInt(choice, 10);
+    if (isNaN(num) || num < 1 || num > CATEGORIES.length) {return;}
     
-    if (!patch.meta) patch.meta = window.createDefaultMeta();
+    if (!patch.meta) {patch.meta = window.createDefaultMeta();}
     patch.meta.category = CATEGORIES[num - 1];
     renderPatchesForBank(currentActiveBank);
-    if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+    if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
 }
 
 function renderPatchesForBank(bankName, searchTerm) {
-    var grid = document.getElementById('browser-patches-grid');
-    if (!grid) return;
+    const grid = document.getElementById('browser-patches-grid');
+    if (!grid) {return;}
     grid.innerHTML = '';
 
-    var patches = loadedBanks[bankName] || [];
-    var searchFilter = searchTerm ? searchTerm.toLowerCase().trim() : '';
-    var categoryFilter = (typeof window._currentCategoryFilter !== 'undefined' && window._currentCategoryFilter !== '')
+    const patches = loadedBanks[bankName] || [];
+    const searchFilter = searchTerm ? searchTerm.toLowerCase().trim() : '';
+    const categoryFilter = (typeof window._currentCategoryFilter !== 'undefined' && window._currentCategoryFilter !== '')
         ? window._currentCategoryFilter : null;
-    var isGridView = window._browserViewMode === 'grid';
+    const isGridView = window._browserViewMode === 'grid';
     
     grid.style.gridTemplateColumns = isGridView ? 'repeat(3, 1fr)' : '1fr';
     
-    var visibleCount = 0;
+    let visibleCount = 0;
 
     for (var i = 0; i < 128; i++) {
         var patch = patches[i] || { name: '[Empty Slot ' + (i + 1) + ']', unpackedBytes: null, meta: null };
@@ -240,9 +240,9 @@ function renderPatchesForBank(bankName, searchTerm) {
         var el = document.createElement('div');
         el.className = 'patch-item';
         el.draggable = true;
-        if (i === currentActivePatchIndex && bankName === currentActiveBank) el.classList.add('active');
+        if (i === currentActivePatchIndex && bankName === currentActiveBank) {el.classList.add('active');}
         
-        var label = (i + 1).toString().padStart(3, '0') + ': ' + patch.name;
+        const label = (i + 1).toString().padStart(3, '0') + ': ' + patch.name;
         if (patch.meta && patch.meta.category) {
             el.innerHTML = label + ' <span class="cat-badge">' + patch.meta.category + '</span>';
         } else {
@@ -257,7 +257,7 @@ function renderPatchesForBank(bankName, searchTerm) {
         el.addEventListener('drop', (e) => {
             e.preventDefault();
             if (FACTORY_BANKS_LIST.includes(bankName)) {
-                alert("No está permitido modificar bancos de fábrica.");
+                alert('No está permitido modificar bancos de fábrica.');
                 return;
             }
             const dragData = JSON.parse(e.dataTransfer.getData('text/plain'));
@@ -273,11 +273,11 @@ function renderPatchesForBank(bankName, searchTerm) {
 
         el.addEventListener('dblclick', () => {
             if (FACTORY_BANKS_LIST.includes(bankName)) {
-                alert("No está permitido modificar presets de fábrica.");
+                alert('No está permitido modificar presets de fábrica.');
                 return;
             }
-            const newName = prompt("Escribe el nuevo nombre del preset:", patch.name);
-            if (newName && newName.trim() !== "") {
+            const newName = prompt('Escribe el nuevo nombre del preset:', patch.name);
+            if (newName && newName.trim() !== '') {
                 patch.name = newName.trim();
                 for (let k = 0; k < 15; k++) {
                     patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
@@ -298,7 +298,7 @@ function renderPatchesForBank(bankName, searchTerm) {
     }
 
     if (visibleCount === 0 && (searchFilter || categoryFilter)) {
-        var emptyMsg = searchFilter ? 'No patches match "' + searchTerm + '"' : 'No patches in this category';
+        const emptyMsg = searchFilter ? 'No patches match "' + searchTerm + '"' : 'No patches in this category';
         grid.innerHTML = '<div class="text-dim text-center" style="padding:30px;font-size:var(--text-md)">\uD83D\uDD0D ' + emptyMsg + '</div>';
     }
 }
@@ -331,21 +331,21 @@ function swapPresets(src, dest) {
     renderHardwarePatches();
     renderPatchesForBank(currentActiveBank);
     if (src.source !== 'hw' || dest.source !== 'hw') {
-        if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+        if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
     }
 }
 
 function navigatePatch(direction) {
     const bank = loadedBanks[currentActiveBank];
-    if (!bank) return;
+    if (!bank) {return;}
     let newIdx = currentActivePatchIndex + direction;
-    if (newIdx < 0) newIdx = 127;
-    if (newIdx > 127) newIdx = 0;
+    if (newIdx < 0) {newIdx = 127;}
+    if (newIdx > 127) {newIdx = 0;}
     currentActivePatchIndex = newIdx;
     window.currentActivePatchIndex = newIdx;
     const patch = bank[newIdx];
     if (patch && patch.unpackedBytes) {
-        if (typeof window.triggerMidiDump === 'function') window.triggerMidiDump(patch);
+        if (typeof window.triggerMidiDump === 'function') {window.triggerMidiDump(patch);}
         const items = document.querySelectorAll('#browser-patches-grid .patch-item');
         items.forEach((el, i) => el.classList.toggle('active', i === newIdx));
     }
@@ -376,35 +376,41 @@ function initBankManager() {
     });
 
     const progMngrBtn = document.getElementById('programmer-bank-mngr-btn');
-    if (progMngrBtn) progMngrBtn.addEventListener('click', showBrowser);
+    if (progMngrBtn) {progMngrBtn.addEventListener('click', showBrowser);}
 
     const closeBtn = document.getElementById('browser-close-btn');
-    if (closeBtn) closeBtn.addEventListener('click', () => browserModal.style.display = 'none');
+    if (closeBtn) {closeBtn.addEventListener('click', () => browserModal.style.display = 'none');}
 
     const patchUpBtn = document.getElementById('programmer-patch-up-btn');
-    if (patchUpBtn) patchUpBtn.addEventListener('click', () => navigatePatch(-1));
+    if (patchUpBtn) {patchUpBtn.addEventListener('click', () => {
+        if (typeof window.playKeyLedAnimation === 'function') {window.playKeyLedAnimation('patch-up');}
+        navigatePatch(-1);
+    });}
     const patchDownBtn = document.getElementById('programmer-patch-down-btn');
-    if (patchDownBtn) patchDownBtn.addEventListener('click', () => navigatePatch(+1));
+    if (patchDownBtn) {patchDownBtn.addEventListener('click', () => {
+        if (typeof window.playKeyLedAnimation === 'function') {window.playKeyLedAnimation('patch-down');}
+        navigatePatch(+1);
+    });}
 
     window._currentCategoryFilter = '';
     window._browserViewMode = 'list';
 
-    var localSelect = document.getElementById('local-bank-select');
+    const localSelect = document.getElementById('local-bank-select');
     if (localSelect) {
         localSelect.addEventListener('change', function(e) {
             currentActiveBank = e.target.value;
             window.currentActiveBank = currentActiveBank;
-            var searchInput = document.getElementById('browser-search-input');
-            if (searchInput) searchInput.value = '';
+            const searchInput = document.getElementById('browser-search-input');
+            if (searchInput) {searchInput.value = '';}
             renderPatchesForBank(currentActiveBank);
         });
     }
     
-    var searchInput = document.getElementById('browser-search-input');
-    var searchClear = document.getElementById('browser-search-clear');
+    const searchInput = document.getElementById('browser-search-input');
+    const searchClear = document.getElementById('browser-search-clear');
     
     function applySearch() {
-        var term = searchInput ? searchInput.value : '';
+        const term = searchInput ? searchInput.value : '';
         renderPatchesForBank(currentActiveBank, term);
     }
     
@@ -413,16 +419,16 @@ function initBankManager() {
     }
     if (searchClear) {
         searchClear.addEventListener('click', function() {
-            if (searchInput) searchInput.value = '';
+            if (searchInput) {searchInput.value = '';}
             applySearch();
-            if (searchInput) searchInput.focus();
+            if (searchInput) {searchInput.focus();}
         });
     }
 
-    var catFilters = document.querySelectorAll('.cat-filter');
+    const catFilters = document.querySelectorAll('.cat-filter');
     catFilters.forEach(function(el) {
         el.addEventListener('click', function() {
-            var cat = this.getAttribute('data-cat');
+            const cat = this.getAttribute('data-cat');
             window._currentCategoryFilter = cat;
             catFilters.forEach(function(c) { c.classList.remove('active'); });
             this.classList.add('active');
@@ -430,7 +436,7 @@ function initBankManager() {
         });
     });
 
-    var viewToggle = document.getElementById('browser-view-toggle');
+    const viewToggle = document.getElementById('browser-view-toggle');
     if (viewToggle) {
         viewToggle.addEventListener('click', function() {
             if (window._browserViewMode === 'list') {
@@ -454,7 +460,7 @@ function initBankManager() {
                 currentHwBankLetter = l.toUpperCase();
                 window.currentHwBankLetter = currentHwBankLetter;
                 document.querySelectorAll('.manager-btn').forEach(b => {
-                    if (b.id.startsWith('hw-bank-')) b.style.background = 'var(--bg-hover)';
+                    if (b.id.startsWith('hw-bank-')) {b.style.background = 'var(--bg-hover)';}
                 });
                 btn.style.background = 'var(--brand-accent)';
                 renderHardwarePatches();
@@ -465,64 +471,64 @@ function initBankManager() {
     const createBankBtn = document.getElementById('mngr-create-bank');
     if (createBankBtn) {
         createBankBtn.addEventListener('click', () => {
-            const name = prompt("Escribe el nombre del nuevo banco local:", `User Bank ${Object.keys(loadedBanks).length - 7}`);
-            if (!name || name.trim() === "" || loadedBanks[name]) return;
+            const name = prompt('Escribe el nombre del nuevo banco local:', `User Bank ${Object.keys(loadedBanks).length - 7}`);
+            if (!name || name.trim() === '' || loadedBanks[name]) {return;}
             loadedBanks[name] = window.createEmptyBank();
             currentActiveBank = name;
             window.currentActiveBank = name;
             updateLocalBanksDropdown();
             renderPatchesForBank(currentActiveBank);
-            if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+            if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
         });
     }
 
     const renameBankBtn = document.getElementById('mngr-rename-bank');
     if (renameBankBtn) {
         renameBankBtn.addEventListener('click', () => {
-            if (FACTORY_BANKS_LIST.includes(currentActiveBank)) return alert("No se pueden renombrar bancos de fábrica.");
+            if (FACTORY_BANKS_LIST.includes(currentActiveBank)) {return alert('No se pueden renombrar bancos de fábrica.');}
             const newName = prompt(`Escribe el nuevo nombre para "${currentActiveBank}":`, currentActiveBank);
-            if (!newName || newName.trim() === "" || loadedBanks[newName]) return;
+            if (!newName || newName.trim() === '' || loadedBanks[newName]) {return;}
             loadedBanks[newName] = loadedBanks[currentActiveBank];
             delete loadedBanks[currentActiveBank];
             currentActiveBank = newName;
             window.currentActiveBank = currentActiveBank;
             updateLocalBanksDropdown();
             renderPatchesForBank(currentActiveBank);
-            if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+            if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
         });
     }
 
     const deleteBankBtn = document.getElementById('mngr-delete-bank');
     if (deleteBankBtn) {
         deleteBankBtn.addEventListener('click', () => {
-            if (FACTORY_BANKS_LIST.includes(currentActiveBank)) return alert("No se pueden borrar bancos de fábrica.");
+            if (FACTORY_BANKS_LIST.includes(currentActiveBank)) {return alert('No se pueden borrar bancos de fábrica.');}
             if (confirm(`¿Borrar banco local "${currentActiveBank}"?`)) {
                 delete loadedBanks[currentActiveBank];
                 currentActiveBank = Object.keys(loadedBanks)[0];
                 window.currentActiveBank = currentActiveBank;
                 updateLocalBanksDropdown();
                 renderPatchesForBank(currentActiveBank);
-                if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+                if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
             }
         });
     }
 
     // Botones de exportación de patch individual en la barra de herramientas local
-    var localToolbar = document.querySelector('.dual-bank-panel:last-child .flex-row.border-bottom');
+    const localToolbar = document.querySelector('.dual-bank-panel:last-child .flex-row.border-bottom');
     if (localToolbar && !document.getElementById('local-export-patch-btn')) {
-        var exportPatchBtn = document.createElement('button');
+        const exportPatchBtn = document.createElement('button');
         exportPatchBtn.id = 'local-export-patch-btn';
         exportPatchBtn.className = 'manager-btn';
         exportPatchBtn.style.cssText = 'background:color-mix(in srgb,var(--accent-green) 15%,transparent);border-color:var(--accent-green);color:var(--accent-green);font-size:9px';
         exportPatchBtn.setAttribute('data-ctrl-tooltip', 'Export current patch as standalone SysEx file (.syx)');
         exportPatchBtn.textContent = 'Export Patch';
         exportPatchBtn.addEventListener('click', function() {
-            var bank = loadedBanks[currentActiveBank];
+            const bank = loadedBanks[currentActiveBank];
             if (!bank || currentActivePatchIndex < 0) {
                 alert('Select a patch first.');
                 return;
             }
-            var patch = bank[currentActivePatchIndex];
+            const patch = bank[currentActivePatchIndex];
             if (typeof window.exportSinglePatch === 'function') {
                 window.exportSinglePatch(patch, (currentActivePatchIndex+1).toString().padStart(3,'0') + '_' + patch.name.replace(/[^a-zA-Z0-9_\-]/g, '_') + '.syx');
             }
@@ -531,8 +537,8 @@ function initBankManager() {
     }
 
     function _initSysexDropZone() {
-        var modal = document.getElementById('browser-modal-backdrop');
-        if (!modal) return;
+        const modal = document.getElementById('browser-modal-backdrop');
+        if (!modal) {return;}
         
         modal.addEventListener('dragover', function(e) {
             e.preventDefault();
@@ -554,30 +560,30 @@ function initBankManager() {
             modal.style.outline = '';
             modal.style.outlineOffset = '';
             
-            var files = e.dataTransfer.files;
-            if (!files || files.length === 0) return;
+            const files = e.dataTransfer.files;
+            if (!files || files.length === 0) {return;}
             
-            var file = files[0];
+            const file = files[0];
             if (!file.name.toLowerCase().endsWith('.syx')) {
                 alert('Solo se admiten archivos .syx (SysEx).');
                 return;
             }
             
-            var reader = new FileReader();
+            const reader = new FileReader();
             reader.onload = function(ev) {
-                var bytes = new Uint8Array(ev.target.result);
-                if (typeof window.parseSyxFile !== 'function') return;
-                var parsed = window.parseSyxFile(bytes);
+                const bytes = new Uint8Array(ev.target.result);
+                if (typeof window.parseSyxFile !== 'function') {return;}
+                const parsed = window.parseSyxFile(bytes);
                 if (parsed.patches.length === 0) {
                     alert('SysEx inválido o archivo vacío.');
                     return;
                 }
                 
                 if (parsed.isSinglePatch) {
-                    var patch = parsed.patches[0];
-                    var bank = loadedBanks[currentActiveBank];
+                    const patch = parsed.patches[0];
+                    const bank = loadedBanks[currentActiveBank];
                     if (bank && bank[currentActivePatchIndex]) {
-                        var confirmed = confirm(
+                        const confirmed = confirm(
                             'Drop SysEx: "' + patch.name + '"\n'
                             + '¿Cargar en el slot actual ' + (currentActivePatchIndex + 1) + '?'
                         );
@@ -589,18 +595,18 @@ function initBankManager() {
                                 window.triggerMidiDump(bank[currentActivePatchIndex]);
                             }
                             renderPatchesForBank(currentActiveBank);
-                            if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+                            if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
                         }
                     }
                 } else {
-                    var bankName = file.name.replace(/\.[^/.]+$/, '');
+                    const bankName = file.name.replace(/\.[^/.]+$/, '');
                     if (confirm('Drop bank "' + bankName + '" con ' + parsed.patches.length + ' patches. ¿Importar?')) {
                         loadedBanks[bankName] = parsed.patches;
                         currentActiveBank = bankName;
                         window.currentActiveBank = bankName;
                         updateLocalBanksDropdown();
                         renderPatchesForBank(currentActiveBank);
-                        if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+                        if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
                     }
                 }
             };
@@ -613,15 +619,15 @@ function initBankManager() {
     if (hwLoadBtn) {
         hwLoadBtn.addEventListener('click', () => {
             if (currentHwPatchIndex === -1) {
-                alert("Selecciona primero un slot de la rejilla de Hardware.");
+                alert('Selecciona primero un slot de la rejilla de Hardware.');
                 return;
             }
             const patch = hardwareBanks[currentHwBankLetter][currentHwPatchIndex];
             if (patch && patch.unpackedBytes) {
-                if (typeof window.triggerMidiDump === 'function') window.triggerMidiDump(patch);
+                if (typeof window.triggerMidiDump === 'function') {window.triggerMidiDump(patch);}
                 const lcdText = document.getElementById('lcd-text');
-                if (lcdText) lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">LOADED FROM SYNTH</span><br><strong>${patch.name.toUpperCase()}</strong>`;
-                if (browserModal) browserModal.style.display = 'none';
+                if (lcdText) {lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">LOADED FROM SYNTH</span><br><strong>${patch.name.toUpperCase()}</strong>`;}
+                if (browserModal) {browserModal.style.display = 'none';}
             }
         });
     }
@@ -630,15 +636,15 @@ function initBankManager() {
     if (localLoadBtn) {
         localLoadBtn.addEventListener('click', () => {
             if (currentActivePatchIndex === -1) {
-                alert("Selecciona primero un slot de la rejilla Local.");
+                alert('Selecciona primero un slot de la rejilla Local.');
                 return;
             }
             const patch = loadedBanks[currentActiveBank][currentActivePatchIndex];
             if (patch && patch.unpackedBytes) {
-                if (typeof window.triggerMidiDump === 'function') window.triggerMidiDump(patch);
+                if (typeof window.triggerMidiDump === 'function') {window.triggerMidiDump(patch);}
                 const lcdText = document.getElementById('lcd-text');
-                if (lcdText) lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">LOADED FROM LIBRARY</span><br><strong>${patch.name.toUpperCase()}</strong>`;
-                if (browserModal) browserModal.style.display = 'none';
+                if (lcdText) {lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">LOADED FROM LIBRARY</span><br><strong>${patch.name.toUpperCase()}</strong>`;}
+                if (browserModal) {browserModal.style.display = 'none';}
             }
         });
     }

@@ -1,0 +1,54 @@
+{
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2022": true
+  },
+  "globals": {
+    "window": "readonly",
+    "document": "readonly",
+    "URL": "readonly",
+    "Blob": "readonly",
+    "Uint8Array": "readonly",
+    "ArrayBuffer": "readonly",
+    "setTimeout": "readonly",
+    "clearTimeout": "readonly",
+    "setInterval": "readonly",
+    "clearInterval": "readonly",
+    "console": "readonly",
+    "module": "readonly",
+    "require": "readonly",
+    "process": "readonly",
+    "__dirname": "readonly",
+    "global": "readonly",
+    "describe": "readonly",
+    "it": "readonly",
+    "expect": "readonly",
+    "vi": "readonly",
+    "beforeEach": "readonly",
+    "afterEach": "readonly"
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "no-undef": "warn",
+    "no-console": "off",
+    "semi": ["warn", "always"],
+    "quotes": ["warn", "single", { "avoidEscape": true }],
+    "eqeqeq": ["warn", "smart"],
+    "curly": "warn",
+    "no-var": "warn",
+    "prefer-const": "warn"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "build*/",
+    "dist/",
+    "WebUI/vendor/",
+    "*.min.js",
+    "artifacts/"
+  ]
+}

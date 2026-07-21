@@ -14,9 +14,16 @@
                 
                 <div class="modal-body" style="overflow-y:auto">
                     <div class="flex-col" style="background:var(--bg-deepest);border:1px solid var(--border-dim);border-radius:var(--radius);padding:10px;gap:5px">
-                        <span class="label text-uppercase text-bold" style="font-size:var(--text-xs);color:var(--text-dim);margin-bottom:5px">Pattern Steps Bipolar Values (-128 to 127)</span>
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <span class="label text-uppercase text-bold" style="font-size:var(--text-xs);color:var(--text-dim)">Pattern Steps Bipolar Values (-128 to 127)</span>
+                            <div class="seq-view-toggle" style="display:flex;gap:3px">
+                                <button class="seq-toggle-btn active" data-view="dom" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-xs);padding:2px 6px;font-size:var(--text-2xs);color:var(--text-secondary);cursor:pointer;font-family:'Share Tech Mono',monospace">DOM</button>
+                                <button class="seq-toggle-btn" data-view="canvas" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-xs);padding:2px 6px;font-size:var(--text-2xs);color:var(--text-secondary);cursor:pointer;font-family:'Share Tech Mono',monospace">Canvas</button>
+                            </div>
+                        </div>
                         <div class="seq-steps-grid" style="display:grid;grid-template-columns:repeat(32,1fr);gap:4px;height:110px;background:var(--bg-deepest);border:1px solid var(--bg-elevated);padding:5px;border-radius:var(--radius-sm);position:relative;align-items:flex-end"></div>
                         <div class="seq-steps-labels" style="display:grid;grid-template-columns:repeat(32,1fr);gap:4px;text-align:center;font-size:var(--text-2xs);color:var(--text-faint)"></div>
+                        <canvas class="seq-steps-canvas" style="display:none;width:100%;height:120px;border:1px solid var(--bg-elevated);border-radius:var(--radius-sm);background:var(--bg-deepest)"></canvas>
                     </div>
 
                     <div style="display:grid;grid-template-columns:1.5fr 2fr 2.5fr;gap:15px">
@@ -25,7 +32,7 @@
                             <div class="flex-col gap-6">
                                 <div class="flex-row justify-between items-center">
                                     <span class="label text-sm text-dim">Clock</span>
-                                    <select id="modal-seq-clock-select" class="modal-select" style="width:60%"><option value="0">1/2</option><option value="1">3/8</option><option value="2">1/3</option><option value="3">1/4</option><option value="4">3/16</option><option value="5">1/6</option><option value="6">1/8</option><option value="7">1/12</option><option value="8">1/16</option><option value="9">1/24</option><option value="10">1/32</option></select>
+                                    <select id="modal-seq-clock-select" class="modal-select" style="width:60%"><option value="0">1/2</option><option value="1">3/8</option><option value="2">1/3</option><option value="3">1/4</option><option value="4">3/16</option><option value="5">1/6</option><option value="6">1/8</option><option value="7">1/12</option><option value="8">1/16</option><option value="9">1/24</option><option value="10">1/32</option><option value="11">1/48</option><option value="12">1/64</option><option value="13">1/96</option><option value="14">1/128</option><option value="15">1/192</option></select>
                                 </div>
                                 <div class="flex-row justify-between items-center">
                                     <span class="label text-sm text-dim">Length</span>

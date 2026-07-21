@@ -17,7 +17,7 @@
 // Constants (from panel_oscilloscope.js)
 // =============================================================================
 
-var SCOPE_COLORS = [
+const SCOPE_COLORS = [
     { waveform: '#ff9900',  grid: 'rgba(255,153,0,0.03)',  center: 'rgba(255,153,0,0.08)',  text: 'rgba(255,153,0,0.4)',  glow: '#ff9900',  trigger: 'rgba(255,153,0,0.15)', name: 'Brand' },
     { waveform: '#00ff66',  grid: 'rgba(0,255,102,0.03)',  center: 'rgba(0,255,102,0.08)',  text: 'rgba(0,255,102,0.4)',  glow: '#00ff66',  trigger: 'rgba(0,255,102,0.15)', name: 'CRT Green' },
     { waveform: '#00ccff',  grid: 'rgba(0,204,255,0.03)',  center: 'rgba(0,204,255,0.08)',  text: 'rgba(0,204,255,0.4)',  glow: '#00ccff',  trigger: 'rgba(0,204,255,0.15)', name: 'Blue' },
@@ -29,26 +29,26 @@ var SCOPE_COLORS = [
 // =============================================================================
 
 function hexToRgba(hex, alpha) {
-    var r = parseInt(hex.slice(1, 3), 16);
-    var g = parseInt(hex.slice(3, 5), 16);
-    var b = parseInt(hex.slice(5, 7), 16);
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
     return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
 }
 
 // Source: if (edge===0) rising (prev<=0 && curr>0); else falling (prev>=0 && curr<0)
 function _findTriggerPoint(samples, mode, edge) {
-    if (mode === 0 || !samples || samples.length < 4) return 0;
-    var threshold = 0.0;
-    var searchStart = Math.floor(samples.length * 0.1);
-    var searchEnd = Math.floor(samples.length * 0.8);
-    for (var i = searchStart; i < searchEnd; i++) {
-        var prev = samples[i - 1];
-        var curr = samples[i];
-        if (typeof prev !== 'number' || typeof curr !== 'number') continue;
+    if (mode === 0 || !samples || samples.length < 4) {return 0;}
+    const threshold = 0.0;
+    const searchStart = Math.floor(samples.length * 0.1);
+    const searchEnd = Math.floor(samples.length * 0.8);
+    for (let i = searchStart; i < searchEnd; i++) {
+        const prev = samples[i - 1];
+        const curr = samples[i];
+        if (typeof prev !== 'number' || typeof curr !== 'number') {continue;}
         if (edge === 0) {
-            if (prev <= threshold && curr > threshold) return i;
+            if (prev <= threshold && curr > threshold) {return i;}
         } else {
-            if (prev >= threshold && curr < threshold) return i;
+            if (prev >= threshold && curr < threshold) {return i;}
         }
     }
     return -1;
@@ -57,21 +57,21 @@ function _findTriggerPoint(samples, mode, edge) {
 function getScopeColors(state, colors) {
     state = state || {};
     colors = colors || SCOPE_COLORS;
-    var idx = Math.max(0, Math.min(colors.length - 1, state._scopeColorScheme || 0));
+    const idx = Math.max(0, Math.min(colors.length - 1, state._scopeColorScheme || 0));
     return colors[idx];
 }
 
 function calcPeakLevel(samples) {
-    var peak = 0;
-    for (var i = 0; i < samples.length; i++) {
-        var s = Math.abs(samples[i]);
-        if (s > peak) peak = s;
+    let peak = 0;
+    for (let i = 0; i < samples.length; i++) {
+        const s = Math.abs(samples[i]);
+        if (s > peak) {peak = s;}
     }
     return peak;
 }
 
 function calcPeakDb(peakLevel) {
-    if (peakLevel < 0.0001) return '-\\u221E';
+    if (peakLevel < 0.0001) {return '-\\u221E';}
     return (20.0 * Math.log10(peakLevel)).toFixed(1) + ' dB';
 }
 
@@ -95,9 +95,9 @@ describe('SCOPE_COLORS', function () {
     });
 
     it('each scheme has all required properties', function () {
-        var required = ['waveform', 'grid', 'center', 'text', 'glow', 'trigger', 'name'];
-        for (var i = 0; i < SCOPE_COLORS.length; i++) {
-            for (var j = 0; j < required.length; j++) {
+        const required = ['waveform', 'grid', 'center', 'text', 'glow', 'trigger', 'name'];
+        for (let i = 0; i < SCOPE_COLORS.length; i++) {
+            for (let j = 0; j < required.length; j++) {
                 expect(SCOPE_COLORS[i]).toHaveProperty(required[j]);
             }
         }
@@ -109,17 +109,17 @@ describe('SCOPE_COLORS', function () {
     });
 
     it('each scheme has unique name', function () {
-        var names = {};
-        for (var i = 0; i < SCOPE_COLORS.length; i++) {
+        const names = {};
+        for (let i = 0; i < SCOPE_COLORS.length; i++) {
             names[SCOPE_COLORS[i].name] = (names[SCOPE_COLORS[i].name] || 0) + 1;
         }
-        for (var name in names) {
+        for (const name in names) {
             expect(names[name]).toBe(1);
         }
     });
 
     it('all waveform colors are valid hex strings', function () {
-        for (var i = 0; i < SCOPE_COLORS.length; i++) {
+        for (let i = 0; i < SCOPE_COLORS.length; i++) {
             expect(SCOPE_COLORS[i].waveform).toMatch(/^#[0-9a-f]{6}$/);
         }
     });
@@ -165,27 +165,27 @@ describe('findTriggerPoint', function () {
 
     it('detects rising zero-crossing (edge=0): prev <= 0 and curr > 0', function () {
         // Sine wave crossing from negative to positive
-        var samples = [-0.5, -0.3, -0.1, 0.1, 0.3, 0.5];
-        var idx = _findTriggerPoint(samples, 1, 0);
+        const samples = [-0.5, -0.3, -0.1, 0.1, 0.3, 0.5];
+        const idx = _findTriggerPoint(samples, 1, 0);
         expect(idx).toBe(3); // i=3: prev=-0.1 <= 0, curr=0.1 > 0
     });
 
     it('detects falling zero-crossing (edge=1): prev >= 0 and curr < 0', function () {
-        var samples = [0.5, 0.3, 0.1, -0.1, -0.3, -0.5];
-        var idx = _findTriggerPoint(samples, 1, 1);
+        const samples = [0.5, 0.3, 0.1, -0.1, -0.3, -0.5];
+        const idx = _findTriggerPoint(samples, 1, 1);
         expect(idx).toBe(3); // i=3: prev=0.1 >= 0, curr=-0.1 < 0
     });
 
     it('returns -1 when no zero-crossing found in search window', function () {
         // All positive samples, no crossing
-        var samples = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-        var idx = _findTriggerPoint(samples, 1, 0);
+        const samples = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
+        const idx = _findTriggerPoint(samples, 1, 0);
         expect(idx).toBe(-1);
     });
 
     it('skips NaN or non-number samples without throwing', function () {
-        var samples = [-0.3, -0.1, NaN, 0.2, 0.4];
-        var idx = _findTriggerPoint(samples, 1, 0);
+        const samples = [-0.3, -0.1, NaN, 0.2, 0.4];
+        const idx = _findTriggerPoint(samples, 1, 0);
         // Should skip NaN at index 2, check i=3: prev=NaN → typeof !== 'number' → skip
         // i=4: starts at searchStart = floor(5*0.1) = 0, searchEnd = floor(5*0.8) = 4
         // i=0: prev=samples[-1]=undefined → skip... actually samples[-1] is undefined
@@ -195,25 +195,25 @@ describe('findTriggerPoint', function () {
 
     it('searches in the 10%-80% range of samples', function () {
         // Create a long sample with the only zero crossing at index 5
-        var samples = [0.1, 0.2, 0.3, 0.4, 0.5, -0.1, 0.1, 0.2, 0.3, 0.4];
+        const samples = [0.1, 0.2, 0.3, 0.4, 0.5, -0.1, 0.1, 0.2, 0.3, 0.4];
         // searchStart = floor(10*0.1) = 1
         // searchEnd = floor(10*0.8) = 8
         // i=6: prev=-0.1 <= 0, curr=0.1 > 0 → returns 6
-        var idx = _findTriggerPoint(samples, 1, 0);
+        const idx = _findTriggerPoint(samples, 1, 0);
         expect(idx).toBe(6);
     });
 
     it('detects crossing exactly at zero: prev=0, curr>0', function () {
-        var samples = [-0.3, 0.0, 0.2, 0.4, 0.6];
+        const samples = [-0.3, 0.0, 0.2, 0.4, 0.6];
         // i=2: prev=0.0 <= 0, curr=0.2 > 0 → returns 2
-        var idx = _findTriggerPoint(samples, 1, 0);
+        const idx = _findTriggerPoint(samples, 1, 0);
         expect(idx).toBe(2);
     });
 
     it('detects crossing exactly at zero: prev=0, curr<0 for falling edge', function () {
-        var samples = [0.3, 0.0, -0.2, -0.4, -0.6];
+        const samples = [0.3, 0.0, -0.2, -0.4, -0.6];
         // i=2: prev=0.0 >= 0, curr=-0.2 < 0 → returns 2
-        var idx = _findTriggerPoint(samples, 1, 1);
+        const idx = _findTriggerPoint(samples, 1, 1);
         expect(idx).toBe(2);
     });
 
@@ -226,43 +226,43 @@ describe('findTriggerPoint', function () {
 describe('getScopeColors', function () {
 
     it('returns first scheme (Brand) when state has no color setting', function () {
-        var colors = getScopeColors({});
+        const colors = getScopeColors({});
         expect(colors.name).toBe('Brand');
     });
 
     it('returns scheme at index from state._scopeColorScheme', function () {
-        var colors = getScopeColors({ _scopeColorScheme: 1 }, SCOPE_COLORS);
+        const colors = getScopeColors({ _scopeColorScheme: 1 }, SCOPE_COLORS);
         expect(colors.name).toBe('CRT Green');
         expect(colors.waveform).toBe('#00ff66');
     });
 
     it('returns CRT Green at index 1', function () {
-        var colors = getScopeColors({ _scopeColorScheme: 1 }, SCOPE_COLORS);
+        const colors = getScopeColors({ _scopeColorScheme: 1 }, SCOPE_COLORS);
         expect(colors.name).toBe('CRT Green');
     });
 
     it('returns Blue at index 2', function () {
-        var colors = getScopeColors({ _scopeColorScheme: 2 }, SCOPE_COLORS);
+        const colors = getScopeColors({ _scopeColorScheme: 2 }, SCOPE_COLORS);
         expect(colors.name).toBe('Blue');
     });
 
     it('returns Amber at index 3', function () {
-        var colors = getScopeColors({ _scopeColorScheme: 3 }, SCOPE_COLORS);
+        const colors = getScopeColors({ _scopeColorScheme: 3 }, SCOPE_COLORS);
         expect(colors.name).toBe('Amber');
     });
 
     it('clamps negative index to 0', function () {
-        var colors = getScopeColors({ _scopeColorScheme: -1 }, SCOPE_COLORS);
+        const colors = getScopeColors({ _scopeColorScheme: -1 }, SCOPE_COLORS);
         expect(colors.name).toBe('Brand');
     });
 
     it('clamps out-of-range index to last scheme', function () {
-        var colors = getScopeColors({ _scopeColorScheme: 10 }, SCOPE_COLORS);
+        const colors = getScopeColors({ _scopeColorScheme: 10 }, SCOPE_COLORS);
         expect(colors.name).toBe('Amber');
     });
 
     it('defaults to 0 when state is empty', function () {
-        var colors = getScopeColors({});
+        const colors = getScopeColors({});
         expect(colors.name).toBe('Brand');
     });
 
@@ -275,7 +275,7 @@ describe('getScopeColors', function () {
 describe('calcPeakLevel', function () {
 
     it('returns 1.0 for samples with peak at 1.0', function () {
-        var samples = [0.5, -0.3, 1.0, -0.8, 0.2];
+        const samples = [0.5, -0.3, 1.0, -0.8, 0.2];
         expect(calcPeakLevel(samples)).toBe(1.0);
     });
 
@@ -284,7 +284,7 @@ describe('calcPeakLevel', function () {
     });
 
     it('finds peak with negative values', function () {
-        var samples = [0.1, -0.2, 0.3, -0.9, 0.5];
+        const samples = [0.1, -0.2, 0.3, -0.9, 0.5];
         expect(calcPeakLevel(samples)).toBe(0.9);
     });
 

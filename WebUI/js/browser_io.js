@@ -4,6 +4,9 @@
  */
 
 async function loadAllFactoryBanksNatively() {
+    if (window.dualMidiBridge && typeof window.dualMidiBridge.waitForReady === 'function') {
+        await window.dualMidiBridge.waitForReady(10000);
+    }
     const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
     for (const letter of letters) {
         const bankName = `Factory Bank ${letter}`;
@@ -14,14 +17,14 @@ async function loadAllFactoryBanksNatively() {
         if (window.dualMidiBridge && window.dualMidiBridge.isJuce) {
             try {
                 const hexStr = await window.dualMidiBridge.readFactoryBankFile(letter);
-                console.log(`[BankManager] readFactoryBankFile(${letter}) retornó:`, hexStr ? (hexStr.length + " caracteres") : "null/undefined");
+                console.log(`[BankManager] readFactoryBankFile(${letter}) retornó:`, hexStr ? (hexStr.length + ' caracteres') : 'null/undefined');
                 if (hexStr && typeof hexStr === 'string' && hexStr.length > 0) {
                     const cleanHex = hexStr.replace(/\s/g, '');
                     bytes = new Uint8Array(cleanHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
                     console.log(`[BankManager] Banco ${letter} cargado via JUCE nativo: ${bytes.length} bytes`);
                 }
             } catch (err) {
-                console.warn("[BankManager] Error cargando banco nativo " + letter + ", intentando fetch...", err);
+                console.warn('[BankManager] Error cargando banco nativo ' + letter + ', intentando fetch...', err);
             }
         }
         
@@ -35,7 +38,7 @@ async function loadAllFactoryBanksNatively() {
                     console.log(`[BankManager] Banco ${letter} cargado via HTTP fetch: ${bytes.length} bytes`);
                 }
             } catch (err) {
-                console.error("[BankManager] Error en fetch de banco de fabrica " + letter, err);
+                console.error('[BankManager] Error en fetch de banco de fabrica ' + letter, err);
             }
         }
 
@@ -44,7 +47,7 @@ async function loadAllFactoryBanksNatively() {
             const numPatches = Math.floor(bytes.length / patchSize);
             for (let i = 0; i < Math.min(128, numPatches); i++) {
                 const offset = i * patchSize;
-                const packedPayload = bytes.slice(offset + 8, offset + 286);
+                const packedPayload = bytes.slice(offset + 10, offset + 288); // Cabecera de 10 bytes, payload de 278 bytes
                 const unpackedBytes = window.unpack7to8(packedPayload);
                 
                 const patchName = window.extractNameFromRawSysex(bytes, offset) || `Factory Patch ${i+1}`;
@@ -61,7 +64,7 @@ async function loadAllFactoryBanksNatively() {
         }
     }
     
-    var userBanksLoaded = window._loadUserBanksFromStorage();
+    const userBanksLoaded = window._loadUserBanksFromStorage();
     if (!userBanksLoaded) {
         window.loadedBanks['User Bank 1'] = window.createEmptyBank();
     }
@@ -69,35 +72,38 @@ async function loadAllFactoryBanksNatively() {
     window.currentActiveBank = 'Factory Bank A';
     window.currentActivePatchIndex = 0;
 
-    if (typeof window.updateLocalBanksDropdown === 'function') window.updateLocalBanksDropdown();
-    if (typeof window.renderPatchesForBank === 'function') window.renderPatchesForBank(window.currentActiveBank);
-    if (typeof window.renderHardwarePatches === 'function') window.renderHardwarePatches();
+    if (typeof window.updateLocalBanksDropdown === 'function') {window.updateLocalBanksDropdown();}
+    if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(window.currentActiveBank);}
+    if (typeof window.renderHardwarePatches === 'function') {window.renderHardwarePatches();}
 
     const initialPatch = window.loadedBanks['Factory Bank A'] && window.loadedBanks['Factory Bank A'][0];
     if (initialPatch) {
         const lcdText = document.getElementById('lcd-text');
-        if (lcdText) lcdText.innerText = initialPatch.name.toUpperCase();
+        if (lcdText) {lcdText.innerText = initialPatch.name.toUpperCase();}
         if (window.dualMidiBridge && typeof window.dualMidiBridge.waitForReady === 'function') {
             await window.dualMidiBridge.waitForReady(10000);
         }
         if (initialPatch.unpackedBytes) {
-            console.log("[initBankManager] Cargando preset inicial:", initialPatch.name);
-            window.triggerMidiDump(initialPatch);
+            console.log('[initBankManager] Cargando preset inicial:', initialPatch.name);
+            // Pequeño delay para que el motor DSP esté completamente inicializado antes del primer dump
+            setTimeout(() => {
+                window.triggerMidiDump(initialPatch);
+            }, 500);
         }
     }
 }
 
 function parseSyxFile(bytes) {
-    var patchSize = 291;
-    var num = Math.floor(bytes.length / patchSize);
-    if (num === 0) return { patches: [], isSinglePatch: false };
+    const patchSize = 291;
+    const num = Math.floor(bytes.length / patchSize);
+    if (num === 0) {return { patches: [], isSinglePatch: false };}
     
-    var patches = [];
-    for (var i = 0; i < Math.min(128, num); i++) {
-        var offset = i * patchSize;
-        var packedPayload = bytes.slice(offset + 8, offset + 286);
-        var unpackedBytes = window.unpack7to8(packedPayload);
-        var patchName = window.extractNameFromRawSysex(bytes, offset) || 'Patch ' + (i + 1);
+    const patches = [];
+    for (let i = 0; i < Math.min(128, num); i++) {
+        const offset = i * patchSize;
+        const packedPayload = bytes.slice(offset + 10, offset + 288); // Cabecera de 10 bytes, payload de 278 bytes
+        const unpackedBytes = window.unpack7to8(packedPayload);
+        const patchName = window.extractNameFromRawSysex(bytes, offset) || 'Patch ' + (i + 1);
         patches.push({
             index: i,
             name: patchName,
@@ -113,28 +119,29 @@ function exportSinglePatch(patch, fileName) {
         alert('No patch data to export.');
         return;
     }
-    var syxMsg = window.buildSingleSysex(patch);
-    var blob = new Blob([syxMsg], { type: 'application/octet-stream' });
-    var link = document.createElement('a');
+    const syxMsg = window.buildSingleSysex(patch);
+    const blob = new Blob([syxMsg], { type: 'application/octet-stream' });
+    const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = fileName || (patch.name.replace(/[^a-zA-Z0-9_\-]/g, '_') + '.syx');
     link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 5000);
     return true;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    var _fetchBankCancel = false;
-    var _fetchBankProgress = 0;
-    var _fetchBankTotal = 128;
+    let _fetchBankCancel = false;
+    let _fetchBankProgress = 0;
+    let _fetchBankTotal = 128;
 
     function _updateFetchProgress() {
-        var lcdText = document.getElementById('lcd-text');
-        var fetchBtn = document.getElementById('hw-fetch-from-synth');
-        if (!lcdText) return;
-        var pct = Math.round(_fetchBankProgress / _fetchBankTotal * 100);
-        var barLen = Math.round(_fetchBankProgress / _fetchBankTotal * 20);
-        var bar = '\u2588'.repeat(barLen) + '\u2591'.repeat(20 - barLen);
-        var html = '<span style="font-size:9px; opacity:0.6;">FETCHING BANK ' + window.currentHwBankLetter + '</span><br>'
+        const lcdText = document.getElementById('lcd-text');
+        const fetchBtn = document.getElementById('hw-fetch-from-synth');
+        if (!lcdText) {return;}
+        const pct = Math.round(_fetchBankProgress / _fetchBankTotal * 100);
+        const barLen = Math.round(_fetchBankProgress / _fetchBankTotal * 20);
+        const bar = '\u2588'.repeat(barLen) + '\u2591'.repeat(20 - barLen);
+        const html = '<span style="font-size:9px; opacity:0.6;">FETCHING BANK ' + window.currentHwBankLetter + '</span><br>'
             + '<strong style="font-size:11px;">' + _fetchBankProgress + '/' + _fetchBankTotal + '</strong><br>'
             + '<span style="font-size:8px; letter-spacing:1px; color:var(--accent-blue);">' + bar + ' ' + pct + '%</span>';
         window.lcdSafeUpdate(lcdText, html);
@@ -145,10 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function _onFetchComplete() {
-        var lcdText = document.getElementById('lcd-text');
-        var fetchBtn = document.getElementById('hw-fetch-from-synth');
+        const lcdText = document.getElementById('lcd-text');
+        const fetchBtn = document.getElementById('hw-fetch-from-synth');
         if (lcdText) {
-            var html = '<span style="font-size:10px; opacity:0.6;">FETCH COMPLETE</span><br>'
+            const html = '<span style="font-size:10px; opacity:0.6;">FETCH COMPLETE</span><br>'
                 + '<strong style="color:var(--accent-green);">BANK ' + window.currentHwBankLetter + ' READY</strong>';
             window.lcdSafeUpdate(lcdText, html);
         }
@@ -156,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchBtn.textContent = 'Fetch Bank';
             fetchBtn.style.opacity = '1';
         }
-        if (typeof window.renderHardwarePatches === 'function') window.renderHardwarePatches();
+        if (typeof window.renderHardwarePatches === 'function') {window.renderHardwarePatches();}
         _fetchBankCancel = false;
     }
 
@@ -164,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fetchHwBtn) {
         fetchHwBtn.addEventListener('click', async () => {
             if (!window.dualMidiBridge || !window.dualMidiBridge.midiOutput) {
-                alert("Conexión MIDI no disponible. Asegúrate de configurar los puertos en Settings.");
+                alert('Conexión MIDI no disponible. Asegúrate de configurar los puertos en Settings.');
                 return;
             }
             
@@ -172,8 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.dualMidiBridge.cancelBankDump();
                 fetchHwBtn.textContent = 'Fetch Bank';
                 fetchHwBtn.style.opacity = '1';
-                var lcd = document.getElementById('lcd-text');
-                if (lcd) lcd.innerText = 'FETCH CANCELLED';
+                const lcd = document.getElementById('lcd-text');
+                if (lcd) {lcd.innerText = 'FETCH CANCELLED';}
                 _fetchBankProgress = 0;
                 return;
             }
@@ -199,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (count > 0 && count < 128) {
                     var lcdText = document.getElementById('lcd-text');
                     if (lcdText) {
-                        var html = '<span style="font-size:9px; opacity:0.6;">FETCH TIMEOUT</span><br>'
+                        const html = '<span style="font-size:9px; opacity:0.6;">FETCH TIMEOUT</span><br>'
                             + '<strong style="color:var(--accent-orange);">RECEIVED ' + count + '/128</strong>';
                         window.lcdSafeUpdate(lcdText, html);
                     }
@@ -209,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error('[BankDump] Error fetching bank:', err);
                 var lcdText = document.getElementById('lcd-text');
-                if (lcdText) lcdText.innerText = 'FETCH ERROR: ' + err.message;
+                if (lcdText) {lcdText.innerText = 'FETCH ERROR: ' + err.message;}
                 fetchHwBtn.textContent = 'Fetch Bank';
                 fetchHwBtn.style.opacity = '1';
             }
@@ -220,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dumpHwBtn) {
         dumpHwBtn.addEventListener('click', () => {
             if (!window.dualMidiBridge || !window.dualMidiBridge.midiOutput) {
-                alert("Conexión MIDI no disponible. Asegúrate de configurar los puertos en Settings.");
+                alert('Conexión MIDI no disponible. Asegúrate de configurar los puertos en Settings.');
                 return;
             }
 
@@ -250,44 +257,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     if (i === 127) {
                         const lcdText = document.getElementById('lcd-text');
-                        if (lcdText) lcdText.innerText = "DUMP COMPLETED";
+                        if (lcdText) {lcdText.innerText = 'DUMP COMPLETED';}
                     }
                 }, i * 40);
             }
         });
     }
 
-    var loadInput = document.createElement('input');
+    const loadInput = document.createElement('input');
     loadInput.type = 'file';
     loadInput.accept = '.syx';
     loadInput.style.display = 'none';
     document.body.appendChild(loadInput);
 
-    var importBtn = document.getElementById('mngr-import-sysex');
-    if (importBtn) importBtn.addEventListener('click', function() { loadInput.click(); });
+    const importBtn = document.getElementById('mngr-import-sysex');
+    if (importBtn) {importBtn.addEventListener('click', function() { loadInput.click(); });}
 
     loadInput.addEventListener('change', function(e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        var reader = new FileReader();
+        const file = e.target.files[0];
+        if (!file) {return;}
+        const reader = new FileReader();
         reader.onload = function(ev) {
-            var bytes = new Uint8Array(ev.target.result);
-            var parsed = parseSyxFile(bytes);
+            const bytes = new Uint8Array(ev.target.result);
+            const parsed = parseSyxFile(bytes);
             if (parsed.patches.length === 0) {
                 alert('SysEx inválido: el archivo no contiene mensajes de programa DeepMind 12.');
                 return;
             }
 
             if (parsed.isSinglePatch) {
-                var patch = parsed.patches[0];
-                var choice = confirm(
+                const patch = parsed.patches[0];
+                const choice = confirm(
                     'Archivo SysEx individual detectado: "' + patch.name + '"\n\n'
                     + 'Haz clic en OK para cargarlo en el slot actual ('
                     + (window.currentActivePatchIndex + 1) + ' de "' + window.currentActiveBank + '").\n'
                     + 'Cancela para crear un nuevo banco con este único patch.'
                 );
                 if (choice) {
-                    var bank = window.loadedBanks[window.currentActiveBank];
+                    const bank = window.loadedBanks[window.currentActiveBank];
                     if (bank && bank[window.currentActivePatchIndex]) {
                         bank[window.currentActivePatchIndex].name = patch.name;
                         bank[window.currentActivePatchIndex].unpackedBytes = new Uint8Array(patch.unpackedBytes);
@@ -298,8 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             window.extractAndSaveNewPresetsFromBank(window.currentActiveBank, [bank[window.currentActivePatchIndex]]);
                         }
 
-                        if (typeof window.renderPatchesForBank === 'function') window.renderPatchesForBank(window.currentActiveBank);
-                        if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+                        if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(window.currentActiveBank);}
+                        if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
                         
                         var lcdText = document.getElementById('lcd-text');
                         if (lcdText) {
@@ -309,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                 } else {
-                    var bankName = prompt('Nombre para el nuevo banco:', file.name.replace(/\.[^/.]+$/, ''));
+                    const bankName = prompt('Nombre para el nuevo banco:', file.name.replace(/\.[^/.]+$/, ''));
                     if (bankName && bankName.trim()) {
                         window.loadedBanks[bankName] = window.createEmptyBank();
                         window.loadedBanks[bankName][0] = patch;
@@ -320,13 +327,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             window.extractAndSaveNewPresetsFromBank(bankName, [patch]);
                         }
 
-                        if (typeof window.updateLocalBanksDropdown === 'function') window.updateLocalBanksDropdown();
-                        if (typeof window.renderPatchesForBank === 'function') window.renderPatchesForBank(window.currentActiveBank);
-                        if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+                        if (typeof window.updateLocalBanksDropdown === 'function') {window.updateLocalBanksDropdown();}
+                        if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(window.currentActiveBank);}
+                        if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
                     }
                 }
             } else {
-                var name = file.name.replace(/\.[^/.]+$/, '');
+                const name = file.name.replace(/\.[^/.]+$/, '');
                 window.loadedBanks[name] = parsed.patches;
                 window.currentActiveBank = name;
 
@@ -334,9 +341,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.extractAndSaveNewPresetsFromBank(name, parsed.patches);
                 }
 
-                if (typeof window.updateLocalBanksDropdown === 'function') window.updateLocalBanksDropdown();
-                if (typeof window.renderPatchesForBank === 'function') window.renderPatchesForBank(window.currentActiveBank);
-                if (typeof window._saveUserBanksToStorage === 'function') window._saveUserBanksToStorage();
+                if (typeof window.updateLocalBanksDropdown === 'function') {window.updateLocalBanksDropdown();}
+                if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(window.currentActiveBank);}
+                if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
                 
                 var lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
@@ -376,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
             link.href = URL.createObjectURL(blob);
             link.download = `${window.currentActiveBank}.syx`;
             link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 5000);
         });
     }
 });

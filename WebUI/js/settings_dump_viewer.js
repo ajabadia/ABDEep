@@ -43,7 +43,7 @@ function getRegionColor(region) {
 
 function formatTooltip(info, val) {
   const pct = (val / 255 * 100).toFixed(1);
-  let lines = [`Byte ${info.idx} — ${info.param}`];
+  const lines = [`Byte ${info.idx} — ${info.param}`];
   lines.push(`Region: ${info.region} | Type: ${info.type}`);
   lines.push(`Value: ${val} (0x${val.toString(16).toUpperCase().padStart(2,'0')}) [${pct}%]`);
   
@@ -55,8 +55,8 @@ function formatTooltip(info, val) {
   } else if (info.type === 'bipolar') {
     const bipolar = val - 128;
     lines.push(`→ Bipolar: ${bipolar} (center=0, range -128..+127)`);
-    if (val === 128) lines.push('→ Center (no modulation)');
-    else if (val === 0) lines.push('→ Skip step (seq) or min');
+    if (val === 128) {lines.push('→ Center (no modulation)');}
+    else if (val === 0) {lines.push('→ Skip step (seq) or min');}
   } else if (info.type === 'time') {
     const secs = (val / 255 * 10).toFixed(3);
     lines.push(`→ ${secs}s`);
@@ -65,7 +65,7 @@ function formatTooltip(info, val) {
     lines.push(`→ '${ch}'`);
   }
   
-  if (info.desc) lines.push(`Note: ${info.desc}`);
+  if (info.desc) {lines.push(`Note: ${info.desc}`);}
   
   return lines.join('\n');
 }
@@ -75,11 +75,11 @@ function renderDumpView(bytes) {
   const summary = document.getElementById('dump-byte-summary');
   const nameEl = document.getElementById('dump-patch-name');
   const searchInput = document.getElementById('dump-search-input');
-  if (!grid) return;
+  if (!grid) {return;}
   
   if (!bytes || bytes.length < 242) {
     grid.innerHTML = '<div class="text-dim text-center" style="padding:40px">No data loaded. Load a preset or click Refresh.</div>';
-    if (summary) summary.textContent = 'No bytes loaded';
+    if (summary) {summary.textContent = 'No bytes loaded';}
     return;
   }
   
@@ -143,7 +143,7 @@ function renderDumpView(bytes) {
   
   if (summary) {
     const parts = [`${total} bytes`, `${active} active`, `${zero} zero`];
-    if (reservedCount > 0) parts.push(`🟦 ${reservedCount} reserved`);
+    if (reservedCount > 0) {parts.push(`🟦 ${reservedCount} reserved`);}
     summary.textContent = parts.join(' | ');
   }
   
@@ -169,7 +169,7 @@ function renderDumpView(bytes) {
 
 function initDumpView() {
   const dumpBtn = document.querySelector('.btn[data-tab="dump"]');
-  if (!dumpBtn) return;
+  if (!dumpBtn) {return;}
   
   const refreshBtn = document.getElementById('dump-refresh-btn');
   const requestHwBtn = document.getElementById('dump-request-hw-btn');
@@ -229,7 +229,7 @@ function initDumpView() {
           const packedPayload = response.slice(8, 286);
           if (typeof window.unpack7to8 === 'function') {
             const unpackedBytes = window.unpack7to8(packedPayload);
-            var name = (typeof window.extractNameFromRawSysex === 'function'
+            const name = (typeof window.extractNameFromRawSysex === 'function'
                 ? window.extractNameFromRawSysex(response)
                 : undefined) || 'EDIT BUFFER';
             window._lastUnpackedBytes = unpackedBytes;

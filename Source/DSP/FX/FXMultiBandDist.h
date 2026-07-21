@@ -70,6 +70,10 @@ namespace ABD
         float cabL = 0.0f, cabR = 0.0f;
         float cabCoeff = 0.0f;
 
+        // Post-filter para dist types 3-5 (SR-dependiente)
+        float postCoeff = 0.0f;
+        float postL = 0.0f, postR = 0.0f;
+
         void updateCrossoverCoeffs();
 
         /** Aplica distorsión según tipo seleccionado */

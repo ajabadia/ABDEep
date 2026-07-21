@@ -10,33 +10,33 @@ globalThis.window = globalThis.window || {};
 
 // ===== Extracted Source Functions =====
 
-var FACTORY_BANKS = [
+const FACTORY_BANKS = [
     'Factory Bank A', 'Factory Bank B', 'Factory Bank C', 'Factory Bank D',
     'Factory Bank E', 'Factory Bank F', 'Factory Bank G', 'Factory Bank H'
 ];
 
 function isFactoryBank(bankName) {
-    if (!bankName) return false;
+    if (!bankName) {return false;}
     return bankName.indexOf('Factory Bank') === 0;
 }
 
 function getUserBanks(loadedBanks) {
-    if (!loadedBanks) return [];
+    if (!loadedBanks) {return [];}
     return Object.keys(loadedBanks).filter(function(b) { return b.indexOf('Factory Bank') !== 0; });
 }
 
 function isSlotEmpty(patch) {
-    if (!patch) return false;
+    if (!patch) {return false;}
     return patch.name.indexOf('INIT PATCH') === 0 || patch.name.indexOf('[Empty') === 0;
 }
 
 function isSlotOccupied(patch) {
-    if (!patch) return false;
+    if (!patch) {return false;}
     return !isSlotEmpty(patch);
 }
 
 function encodePatchName(unpackedBytes, name) {
-    for (var k = 0; k < 15; k++) {
+    for (let k = 0; k < 15; k++) {
         unpackedBytes[224 + k] = k < name.length ? name.charCodeAt(k) : 0x20;
     }
     return unpackedBytes;
@@ -51,15 +51,15 @@ function getSlotDisplayName(patch, slotIndex) {
 }
 
 function validateSaveAs(selectedBank, selectedSlotIdx, newName, bank) {
-    if (!selectedBank) return 'Please select a valid user bank.';
-    if (selectedSlotIdx < 0 || selectedSlotIdx >= 128) return 'Please select a destination slot.';
-    if (!newName || newName.trim() === '') return 'Please enter a preset name.';
-    if (!bank || !bank[selectedSlotIdx]) return 'Error: selected slot does not exist.';
+    if (!selectedBank) {return 'Please select a valid user bank.';}
+    if (selectedSlotIdx < 0 || selectedSlotIdx >= 128) {return 'Please select a destination slot.';}
+    if (!newName || newName.trim() === '') {return 'Please enter a preset name.';}
+    if (!bank || !bank[selectedSlotIdx]) {return 'Error: selected slot does not exist.';}
     return null; // valid
 }
 
 function formatSaveAsLcdHtml(action, name, bank, slotIdx) {
-    var html = '<span style="font-size:10px; opacity:0.6;">' + action + '</span><br>'
+    const html = '<span style="font-size:10px; opacity:0.6;">' + action + '</span><br>'
         + '<strong style="color:var(--accent-green);">' + name.toUpperCase() + '</strong><br>'
         + '<span style="font-size:9px; color:var(--text-dim);">' + bank + ' \u203a Slot ' + (slotIdx + 1) + '</span>';
     return html;
@@ -108,7 +108,7 @@ describe('getUserBanks', function() {
     });
 
     it('excludes Factory Banks', function() {
-        var banks = {
+        const banks = {
             'Factory Bank A': [],
             'Factory Bank B': [],
             'My Bank': [],
@@ -118,7 +118,7 @@ describe('getUserBanks', function() {
     });
 
     it('returns all banks when none are factory', function() {
-        var banks = { 'User Bank 1': [], 'User Bank 2': [] };
+        const banks = { 'User Bank 1': [], 'User Bank 2': [] };
         expect(getUserBanks(banks)).toEqual(['User Bank 1', 'User Bank 2']);
     });
 });
@@ -157,7 +157,7 @@ describe('isSlotOccupied', function() {
 
 describe('encodePatchName — writes name into unpackedBytes at offset 224', function() {
     it('writes short name, pads remaining with 0x20 (space)', function() {
-        var bytes = new Uint8Array(256);
+        const bytes = new Uint8Array(256);
         encodePatchName(bytes, 'Test');
         // T=84, e=101, s=115, t=116, then spaces
         expect(bytes[224]).toBe(84);
@@ -169,14 +169,14 @@ describe('encodePatchName — writes name into unpackedBytes at offset 224', fun
     });
 
     it('writes exactly 15 characters', function() {
-        var bytes = new Uint8Array(256);
+        const bytes = new Uint8Array(256);
         encodePatchName(bytes, 'ABCDEFGHIJKLMNO'); // 15 chars
         expect(bytes[224]).toBe(65);  // A
         expect(bytes[238]).toBe(79); // O
     });
 
     it('truncates names longer than 15 chars', function() {
-        var bytes = new Uint8Array(256);
+        const bytes = new Uint8Array(256);
         encodePatchName(bytes, 'ABCDEFGHIJKLMNOPQRST'); // 20 chars
         expect(bytes[224]).toBe(65);   // A
         expect(bytes[238]).toBe(79);   // O (15th char)
@@ -185,15 +185,15 @@ describe('encodePatchName — writes name into unpackedBytes at offset 224', fun
     });
 
     it('handles empty string (all spaces)', function() {
-        var bytes = new Uint8Array(256);
+        const bytes = new Uint8Array(256);
         encodePatchName(bytes, '');
-        for (var k = 0; k < 15; k++) {
+        for (let k = 0; k < 15; k++) {
             expect(bytes[224 + k]).toBe(0x20);
         }
     });
 
     it('preserves other bytes outside name range', function() {
-        var bytes = new Uint8Array(256);
+        const bytes = new Uint8Array(256);
         bytes[0] = 42;
         bytes[223] = 99;
         bytes[239] = 77;
@@ -236,44 +236,44 @@ describe('getSlotDisplayName', function() {
 
 describe('validateSaveAs', function() {
     it('returns error when no bank selected', function() {
-        var err = validateSaveAs('', 0, 'Test', { 0: {} });
+        const err = validateSaveAs('', 0, 'Test', { 0: {} });
         expect(err).toContain('bank');
     });
 
     it('returns error when slot index is negative', function() {
-        var err = validateSaveAs('My Bank', -1, 'Test', {});
+        const err = validateSaveAs('My Bank', -1, 'Test', {});
         expect(err).toContain('slot');
     });
 
     it('returns error when slot index is >= 128', function() {
-        var err = validateSaveAs('My Bank', 128, 'Test', {});
+        const err = validateSaveAs('My Bank', 128, 'Test', {});
         expect(err).toContain('slot');
     });
 
     it('returns error when name is empty', function() {
-        var err = validateSaveAs('My Bank', 0, '', { 0: {} });
+        const err = validateSaveAs('My Bank', 0, '', { 0: {} });
         expect(err).toContain('name');
     });
 
     it('returns error when name is whitespace only', function() {
-        var err = validateSaveAs('My Bank', 0, '   ', { 0: {} });
+        const err = validateSaveAs('My Bank', 0, '   ', { 0: {} });
         expect(err).toContain('name');
     });
 
     it('returns error when bank slot does not exist', function() {
-        var err = validateSaveAs('My Bank', 0, 'Test', {});
+        const err = validateSaveAs('My Bank', 0, 'Test', {});
         expect(err).toContain('slot does not exist');
     });
 
     it('returns null when all inputs are valid', function() {
-        var err = validateSaveAs('My Bank', 5, 'My Synth', { 5: { name: 'Old' } });
+        const err = validateSaveAs('My Bank', 5, 'My Synth', { 5: { name: 'Old' } });
         expect(err).toBeNull();
     });
 });
 
 describe('formatSaveAsLcdHtml', function() {
     it('formats SAVED action correctly', function() {
-        var html = formatSaveAsLcdHtml('SAVED', 'My Lead', 'My Bank', 3);
+        const html = formatSaveAsLcdHtml('SAVED', 'My Lead', 'My Bank', 3);
         expect(html).toContain('SAVED');
         expect(html).toContain('MY LEAD');
         expect(html).toContain('My Bank');
@@ -281,7 +281,7 @@ describe('formatSaveAsLcdHtml', function() {
     });
 
     it('formats SAVED AS action with slot offset', function() {
-        var html = formatSaveAsLcdHtml('SAVED AS', 'Custom', 'User Bank', 127);
+        const html = formatSaveAsLcdHtml('SAVED AS', 'Custom', 'User Bank', 127);
         expect(html).toContain('SAVED AS');
         expect(html).toContain('CUSTOM');
         expect(html).toContain('Slot 128');

@@ -13,6 +13,7 @@
 @import url('css/keyboard.css');
 @import url('css/panel_edit.css');
 @import url('css/modmatrix.css');
+@import url('css/calibration_lab.css');
 
 /* Distribución de controles en fila dentro de los módulos */
 /* ── SEQ steps hover highlight (panel + modal) ── */

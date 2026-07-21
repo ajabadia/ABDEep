@@ -26,7 +26,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Helper to stub localStorage globally before all tests
 function _stubLocalStorage() {
-  var store = {};
+  let store = {};
   vi.stubGlobal('localStorage', {
     getItem: function(key) { return store[key] !== undefined ? store[key] : null; },
     setItem: function(key, val) { store[key] = String(val); },
@@ -65,7 +65,7 @@ function _createFakeEl(tag, attrs) {
     dataset: {},
     classList: {
       _classes: [],
-      add(c) { if (!this._classes.includes(c)) this._classes.push(c); },
+      add(c) { if (!this._classes.includes(c)) {this._classes.push(c);} },
       remove(c) { this._classes = this._classes.filter(x => x !== c); },
       contains(c) { return this._classes.includes(c); },
       toggle(c, force) {
@@ -79,7 +79,7 @@ function _createFakeEl(tag, attrs) {
     setAttribute(name, val) { this._attrs[name] = val; },
     hasAttribute(name) { return name in this._attrs; },
     addEventListener(event, handler) {
-      if (!this._listeners[event]) this._listeners[event] = [];
+      if (!this._listeners[event]) {this._listeners[event] = [];}
       this._listeners[event].push(handler);
     },
     removeEventListener() {},
@@ -88,11 +88,11 @@ function _createFakeEl(tag, attrs) {
     _children: [],
     _subElements: {},
     querySelector(sel) { return this._subElements[sel] || null; },
-    querySelectorAll(sel) { return [] },
+    querySelectorAll(sel) { return []; },
     closest(sel) {
       if (sel && sel.startsWith('[') && sel.endsWith(']')) {
         const attr = sel.slice(1, -1);
-        if (this._attrs[attr] !== undefined) return this;
+        if (this._attrs[attr] !== undefined) {return this;}
         return this._parent && this._parent._attrs && this._parent._attrs[attr] !== undefined ? this._parent : null;
       }
       return null;
@@ -136,9 +136,9 @@ describe('LcdQueue — LCD priority queue', () => {
         if (this._expiryTimers[id]) {
           clearTimeout(this._expiryTimers[id]);
         }
-        var duration = (options.duration !== undefined) ? options.duration : 2000;
+        const duration = (options.duration !== undefined) ? options.duration : 2000;
         if (duration !== null) {
-          var self = this;
+          const self = this;
           this._expiryTimers[id] = setTimeout(function() {
             delete self._messages[id];
             delete self._expiryTimers[id];
@@ -147,9 +147,9 @@ describe('LcdQueue — LCD priority queue', () => {
       },
 
       getActive: function() {
-        var best = null;
-        for (var id in this._messages) {
-          var m = this._messages[id];
+        let best = null;
+        for (const id in this._messages) {
+          const m = this._messages[id];
           if (!best || m.priority < best.priority) {
             best = m;
           }
@@ -158,7 +158,7 @@ describe('LcdQueue — LCD priority queue', () => {
       },
 
       clear: function() {
-        for (var id in this._expiryTimers) {
+        for (const id in this._expiryTimers) {
           clearTimeout(this._expiryTimers[id]);
         }
         this._messages = {};
@@ -187,7 +187,7 @@ describe('LcdQueue — LCD priority queue', () => {
     LcdQueue.push('param', 'Parameter changed', 1);
     LcdQueue.push('ctrl', 'Controller value', 2);
 
-    var active = LcdQueue.getActive();
+    const active = LcdQueue.getActive();
     expect(active.content).toBe('Notification');
     expect(active.priority).toBe(0);
   });
@@ -201,7 +201,7 @@ describe('LcdQueue — LCD priority queue', () => {
 
   it('push updates existing message with same id and resets expiry', () => {
     LcdQueue.push('test_id', 'first', 1);
-    var timer1 = LcdQueue._expiryTimers['test_id'];
+    const timer1 = LcdQueue._expiryTimers['test_id'];
     LcdQueue.push('test_id', 'second', 1);
     // Timer should be replaced
     expect(LcdQueue._expiryTimers['test_id']).not.toBe(timer1);
@@ -274,10 +274,10 @@ describe('LcdQueue — LCD priority queue', () => {
 
 describe('_getLcdTimeoutMs — LCD timeout from localStorage', () => {
   function _getLcdTimeoutMs() {
-    var saved = localStorage.getItem('abd-eep-lcd-timeout');
-    if (saved === null) return 2000;
-    if (saved === 'off') return null;
-    var ms = parseInt(saved, 10);
+    const saved = localStorage.getItem('abd-eep-lcd-timeout');
+    if (saved === null) {return 2000;}
+    if (saved === 'off') {return null;}
+    const ms = parseInt(saved, 10);
     return isNaN(ms) ? 2000 : ms;
   }
 
@@ -326,7 +326,7 @@ describe('_getLcdTimeoutMs — LCD timeout from localStorage', () => {
 
 describe('setButtonInactive — button style helper', () => {
   function setButtonInactive(el, mixColor, accentColor) {
-    if (!el) return;
+    if (!el) {return;}
     el.style.background = 'color-mix(in srgb, var(' + mixColor + ') 20%, transparent)';
     el.style.borderColor = 'var(' + accentColor + ')';
     el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)';
@@ -334,7 +334,7 @@ describe('setButtonInactive — button style helper', () => {
   }
 
   it('sets background, border, shadow, and color styles', () => {
-    var el = _createFakeEl('button');
+    const el = _createFakeEl('button');
     setButtonInactive(el, '--accent-primary', '--brand-accent');
 
     expect(el.style.background).toContain('--accent-primary');
@@ -348,7 +348,7 @@ describe('setButtonInactive — button style helper', () => {
   });
 
   it('handles different color combinations', () => {
-    var el = _createFakeEl('button');
+    const el = _createFakeEl('button');
     setButtonInactive(el, '--accent-pink', '--accent-pink');
 
     expect(el.style.background).toContain('--accent-pink');
@@ -363,20 +363,20 @@ describe('setButtonInactive — button style helper', () => {
 
 describe('updateSliderPosition — slider handle positioning', () => {
   function updateSliderPosition(sliderUnit, val) {
-    if (!sliderUnit) return;
-    var handle = sliderUnit.querySelector('.handle');
-    if (!handle) return;
-    var rect = sliderUnit.getBoundingClientRect();
-    var height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
-    var handleHeight = 16;
-    var pos = (1.0 - val) * (height - handleHeight);
+    if (!sliderUnit) {return;}
+    const handle = sliderUnit.querySelector('.handle');
+    if (!handle) {return;}
+    const rect = sliderUnit.getBoundingClientRect();
+    const height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
+    const handleHeight = 16;
+    const pos = (1.0 - val) * (height - handleHeight);
     handle.style.top = pos + 'px';
   }
 
   it('positions handle at top when val=1.0', () => {
-    var sliderUnit = _createFakeEl('div');
+    const sliderUnit = _createFakeEl('div');
     sliderUnit.clientHeight = 100;
-    var handle = _createFakeEl('div');
+    const handle = _createFakeEl('div');
     handle.classList.add('handle');
     sliderUnit._subElements['.handle'] = handle;
 
@@ -386,9 +386,9 @@ describe('updateSliderPosition — slider handle positioning', () => {
   });
 
   it('positions handle at bottom when val=0.0', () => {
-    var sliderUnit = _createFakeEl('div');
+    const sliderUnit = _createFakeEl('div');
     sliderUnit.clientHeight = 100;
-    var handle = _createFakeEl('div');
+    const handle = _createFakeEl('div');
     handle.classList.add('handle');
     sliderUnit._subElements['.handle'] = handle;
 
@@ -399,9 +399,9 @@ describe('updateSliderPosition — slider handle positioning', () => {
   });
 
   it('positions handle at middle when val=0.5', () => {
-    var sliderUnit = _createFakeEl('div');
+    const sliderUnit = _createFakeEl('div');
     sliderUnit.clientHeight = 100;
-    var handle = _createFakeEl('div');
+    const handle = _createFakeEl('div');
     handle.classList.add('handle');
     sliderUnit._subElements['.handle'] = handle;
 
@@ -415,15 +415,15 @@ describe('updateSliderPosition — slider handle positioning', () => {
   });
 
   it('handles missing handle gracefully', () => {
-    var sliderUnit = _createFakeEl('div');
+    const sliderUnit = _createFakeEl('div');
     expect(function() { updateSliderPosition(sliderUnit, 0.5); }).not.toThrow();
   });
 
   it('uses clientHeight fallback when getBoundingClientRect returns height=0', () => {
-    var sliderUnit = _createFakeEl('div');
+    const sliderUnit = _createFakeEl('div');
     sliderUnit.clientHeight = 50;
     sliderUnit.getBoundingClientRect = function() { return { top: 0, left: 0, width: 40, height: 0, bottom: 0, right: 40 }; };
-    var handle = _createFakeEl('div');
+    const handle = _createFakeEl('div');
     handle.classList.add('handle');
     sliderUnit._subElements['.handle'] = handle;
 
@@ -433,9 +433,9 @@ describe('updateSliderPosition — slider handle positioning', () => {
   });
 
   it('positions handle with different slider heights', () => {
-    var sliderUnit = _createFakeEl('div');
+    const sliderUnit = _createFakeEl('div');
     sliderUnit.clientHeight = 200;
-    var handle = _createFakeEl('div');
+    const handle = _createFakeEl('div');
     handle.classList.add('handle');
     sliderUnit._subElements['.handle'] = handle;
 
@@ -450,27 +450,27 @@ describe('updateSliderPosition — slider handle positioning', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('updateEnvSlidersFromCurrentPreset — env slider sync', () => {
-  var mockBridge;
-  var envAttack, envDecay, envSustain, envRelease;
+  let mockBridge;
+  let envAttack, envDecay, envSustain, envRelease;
 
   function updateSliderPosition(sliderUnit, val) {
-    if (!sliderUnit) return;
-    var handle = sliderUnit.querySelector('.handle');
-    if (!handle) return;
-    var rect = sliderUnit.getBoundingClientRect();
-    var height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
-    var handleHeight = 16;
-    var pos = (1.0 - val) * (height - handleHeight);
+    if (!sliderUnit) {return;}
+    const handle = sliderUnit.querySelector('.handle');
+    if (!handle) {return;}
+    const rect = sliderUnit.getBoundingClientRect();
+    const height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
+    const handleHeight = 16;
+    const pos = (1.0 - val) * (height - handleHeight);
     handle.style.top = pos + 'px';
   }
 
   function _makeSliderUnit(id, paramId) {
-    var container = _createFakeEl('div', { id: id, 'data-param': paramId });
+    const container = _createFakeEl('div', { id: id, 'data-param': paramId });
     container.clientHeight = 100;
-    var slider = _createFakeEl('div');
+    const slider = _createFakeEl('div');
     slider.classList.add('v-slider');
     slider.clientHeight = 100;
-    var handle = _createFakeEl('div');
+    const handle = _createFakeEl('div');
     handle.classList.add('handle');
     slider._subElements['.handle'] = handle;
     container._subElements['.v-slider'] = slider;
@@ -478,7 +478,7 @@ describe('updateEnvSlidersFromCurrentPreset — env slider sync', () => {
   }
 
   beforeEach(() => {
-    var registry = {};
+    const registry = {};
     mockBridge = { parameterCache: {} };
 
     envAttack = _makeSliderUnit('env-ctrl-attack', 'env1_attack');
@@ -500,15 +500,15 @@ describe('updateEnvSlidersFromCurrentPreset — env slider sync', () => {
   });
 
   function updateEnvSlidersFromCurrentPreset() {
-    if (!window.dualMidiBridge) return;
-    var cache = window.dualMidiBridge.parameterCache;
-    var ids = ['env-ctrl-attack', 'env-ctrl-decay', 'env-ctrl-sustain', 'env-ctrl-release'];
+    if (!window.dualMidiBridge) {return;}
+    const cache = window.dualMidiBridge.parameterCache;
+    const ids = ['env-ctrl-attack', 'env-ctrl-decay', 'env-ctrl-sustain', 'env-ctrl-release'];
     ids.forEach(function(id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      var paramId = el.getAttribute('data-param');
-      if (!paramId) return;
-      var val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
+      const el = document.getElementById(id);
+      if (!el) {return;}
+      const paramId = el.getAttribute('data-param');
+      if (!paramId) {return;}
+      const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
       updateSliderPosition(el.querySelector('.v-slider'), val);
     });
   }
@@ -521,10 +521,10 @@ describe('updateEnvSlidersFromCurrentPreset — env slider sync', () => {
 
     updateEnvSlidersFromCurrentPreset();
 
-    var atkHandle = envAttack.querySelector('.v-slider').querySelector('.handle');
-    var dcyHandle = envDecay.querySelector('.v-slider').querySelector('.handle');
-    var susHandle = envSustain.querySelector('.v-slider').querySelector('.handle');
-    var relHandle = envRelease.querySelector('.v-slider').querySelector('.handle');
+    const atkHandle = envAttack.querySelector('.v-slider').querySelector('.handle');
+    const dcyHandle = envDecay.querySelector('.v-slider').querySelector('.handle');
+    const susHandle = envSustain.querySelector('.v-slider').querySelector('.handle');
+    const relHandle = envRelease.querySelector('.v-slider').querySelector('.handle');
 
     // val=0.8 → pos = 0.2 * 84 = 16.8
     expect(parseFloat(atkHandle.style.top)).toBeCloseTo(16.8, 1);
@@ -538,7 +538,7 @@ describe('updateEnvSlidersFromCurrentPreset — env slider sync', () => {
 
   it('uses default val=0 when cache has no entry', () => {
     updateEnvSlidersFromCurrentPreset();
-    var handle = envAttack.querySelector('.v-slider').querySelector('.handle');
+    const handle = envAttack.querySelector('.v-slider').querySelector('.handle');
     expect(parseFloat(handle.style.top)).toBeCloseTo(84, 1);
   });
 
@@ -557,32 +557,32 @@ describe('updateEnvSlidersFromCurrentPreset — env slider sync', () => {
 });
 
 describe('updateLfoSlidersFromCurrentPreset — LFO slider sync', () => {
-  var mockBridge;
-  var lfoRate, lfoDelay;
+  let mockBridge;
+  let lfoRate, lfoDelay;
 
   function updateSliderPosition(sliderUnit, val) {
-    if (!sliderUnit) return;
-    var handle = sliderUnit.querySelector('.handle');
-    if (!handle) return;
-    var rect = sliderUnit.getBoundingClientRect();
-    var height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
-    var handleHeight = 16;
-    var pos = (1.0 - val) * (height - handleHeight);
+    if (!sliderUnit) {return;}
+    const handle = sliderUnit.querySelector('.handle');
+    if (!handle) {return;}
+    const rect = sliderUnit.getBoundingClientRect();
+    const height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
+    const handleHeight = 16;
+    const pos = (1.0 - val) * (height - handleHeight);
     handle.style.top = pos + 'px';
   }
 
   beforeEach(() => {
-    var registry = {};
+    const registry = {};
     mockBridge = { parameterCache: {} };
 
-    var lfoRateContainer = _createFakeEl('div', { id: 'lfo-ctrl-rate', 'data-param': 'lfo1_rate' });
-    var lfoDelayContainer = _createFakeEl('div', { id: 'lfo-ctrl-delay', 'data-param': 'lfo1_delay' });
+    const lfoRateContainer = _createFakeEl('div', { id: 'lfo-ctrl-rate', 'data-param': 'lfo1_rate' });
+    const lfoDelayContainer = _createFakeEl('div', { id: 'lfo-ctrl-delay', 'data-param': 'lfo1_delay' });
     [lfoRateContainer, lfoDelayContainer].forEach(function(c) {
       c.clientHeight = 100;
-      var slider = _createFakeEl('div');
+      const slider = _createFakeEl('div');
       slider.classList.add('v-slider');
       slider.clientHeight = 100;
-      var handle = _createFakeEl('div');
+      const handle = _createFakeEl('div');
       handle.classList.add('handle');
       slider._subElements['.handle'] = handle;
       c._subElements['.v-slider'] = slider;
@@ -602,15 +602,15 @@ describe('updateLfoSlidersFromCurrentPreset — LFO slider sync', () => {
   });
 
   function updateLfoSlidersFromCurrentPreset() {
-    if (!window.dualMidiBridge) return;
-    var cache = window.dualMidiBridge.parameterCache;
-    var ids = ['lfo-ctrl-rate', 'lfo-ctrl-delay'];
+    if (!window.dualMidiBridge) {return;}
+    const cache = window.dualMidiBridge.parameterCache;
+    const ids = ['lfo-ctrl-rate', 'lfo-ctrl-delay'];
     ids.forEach(function(id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      var paramId = el.getAttribute('data-param');
-      if (!paramId) return;
-      var val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
+      const el = document.getElementById(id);
+      if (!el) {return;}
+      const paramId = el.getAttribute('data-param');
+      if (!paramId) {return;}
+      const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
       updateSliderPosition(el.querySelector('.v-slider'), val);
     });
   }
@@ -621,8 +621,8 @@ describe('updateLfoSlidersFromCurrentPreset — LFO slider sync', () => {
 
     updateLfoSlidersFromCurrentPreset();
 
-    var rateHandle = lfoRate.querySelector('.v-slider').querySelector('.handle');
-    var delayHandle = lfoDelay.querySelector('.v-slider').querySelector('.handle');
+    const rateHandle = lfoRate.querySelector('.v-slider').querySelector('.handle');
+    const delayHandle = lfoDelay.querySelector('.v-slider').querySelector('.handle');
     
     expect(parseFloat(rateHandle.style.top)).toBeCloseTo(25.2, 1);
     expect(parseFloat(delayHandle.style.top)).toBeCloseTo(67.2, 1);
@@ -630,35 +630,35 @@ describe('updateLfoSlidersFromCurrentPreset — LFO slider sync', () => {
 });
 
 describe('updateOscSlidersFromCurrentPreset — OSC slider sync', () => {
-  var mockBridge;
-  var oscPitchMod, oscPwmTone;
+  let mockBridge;
+  let oscPitchMod, oscPwmTone;
 
   function updateSliderPosition(sliderUnit, val) {
-    if (!sliderUnit) return;
-    var handle = sliderUnit.querySelector('.handle');
-    if (!handle) return;
-    var rect = sliderUnit.getBoundingClientRect();
-    var height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
-    var handleHeight = 16;
-    var pos = (1.0 - val) * (height - handleHeight);
+    if (!sliderUnit) {return;}
+    const handle = sliderUnit.querySelector('.handle');
+    if (!handle) {return;}
+    const rect = sliderUnit.getBoundingClientRect();
+    const height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
+    const handleHeight = 16;
+    const pos = (1.0 - val) * (height - handleHeight);
     handle.style.top = pos + 'px';
   }
 
   beforeEach(() => {
-    var registry = {};
+    const registry = {};
     mockBridge = { parameterCache: {} };
 
-    var pitchModContainer = _createFakeEl('div', { id: 'osc-ctrl-pitchmod', 'data-param': 'osc1_pitch_mod' });
-    var pwmContainer = _createFakeEl('div', { id: 'osc-ctrl-pwm-tone', 'data-param': 'osc1_pwm_amount' });
-    var pitchContainer = _createFakeEl('div', { id: 'osc-ctrl-pitch', 'data-param': 'osc2_pitch' });
-    var levelContainer = _createFakeEl('div', { id: 'osc-ctrl-level', 'data-param': 'osc2_level' });
+    const pitchModContainer = _createFakeEl('div', { id: 'osc-ctrl-pitchmod', 'data-param': 'osc1_pitch_mod' });
+    const pwmContainer = _createFakeEl('div', { id: 'osc-ctrl-pwm-tone', 'data-param': 'osc1_pwm_amount' });
+    const pitchContainer = _createFakeEl('div', { id: 'osc-ctrl-pitch', 'data-param': 'osc2_pitch' });
+    const levelContainer = _createFakeEl('div', { id: 'osc-ctrl-level', 'data-param': 'osc2_level' });
 
     [pitchModContainer, pwmContainer, pitchContainer, levelContainer].forEach(function(c) {
       c.clientHeight = 100;
-      var slider = _createFakeEl('div');
+      const slider = _createFakeEl('div');
       slider.classList.add('v-slider');
       slider.clientHeight = 100;
-      var handle = _createFakeEl('div');
+      const handle = _createFakeEl('div');
       handle.classList.add('handle');
       slider._subElements['.handle'] = handle;
       c._subElements['.v-slider'] = slider;
@@ -678,15 +678,15 @@ describe('updateOscSlidersFromCurrentPreset — OSC slider sync', () => {
   });
 
   function updateOscSlidersFromCurrentPreset() {
-    if (!window.dualMidiBridge) return;
-    var cache = window.dualMidiBridge.parameterCache;
-    var ids = ['osc-ctrl-pitchmod', 'osc-ctrl-pwm-tone', 'osc-ctrl-pitch', 'osc-ctrl-level'];
+    if (!window.dualMidiBridge) {return;}
+    const cache = window.dualMidiBridge.parameterCache;
+    const ids = ['osc-ctrl-pitchmod', 'osc-ctrl-pwm-tone', 'osc-ctrl-pitch', 'osc-ctrl-level'];
     ids.forEach(function(id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      var paramId = el.getAttribute('data-param');
-      if (!paramId) return;
-      var val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
+      const el = document.getElementById(id);
+      if (!el) {return;}
+      const paramId = el.getAttribute('data-param');
+      if (!paramId) {return;}
+      const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
       updateSliderPosition(el.querySelector('.v-slider'), val);
     });
   }
@@ -697,8 +697,8 @@ describe('updateOscSlidersFromCurrentPreset — OSC slider sync', () => {
 
     updateOscSlidersFromCurrentPreset();
 
-    var pmHandle = oscPitchMod.querySelector('.v-slider').querySelector('.handle');
-    var pwmHandle = oscPwmTone.querySelector('.v-slider').querySelector('.handle');
+    const pmHandle = oscPitchMod.querySelector('.v-slider').querySelector('.handle');
+    const pwmHandle = oscPwmTone.querySelector('.v-slider').querySelector('.handle');
 
     expect(parseFloat(pmHandle.style.top)).toBeCloseTo(8.4, 1);
     expect(parseFloat(pwmHandle.style.top)).toBeCloseTo(63, 1);
@@ -710,7 +710,7 @@ describe('updateOscSlidersFromCurrentPreset — OSC slider sync', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('ShortcutConfig — keyboard shortcuts', () => {
-  var ShortcutConfig;
+  let ShortcutConfig;
 
   beforeEach(() => {
     _stubLocalStorage();
@@ -737,13 +737,13 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
       },
 
       load: function() {
-        var saved = {};
+        let saved = {};
         try {
-          var raw = localStorage.getItem(this.STORAGE_KEY);
-          if (raw) saved = JSON.parse(raw);
+          const raw = localStorage.getItem(this.STORAGE_KEY);
+          if (raw) {saved = JSON.parse(raw);}
         } catch(e) {}
-        var result = {};
-        for (var id in this._defaults) {
+        const result = {};
+        for (const id in this._defaults) {
           result[id] = saved[id] ? this._deepClone(saved[id]) : this._deepClone(this._defaults[id]);
         }
         return result;
@@ -756,18 +756,18 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
       },
 
       get: function(id) {
-        var all = this.load();
+        const all = this.load();
         return all[id] || this._deepClone(this._defaults[id]) || {};
       },
 
       set: function(id, combo) {
-        var all = this.load();
+        const all = this.load();
         all[id] = this._deepClone(combo);
         this.save(all);
       },
 
       reset: function(id) {
-        var all = this.load();
+        const all = this.load();
         delete all[id];
         this.save(all);
       },
@@ -779,13 +779,13 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
       },
 
       formatCombo: function(combo) {
-        if (!combo) return '';
-        var parts = [];
-        if (combo.ctrl)  parts.push('Ctrl');
-        if (combo.shift) parts.push('Shift');
-        if (combo.alt)   parts.push('Alt');
-        if (combo.meta)  parts.push('Meta');
-        if (combo.key)   parts.push(combo.key.length === 1 ? combo.key.toUpperCase() : combo.key);
+        if (!combo) {return '';}
+        const parts = [];
+        if (combo.ctrl)  {parts.push('Ctrl');}
+        if (combo.shift) {parts.push('Shift');}
+        if (combo.alt)   {parts.push('Alt');}
+        if (combo.meta)  {parts.push('Meta');}
+        if (combo.key)   {parts.push(combo.key.length === 1 ? combo.key.toUpperCase() : combo.key);}
         return parts.join(' + ');
       },
 
@@ -794,12 +794,12 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
       },
 
       matches: function(e, combo) {
-        if (!combo) return false;
-        if (!!e.ctrlKey  !== !!combo.ctrl)  return false;
-        if (!!e.shiftKey !== !!combo.shift) return false;
-        if (!!e.altKey   !== !!combo.alt)   return false;
-        if (!!e.metaKey  !== !!combo.meta)  return false;
-        var eventKey = e.key;
+        if (!combo) {return false;}
+        if (!!e.ctrlKey  !== !!combo.ctrl)  {return false;}
+        if (!!e.shiftKey !== !!combo.shift) {return false;}
+        if (!!e.altKey   !== !!combo.alt)   {return false;}
+        if (!!e.metaKey  !== !!combo.meta)  {return false;}
+        const eventKey = e.key;
         if (combo.key && combo.key.length === 1 && eventKey.length === 1) {
           return eventKey.toLowerCase() === combo.key.toLowerCase();
         }
@@ -811,7 +811,7 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
   // ── load ──
 
   it('load returns defaults when localStorage is empty', () => {
-    var config = ShortcutConfig.load();
+    const config = ShortcutConfig.load();
     expect(config['midi-learn'].key).toBe('l');
     expect(config['midi-learn'].ctrl).toBe(true);
     expect(config['panic'].key).toBe('P');
@@ -823,7 +823,7 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
     localStorage.setItem(ShortcutConfig.STORAGE_KEY, JSON.stringify({
       'midi-learn': { ctrl: false, shift: true, alt: false, meta: false, key: 'm' }
     }));
-    var config = ShortcutConfig.load();
+    const config = ShortcutConfig.load();
     // Should override midi-learn with saved value
     expect(config['midi-learn'].key).toBe('m');
     expect(config['midi-learn'].ctrl).toBe(false);
@@ -834,7 +834,7 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
 
   it('load handles corrupted JSON gracefully (returns defaults)', () => {
     localStorage.setItem(ShortcutConfig.STORAGE_KEY, 'not-json');
-    var config = ShortcutConfig.load();
+    const config = ShortcutConfig.load();
     expect(config['midi-learn'].key).toBe('l');
   });
 
@@ -842,15 +842,15 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
 
   it('save persists config to localStorage', () => {
     ShortcutConfig.save({ 'midi-learn': { ctrl: false, shift: true, alt: false, meta: false, key: 'x' } });
-    var raw = localStorage.getItem(ShortcutConfig.STORAGE_KEY);
-    var parsed = JSON.parse(raw);
+    const raw = localStorage.getItem(ShortcutConfig.STORAGE_KEY);
+    const parsed = JSON.parse(raw);
     expect(parsed['midi-learn'].key).toBe('x');
   });
 
   // ── get ──
 
   it('get returns deep-cloned default for known id', () => {
-    var combo = ShortcutConfig.get('panic');
+    const combo = ShortcutConfig.get('panic');
     expect(combo).toBeDefined();
     expect(combo.key).toBe('P');
     expect(combo.ctrl).toBe(true);
@@ -858,8 +858,8 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
   });
 
   it('get returns deep-cloned object (not reference)', () => {
-    var combo1 = ShortcutConfig.get('midi-learn');
-    var combo2 = ShortcutConfig.get('midi-learn');
+    const combo1 = ShortcutConfig.get('midi-learn');
+    const combo2 = ShortcutConfig.get('midi-learn');
     // Modifying one should not affect the other
     combo1.key = 'x';
     expect(combo2.key).toBe('l');
@@ -867,7 +867,7 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
 
   it('get returns saved combo for known id', () => {
     ShortcutConfig.set('midi-learn', { ctrl: false, shift: true, alt: false, meta: false, key: 'z' });
-    var combo = ShortcutConfig.get('midi-learn');
+    const combo = ShortcutConfig.get('midi-learn');
     expect(combo.key).toBe('z');
   });
 
@@ -875,7 +875,7 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
 
   it('set saves a new combo and retrieves it', () => {
     ShortcutConfig.set('panic', { ctrl: false, shift: false, alt: true, meta: false, key: 'Escape' });
-    var combo = ShortcutConfig.get('panic');
+    const combo = ShortcutConfig.get('panic');
     expect(combo.alt).toBe(true);
     expect(combo.key).toBe('Escape');
   });
@@ -885,7 +885,7 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
   it('reset removes a saved combo, falling back to default', () => {
     ShortcutConfig.set('midi-learn', { ctrl: false, shift: true, alt: false, meta: false, key: 'x' });
     ShortcutConfig.reset('midi-learn');
-    var combo = ShortcutConfig.get('midi-learn');
+    const combo = ShortcutConfig.get('midi-learn');
     expect(combo.key).toBe('l'); // back to default
   });
 
@@ -900,17 +900,17 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
   // ── formatCombo ──
 
   it('formatCombo formats Ctrl+Shift+P correctly', () => {
-    var str = ShortcutConfig.formatCombo({ ctrl: true, shift: true, alt: false, meta: false, key: 'P' });
+    const str = ShortcutConfig.formatCombo({ ctrl: true, shift: true, alt: false, meta: false, key: 'P' });
     expect(str).toBe('Ctrl + Shift + P');
   });
 
   it('formatCombo formats single key with no modifiers', () => {
-    var str = ShortcutConfig.formatCombo({ ctrl: false, shift: false, alt: false, meta: false, key: 'F1' });
+    const str = ShortcutConfig.formatCombo({ ctrl: false, shift: false, alt: false, meta: false, key: 'F1' });
     expect(str).toBe('F1');
   });
 
   it('formatCombo formats Alt+L', () => {
-    var str = ShortcutConfig.formatCombo({ ctrl: false, shift: false, alt: true, meta: false, key: 'l' });
+    const str = ShortcutConfig.formatCombo({ ctrl: false, shift: false, alt: true, meta: false, key: 'l' });
     expect(str).toBe('Alt + L');
   });
 
@@ -921,13 +921,13 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
   // ── getMeta ──
 
   it('getMeta returns metadata for known shortcut', () => {
-    var meta = ShortcutConfig.getMeta('midi-learn');
+    const meta = ShortcutConfig.getMeta('midi-learn');
     expect(meta.label).toBe('MIDI Learn');
     expect(meta.group).toBe('global');
   });
 
   it('getMeta returns fallback for unknown id', () => {
-    var meta = ShortcutConfig.getMeta('unknown-id');
+    const meta = ShortcutConfig.getMeta('unknown-id');
     expect(meta.label).toBe('unknown-id');
     expect(meta.group).toBe('other');
   });
@@ -935,38 +935,38 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
   // ── matches ──
 
   it('matches returns true for matching event and combo', () => {
-    var e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'l' };
+    const e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'l' };
     expect(ShortcutConfig.matches(e, { ctrl: true, shift: false, alt: false, meta: false, key: 'l' })).toBe(true);
   });
 
   it('matches returns false when ctrlKey does not match', () => {
-    var e = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, key: 'l' };
+    const e = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, key: 'l' };
     expect(ShortcutConfig.matches(e, { ctrl: true, shift: false, alt: false, meta: false, key: 'l' })).toBe(false);
   });
 
   it('matches returns false when key does not match', () => {
-    var e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'x' };
+    const e = { ctrlKey: true, shiftKey: false, altKey: false, metaKey: false, key: 'x' };
     expect(ShortcutConfig.matches(e, { ctrl: true, shift: false, alt: false, meta: false, key: 'l' })).toBe(false);
   });
 
   it('matches is case-insensitive for single-char keys', () => {
-    var e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'S' };
+    const e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'S' };
     expect(ShortcutConfig.matches(e, { ctrl: true, shift: true, alt: false, meta: false, key: 's' })).toBe(true);
   });
 
   it('matches returns false for null combo', () => {
-    var e = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, key: 'a' };
+    const e = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: false, key: 'a' };
     expect(ShortcutConfig.matches(e, null)).toBe(false);
   });
 
   it('matches checks shiftKey correctly', () => {
-    var e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'P' };
+    const e = { ctrlKey: true, shiftKey: true, altKey: false, metaKey: false, key: 'P' };
     expect(ShortcutConfig.matches(e, { ctrl: true, shift: true, alt: false, meta: false, key: 'P' })).toBe(true);
     expect(ShortcutConfig.matches(e, { ctrl: true, shift: false, alt: false, meta: false, key: 'P' })).toBe(false);
   });
 
   it('matches checks metaKey correctly', () => {
-    var e = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: true, key: 'z' };
+    const e = { ctrlKey: false, shiftKey: false, altKey: false, metaKey: true, key: 'z' };
     expect(ShortcutConfig.matches(e, { ctrl: false, shift: false, alt: false, meta: true, key: 'z' })).toBe(true);
   });
 });
@@ -977,7 +977,7 @@ describe('ShortcutConfig — keyboard shortcuts', () => {
 
 describe('getLcdFadeTiming — fade speed settings', () => {
   function getLcdFadeTiming() {
-    var speed = localStorage.getItem('abd-eep-fade-speed') || 'normal';
+    const speed = localStorage.getItem('abd-eep-fade-speed') || 'normal';
     switch (speed) {
       case 'off':    return { out:0, swap:0, in:0, cleanup:0, outR:0, swapR:0, inR:0, cleanupR:0 };
       case 'fast':   return { out:60, swap:70, in:60, cleanup:80, outR:80, swapR:90, inR:80, cleanupR:100 };
@@ -992,7 +992,7 @@ describe('getLcdFadeTiming — fade speed settings', () => {
   });
 
   it('returns normal timing when nothing is saved', () => {
-    var t = getLcdFadeTiming();
+    const t = getLcdFadeTiming();
     expect(t.out).toBe(100);
     expect(t.in).toBe(100);
     expect(t.cleanup).toBe(130);
@@ -1001,7 +1001,7 @@ describe('getLcdFadeTiming — fade speed settings', () => {
 
   it('returns off timing (all zeros) when speed=off', () => {
     localStorage.setItem('abd-eep-fade-speed', 'off');
-    var t = getLcdFadeTiming();
+    const t = getLcdFadeTiming();
     expect(t.out).toBe(0);
     expect(t.in).toBe(0);
     expect(t.cleanup).toBe(0);
@@ -1010,7 +1010,7 @@ describe('getLcdFadeTiming — fade speed settings', () => {
 
   it('returns fast timing when speed=fast', () => {
     localStorage.setItem('abd-eep-fade-speed', 'fast');
-    var t = getLcdFadeTiming();
+    const t = getLcdFadeTiming();
     expect(t.out).toBe(60);
     expect(t.swap).toBe(70);
     expect(t.in).toBe(60);
@@ -1019,13 +1019,13 @@ describe('getLcdFadeTiming — fade speed settings', () => {
 
   it('returns normal timing when speed=normal', () => {
     localStorage.setItem('abd-eep-fade-speed', 'normal');
-    var t = getLcdFadeTiming();
+    const t = getLcdFadeTiming();
     expect(t.out).toBe(100);
   });
 
   it('returns slow timing when speed=slow', () => {
     localStorage.setItem('abd-eep-fade-speed', 'slow');
-    var t = getLcdFadeTiming();
+    const t = getLcdFadeTiming();
     expect(t.out).toBe(220);
     expect(t.swap).toBe(230);
     expect(t.in).toBe(220);
@@ -1038,7 +1038,7 @@ describe('getLcdFadeTiming — fade speed settings', () => {
 
   it('returns normal timing for unknown speed value', () => {
     localStorage.setItem('abd-eep-fade-speed', 'turbo');
-    var t = getLcdFadeTiming();
+    const t = getLcdFadeTiming();
     expect(t.out).toBe(100);
   });
 });
@@ -1049,12 +1049,12 @@ describe('getLcdFadeTiming — fade speed settings', () => {
 
 describe('applyControllerCurve — unipolar response curves', () => {
   function applyControllerCurve(value, curveType) {
-    if (curveType === 'linear' || !curveType) return value;
+    if (curveType === 'linear' || !curveType) {return value;}
     if (curveType === 'custom') {
       // Simplified: return value unchanged for test
       return value;
     }
-    var v = Math.max(0, Math.min(1, value));
+    const v = Math.max(0, Math.min(1, value));
     switch (curveType) {
       case 'expo2':    return v * v;
       case 'expo3':    return v * v * v;
@@ -1104,7 +1104,7 @@ describe('applyControllerCurve — unipolar response curves', () => {
   });
 
   it('handles all curve types without throwing', () => {
-    var types = ['linear', 'expo2', 'expo3', 'log', 's-curve', null, undefined, 'custom'];
+    const types = ['linear', 'expo2', 'expo3', 'log', 's-curve', null, undefined, 'custom'];
     types.forEach(function(t) {
       expect(function() { applyControllerCurve(0.3, t); }).not.toThrow();
     });
@@ -1113,12 +1113,12 @@ describe('applyControllerCurve — unipolar response curves', () => {
 
 describe('applyBipolarCurve — bipolar pitch bend curves', () => {
   function applyBipolarCurve(value, curveType) {
-    if (curveType === 'linear' || !curveType) return value;
+    if (curveType === 'linear' || !curveType) {return value;}
     if (curveType === 'custom') {
       return value; // simplified
     }
-    var abs = Math.max(0, Math.min(1, Math.abs(value)));
-    var sign = value >= 0 ? 1 : -1;
+    const abs = Math.max(0, Math.min(1, Math.abs(value)));
+    const sign = value >= 0 ? 1 : -1;
     switch (curveType) {
       case 'expo2':    return sign * abs * abs;
       case 'expo3':    return sign * abs * abs * abs;
@@ -1161,12 +1161,12 @@ describe('applyBipolarCurve — bipolar pitch bend curves', () => {
 
 describe('_evalCustomCurve — piecewise linear interpolation', () => {
   function _evalCustomCurve(x, points) {
-    if (!points || points.length < 2) return x;
-    for (var i = 0; i < points.length - 1; i++) {
-      var p0 = points[i];
-      var p1 = points[i + 1];
+    if (!points || points.length < 2) {return x;}
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i];
+      const p1 = points[i + 1];
       if (x >= p0.x && x <= p1.x) {
-        var t = (x - p0.x) / (p1.x - p0.x);
+        const t = (x - p0.x) / (p1.x - p0.x);
         return p0.y + t * (p1.y - p0.y);
       }
     }
@@ -1179,23 +1179,23 @@ describe('_evalCustomCurve — piecewise linear interpolation', () => {
   });
 
   it('interpolates linearly between points', () => {
-    var points = [{x: 0, y: 0}, {x: 0.5, y: 0.8}, {x: 1, y: 1}];
+    const points = [{x: 0, y: 0}, {x: 0.5, y: 0.8}, {x: 1, y: 1}];
     expect(_evalCustomCurve(0.25, points)).toBeCloseTo(0.4, 3);
     expect(_evalCustomCurve(0.75, points)).toBeCloseTo(0.9, 3);
   });
 
   it('returns exact y at control points', () => {
-    var points = [{x: 0, y: 0}, {x: 0.3, y: 0.6}, {x: 1, y: 1}];
+    const points = [{x: 0, y: 0}, {x: 0.3, y: 0.6}, {x: 1, y: 1}];
     expect(_evalCustomCurve(0.3, points)).toBeCloseTo(0.6, 3);
   });
 
   it('handles x at boundary 0', () => {
-    var points = [{x: 0, y: 0}, {x: 1, y: 1}];
+    const points = [{x: 0, y: 0}, {x: 1, y: 1}];
     expect(_evalCustomCurve(0, points)).toBe(0);
   });
 
   it('handles x at boundary 1', () => {
-    var points = [{x: 0, y: 0}, {x: 1, y: 1}];
+    const points = [{x: 0, y: 0}, {x: 1, y: 1}];
     expect(_evalCustomCurve(1, points)).toBe(1);
   });
 });
@@ -1209,7 +1209,7 @@ describe('getControllerCurve and getCustomCurvePoints', () => {
   it('getControllerCurve returns linear by default', () => {
     function getControllerCurve(ctrlName) {
       try {
-        var saved = localStorage.getItem('abd-eep-curve-' + ctrlName);
+        const saved = localStorage.getItem('abd-eep-curve-' + ctrlName);
         return saved || 'linear';
       } catch(e) { return 'linear'; }
     }
@@ -1221,7 +1221,7 @@ describe('getControllerCurve and getCustomCurvePoints', () => {
   it('getControllerCurve returns saved curve type', () => {
     function getControllerCurve(ctrlName) {
       try {
-        var saved = localStorage.getItem('abd-eep-curve-' + ctrlName);
+        const saved = localStorage.getItem('abd-eep-curve-' + ctrlName);
         return saved || 'linear';
       } catch(e) { return 'linear'; }
     }
@@ -1231,17 +1231,17 @@ describe('getControllerCurve and getCustomCurvePoints', () => {
 
   it('getCustomCurvePoints returns default endpoints when no saved intermediates', () => {
     function getCustomCurvePoints(ctrlName) {
-      var key = 'abd-eep-custom-curve-' + ctrlName;
-      var raw = localStorage.getItem(key);
-      var intermediates = [];
+      const key = 'abd-eep-custom-curve-' + ctrlName;
+      const raw = localStorage.getItem(key);
+      let intermediates = [];
       if (raw) {
         try { intermediates = JSON.parse(raw); } catch(e) { intermediates = []; }
       }
-      var all = [{x: 0, y: 0}].concat(intermediates).concat([{x: 1, y: 1}]);
+      const all = [{x: 0, y: 0}].concat(intermediates).concat([{x: 1, y: 1}]);
       all.sort(function(a, b) { return a.x - b.x; });
       return all;
     }
-    var points = getCustomCurvePoints('aftertouch');
+    const points = getCustomCurvePoints('aftertouch');
     expect(points).toHaveLength(2);
     expect(points[0].x).toBe(0);
     expect(points[0].y).toBe(0);
@@ -1251,18 +1251,18 @@ describe('getControllerCurve and getCustomCurvePoints', () => {
 
   it('getCustomCurvePoints includes saved intermediate points', () => {
     function getCustomCurvePoints(ctrlName) {
-      var key = 'abd-eep-custom-curve-' + ctrlName;
-      var raw = localStorage.getItem(key);
-      var intermediates = [];
+      const key = 'abd-eep-custom-curve-' + ctrlName;
+      const raw = localStorage.getItem(key);
+      let intermediates = [];
       if (raw) {
         try { intermediates = JSON.parse(raw); } catch(e) { intermediates = []; }
       }
-      var all = [{x: 0, y: 0}].concat(intermediates).concat([{x: 1, y: 1}]);
+      const all = [{x: 0, y: 0}].concat(intermediates).concat([{x: 1, y: 1}]);
       all.sort(function(a, b) { return a.x - b.x; });
       return all;
     }
     localStorage.setItem('abd-eep-custom-curve-modwheel', JSON.stringify([{x: 0.3, y: 0.6}, {x: 0.7, y: 0.9}]));
-    var points = getCustomCurvePoints('modwheel');
+    const points = getCustomCurvePoints('modwheel');
     expect(points).toHaveLength(4);
     expect(points[1].x).toBe(0.3);
     expect(points[2].x).toBe(0.7);
@@ -1270,35 +1270,35 @@ describe('getControllerCurve and getCustomCurvePoints', () => {
 
   it('getCustomCurvePoints handles corrupted JSON gracefully', () => {
     function getCustomCurvePoints(ctrlName) {
-      var key = 'abd-eep-custom-curve-' + ctrlName;
-      var raw = localStorage.getItem(key);
-      var intermediates = [];
+      const key = 'abd-eep-custom-curve-' + ctrlName;
+      const raw = localStorage.getItem(key);
+      let intermediates = [];
       if (raw) {
         try { intermediates = JSON.parse(raw); } catch(e) { intermediates = []; }
       }
-      var all = [{x: 0, y: 0}].concat(intermediates).concat([{x: 1, y: 1}]);
+      const all = [{x: 0, y: 0}].concat(intermediates).concat([{x: 1, y: 1}]);
       all.sort(function(a, b) { return a.x - b.x; });
       return all;
     }
     localStorage.setItem('abd-eep-custom-curve-pitchbend', 'not-json');
-    var points = getCustomCurvePoints('pitchbend');
+    const points = getCustomCurvePoints('pitchbend');
     expect(points).toHaveLength(2);
   });
 
   it('sorts points by x coordinate', () => {
     function getCustomCurvePoints(ctrlName) {
-      var key = 'abd-eep-custom-curve-' + ctrlName;
-      var raw = localStorage.getItem(key);
-      var intermediates = [];
+      const key = 'abd-eep-custom-curve-' + ctrlName;
+      const raw = localStorage.getItem(key);
+      let intermediates = [];
       if (raw) {
         try { intermediates = JSON.parse(raw); } catch(e) { intermediates = []; }
       }
-      var all = [{x: 0, y: 0}].concat(intermediates).concat([{x: 1, y: 1}]);
+      const all = [{x: 0, y: 0}].concat(intermediates).concat([{x: 1, y: 1}]);
       all.sort(function(a, b) { return a.x - b.x; });
       return all;
     }
     localStorage.setItem('abd-eep-custom-curve-aftertouch', JSON.stringify([{x: 0.7, y: 0.9}, {x: 0.3, y: 0.5}]));
-    var points = getCustomCurvePoints('aftertouch');
+    const points = getCustomCurvePoints('aftertouch');
     expect(points[1].x).toBe(0.3);
     expect(points[2].x).toBe(0.7);
   });
@@ -1309,13 +1309,13 @@ describe('getControllerCurve and getCustomCurvePoints', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('_updateHexByteForParam — SysEx hex byte update', () => {
-  var mockBridge;
-  var byteEl;
+  let mockBridge;
+  let byteEl;
 
   function _updateHexByteForParam(paramId, normalizedVal) {
-    if (!window.dualMidiBridge) return;
-    var byteOffset = window.dualMidiBridge.paramToByteOffset[paramId];
-    if (byteOffset === undefined) return;
+    if (!window.dualMidiBridge) {return;}
+    const byteOffset = window.dualMidiBridge.paramToByteOffset[paramId];
+    if (byteOffset === undefined) {return;}
 
     if (!window._liveUnpackedBytes) {
       if (window._lastUnpackedBytes) {
@@ -1325,16 +1325,16 @@ describe('_updateHexByteForParam — SysEx hex byte update', () => {
       }
     }
 
-    var rawVal = window.dualMidiBridge._normalizedToRaw(byteOffset, normalizedVal);
+    const rawVal = window.dualMidiBridge._normalizedToRaw(byteOffset, normalizedVal);
     window._liveUnpackedBytes[byteOffset] = rawVal;
 
     if (window._lastUnpackedBytes && window._lastUnpackedBytes[byteOffset] !== undefined) {
       window._lastUnpackedBytes[byteOffset] = rawVal;
     }
 
-    var byteEl = document.querySelector('.hex-byte[data-idx="' + byteOffset + '"]');
+    const byteEl = document.querySelector('.hex-byte[data-idx="' + byteOffset + '"]');
     if (byteEl) {
-      var hex = rawVal.toString(16).toUpperCase().padStart(2, '0');
+      const hex = rawVal.toString(16).toUpperCase().padStart(2, '0');
       byteEl.textContent = hex;
       byteEl.classList.add('changed');
       if (byteEl._changeTimer) {
@@ -1365,7 +1365,7 @@ describe('_updateHexByteForParam — SysEx hex byte update', () => {
 
     vi.stubGlobal('document', {
       querySelector: function(sel) {
-        if (sel === '.hex-byte[data-idx="42"]') return byteEl;
+        if (sel === '.hex-byte[data-idx="42"]') {return byteEl;}
         return null;
       },
     });
@@ -1429,7 +1429,7 @@ describe('_updateHexByteForParam — SysEx hex byte update', () => {
 
   it('copies from _lastUnpackedBytes if _liveUnpackedBytes is missing', () => {
     mockBridge.paramToByteOffset['vcf_cutoff'] = 42;
-    var lastBytes = new Uint8Array(242);
+    const lastBytes = new Uint8Array(242);
     lastBytes[0] = 255;
     vi.stubGlobal('window', {
       dualMidiBridge: mockBridge,
@@ -1455,10 +1455,10 @@ describe('_updateHexByteForParam — SysEx hex byte update', () => {
   it('reuses existing _changeTimer and resets it', () => {
     mockBridge.paramToByteOffset['vcf_cutoff'] = 42;
     _updateHexByteForParam('vcf_cutoff', 0.5);
-    var timer1 = byteEl._changeTimer;
+    const timer1 = byteEl._changeTimer;
 
     _updateHexByteForParam('vcf_cutoff', 0.6);
-    var timer2 = byteEl._changeTimer;
+    const timer2 = byteEl._changeTimer;
 
     // Timer should be replaced
     expect(timer1).not.toBe(timer2);
@@ -1473,7 +1473,7 @@ describe('_updateHexByteForParam — SysEx hex byte update', () => {
 
   it('syncs _lastUnpackedBytes if it exists', () => {
     mockBridge.paramToByteOffset['vcf_cutoff'] = 42;
-    var lastBytes = new Uint8Array(242);
+    const lastBytes = new Uint8Array(242);
     lastBytes[42] = 0;
     window._lastUnpackedBytes = lastBytes;
 
@@ -1488,7 +1488,7 @@ describe('_updateHexByteForParam — SysEx hex byte update', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('MIDI mappings — parameter to NRPN/CC mapping', () => {
-  var midiMappings = {
+  const midiMappings = {
     'lfo1_rate': 'NRPN 0:00 (CC 16)',
     'lfo1_delay': 'NRPN 0:01 (CC 17)',
     'lfo1_shape': 'NRPN 0:02',
@@ -1516,7 +1516,7 @@ describe('MIDI mappings — parameter to NRPN/CC mapping', () => {
   };
 
   it('contains expected number of LFO parameter mappings', () => {
-    var lfoKeys = Object.keys(midiMappings).filter(function(k) { return k.startsWith('lfo'); });
+    const lfoKeys = Object.keys(midiMappings).filter(function(k) { return k.startsWith('lfo'); });
     expect(lfoKeys.length).toBeGreaterThanOrEqual(7);
   });
 
@@ -1557,8 +1557,8 @@ describe('MIDI mappings — parameter to NRPN/CC mapping', () => {
 
 describe('Blink state — tempo-synced LED blinking', () => {
   it('calculates blink states based on BPM and timestamp', () => {
-    var bpm = 120; // 120 BPM
-    var periodMs = 60000 / bpm; // 500ms per beat
+    const bpm = 120; // 120 BPM
+    const periodMs = 60000 / bpm; // 500ms per beat
 
     // blinkStateSlow: Math.floor(timestamp / (period / 2)) % 2 === 0
     // With period=500ms, half-period=250ms
@@ -1577,9 +1577,9 @@ describe('Blink state — tempo-synced LED blinking', () => {
   });
 
   it('fast blink alternates twice per beat (period/4)', () => {
-    var bpm = 120;
-    var periodMs = 60000 / bpm; // 500ms
-    var quarterPeriod = periodMs / 4; // 125ms
+    const bpm = 120;
+    const periodMs = 60000 / bpm; // 500ms
+    const quarterPeriod = periodMs / 4; // 125ms
 
     // At t=0: even → true
     expect(Math.floor(0 / quarterPeriod) % 2 === 0).toBe(true);
@@ -1592,11 +1592,11 @@ describe('Blink state — tempo-synced LED blinking', () => {
   });
 
   it('slow blink period scales with BPM', () => {
-    var bpmSlow = 60; // 60 BPM → 1000ms period
-    var bpmFast = 240; // 240 BPM → 250ms period
+    const bpmSlow = 60; // 60 BPM → 1000ms period
+    const bpmFast = 240; // 240 BPM → 250ms period
 
-    var halfSlow = (60000 / bpmSlow) / 2; // 500ms
-    var halfFast = (60000 / bpmFast) / 2; // 125ms
+    const halfSlow = (60000 / bpmSlow) / 2; // 500ms
+    const halfFast = (60000 / bpmFast) / 2; // 125ms
 
     // At t=400:
     // Slow: floor(400/500) % 2 = 0 → true
@@ -1617,12 +1617,12 @@ describe('Blink state — tempo-synced LED blinking', () => {
   });
 
   it('SEQ pulse time tracking detects step changes', () => {
-    var _lastSeqStep = -1;
-    var _seqPulseTime = 0;
-    var timestamp = 1000;
+    let _lastSeqStep = -1;
+    let _seqPulseTime = 0;
+    const timestamp = 1000;
 
     function onStepChanged(currentSeqStep, ts) {
-      var stepChanged = currentSeqStep !== undefined && currentSeqStep !== _lastSeqStep;
+      const stepChanged = currentSeqStep !== undefined && currentSeqStep !== _lastSeqStep;
       if (stepChanged) {
         _lastSeqStep = currentSeqStep;
         _seqPulseTime = ts;
@@ -1645,13 +1645,13 @@ describe('Blink state — tempo-synced LED blinking', () => {
   });
 
   it('SEQ pulse decay fades brightness over stepPulseMs', () => {
-    var stepPulseMs = 200;
-    var pulseTime = 500;
+    const stepPulseMs = 200;
+    const pulseTime = 500;
 
     function calcBrightness(now) {
-      var age = now - pulseTime;
+      const age = now - pulseTime;
       if (age < stepPulseMs) {
-        var fade = age / stepPulseMs;
+        const fade = age / stepPulseMs;
         return 60 - fade * 35; // 60% → 25%
       }
       return 15; // dim
@@ -1671,34 +1671,34 @@ describe('Blink state — tempo-synced LED blinking', () => {
 
 describe('Controller overlay — PB/MW/AT bar calculations', () => {
   it('Pitch Bend: calculates left/width for positive values', () => {
-    var pb = 0.5;
-    var center = 50;
-    var left = pb >= 0 ? center : center + pb * 50;
-    var width = Math.abs(pb) * 50;
+    const pb = 0.5;
+    const center = 50;
+    const left = pb >= 0 ? center : center + pb * 50;
+    const width = Math.abs(pb) * 50;
     expect(left).toBe(50);
     expect(width).toBe(25);
   });
 
   it('Pitch Bend: calculates left/width for negative values', () => {
-    var pb = -0.4;
-    var center = 50;
-    var left = pb >= 0 ? center : center + pb * 50;
-    var width = Math.abs(pb) * 50;
+    const pb = -0.4;
+    const center = 50;
+    const left = pb >= 0 ? center : center + pb * 50;
+    const width = Math.abs(pb) * 50;
     expect(left).toBeCloseTo(30, 1); // 50 + (-0.4 * 50) = 30
     expect(width).toBe(20);
   });
 
   it('Pitch Bend: at 0, left=50, width=0', () => {
-    var pb = 0;
-    var center = 50;
-    var left = pb >= 0 ? center : center + pb * 50;
-    var width = Math.abs(pb) * 50;
+    const pb = 0;
+    const center = 50;
+    const left = pb >= 0 ? center : center + pb * 50;
+    const width = Math.abs(pb) * 50;
     expect(left).toBe(50);
     expect(width).toBe(0);
   });
 
   it('Pitch Bend label: positive shows + sign, negative shows -', () => {
-    var st = 0.5 * 2.0;
+    let st = 0.5 * 2.0;
     expect((st >= 0 ? '+' : '') + st.toFixed(2)).toBe('+1.00');
 
     st = -0.5 * 2.0;
@@ -1717,9 +1717,9 @@ describe('Controller overlay — PB/MW/AT bar calculations', () => {
   });
 
   it('VU Meter ballistics: attack is fast (~5ms), release is slow (~300ms)', () => {
-    var vu = 0;
-    var VU_ATTACK_MS = 5;
-    var VU_RELEASE_MS = 300;
+    const vu = 0;
+    const VU_ATTACK_MS = 5;
+    const VU_RELEASE_MS = 300;
 
     function smooth(vu, raw, dt) {
       if (raw > vu) {
@@ -1734,14 +1734,14 @@ describe('Controller overlay — PB/MW/AT bar calculations', () => {
     // Attack: raw=1, vu=0, dt=5ms (one time constant)
     // coeff = exp(-5/5) = exp(-1) ≈ 0.368
     // smoothed = 0 * 0.368 + 1 * (1 - 0.368) ≈ 0.632
-    var attacked = smooth(0, 1, 5);
+    const attacked = smooth(0, 1, 5);
     expect(attacked).toBeGreaterThan(0.6);
     expect(attacked).toBeLessThan(0.65);
 
     // Release: raw=0, vu=1, dt=300ms (one time constant)
     // coeff = exp(-300/300) = exp(-1) ≈ 0.368
     // smoothed = 0 + (1 - 0) * 0.368 ≈ 0.368
-    var released = smooth(1, 0, 300);
+    const released = smooth(1, 0, 300);
     expect(released).toBeGreaterThan(0.35);
     expect(released).toBeLessThan(0.4);
   });
@@ -1759,10 +1759,10 @@ describe('Controller overlay — PB/MW/AT bar calculations', () => {
 
   it('VU meter color changes at thresholds', () => {
     function vuColor(peak) {
-      if (peak < 0.001) return 'var(--text-faint)';
-      if (peak < 0.06) return 'var(--accent-green)';
-      if (peak < 0.5) return 'var(--accent-yellow)';
-      if (peak < 0.7) return 'var(--accent-orange)';
+      if (peak < 0.001) {return 'var(--text-faint)';}
+      if (peak < 0.06) {return 'var(--accent-green)';}
+      if (peak < 0.5) {return 'var(--accent-yellow)';}
+      if (peak < 0.7) {return 'var(--accent-orange)';}
       return 'var(--color-danger)';
     }
 
@@ -1782,8 +1782,8 @@ describe('Typewriter animation — patch name display', () => {
   const TW_CHAR_MS = 65;
 
   it('calculates chars to show based on elapsed time', () => {
-    var text = 'DEEP PATCH';
-    var start = 1000;
+    const text = 'DEEP PATCH';
+    const start = 1000;
 
     function charsToShow(now) {
       return Math.min(text.length, Math.max(1, Math.floor((now - start) / TW_CHAR_MS)));
@@ -1798,11 +1798,11 @@ describe('Typewriter animation — patch name display', () => {
 
   it('shows cursor while animation is in progress', () => {
     // isDone = charsToShow >= text.length
-    var text = 'TEST';
-    var start = 1000;
+    const text = 'TEST';
+    const start = 1000;
 
     function isDone(now) {
-      var shown = Math.min(text.length, Math.max(1, Math.floor((now - start) / TW_CHAR_MS)));
+      const shown = Math.min(text.length, Math.max(1, Math.floor((now - start) / TW_CHAR_MS)));
       return shown >= text.length;
     }
 
@@ -1816,19 +1816,19 @@ describe('Typewriter animation — patch name display', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('_lcdFadeUpdate — LCD fade animation', () => {
-  var lcdEl;
-  var queue;
+  let lcdEl;
+  let queue;
 
   function _getLcdTimeoutMs() {
-    var saved = localStorage.getItem('abd-eep-lcd-timeout');
-    if (saved === null) return 2000;
-    if (saved === 'off') return null;
-    var ms = parseInt(saved, 10);
+    const saved = localStorage.getItem('abd-eep-lcd-timeout');
+    if (saved === null) {return 2000;}
+    if (saved === 'off') {return null;}
+    const ms = parseInt(saved, 10);
     return isNaN(ms) ? 2000 : ms;
   }
 
   function getLcdFadeTiming() {
-    var speed = localStorage.getItem('abd-eep-fade-speed') || 'normal';
+    const speed = localStorage.getItem('abd-eep-fade-speed') || 'normal';
     switch (speed) {
       case 'off':    return { out:0, swap:0, in:0, cleanup:0 };
       case 'fast':   return { out:60, swap:70, in:60, cleanup:80 };
@@ -1843,9 +1843,9 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
       clearTimeout(lcdEl._ctrlLcdFadeTimer);
       lcdEl._ctrlLcdFadeTimer = null;
     }
-    var _lcdLastParam = lcdEl._lcdLastParam;
-    var contentId = 'param_' + (paramId || 'generic');
-    var timeoutMs = _getLcdTimeoutMs();
+    const _lcdLastParam = lcdEl._lcdLastParam;
+    const contentId = 'param_' + (paramId || 'generic');
+    const timeoutMs = _getLcdTimeoutMs();
     if (paramId === _lcdLastParam) {
       lcdEl.style.removeProperty('transition');
       lcdEl.style.opacity = '1';
@@ -1860,7 +1860,7 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
     if (window.LcdQueue) {
       window.LcdQueue.push(contentId, html, 1, { duration: timeoutMs !== null ? timeoutMs : null });
     }
-    var t = getLcdFadeTiming();
+    const t = getLcdFadeTiming();
     if (t.out === 0) {
       lcdEl._lcdFading = false;
       lcdEl.style.removeProperty('transition');
@@ -1871,7 +1871,7 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
     lcdEl.style.transition = 'opacity ' + t.out + 'ms ease-out';
     lcdEl.style.opacity = '0';
     lcdEl._ctrlLcdFadeTimer = setTimeout(function() {
-      if (lcdEl._ctrlLcdFadeTimer === null) return;
+      if (lcdEl._ctrlLcdFadeTimer === null) {return;}
       lcdEl._ctrlLcdFadeTimer = null;
       lcdEl.innerHTML = html;
       lcdEl.style.transition = 'opacity ' + t.in + 'ms ease-in';
@@ -1896,16 +1896,16 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
       push: function(id, content, priority, options) {
         options = options || {};
         this._messages[id] = { content: content, priority: priority, timestamp: Date.now() };
-        if (this._expiryTimers[id]) clearTimeout(this._expiryTimers[id]);
-        var dur = options.duration !== undefined ? options.duration : 2000;
+        if (this._expiryTimers[id]) {clearTimeout(this._expiryTimers[id]);}
+        const dur = options.duration !== undefined ? options.duration : 2000;
         if (dur !== null) {
-          var self = this;
+          const self = this;
           this._expiryTimers[id] = setTimeout(function() { delete self._messages[id]; delete self._expiryTimers[id]; }, dur);
         }
       },
       getActive: function() {
-        var best = null;
-        for (var id in this._messages) { var m = this._messages[id]; if (!best || m.priority < best.priority) best = m; }
+        let best = null;
+        for (const id in this._messages) { const m = this._messages[id]; if (!best || m.priority < best.priority) {best = m;} }
         return best;
       },
     };
@@ -1927,7 +1927,7 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
   });
 
   it('same param: clears ctrlLcdFadeTimer', function() {
-    var timer = setTimeout(function() {}, 999);
+    const timer = setTimeout(function() {}, 999);
     lcdEl._ctrlLcdFadeTimer = timer;
     lcdEl._lcdLastParam = 'vcf_cutoff';
 
@@ -1938,7 +1938,7 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
 
   it('same param: pushes to LcdQueue with contentId=param_paramId', function() {
     lcdEl._lcdLastParam = 'vcf_cutoff';
-    var pushSpy = vi.spyOn(queue, 'push');
+    const pushSpy = vi.spyOn(queue, 'push');
 
     _lcdFadeUpdate(lcdEl, '<strong>50%</strong>', 'vcf_cutoff');
 
@@ -1948,7 +1948,7 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
   it('same param: uses custom timeout from localStorage', function() {
     localStorage.setItem('abd-eep-lcd-timeout', '500');
     lcdEl._lcdLastParam = 'vcf_cutoff';
-    var pushSpy = vi.spyOn(queue, 'push');
+    const pushSpy = vi.spyOn(queue, 'push');
 
     _lcdFadeUpdate(lcdEl, '<strong>50%</strong>', 'vcf_cutoff');
 
@@ -1958,7 +1958,7 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
   it('same param: uses null duration when timeout is off', function() {
     localStorage.setItem('abd-eep-lcd-timeout', 'off');
     lcdEl._lcdLastParam = 'vcf_cutoff';
-    var pushSpy = vi.spyOn(queue, 'push');
+    const pushSpy = vi.spyOn(queue, 'push');
 
     _lcdFadeUpdate(lcdEl, '<strong>50%</strong>', 'vcf_cutoff');
 
@@ -1966,7 +1966,7 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
   });
 
   it('new param: sets _lcdFading=true and pushes to queue', function() {
-    var pushSpy = vi.spyOn(queue, 'push');
+    const pushSpy = vi.spyOn(queue, 'push');
 
     _lcdFadeUpdate(lcdEl, '<strong>NEW</strong>', 'vcf_cutoff');
 
@@ -2004,7 +2004,7 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
 
   it('new param with null timeout: pushes duration=null', function() {
     localStorage.setItem('abd-eep-lcd-timeout', 'off');
-    var pushSpy = vi.spyOn(queue, 'push');
+    const pushSpy = vi.spyOn(queue, 'push');
 
     _lcdFadeUpdate(lcdEl, '<strong>NULL</strong>', 'vcf_cutoff');
 
@@ -2023,7 +2023,7 @@ describe('_lcdFadeUpdate — LCD fade animation', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('lcdSafeUpdate — safe LCD update wrapper', () => {
-  var lcdEl;
+  let lcdEl;
 
   function lcdSafeUpdate(lcdEl, html, paramId, options) {
     options = options || {};
@@ -2047,7 +2047,7 @@ describe('lcdSafeUpdate — safe LCD update wrapper', () => {
   });
 
   it('calls lcdFadeUpdate when available and useQueue is not false', function() {
-    var fadeSpy = vi.fn();
+    const fadeSpy = vi.fn();
     window.lcdFadeUpdate = fadeSpy;
 
     lcdSafeUpdate(lcdEl, '<strong>TEST</strong>', 'vcf_cutoff');
@@ -2063,7 +2063,7 @@ describe('lcdSafeUpdate — safe LCD update wrapper', () => {
   });
 
   it('direct update when useQueue=false', function() {
-    var fadeSpy = vi.fn();
+    const fadeSpy = vi.fn();
     window.lcdFadeUpdate = fadeSpy;
 
     lcdSafeUpdate(lcdEl, '<strong>NO QUEUE</strong>', null, { useQueue: false });
@@ -2073,7 +2073,7 @@ describe('lcdSafeUpdate — safe LCD update wrapper', () => {
   });
 
   it('direct update clears pending fade timer', function() {
-    var timer = setTimeout(function() {}, 999);
+    const timer = setTimeout(function() {}, 999);
     lcdEl._ctrlLcdFadeTimer = timer;
 
     lcdSafeUpdate(lcdEl, '<strong>DIRECT</strong>');
@@ -2097,12 +2097,12 @@ describe('lcdSafeUpdate — safe LCD update wrapper', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('initUIControls — slider drag interaction', () => {
-  var mockBridge;
-  var slider;
-  var handle;
+  let mockBridge;
+  let slider;
+  let handle;
 
   function _makeVerticalSlider(paramId) {
-    var container = _createFakeEl('div', { 'data-param': paramId });
+    const container = _createFakeEl('div', { 'data-param': paramId });
     container.classList.add('v-slider');
     container.clientHeight = 100;
     container.getBoundingClientRect = function() {
@@ -2116,23 +2116,23 @@ describe('initUIControls — slider drag interaction', () => {
   }
 
   function _setupSlider(slider, bridge) {
-    var handle = slider.querySelector('.handle');
-    var isDragging = false;
+    const handle = slider.querySelector('.handle');
+    let isDragging = false;
 
     function updateVal(clientY) {
-      var rect = slider.getBoundingClientRect();
-      var pct = 1.0 - (clientY - rect.top) / rect.height;
+      const rect = slider.getBoundingClientRect();
+      let pct = 1.0 - (clientY - rect.top) / rect.height;
       pct = Math.max(0, Math.min(1, pct));
-      var handleHeight = 16;
-      var pos = (1.0 - pct) * (rect.height - handleHeight);
+      const handleHeight = 16;
+      const pos = (1.0 - pct) * (rect.height - handleHeight);
       handle.style.top = pos + 'px';
-      var paramId = slider.closest('[data-param]').getAttribute('data-param');
+      const paramId = slider.closest('[data-param]').getAttribute('data-param');
       if (bridge) {
         bridge.setParameter(paramId, pct);
       }
     }
 
-    function onSliderMove(e) { if (isDragging) updateVal(e.clientY); }
+    function onSliderMove(e) { if (isDragging) {updateVal(e.clientY);} }
     function onSliderEnd() { isDragging = false; }
 
     slider.addEventListener('mousedown', function(e) {
@@ -2153,7 +2153,7 @@ describe('initUIControls — slider drag interaction', () => {
 
   it('mousedown at mid-point sets value from clientY', function() {
     _setupSlider(slider, mockBridge);
-    var mousedown = slider._listeners['mousedown'][0];
+    const mousedown = slider._listeners['mousedown'][0];
 
     mousedown({ clientY: 50 }); // top=50, height=100 → pct=1.0-(50-50)/100=1.0
 
@@ -2162,7 +2162,7 @@ describe('initUIControls — slider drag interaction', () => {
 
   it('mousedown at bottom sets value 0', function() {
     _setupSlider(slider, mockBridge);
-    var mousedown = slider._listeners['mousedown'][0];
+    const mousedown = slider._listeners['mousedown'][0];
 
     mousedown({ clientY: 150 }); // top=50, height=100 → pct=1.0-(150-50)/100=0.0
 
@@ -2171,7 +2171,7 @@ describe('initUIControls — slider drag interaction', () => {
 
   it('mousedown at center sets value 0.5', function() {
     _setupSlider(slider, mockBridge);
-    var mousedown = slider._listeners['mousedown'][0];
+    const mousedown = slider._listeners['mousedown'][0];
 
     mousedown({ clientY: 100 }); // top=50 → pct=1.0-(100-50)/100=0.5
 
@@ -2180,7 +2180,7 @@ describe('initUIControls — slider drag interaction', () => {
 
   it('mousedown clamps value above top to 1.0', function() {
     _setupSlider(slider, mockBridge);
-    var mousedown = slider._listeners['mousedown'][0];
+    const mousedown = slider._listeners['mousedown'][0];
 
     mousedown({ clientY: 30 }); // above top → pct=1.0-(-20)/100=1.2→clamped
 
@@ -2189,7 +2189,7 @@ describe('initUIControls — slider drag interaction', () => {
 
   it('mousedown clamps value below bottom to 0', function() {
     _setupSlider(slider, mockBridge);
-    var mousedown = slider._listeners['mousedown'][0];
+    const mousedown = slider._listeners['mousedown'][0];
 
     mousedown({ clientY: 200 }); // below bottom → negative → clamped
 
@@ -2198,7 +2198,7 @@ describe('initUIControls — slider drag interaction', () => {
 
   it('mousedown positions handle top style', function() {
     _setupSlider(slider, mockBridge);
-    var mousedown = slider._listeners['mousedown'][0];
+    const mousedown = slider._listeners['mousedown'][0];
 
     mousedown({ clientY: 75 }); // pct=0.75 → pos=0.25*84=21
 
@@ -2218,9 +2218,9 @@ describe('initUIControls — slider drag interaction', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('initUIControls — LED button toggle', () => {
-  var mockBridge;
-  var led;
-  var container;
+  let mockBridge;
+  let led;
+  let container;
 
   beforeEach(function() {
     mockBridge = { setParameter: vi.fn(), parameterCache: {} };
@@ -2233,9 +2233,9 @@ describe('initUIControls — LED button toggle', () => {
     vi.stubGlobal('window', { dualMidiBridge: mockBridge });
 
     // Simulate initUIControls LED setup
-    var paramId = led.closest('[data-param]').getAttribute('data-param');
+    const paramId = led.closest('[data-param]').getAttribute('data-param');
     led.addEventListener('click', function() {
-      var active = led.classList.toggle('active');
+      const active = led.classList.toggle('active');
       if (window.dualMidiBridge) {
         window.dualMidiBridge.setParameter(paramId, active ? 1.0 : 0.0);
       }
@@ -2277,9 +2277,9 @@ describe('initUIControls — LED button toggle', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('initUIControls — LFO selector button', () => {
-  var mockBridge;
-  var lfoBtn;
-  var rateUnit, delayUnit, rateLabel;
+  let mockBridge;
+  let lfoBtn;
+  let rateUnit, delayUnit, rateLabel;
 
   function _setupLfoSelector() {
     lfoBtn = _createFakeEl('button', { id: 'lfo-select-btn' });
@@ -2288,7 +2288,7 @@ describe('initUIControls — LFO selector button', () => {
     rateLabel = _createFakeEl('span', { id: 'lfo-label-rate' });
     rateLabel.innerText = 'LFO1 Rate';
 
-    var registry = {};
+    const registry = {};
     registry['lfo-select-btn'] = lfoBtn;
     registry['lfo-ctrl-rate'] = rateUnit;
     registry['lfo-ctrl-delay'] = delayUnit;
@@ -2300,7 +2300,7 @@ describe('initUIControls — LFO selector button', () => {
     });
 
     lfoBtn.addEventListener('click', function() {
-      var activeLfoNumber = parseInt(lfoBtn.getAttribute('data-active') || '1');
+      let activeLfoNumber = parseInt(lfoBtn.getAttribute('data-active') || '1');
       activeLfoNumber = activeLfoNumber === 1 ? 2 : 1;
       lfoBtn.setAttribute('data-active', String(activeLfoNumber));
       lfoBtn.innerText = 'LFO ' + activeLfoNumber + ' ACTIVE';
@@ -2367,10 +2367,10 @@ describe('initUIControls — LFO selector button', () => {
 });
 
 describe('initUIControls — OSC selector button', () => {
-  var mockBridge;
-  var oscBtn;
-  var pitchModUnit, pwmToneUnit, pitchUnit, levelUnit;
-  var pitchModLabel, pwmToneLabel;
+  let mockBridge;
+  let oscBtn;
+  let pitchModUnit, pwmToneUnit, pitchUnit, levelUnit;
+  let pitchModLabel, pwmToneLabel;
 
   function _setupOscSelector() {
     oscBtn = _createFakeEl('button', { id: 'osc-select-btn' });
@@ -2384,7 +2384,7 @@ describe('initUIControls — OSC selector button', () => {
     pitchUnit.style.display = 'none';
     levelUnit.style.display = 'none';
 
-    var registry = {};
+    const registry = {};
     [oscBtn, pitchModUnit, pwmToneUnit, pitchUnit, levelUnit, pitchModLabel, pwmToneLabel].forEach(function(el) { registry[el.id] = el; });
 
     vi.stubGlobal('document', {
@@ -2393,7 +2393,7 @@ describe('initUIControls — OSC selector button', () => {
     });
 
     oscBtn.addEventListener('click', function() {
-      var activeOscNumber = parseInt(oscBtn.getAttribute('data-active') || '1');
+      let activeOscNumber = parseInt(oscBtn.getAttribute('data-active') || '1');
       activeOscNumber = activeOscNumber === 1 ? 2 : 1;
       oscBtn.setAttribute('data-active', String(activeOscNumber));
       oscBtn.innerText = 'OSC ' + activeOscNumber + ' ACTIVE';
@@ -2466,12 +2466,12 @@ describe('initUIControls — OSC selector button', () => {
 });
 
 describe('initUIControls — ENV type buttons', () => {
-  var mockBridge;
-  var envBtns;
-  var atkUnit, dcyUnit, susUnit, relUnit;
+  let mockBridge;
+  let envBtns;
+  let atkUnit, dcyUnit, susUnit, relUnit;
 
   function _setupEnvButtons() {
-    var registry = {};
+    const registry = {};
     atkUnit = _createFakeEl('div', { id: 'env-ctrl-attack', 'data-param': 'env1_attack' });
     dcyUnit = _createFakeEl('div', { id: 'env-ctrl-decay', 'data-param': 'env1_decay' });
     susUnit = _createFakeEl('div', { id: 'env-ctrl-sustain', 'data-param': 'env1_sustain' });
@@ -2480,7 +2480,7 @@ describe('initUIControls — ENV type buttons', () => {
 
     // Create 3 env type buttons
     envBtns = [1, 2, 3].map(function(num) {
-      var btn = _createFakeEl('button', { 'data-env': String(num) });
+      const btn = _createFakeEl('button', { 'data-env': String(num) });
       btn.classList.add('env-type-btn');
       btn.style = { background: '', borderColor: '', color: '' };
       registry['env-type-btn-' + num] = btn;
@@ -2490,7 +2490,7 @@ describe('initUIControls — ENV type buttons', () => {
     vi.stubGlobal('document', {
       getElementById: function(id) { return registry[id] || null; },
       querySelectorAll: function(sel) {
-        if (sel === '.env-type-btn') return envBtns;
+        if (sel === '.env-type-btn') {return envBtns;}
         return [];
       },
       addEventListener: function() {},
@@ -2506,7 +2506,7 @@ describe('initUIControls — ENV type buttons', () => {
           b.style.color = 'var(--text-labels)';
         });
         btn.classList.add('active');
-        var activeEnv = parseInt(btn.getAttribute('data-env'));
+        const activeEnv = parseInt(btn.getAttribute('data-env'));
         if (activeEnv === 1) {
           btn.style.background = 'color-mix(in srgb, var(--accent-primary) 15%, transparent)';
           btn.style.borderColor = 'var(--brand-accent)';
@@ -2595,13 +2595,13 @@ describe('initUIControls — ENV type buttons', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('initUIControls — HPF Boost and VCA Mode buttons', () => {
-  var mockBridge;
-  var hpfBtn, vcaBtn;
+  let mockBridge;
+  let hpfBtn, vcaBtn;
 
   function _setupButtons() {
     hpfBtn = _createFakeEl('button', { id: 'hpf-boost-btn' });
     vcaBtn = _createFakeEl('button', { id: 'vca-mode-btn' });
-    var registry = { 'hpf-boost-btn': hpfBtn, 'vca-mode-btn': vcaBtn };
+    const registry = { 'hpf-boost-btn': hpfBtn, 'vca-mode-btn': vcaBtn };
 
     vi.stubGlobal('document', {
       getElementById: function(id) { return registry[id] || null; },
@@ -2610,9 +2610,9 @@ describe('initUIControls — HPF Boost and VCA Mode buttons', () => {
 
     // HPF Boost
     hpfBtn.addEventListener('click', function() {
-      var cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['hpf_boost_enable'] : 0.0;
-      var active = cacheVal > 0.5;
-      var nextVal = active ? 0.0 : 1.0;
+      const cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['hpf_boost_enable'] : 0.0;
+      const active = cacheVal > 0.5;
+      const nextVal = active ? 0.0 : 1.0;
       if (window.dualMidiBridge) {
         window.dualMidiBridge.setParameter('hpf_boost_enable', nextVal);
         window.dualMidiBridge.handleParameterChangeFromBackend('hpf_boost_enable', nextVal);
@@ -2621,9 +2621,9 @@ describe('initUIControls — HPF Boost and VCA Mode buttons', () => {
 
     // VCA Mode
     vcaBtn.addEventListener('click', function() {
-      var cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['vca_mode'] : 0.0;
-      var active = cacheVal > 0.5;
-      var nextVal = active ? 0.0 : 1.0;
+      const cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['vca_mode'] : 0.0;
+      const active = cacheVal > 0.5;
+      const nextVal = active ? 0.0 : 1.0;
       if (window.dualMidiBridge) {
         window.dualMidiBridge.setParameter('vca_mode', nextVal);
         window.dualMidiBridge.handleParameterChangeFromBackend('vca_mode', nextVal);
@@ -2678,17 +2678,17 @@ describe('initUIControls — HPF Boost and VCA Mode buttons', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('initUIControls — onParameterChanged slider/LED sync', () => {
-  var mockBridge;
-  var callback;
-  var sliderUnits;
+  let mockBridge;
+  let callback;
+  let sliderUnits;
 
   function _makeSyncedSliderUnit(id, paramId) {
-    var container = _createFakeEl('div', { id: id, 'data-param': paramId });
+    const container = _createFakeEl('div', { id: id, 'data-param': paramId });
     container.clientHeight = 100;
-    var slider = _createFakeEl('div');
+    const slider = _createFakeEl('div');
     slider.classList.add('v-slider');
     slider.clientHeight = 100;
-    var handle = _createFakeEl('div');
+    const handle = _createFakeEl('div');
     handle.classList.add('handle');
     slider._subElements['.handle'] = handle;
     container._subElements['.v-slider'] = slider;
@@ -2702,29 +2702,29 @@ describe('initUIControls — onParameterChanged slider/LED sync', () => {
     // Simulate the onParameterChanged callback from initUIControls
     callback = function(paramId, val) {
       // Slider sync
-      var sliders = [];
+      const sliders = [];
       Object.keys(sliderUnits).forEach(function(id) {
-        var unit = sliderUnits[id];
-        var pId = unit.getAttribute('data-param');
+        const unit = sliderUnits[id];
+        const pId = unit.getAttribute('data-param');
         if (pId === paramId) {
-          var slider = unit.querySelector('.v-slider');
-          if (slider) sliders.push(slider);
+          const slider = unit.querySelector('.v-slider');
+          if (slider) {sliders.push(slider);}
         }
       });
 
       sliders.forEach(function(sliderUnit) {
-        var handle = sliderUnit.querySelector('.handle');
+        const handle = sliderUnit.querySelector('.handle');
         if (handle) {
-          var height = sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100;
-          var handleHeight = 16;
-          var pos = (1.0 - val) * (height - handleHeight);
+          const height = sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100;
+          const handleHeight = 16;
+          const pos = (1.0 - val) * (height - handleHeight);
           handle.style.top = pos + 'px';
         }
       });
 
       // LED sync
       if (paramId === 'osc1_saw_enable') {
-        var led = { classList: { contains: function() {}, toggle: vi.fn() } };
+        const led = { classList: { contains: function() {}, toggle: vi.fn() } };
         led.classList.toggle('active', val > 0.5);
       }
     };
@@ -2733,9 +2733,9 @@ describe('initUIControls — onParameterChanged slider/LED sync', () => {
   });
 
   it('syncs slider handle position for matching param', function() {
-    var unit = _makeSyncedSliderUnit('env-ctrl-attack', 'env1_attack');
+    const unit = _makeSyncedSliderUnit('env-ctrl-attack', 'env1_attack');
     sliderUnits['env-ctrl-attack'] = unit;
-    var handle = unit.querySelector('.v-slider').querySelector('.handle');
+    const handle = unit.querySelector('.v-slider').querySelector('.handle');
 
     callback('env1_attack', 0.8);
     expect(parseFloat(handle.style.top)).toBeCloseTo(16.8, 1);
@@ -2745,19 +2745,19 @@ describe('initUIControls — onParameterChanged slider/LED sync', () => {
   });
 
   it('does not sync slider for non-matching param', function() {
-    var unit = _makeSyncedSliderUnit('env-ctrl-attack', 'env1_attack');
+    const unit = _makeSyncedSliderUnit('env-ctrl-attack', 'env1_attack');
     sliderUnits['env-ctrl-attack'] = unit;
-    var handle = unit.querySelector('.v-slider').querySelector('.handle');
+    const handle = unit.querySelector('.v-slider').querySelector('.handle');
 
     callback('vcf_cutoff', 0.5);
     expect(handle.style.top).toBeFalsy();
   });
 
   it('uses clientHeight when getBoundingClientRect not available', function() {
-    var unit = _makeSyncedSliderUnit('env-ctrl-attack', 'env1_attack');
+    const unit = _makeSyncedSliderUnit('env-ctrl-attack', 'env1_attack');
     unit.querySelector('.v-slider').clientHeight = 50;
     sliderUnits['env-ctrl-attack'] = unit;
-    var handle = unit.querySelector('.v-slider').querySelector('.handle');
+    const handle = unit.querySelector('.v-slider').querySelector('.handle');
 
     callback('env1_attack', 0.5);
     // pos = 0.5 * (50 - 16) = 17
@@ -2765,17 +2765,17 @@ describe('initUIControls — onParameterChanged slider/LED sync', () => {
   });
 
   it('handles missing handle gracefully', function() {
-    var unit = _makeSyncedSliderUnit('env-ctrl-attack', 'env1_attack');
-    var vSlider = unit.querySelector('.v-slider');
+    const unit = _makeSyncedSliderUnit('env-ctrl-attack', 'env1_attack');
+    const vSlider = unit.querySelector('.v-slider');
     delete vSlider._subElements['.handle'];
 
     expect(function() { callback('env1_attack', 0.5); }).not.toThrow();
   });
 
   it('triggers LED toggle for osc1_saw_enable param', function() {
-    var ledToggle = { classList: { toggle: vi.fn() } };
+    const ledToggle = { classList: { toggle: vi.fn() } };
     // Replace callback to test LED toggle
-    var ledCallback = function(paramId, val) {
+    const ledCallback = function(paramId, val) {
       if (paramId === 'osc1_saw_enable') {
         ledToggle.classList.toggle('active', val > 0.5);
       }
@@ -2793,15 +2793,15 @@ describe('initUIControls — onParameterChanged slider/LED sync', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('PANIC button — MIDI messages and engine reset', () => {
-  var mockBridge;
-  var panicBtn;
-  var lcdText;
+  let mockBridge;
+  let panicBtn;
+  let lcdText;
 
   function _setupPanic() {
     panicBtn = _createFakeEl('button', { id: 'programmer-panic-btn' });
     lcdText = _createFakeEl('div', { id: 'lcd-text' });
     lcdText._lcdFading = false;
-    var registry = { 'programmer-panic-btn': panicBtn, 'lcd-text': lcdText };
+    const registry = { 'programmer-panic-btn': panicBtn, 'lcd-text': lcdText };
 
     vi.stubGlobal('document', {
       getElementById: function(id) { return registry[id] || null; },
@@ -2819,25 +2819,25 @@ describe('PANIC button — MIDI messages and engine reset', () => {
     });
 
     panicBtn.addEventListener('click', function() {
-      var _pBtn_ = this;
+      const _pBtn_ = this;
       _pBtn_.style.transition = 'background 60ms ease-out, box-shadow 60ms ease-out';
       _pBtn_.style.background = 'color-mix(in srgb, var(--color-danger) 80%, transparent)';
       _pBtn_.style.boxShadow = '0 0 24px var(--color-danger), inset 0 0 12px var(--color-danger)';
 
-      var bridge = window.dualMidiBridge;
-      if (!bridge) return;
+      const bridge = window.dualMidiBridge;
+      if (!bridge) {return;}
 
-      var msgCount = 0;
+      let msgCount = 0;
 
       if (bridge.isJuce) {
-        for (var n = 0; n < 128; n++) {
+        for (let n = 0; n < 128; n++) {
           bridge.pianoNoteOff(n);
           msgCount++;
         }
       } else if (bridge.midiOutput) {
         bridge._signalMidiActivity();
-        for (var ch = 0; ch < 16; ch++) {
-          var status = 0xB0 | ch;
+        for (let ch = 0; ch < 16; ch++) {
+          const status = 0xB0 | ch;
           bridge.midiOutput.send([status, 123, 0]);
           bridge.midiOutput.send([status, 120, 0]);
           msgCount += 2;
@@ -2845,9 +2845,9 @@ describe('PANIC button — MIDI messages and engine reset', () => {
       }
 
       // Lcd feedback
-      var lcdText = document.getElementById('lcd-text');
+      const lcdText = document.getElementById('lcd-text');
       if (lcdText) {
-        var panicHtml = '<strong>ALL NOTES OFF</strong><br>' + msgCount + ' messages';
+        const panicHtml = '<strong>ALL NOTES OFF</strong><br>' + msgCount + ' messages';
         window.lcdSafeUpdate(lcdText, panicHtml);
       }
     });
@@ -2898,7 +2898,7 @@ describe('PANIC button — MIDI messages and engine reset', () => {
     mockBridge.midiOutput = { send: vi.fn() };
     panicBtn._listeners['click'][0].call(panicBtn);
     expect(window.lcdSafeUpdate).toHaveBeenCalled();
-    var html = window.lcdSafeUpdate.mock.calls[0][1];
+    const html = window.lcdSafeUpdate.mock.calls[0][1];
     expect(html).toContain('ALL NOTES OFF');
     expect(html).toContain('32');
   });
@@ -2926,12 +2926,12 @@ describe('PANIC button — MIDI messages and engine reset', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('MIDI Learn init — toggle and button style', () => {
-  var mockBridge;
-  var learnBtn;
+  let mockBridge;
+  let learnBtn;
 
   function _setupMidiLearn() {
     learnBtn = _createFakeEl('button', { id: 'programmer-midi-learn-btn' });
-    var registry = { 'programmer-midi-learn-btn': learnBtn };
+    const registry = { 'programmer-midi-learn-btn': learnBtn };
 
     vi.stubGlobal('document', {
       getElementById: function(id) { return registry[id] || null; },
@@ -2939,7 +2939,7 @@ describe('MIDI Learn init — toggle and button style', () => {
     });
 
     function updateButtonStyle(active) {
-      if (!learnBtn) return;
+      if (!learnBtn) {return;}
       if (active) {
         learnBtn.style.background = 'color-mix(in srgb, var(--accent-blue) 35%, transparent)';
         learnBtn.style.borderColor = 'var(--accent-blue)';
@@ -2956,7 +2956,7 @@ describe('MIDI Learn init — toggle and button style', () => {
     }
 
     learnBtn.addEventListener('click', function() {
-      var kBridge = window.dualMidiBridge; if (kBridge) kBridge.toggleMidiLearn();
+      const kBridge = window.dualMidiBridge; if (kBridge) {kBridge.toggleMidiLearn();}
     });
 
     if (typeof mockBridge.onMidiLearnChange === 'function') {
@@ -2999,7 +2999,7 @@ describe('MIDI Learn init — toggle and button style', () => {
   });
 
   it('updateButtonStyle with active=true shows LEARN ON', function() {
-    var midi = _setupMidiLearn();
+    const midi = _setupMidiLearn();
     midi.updateButtonStyle(true);
     expect(learnBtn.textContent).toBe('LEARN ON');
     expect(learnBtn.style.background).toContain('--accent-blue');
@@ -3007,7 +3007,7 @@ describe('MIDI Learn init — toggle and button style', () => {
   });
 
   it('updateButtonStyle with active=false shows MIDI LEARN', function() {
-    var midi = _setupMidiLearn();
+    const midi = _setupMidiLearn();
     midi.updateButtonStyle(true);
     midi.updateButtonStyle(false);
     expect(learnBtn.textContent).toBe('MIDI LEARN');
@@ -3016,7 +3016,7 @@ describe('MIDI Learn init — toggle and button style', () => {
 
   it('onMidiLearnChange callback triggers updateButtonStyle', function() {
     _setupMidiLearn();
-    var callback = mockBridge.onMidiLearnChange.mock.calls[0][0];
+    const callback = mockBridge.onMidiLearnChange.mock.calls[0][0];
 
     callback(true, null);
     expect(learnBtn.textContent).toBe('LEARN ON');
@@ -3032,7 +3032,7 @@ describe('MIDI Learn init — toggle and button style', () => {
     });
 
     expect(function() {
-      var fn = _setupMidiLearn;
+      const fn = _setupMidiLearn;
       fn();
     }).not.toThrow();
   });
@@ -3043,18 +3043,18 @@ describe('MIDI Learn init — toggle and button style', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('initMidiLearnParamClick — click param in learn mode', () => {
-  var mockBridge;
+  let mockBridge;
 
   function _setupMidiLearnParamClick() {
     document.addEventListener('click', function(e) {
-      var bridge = window.dualMidiBridge;
-      if (!bridge || !bridge.midiLearnActive) return;
+      const bridge = window.dualMidiBridge;
+      if (!bridge || !bridge.midiLearnActive) {return;}
 
-      var ctrlUnit = e.target.closest('[data-param]');
-      if (!ctrlUnit) return;
+      const ctrlUnit = e.target.closest('[data-param]');
+      if (!ctrlUnit) {return;}
 
-      var paramId = ctrlUnit.getAttribute('data-param');
-      if (!paramId) return;
+      const paramId = ctrlUnit.getAttribute('data-param');
+      if (!paramId) {return;}
 
       e.preventDefault();
       bridge.setMidiLearnTarget(paramId);
@@ -3069,18 +3069,18 @@ describe('initMidiLearnParamClick — click param in learn mode', () => {
     vi.stubGlobal('window', { dualMidiBridge: mockBridge });
     vi.stubGlobal('document', {
       addEventListener: function(event, handler, capture) {
-        if (event === 'click') this._clickHandler = handler;
+        if (event === 'click') {this._clickHandler = handler;}
       },
       _clickHandler: null,
-      click: function(e) { if (this._clickHandler) this._clickHandler(e); },
+      click: function(e) { if (this._clickHandler) {this._clickHandler(e);} },
     });
     _setupMidiLearnParamClick();
   });
 
   it('calls setMidiLearnTarget when clicking [data-param] element in learn mode', function() {
-    var target = _createFakeEl('div', { 'data-param': 'vcf_cutoff' });
+    const target = _createFakeEl('div', { 'data-param': 'vcf_cutoff' });
     target.closest = function(sel) {
-      if (sel === '[data-param]') return target;
+      if (sel === '[data-param]') {return target;}
       return null;
     };
 
@@ -3090,12 +3090,12 @@ describe('initMidiLearnParamClick — click param in learn mode', () => {
   });
 
   it('calls preventDefault on the event', function() {
-    var target = _createFakeEl('div', { 'data-param': 'vcf_cutoff' });
+    const target = _createFakeEl('div', { 'data-param': 'vcf_cutoff' });
     target.closest = function(sel) {
-      if (sel === '[data-param]') return target;
+      if (sel === '[data-param]') {return target;}
       return null;
     };
-    var preventSpy = vi.fn();
+    const preventSpy = vi.fn();
 
     document._clickHandler({ target: target, preventDefault: preventSpy });
 
@@ -3114,7 +3114,7 @@ describe('initMidiLearnParamClick — click param in learn mode', () => {
   });
 
   it('returns early when target has no [data-param] ancestor', function() {
-    var target = _createFakeEl('div');
+    const target = _createFakeEl('div');
     target.closest = function() { return null; };
 
     document._clickHandler({ target: target, preventDefault: vi.fn() });

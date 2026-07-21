@@ -13,18 +13,18 @@ globalThis.document = globalThis.document || { createElement: function() { retur
 
 function generateMappingsHtml(mappings, getParamName) {
     getParamName = getParamName || function(id) { return id; };
-    if (!mappings) return { html: '<div class="text-dim text-center" style="padding:20px">No mappings yet.</div>', count: 0, entries: [] };
-    var keys = Object.keys(mappings);
+    if (!mappings) {return { html: '<div class="text-dim text-center" style="padding:20px">No mappings yet.</div>', count: 0, entries: [] };}
+    const keys = Object.keys(mappings);
     if (keys.length === 0) {
         return { html: '<div class="text-dim text-center" style="padding:20px">No mappings yet.</div>', count: 0, entries: [] };
     }
 
-    var html = '';
-    var entries = [];
+    let html = '';
+    const entries = [];
     keys.forEach(function(key) {
-        var paramId = mappings[key];
-        var displayKey = key.replace('nrpn:', 'NRPN ').replace('cc:', 'CC ');
-        var paramName = getParamName(paramId);
+        const paramId = mappings[key];
+        const displayKey = key.replace('nrpn:', 'NRPN ').replace('cc:', 'CC ');
+        const paramName = getParamName(paramId);
         entries.push({ key: key, paramId: paramId, displayKey: displayKey, paramName: paramName });
         html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-bottom:1px solid var(--border-dim)">'
             + '<span style="color:var(--accent-blue);font-weight:bold;min-width:80px">' + displayKey + '</span>'
@@ -38,16 +38,16 @@ function generateMappingsHtml(mappings, getParamName) {
 }
 
 function generateExportJson(mappings) {
-    if (!mappings || Object.keys(mappings).length === 0) return '{}';
+    if (!mappings || Object.keys(mappings).length === 0) {return '{}';}
     return JSON.stringify(mappings, null, 2);
 }
 
 function importMappingsFromJson(jsonStr, existingMappings) {
     existingMappings = existingMappings || {};
     try {
-        var parsed = JSON.parse(jsonStr);
-        if (typeof parsed !== 'object' || parsed === null) return { success: false, count: 0, error: 'Invalid format' };
-        var importedCount = 0;
+        const parsed = JSON.parse(jsonStr);
+        if (typeof parsed !== 'object' || parsed === null) {return { success: false, count: 0, error: 'Invalid format' };}
+        let importedCount = 0;
         Object.keys(parsed).forEach(function(key) {
             existingMappings[key] = parsed[key];
             importedCount++;
@@ -59,7 +59,7 @@ function importMappingsFromJson(jsonStr, existingMappings) {
 }
 
 function deleteMapping(mappings, key) {
-    if (!mappings || !mappings[key]) return false;
+    if (!mappings || !mappings[key]) {return false;}
     delete mappings[key];
     return true;
 }
@@ -69,12 +69,12 @@ function clearAllMappings() {
 }
 
 function getMappingCount(mappings) {
-    if (!mappings) return 0;
+    if (!mappings) {return 0;}
     return Object.keys(mappings).length;
 }
 
 function flashButton(btn) {
-    if (!btn) return;
+    if (!btn) {return;}
     btn.classList.add('btn-flash');
     // setTimeout would be called in real code
     return true;
@@ -84,20 +84,20 @@ function flashButton(btn) {
 
 describe('generateMappingsHtml — list rendering', function() {
     it('returns empty state when no mappings', function() {
-        var result = generateMappingsHtml({});
+        const result = generateMappingsHtml({});
         expect(result.count).toBe(0);
         expect(result.html).toContain('No mappings yet.');
         expect(result.entries.length).toBe(0);
     });
 
     it('returns empty state when mappings is null', function() {
-        var result = generateMappingsHtml(null);
+        const result = generateMappingsHtml(null);
         expect(result.count).toBe(0);
         expect(result.html).toContain('No mappings yet.');
     });
 
     it('renders a single NRPN mapping', function() {
-        var result = generateMappingsHtml({ 'nrpn:42': 'vcf_cutoff' });
+        const result = generateMappingsHtml({ 'nrpn:42': 'vcf_cutoff' });
         expect(result.count).toBe(1);
         expect(result.entries.length).toBe(1);
         expect(result.entries[0].displayKey).toBe('NRPN 42');
@@ -107,25 +107,25 @@ describe('generateMappingsHtml — list rendering', function() {
     });
 
     it('renders a CC mapping with display key', function() {
-        var result = generateMappingsHtml({ 'cc:7': 'vca_level' });
+        const result = generateMappingsHtml({ 'cc:7': 'vca_level' });
         expect(result.entries[0].displayKey).toBe('CC 7');
         expect(result.html).toContain('CC 7');
     });
 
     it('renders multiple mappings', function() {
-        var mappings = {
+        const mappings = {
             'nrpn:42': 'vcf_cutoff',
             'cc:7': 'vca_level',
             'nrpn:20': 'osc1_pitch_mod'
         };
-        var result = generateMappingsHtml(mappings);
+        const result = generateMappingsHtml(mappings);
         expect(result.count).toBe(3);
         expect(result.entries.length).toBe(3);
     });
 
     it('uses getParamName callback for parameter names', function() {
-        var nameMap = { 'vcf_cutoff': 'Filter Cutoff', 'vca_level': 'VCA Level' };
-        var result = generateMappingsHtml(
+        const nameMap = { 'vcf_cutoff': 'Filter Cutoff', 'vca_level': 'VCA Level' };
+        const result = generateMappingsHtml(
             { 'nrpn:42': 'vcf_cutoff', 'cc:7': 'vca_level' },
             function(id) { return nameMap[id] || id; }
         );
@@ -136,12 +136,12 @@ describe('generateMappingsHtml — list rendering', function() {
     });
 
     it('falls back to paramId if getParamName is not provided', function() {
-        var result = generateMappingsHtml({ 'nrpin:42': 'vcf_cutoff' });
+        const result = generateMappingsHtml({ 'nrpin:42': 'vcf_cutoff' });
         expect(result.entries[0].paramName).toBe('vcf_cutoff');
     });
 
     it('generates HTML with delete buttons containing data-key attributes', function() {
-        var result = generateMappingsHtml({ 'nrpn:99': 'fx1_type' });
+        const result = generateMappingsHtml({ 'nrpn:99': 'fx1_type' });
         expect(result.html).toContain('data-key="nrpn:99"');
         expect(result.html).toContain('Delete');
     });
@@ -157,16 +157,16 @@ describe('generateExportJson — JSON export', function() {
     });
 
     it('formats mappings as pretty-printed JSON', function() {
-        var json = generateExportJson({ 'nrpn:42': 'vcf_cutoff' });
-        var parsed = JSON.parse(json);
+        const json = generateExportJson({ 'nrpn:42': 'vcf_cutoff' });
+        const parsed = JSON.parse(json);
         expect(parsed['nrpn:42']).toBe('vcf_cutoff');
         expect(json).toContain('\n'); // pretty-printed
     });
 
     it('preserves all mapping entries', function() {
-        var mappings = { 'nrpn:1': 'lfo1_rate', 'cc:7': 'vca_level', 'nrpn:42': 'vcf_cutoff' };
-        var json = generateExportJson(mappings);
-        var parsed = JSON.parse(json);
+        const mappings = { 'nrpn:1': 'lfo1_rate', 'cc:7': 'vca_level', 'nrpn:42': 'vcf_cutoff' };
+        const json = generateExportJson(mappings);
+        const parsed = JSON.parse(json);
         expect(Object.keys(parsed).length).toBe(3);
         expect(parsed['nrpn:42']).toBe('vcf_cutoff');
     });
@@ -174,68 +174,68 @@ describe('generateExportJson — JSON export', function() {
 
 describe('importMappingsFromJson — JSON import', function() {
     it('returns success with count for valid JSON', function() {
-        var result = importMappingsFromJson('{"nrpn:42":"vcf_cutoff","cc:7":"vca_level"}', {});
+        const result = importMappingsFromJson('{"nrpn:42":"vcf_cutoff","cc:7":"vca_level"}', {});
         expect(result.success).toBe(true);
         expect(result.count).toBe(2);
         expect(result.mappings['nrpn:42']).toBe('vcf_cutoff');
     });
 
     it('merges with existing mappings without overwriting unrelated', function() {
-        var existing = { 'nrpn:1': 'lfo1_rate' };
-        var result = importMappingsFromJson('{"nrpn:42":"vcf_cutoff"}', existing);
+        const existing = { 'nrpn:1': 'lfo1_rate' };
+        const result = importMappingsFromJson('{"nrpn:42":"vcf_cutoff"}', existing);
         expect(result.mappings['nrpn:1']).toBe('lfo1_rate');
         expect(result.mappings['nrpn:42']).toBe('vcf_cutoff');
         expect(result.count).toBe(1);
     });
 
     it('overwrites existing mapping with same key', function() {
-        var existing = { 'nrpn:42': 'old_param' };
-        var result = importMappingsFromJson('{"nrpn:42":"new_param"}', existing);
+        const existing = { 'nrpn:42': 'old_param' };
+        const result = importMappingsFromJson('{"nrpn:42":"new_param"}', existing);
         expect(result.mappings['nrpn:42']).toBe('new_param');
     });
 
     it('returns error for malformed JSON', function() {
-        var result = importMappingsFromJson('not-json{{{', {});
+        const result = importMappingsFromJson('not-json{{{', {});
         expect(result.success).toBe(false);
         expect(result.count).toBe(0);
         expect(result.error).toBe('Invalid JSON');
     });
 
     it('returns error for non-object JSON', function() {
-        var result = importMappingsFromJson('"just a string"', {});
+        const result = importMappingsFromJson('"just a string"', {});
         expect(result.success).toBe(false);
         expect(result.error).toBe('Invalid format');
     });
 
     it('returns error for null JSON value', function() {
-        var result = importMappingsFromJson('null', {});
+        const result = importMappingsFromJson('null', {});
         expect(result.success).toBe(false);
         expect(result.error).toBe('Invalid format');
     });
 
     it('creates mappings object if not provided', function() {
-        var result = importMappingsFromJson('{"nrpn:5":"lfo2_rate"}');
+        const result = importMappingsFromJson('{"nrpn:5":"lfo2_rate"}');
         expect(result.success).toBe(true);
         expect(result.mappings['nrpn:5']).toBe('lfo2_rate');
     });
 });
 
 describe('deleteMapping — remove single mapping', function() {
-    var mappings;
+    let mappings;
 
     beforeEach(function() {
         mappings = { 'nrpn:1': 'lfo1_rate', 'nrpn:42': 'vcf_cutoff' };
     });
 
     it('removes a mapping by key', function() {
-        var result = deleteMapping(mappings, 'nrpn:42');
+        const result = deleteMapping(mappings, 'nrpn:42');
         expect(result).toBe(true);
         expect(mappings['nrpn:42']).toBeUndefined();
         expect(mappings['nrpn:1']).toBe('lfo1_rate');
     });
 
     it('returns false when key does not exist', function() {
-        var result = deleteMapping(mappings, 'nonexistent');
+        const result = deleteMapping(mappings, 'nonexistent');
         expect(result).toBe(false);
         expect(Object.keys(mappings).length).toBe(2);
     });
@@ -251,7 +251,7 @@ describe('deleteMapping — remove single mapping', function() {
 
 describe('clearAllMappings — remove all mappings', function() {
     it('returns empty object', function() {
-        var empty = clearAllMappings();
+        const empty = clearAllMappings();
         expect(typeof empty).toBe('object');
         expect(Object.keys(empty).length).toBe(0);
     });
@@ -277,28 +277,28 @@ describe('getMappingCount', function() {
 
 describe('flashButton — visual feedback', function() {
     it('adds btn-flash class', function() {
-        var btn = { classList: { add: function() {}, remove: function() {} } };
-        var addCalled = false;
+        const btn = { classList: { add: function() {}, remove: function() {} } };
+        let addCalled = false;
         btn.classList.add = function(cls) {
-            if (cls === 'btn-flash') addCalled = true;
+            if (cls === 'btn-flash') {addCalled = true;}
         };
         flashButton(btn);
         expect(addCalled).toBe(true);
     });
 
     it('does nothing when btn is null', function() {
-        var result = flashButton(null);
+        const result = flashButton(null);
         expect(result).toBeUndefined();
     });
 
     it('does nothing when btn is undefined', function() {
-        var result = flashButton(undefined);
+        const result = flashButton(undefined);
         expect(result).toBeUndefined();
     });
 });
 
 describe('full export/import round-trip', function() {
-    var originalMappings;
+    let originalMappings;
 
     beforeEach(function() {
         originalMappings = {
@@ -310,17 +310,17 @@ describe('full export/import round-trip', function() {
     });
 
     it('export → import preserves all mappings', function() {
-        var json = generateExportJson(originalMappings);
-        var result = importMappingsFromJson(json, {});
+        const json = generateExportJson(originalMappings);
+        const result = importMappingsFromJson(json, {});
         expect(result.success).toBe(true);
         expect(result.count).toBe(4);
         expect(result.mappings).toEqual(originalMappings);
     });
 
     it('export → file → import round-trip with new object', function() {
-        var json = generateExportJson(originalMappings);
-        var freshMappings = {};
-        var result = importMappingsFromJson(json, freshMappings);
+        const json = generateExportJson(originalMappings);
+        const freshMappings = {};
+        const result = importMappingsFromJson(json, freshMappings);
         expect(result.mappings['nrpn:42']).toBe('vcf_cutoff');
         expect(result.mappings['cc:7']).toBe('vca_level');
     });

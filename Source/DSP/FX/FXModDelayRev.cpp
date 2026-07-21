@@ -101,11 +101,9 @@ namespace ABD
             float mod = (float)std::sin(2.0 * M_PI * lfoPhase) * depth * 0.2f;
             float delaySamp = (float)delaySamples * (1.0f + mod);
 
-            int readPosL = writePosL - (int)delaySamp;
-            if (readPosL < 0) readPosL += maxDelaySamples;
+            int readPosL = ((writePosL - (int)delaySamp) % maxDelaySamples + maxDelaySamples) % maxDelaySamples;
             float dL = dBufL[readPosL];
-            int readPosR = writePosR - (int)delaySamp;
-            if (readPosR < 0) readPosR += maxDelaySamples;
+            int readPosR = ((writePosR - (int)delaySamp) % maxDelaySamples + maxDelaySamples) % maxDelaySamples;
             float dR = dBufR[readPosR];
 
             // High cut en feedback

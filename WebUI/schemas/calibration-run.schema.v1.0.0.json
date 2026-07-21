@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abdeep/schemas/calibration-run/1.0.0",
+  "title": "CalibrationRunReport",
+  "type": "OBJECT",
+  "required": ["schemaVersion", "runId", "exportedAt", "config", "session", "progress", "statusCounts", "items"],
+  "properties": {
+    "schemaVersion": {
+      "type": "INTEGER",
+      "minimum": 1,
+      "maximum": 1
+    },
+    "schema_version": {
+      "type": "STRING",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "runId": {
+      "type": "STRING",
+      "minLength": 1
+    },
+    "exportedAt": {
+      "type": "STRING",
+      "format": "date-time"
+    },
+    "config": {
+      "type": "OBJECT",
+      "required": ["sourceScope", "bankNames", "categoryFilter", "favoritesOnly", "criticalOnly", "sampleSize", "seed"],
+      "properties": {
+        "sourceScope": { "type": "STRING" },
+        "bankNames": { "type": "ARRAY", "items": { "type": "STRING" } },
+        "categoryFilter": { "type": "STRING" },
+        "favoritesOnly": { "type": "BOOLEAN" },
+        "criticalOnly": { "type": "BOOLEAN" },
+        "sampleSize": { "type": "INTEGER", "minimum": 1 },
+        "seed": { "type": "INTEGER" }
+      }
+    },
+    "session": {
+      "type": "OBJECT",
+      "required": ["runId", "currentIndex", "startedAt", "completedAt", "itemStatuses", "itemNotes"],
+      "properties": {
+        "runId": { "type": ["STRING", "NULL"] },
+        "currentIndex": { "type": "INTEGER" },
+        "startedAt": { "type": "STRING" },
+        "completedAt": { "type": ["STRING", "NULL"] },
+        "itemStatuses": { "type": "OBJECT" },
+        "itemNotes": { "type": "OBJECT" }
+      }
+    },
+    "progress": {
+      "type": "OBJECT",
+      "required": ["total", "reviewed", "pct", "currentIndex"],
+      "properties": {
+        "total": { "type": "INTEGER" },
+        "reviewed": { "type": "INTEGER" },
+        "pct": { "type": "INTEGER" },
+        "currentIndex": { "type": "INTEGER" }
+      }
+    },
+    "statusCounts": {
+      "type": "OBJECT"
+    },
+    "items": {
+      "type": "ARRAY",
+      "items": {
+        "type": "OBJECT",
+        "required": ["runId", "index", "bankName", "patchIndex", "patchName", "meta", "criticalCandidate", "status", "notes", "hasSysexData"],
+        "properties": {
+          "runId": { "type": "STRING" },
+          "index": { "type": "INTEGER" },
+          "bankName": { "type": "STRING" },
+          "patchIndex": { "type": "INTEGER" },
+          "patchName": { "type": "STRING" },
+          "meta": { "type": "OBJECT" },
+          "criticalCandidate": { "type": "BOOLEAN" },
+          "status": {
+            "type": "STRING",
+            "enum": ["pass", "review", "fail", "skip", "pending"]
+          },
+          "notes": { "type": "STRING" },
+          "hasSysexData": { "type": "BOOLEAN" }
+        }
+      }
+    }
+  }
+}

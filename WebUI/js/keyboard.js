@@ -5,7 +5,7 @@
 
 function initKeyboardAndWheels() {
     const keybed = document.getElementById('ivory-keys-bed');
-    if (!keybed) return;
+    if (!keybed) {return;}
 
     let octaveShift = 0;
     const octUpBtn = document.getElementById('oct-up-btn');
@@ -14,13 +14,13 @@ function initKeyboardAndWheels() {
     const updateOctaveButtonsVisuals = () => {
         const currentOctVal = octaveShift / 12;
         
-        let activeColor = "var(--color-env-vca)";
+        let activeColor = 'var(--color-env-vca)';
         if (Math.abs(currentOctVal) === 1) {
-            activeColor = "var(--color-env-vcf)";
+            activeColor = 'var(--color-env-vcf)';
         } else if (Math.abs(currentOctVal) === 2) {
-            activeColor = "var(--color-env-mod)";
+            activeColor = 'var(--color-env-mod)';
         } else if (Math.abs(currentOctVal) >= 3) {
-            activeColor = "var(--color-oct-3)";
+            activeColor = 'var(--color-oct-3)';
         }
 
         const isUpActive = currentOctVal > 0;
@@ -54,10 +54,11 @@ function initKeyboardAndWheels() {
     if (octUpBtn) {
         octUpBtn.addEventListener('click', () => {
             octaveShift = Math.min(36, octaveShift + 12);
+            window._currentOctaveShift = octaveShift;
             const lcdText = document.getElementById('lcd-text');
             if (lcdText) {
                 lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">KEYBED</span><br><strong>OCTAVE SHIFT</strong><br><span style="font-size:15px; color:var(--brand-accent);">${octaveShift > 0 ? '+' : ''}${octaveShift/12}</span>`;
-                if (typeof window.setLcdParamDisplayTimer === 'function') window.setLcdParamDisplayTimer(lcdText);
+                if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcdText);}
             }
             updateOctaveButtonsVisuals();
         });
@@ -65,10 +66,11 @@ function initKeyboardAndWheels() {
     if (octDownBtn) {
         octDownBtn.addEventListener('click', () => {
             octaveShift = Math.max(-36, octaveShift - 12);
+            window._currentOctaveShift = octaveShift;
             const lcdText = document.getElementById('lcd-text');
             if (lcdText) {
                 lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">KEYBED</span><br><strong>OCTAVE SHIFT</strong><br><span style="font-size:15px; color:var(--brand-accent);">${octaveShift/12}</span>`;
-                if (typeof window.setLcdParamDisplayTimer === 'function') window.setLcdParamDisplayTimer(lcdText);
+                if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcdText);}
             }
             updateOctaveButtonsVisuals();
         });
@@ -77,11 +79,6 @@ function initKeyboardAndWheels() {
     updateOctaveButtonsVisuals();
     
     window._currentOctaveShift = octaveShift;
-    var _octPatcher = setInterval(function() {
-        if (window._currentOctaveShift !== octaveShift) {
-            window._currentOctaveShift = octaveShift;
-        }
-    }, 200);
 
     const notes = [
         { type: 'white', name: 'C' }, { type: 'black', name: 'C#' },
@@ -106,6 +103,19 @@ function initKeyboardAndWheels() {
 
             if (note.type === 'white') {
                 whiteKeyIndex++;
+                // Generar variación de marfil y suciedad determinista por tecla
+                const seed = (originalMidiNote * 12345) % 100;
+                const hue = 40 + (seed % 6 - 3); // 37..43 (tonos marfil/beige)
+                const sat = 18 + (seed % 6);     // 18..24% de saturación
+                const light = 90 - (seed % 5);   // 85..90% de luminosidad
+                const dirtStart = 85 + (seed % 10);
+                const dirtOpacity = 0.05 + (seed % 12) / 100.0; // suciedad sutil al final
+
+                key.style.setProperty('--ivory-base', `hsl(${hue}, ${sat}%, ${light}%)`);
+                key.style.setProperty('--ivory-top', `hsl(${hue}, ${sat}%, ${light + 6}%)`);
+                key.style.setProperty('--ivory-bottom', `hsl(${hue}, ${sat}%, ${light - 5}%)`);
+                key.style.setProperty('--dirt-color', `rgba(105, 90, 75, ${dirtOpacity})`);
+                key.style.setProperty('--dirt-start', `${dirtStart}%`);
             } else {
                 const leftPosition = ((whiteKeyIndex - 0.6) / 28) * 100;
                 key.style.left = leftPosition + '%';
@@ -119,9 +129,9 @@ function initKeyboardAndWheels() {
                 const shiftedMidiNote = originalMidiNote + octaveShift;
                 const rect = key.getBoundingClientRect();
                 const relY = (e.clientY - rect.top) / rect.height;
-                var rawVelocity = Math.max(0.15, Math.min(1.0, 0.15 + (1.0 - relY) * 0.85));
-                var vCurve = localStorage.getItem('abd-eep-velocity-curve') || 'normal';
-                var velocity = rawVelocity;
+                const rawVelocity = Math.max(0.15, Math.min(1.0, 0.15 + relY * 0.85));
+                const vCurve = localStorage.getItem('abd-eep-velocity-curve') || 'normal';
+                let velocity = rawVelocity;
                 if (vCurve === 'soft') {
                     velocity = rawVelocity * rawVelocity;
                 } else if (vCurve === 'hard') {
@@ -133,19 +143,45 @@ function initKeyboardAndWheels() {
                 }
                 velocity = Math.max(0.01, Math.min(1.0, velocity));
                 key.style.setProperty('--velocity', velocity.toFixed(3));
+
+                // Determinar el color del LED RGB en la base de la tecla
+                let ledColor = 'var(--brand-accent)';
+                if (window.dualMidiBridge) {
+                    const cache = window.dualMidiBridge.parameterCache;
+                    const arpActive = cache && cache['arp_enable'] > 0.5;
+                    const seqActive = cache && cache['seq_enable'] > 0.5;
+                    const chordActive = cache && cache['chord_enable'] > 0.5;
+                    const polyChordActive = cache && cache['poly_chord_enable'] > 0.5;
+                    
+                    if (arpActive) {
+                        ledColor = '#ff3366'; // Pink para el Arpegiador
+                    } else if (seqActive) {
+                        ledColor = '#9933ff'; // Purple para el Secuenciador
+                    } else if (polyChordActive) {
+                        ledColor = '#00ffcc'; // Teal para Poly Chord
+                    } else if (chordActive) {
+                        ledColor = '#ffcc00'; // Gold/Yellow para Chord Memory
+                    } else {
+                        if (typeof window._getScopeColors === 'function') {
+                            ledColor = window._getScopeColors().waveform;
+                        }
+                    }
+                }
+                key.style.setProperty('--key-led-color', ledColor);
+
                 if (window.dualMidiBridge) {
                     if (window.dualMidiBridge._seqEngine && (window.dualMidiBridge.parameterCache['seq_enable'] || 0) > 0.5) {
                         window.dualMidiBridge._seqEngine.addHeldNote(shiftedMidiNote, velocity);
                     }
                     
                     if (typeof window._playPolyChordMemory === 'function') {
-                        var polyHandled = window._playPolyChordMemory(shiftedMidiNote, velocity);
-                        if (polyHandled) return;
+                        const polyHandled = window._playPolyChordMemory(shiftedMidiNote, velocity);
+                        if (polyHandled) {return;}
                     }
                     
                     if (typeof window._playChordMemory === 'function') {
-                        var handled = window._playChordMemory(shiftedMidiNote, velocity);
-                        if (handled) return;
+                        const handled = window._playChordMemory(shiftedMidiNote, velocity);
+                        if (handled) {return;}
                     }
                     
                     if (window.dualMidiBridge._arpEngine && (window.dualMidiBridge.parameterCache['arp_enable'] || 0) > 0.5) {
@@ -167,13 +203,12 @@ function initKeyboardAndWheels() {
                         window.dualMidiBridge._seqEngine.removeHeldNote(shiftedMidiNote);
                     }
                     
-                    if (window.dualMidiBridge._chordActiveNotes) {
-                        var chordIdx = window.dualMidiBridge._chordActiveNotes.indexOf(shiftedMidiNote);
-                        if (chordIdx >= 0) {
-                            window.dualMidiBridge._chordActiveNotes.splice(chordIdx, 1);
-                            window.dualMidiBridge.pianoNoteOff(shiftedMidiNote);
-                            return;
-                        }
+                    if (typeof window._stopPolyChordMemory === 'function') {
+                        window._stopPolyChordMemory(shiftedMidiNote);
+                    }
+                    
+                    if (typeof window._stopChordMemory === 'function') {
+                        window._stopChordMemory(shiftedMidiNote);
                     }
                     
                     if (window.dualMidiBridge._arpEngine && (window.dualMidiBridge.parameterCache['arp_enable'] || 0) > 0.5) {
@@ -218,7 +253,7 @@ function initKeyboardAndWheels() {
 
     const setupWheel = (wheelId, isPitch) => {
         const slot = document.getElementById(wheelId);
-        if (!slot) return;
+        if (!slot) {return;}
         const wheel = slot.querySelector('.wheel');
         let isMoving = false;
 
@@ -257,7 +292,7 @@ function initKeyboardAndWheels() {
         });
 
         slot.addEventListener('pointermove', (e) => {
-            if (isMoving) updateWheel(e.clientY);
+            if (isMoving) {updateWheel(e.clientY);}
         });
 
         slot.addEventListener('pointerup', (e) => {
@@ -280,7 +315,7 @@ function initKeyboardAndWheels() {
         _atFramePending = false;
 
         const bridge = window.dualMidiBridge;
-        if (!bridge) return;
+        if (!bridge) {return;}
 
         let aftertouch = 0.0;
         let modWheel = 0.0;
@@ -356,20 +391,20 @@ function initKeyboardAndWheels() {
     }
 
     function _scheduleNextPressureFrame() {
-        if (_atFramePending) return;
+        if (_atFramePending) {return;}
         _atFramePending = true;
         requestAnimationFrame(_updateKeyPressure);
     }
 
     _scheduleNextPressureFrame();
 
-    var _bridgeRef = window.dualMidiBridge;
+    const _bridgeRef = window.dualMidiBridge;
     if (_bridgeRef) {
         _bridgeRef._lastVoiceStateRaw = null;
         if (typeof _bridgeRef.getVoiceState === 'function') {
-            var origGetVoiceState = _bridgeRef.getVoiceState.bind(_bridgeRef);
+            const origGetVoiceState = _bridgeRef.getVoiceState.bind(_bridgeRef);
             _bridgeRef.getVoiceState = async function() {
-                var result = await origGetVoiceState();
+                const result = await origGetVoiceState();
                 _bridgeRef._lastVoiceStateRaw = result;
                 return result;
             };
@@ -377,9 +412,9 @@ function initKeyboardAndWheels() {
         
         _bridgeRef._lastAudioWaveform = null;
         if (typeof _bridgeRef.getAudioWaveform === 'function') {
-            var origGetAudioWaveform = _bridgeRef.getAudioWaveform.bind(_bridgeRef);
+            const origGetAudioWaveform = _bridgeRef.getAudioWaveform.bind(_bridgeRef);
             _bridgeRef.getAudioWaveform = async function() {
-                var result = await origGetAudioWaveform();
+                const result = await origGetAudioWaveform();
                 _bridgeRef._lastAudioWaveform = result;
                 return result;
             };
@@ -387,4 +422,126 @@ function initKeyboardAndWheels() {
     }
 }
 
+/**
+ * Muestra la nota MIDI presionada en el LCD del Programmer.
+ * Ahora delega en DualMidiBridge._showNoteOnLcd() para tener un solo punto
+ * de actualización del LCD desde todas las fuentes (teclado, arp, seq, chord).
+ */
+function _showKeyboardNoteOnLcd(midiNote, velocity) {
+    if (window.dualMidiBridge && typeof window.dualMidiBridge._showNoteOnLcd === 'function') {
+        window.dualMidiBridge._showNoteOnLcd(midiNote, velocity);
+    }
+}
+
+function playKeyLedAnimation(type) {
+    const keybed = document.getElementById('ivory-keys-bed');
+    if (!keybed) {return;}
+    const keys = Array.from(keybed.querySelectorAll('.key'));
+    // Ordenar de izquierda a derecha por nota MIDI
+    keys.sort((a, b) => parseInt(a.getAttribute('data-note')) - parseInt(b.getAttribute('data-note')));
+    
+    if (keys.length === 0) {return;}
+    
+    if (window._activeKeyLedAnimationInterval) {
+        clearInterval(window._activeKeyLedAnimationInterval);
+        window._activeKeyLedAnimationInterval = null;
+        keys.forEach(k => {
+            k.classList.remove('pushed-anim');
+            k.style.removeProperty('--key-led-color');
+        });
+    }
+
+    const totalSteps = keys.length;
+    
+    if (type === 'panic') {
+        const duration = 12; // ms por tecla
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i < totalSteps) {
+                const key = keys[i];
+                key.classList.add('pushed-anim');
+                key.style.setProperty('--key-led-color', '#ff0000');
+                setTimeout(() => {
+                    key.classList.remove('pushed-anim');
+                    key.style.removeProperty('--key-led-color');
+                }, 180);
+                i++;
+            } else if (i < totalSteps * 2) {
+                const revIdx = totalSteps * 2 - 1 - i;
+                const key = keys[revIdx];
+                if (key) {
+                    key.classList.add('pushed-anim');
+                    key.style.setProperty('--key-led-color', '#ff0000');
+                    setTimeout(() => {
+                        key.classList.remove('pushed-anim');
+                        key.style.removeProperty('--key-led-color');
+                    }, 180);
+                }
+                i++;
+            } else {
+                clearInterval(interval);
+            }
+        }, duration);
+        window._activeKeyLedAnimationInterval = interval;
+    }
+    else if (type === 'patch-up' || type === 'patch-down') {
+        const isUp = type === 'patch-up';
+        const duration = 15;
+        let i = 0;
+        
+        const interval = setInterval(() => {
+            if (i < totalSteps) {
+                const idx = isUp ? i : (totalSteps - 1 - i);
+                const key = keys[idx];
+                if (key) {
+                    const hue = Math.round((i / totalSteps) * 360);
+                    key.classList.add('pushed-anim');
+                    key.style.setProperty('--key-led-color', `hsl(${hue}, 100%, 50%)`);
+                    setTimeout(() => {
+                        key.classList.remove('pushed-anim');
+                        key.style.removeProperty('--key-led-color');
+                    }, 250);
+                }
+                i++;
+            } else {
+                clearInterval(interval);
+            }
+        }, duration);
+        window._activeKeyLedAnimationInterval = interval;
+    }
+    else if (type === 'bank-up' || type === 'bank-down') {
+        const isUp = type === 'bank-up';
+        const duration = 40;
+        let groupIdx = 0;
+        const groupSize = 3;
+        const totalGroups = Math.ceil(totalSteps / groupSize);
+        
+        const interval = setInterval(() => {
+            if (groupIdx < totalGroups) {
+                const g = isUp ? groupIdx : (totalGroups - 1 - groupIdx);
+                const start = g * groupSize;
+                const hue = Math.round((groupIdx / totalGroups) * 360);
+                
+                for (let kIdx = 0; kIdx < groupSize; kIdx++) {
+                    const key = keys[start + kIdx];
+                    if (key) {
+                        key.classList.add('pushed-anim');
+                        key.style.setProperty('--key-led-color', `hsl(${hue}, 100%, 50%)`);
+                        setTimeout(() => {
+                            key.classList.remove('pushed-anim');
+                            key.style.removeProperty('--key-led-color');
+                        }, 300);
+                    }
+                }
+                groupIdx++;
+            } else {
+                clearInterval(interval);
+            }
+        }, duration);
+        window._activeKeyLedAnimationInterval = interval;
+    }
+}
+
 window.initKeyboardAndWheels = initKeyboardAndWheels;
+window._showKeyboardNoteOnLcd = _showKeyboardNoteOnLcd;
+window.playKeyLedAnimation = playKeyLedAnimation;

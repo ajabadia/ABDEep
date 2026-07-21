@@ -11,10 +11,10 @@ globalThis.window = globalThis.window || {};
 
 // ===== Extracted Source Functions =====
 
-var RESERVED_REGION = '?';
-var DEFAULT_REGION_COLOR = { bg: '#111', fg: '#888' };
+const RESERVED_REGION = '?';
+const DEFAULT_REGION_COLOR = { bg: '#111', fg: '#888' };
 
-var DUMP_REGION_COLORS = {
+const DUMP_REGION_COLORS = {
     'LFO1':     { bg: '#1a2a3a', fg: '#7fc8ff' },
     'LFO2':     { bg: '#1a2a3a', fg: '#7fc8ff' },
     'OSC1':     { bg: '#2a1a3a', fg: '#c87fff' },
@@ -54,7 +54,7 @@ function formatHexByte(val) {
 }
 
 function formatDisplayVal(val, isReserved) {
-    var hex = formatHexByte(val);
+    const hex = formatHexByte(val);
     return isReserved ? '\u2022' + hex : hex;
 }
 
@@ -63,72 +63,72 @@ function isReservedRegion(region) {
 }
 
 function matchesSearchTerm(info, idx, val, searchTerm) {
-    if (!searchTerm) return true;
-    var lower = searchTerm.toLowerCase();
-    if (info && info.param && info.param.toLowerCase().indexOf(lower) !== -1) return true;
-    if (info && info.region && info.region.toLowerCase().indexOf(lower) !== -1) return true;
-    if (String(idx).indexOf(searchTerm) !== -1) return true;
-    if (formatHexByte(val).indexOf(searchTerm.toUpperCase()) !== -1) return true;
-    if (String(val).indexOf(searchTerm) !== -1) return true;
+    if (!searchTerm) {return true;}
+    const lower = searchTerm.toLowerCase();
+    if (info && info.param && info.param.toLowerCase().indexOf(lower) !== -1) {return true;}
+    if (info && info.region && info.region.toLowerCase().indexOf(lower) !== -1) {return true;}
+    if (String(idx).indexOf(searchTerm) !== -1) {return true;}
+    if (formatHexByte(val).indexOf(searchTerm.toUpperCase()) !== -1) {return true;}
+    if (String(val).indexOf(searchTerm) !== -1) {return true;}
     return false;
 }
 
 function formatTooltip(info, val) {
-    var pct = (val / 255 * 100).toFixed(1);
-    var lines = ['Byte ' + info.idx + ' \u2014 ' + info.param];
+    const pct = (val / 255 * 100).toFixed(1);
+    const lines = ['Byte ' + info.idx + ' \u2014 ' + info.param];
     lines.push('Region: ' + info.region + ' | Type: ' + info.type);
     lines.push('Value: ' + val + ' (0x' + formatHexByte(val) + ') [' + pct + '%]');
 
     if (info.type === 'toggle') {
         lines.push('\u2192 ' + (val > 0 ? 'ON (1)' : 'OFF (0)'));
     } else if (info.type === 'enum' && info.enumLabels) {
-        var idx = Math.min(val, info.enumLabels.length - 1);
+        const idx = Math.min(val, info.enumLabels.length - 1);
         lines.push('\u2192 ' + info.enumLabels[idx] + ' (index ' + idx + ')');
     } else if (info.type === 'bipolar') {
-        var bipolar = val - 128;
+        const bipolar = val - 128;
         lines.push('\u2192 Bipolar: ' + bipolar + ' (center=0, range -128..+127)');
-        if (val === 128) lines.push('\u2192 Center (no modulation)');
-        else if (val === 0) lines.push('\u2192 Skip step (seq) or min');
+        if (val === 128) {lines.push('\u2192 Center (no modulation)');}
+        else if (val === 0) {lines.push('\u2192 Skip step (seq) or min');}
     } else if (info.type === 'time') {
-        var secs = (val / 255 * 10).toFixed(3);
+        const secs = (val / 255 * 10).toFixed(3);
         lines.push('\u2192 ' + secs + 's');
     } else if (info.type === 'ascii') {
-        var ch = val >= 32 && val < 127 ? String.fromCharCode(val) : '\u00B7';
+        const ch = val >= 32 && val < 127 ? String.fromCharCode(val) : '\u00B7';
         lines.push('\u2192 \'' + ch + '\'');
     }
 
-    if (info.desc) lines.push('Note: ' + info.desc);
+    if (info.desc) {lines.push('Note: ' + info.desc);}
 
     return lines.join('\n');
 }
 
 function calculateSummary(bytes, byteMap) {
-    if (!bytes || bytes.length === 0) return null;
-    var total = bytes.length;
-    var active = 0;
-    var zero = 0;
-    var reservedCount = 0;
+    if (!bytes || bytes.length === 0) {return null;}
+    const total = bytes.length;
+    let active = 0;
+    let zero = 0;
+    let reservedCount = 0;
 
-    for (var i = 0; i < bytes.length; i++) {
-        if (bytes[i] > 0) active++;
-        else zero++;
+    for (let i = 0; i < bytes.length; i++) {
+        if (bytes[i] > 0) {active++;}
+        else {zero++;}
 
-        var info = byteMap && byteMap[i] || null;
-        if (info && info.region === RESERVED_REGION) reservedCount++;
+        const info = byteMap && byteMap[i] || null;
+        if (info && info.region === RESERVED_REGION) {reservedCount++;}
     }
 
     return { total: total, active: active, zero: zero, reservedCount: reservedCount };
 }
 
 function formatSummaryText(summary) {
-    if (!summary) return 'No bytes loaded';
-    var parts = [summary.total + ' bytes', summary.active + ' active', summary.zero + ' zero'];
-    if (summary.reservedCount > 0) parts.push('\uD83D\uDFE6 ' + summary.reservedCount + ' reserved');
+    if (!summary) {return 'No bytes loaded';}
+    const parts = [summary.total + ' bytes', summary.active + ' active', summary.zero + ' zero'];
+    if (summary.reservedCount > 0) {parts.push('\uD83D\uDFE6 ' + summary.reservedCount + ' reserved');}
     return parts.join(' | ');
 }
 
 function getByteSelectionText(idx, val, info) {
-    var hex = formatHexByte(val);
+    const hex = formatHexByte(val);
     if (info) {
         return 'Selected: b[' + idx + '] ' + info.param + ' = ' + val + ' (0x' + hex + ') [' + info.region + ']';
     }
@@ -156,7 +156,7 @@ describe('DUMP_REGION_COLORS constant', function() {
 
     it('each region has bg and fg colors', function() {
         Object.keys(DUMP_REGION_COLORS).forEach(function(key) {
-            var c = DUMP_REGION_COLORS[key];
+            const c = DUMP_REGION_COLORS[key];
             expect(c.bg).toBeDefined();
             expect(c.fg).toBeDefined();
             expect(typeof c.bg).toBe('string');
@@ -178,17 +178,17 @@ describe('RESERVED_REGION and DEFAULT_REGION_COLOR', function() {
 
 describe('getRegionColor', function() {
     it('returns color for known region', function() {
-        var c = getRegionColor('VCF');
+        const c = getRegionColor('VCF');
         expect(c.fg).toBe('#7fffaf');
     });
 
     it('returns default color for unknown region', function() {
-        var c = getRegionColor('UNKNOWN');
+        const c = getRegionColor('UNKNOWN');
         expect(c).toBe(DEFAULT_REGION_COLOR);
     });
 
     it('returns color for reserved region', function() {
-        var c = getRegionColor('?');
+        const c = getRegionColor('?');
         expect(c.bg).toBe('#1a1a1a');
     });
 });
@@ -237,7 +237,7 @@ describe('isReservedRegion', function() {
 });
 
 describe('matchesSearchTerm', function() {
-    var info = { param: 'VCF Cutoff', region: 'VCF' };
+    const info = { param: 'VCF Cutoff', region: 'VCF' };
 
     it('returns true when searchTerm is empty', function() {
         expect(matchesSearchTerm(info, 39, 200, '')).toBe(true);
@@ -275,7 +275,7 @@ describe('matchesSearchTerm', function() {
 
 describe('formatTooltip — type-specific formatting', function() {
     it('formats basic info line', function() {
-        var tooltip = formatTooltip({ idx: 39, param: 'VCF Cutoff', region: 'VCF', type: 'float' }, 200);
+        const tooltip = formatTooltip({ idx: 39, param: 'VCF Cutoff', region: 'VCF', type: 'float' }, 200);
         expect(tooltip).toContain('Byte 39');
         expect(tooltip).toContain('VCF Cutoff');
         expect(tooltip).toContain('Region: VCF');
@@ -284,17 +284,17 @@ describe('formatTooltip — type-specific formatting', function() {
     });
 
     it('formats toggle: ON for val > 0', function() {
-        var tooltip = formatTooltip({ idx: 19, param: 'OSC1 Saw', region: 'OSC1', type: 'toggle' }, 1);
+        const tooltip = formatTooltip({ idx: 19, param: 'OSC1 Saw', region: 'OSC1', type: 'toggle' }, 1);
         expect(tooltip).toContain('ON (1)');
     });
 
     it('formats toggle: OFF for val = 0', function() {
-        var tooltip = formatTooltip({ idx: 19, param: 'OSC1 Saw', region: 'OSC1', type: 'toggle' }, 0);
+        const tooltip = formatTooltip({ idx: 19, param: 'OSC1 Saw', region: 'OSC1', type: 'toggle' }, 0);
         expect(tooltip).toContain('OFF (0)');
     });
 
     it('formats enum with labels', function() {
-        var tooltip = formatTooltip({
+        const tooltip = formatTooltip({
             idx: 14, param: 'OSC1 Range', region: 'OSC1', type: 'enum',
             enumLabels: ["16'", "8'", "4'"]
         }, 1);
@@ -303,7 +303,7 @@ describe('formatTooltip — type-specific formatting', function() {
     });
 
     it('clamps enum index to labels length', function() {
-        var tooltip = formatTooltip({
+        const tooltip = formatTooltip({
             idx: 14, param: 'OSC1 Range', region: 'OSC1', type: 'enum',
             enumLabels: ["16'", "8'", "4'"]
         }, 255);
@@ -312,50 +312,50 @@ describe('formatTooltip — type-specific formatting', function() {
     });
 
     it('formats bipolar: center at raw=128', function() {
-        var tooltip = formatTooltip({ idx: 39, param: 'VCF Cutoff', region: 'VCF', type: 'bipolar' }, 128);
+        const tooltip = formatTooltip({ idx: 39, param: 'VCF Cutoff', region: 'VCF', type: 'bipolar' }, 128);
         expect(tooltip).toContain('Bipolar: 0');
         expect(tooltip).toContain('Center (no modulation)');
     });
 
     it('formats bipolar: positive value', function() {
-        var tooltip = formatTooltip({ idx: 39, param: 'VCF Cutoff', region: 'VCF', type: 'bipolar' }, 200);
+        const tooltip = formatTooltip({ idx: 39, param: 'VCF Cutoff', region: 'VCF', type: 'bipolar' }, 200);
         expect(tooltip).toContain('Bipolar: 72');
     });
 
     it('formats bipolar: skip at raw=0', function() {
-        var tooltip = formatTooltip({ idx: 39, param: 'VCF Cutoff', region: 'VCF', type: 'bipolar' }, 0);
+        const tooltip = formatTooltip({ idx: 39, param: 'VCF Cutoff', region: 'VCF', type: 'bipolar' }, 0);
         expect(tooltip).toContain('Bipolar: -128');
         expect(tooltip).toContain('Skip step (seq) or min');
     });
 
     it('formats time type in seconds', function() {
-        var tooltip = formatTooltip({ idx: 0, param: 'LFO1 Rate', region: 'LFO1', type: 'time' }, 128);
+        const tooltip = formatTooltip({ idx: 0, param: 'LFO1 Rate', region: 'LFO1', type: 'time' }, 128);
         expect(tooltip).toContain('s'); // seconds
         // 128/255*10 = 5.0196...
         expect(tooltip).toContain('5.0');
     });
 
     it('formats ascii type', function() {
-        var tooltip = formatTooltip({ idx: 224, param: 'Patch Name', region: 'Name', type: 'ascii' }, 65);
+        const tooltip = formatTooltip({ idx: 224, param: 'Patch Name', region: 'Name', type: 'ascii' }, 65);
         expect(tooltip).toContain("'A'");
     });
 
     it('formats ascii dot for non-printable chars', function() {
-        var tooltip = formatTooltip({ idx: 224, param: 'Patch Name', region: 'Name', type: 'ascii' }, 0);
+        const tooltip = formatTooltip({ idx: 224, param: 'Patch Name', region: 'Name', type: 'ascii' }, 0);
         expect(tooltip).toContain('\u00B7'); // middle dot
     });
 
     it('includes description when present', function() {
-        var tooltip = formatTooltip({
+        const tooltip = formatTooltip({
             idx: 19, param: 'OSC1 Saw', region: 'OSC1', type: 'toggle', desc: 'Enable saw wave'
         }, 1);
         expect(tooltip).toContain('Enable saw wave');
     });
 
     it('handles float type without special formatting', function() {
-        var tooltip = formatTooltip({ idx: 39, param: 'VCF Cutoff', region: 'VCF', type: 'float' }, 128);
+        const tooltip = formatTooltip({ idx: 39, param: 'VCF Cutoff', region: 'VCF', type: 'float' }, 128);
         // No extra arrow line beyond the standard ones
-        var lines = tooltip.split('\n');
+        const lines = tooltip.split('\n');
         expect(lines.length).toBe(3); // header, region, value
     });
 });
@@ -370,8 +370,8 @@ describe('calculateSummary', function() {
     });
 
     it('counts total, active, zero bytes', function() {
-        var bytes = [0, 255, 128, 0, 64];
-        var result = calculateSummary(bytes, []);
+        const bytes = [0, 255, 128, 0, 64];
+        const result = calculateSummary(bytes, []);
         expect(result.total).toBe(5);
         expect(result.active).toBe(3);
         expect(result.zero).toBe(2);
@@ -379,15 +379,15 @@ describe('calculateSummary', function() {
     });
 
     it('counts reserved bytes from byteMap', function() {
-        var bytes = [0, 255, 128, 0, 64];
-        var byteMap = [
+        const bytes = [0, 255, 128, 0, 64];
+        const byteMap = [
             null,
             { region: 'VCF' },
             { region: '?' },
             null,
             { region: '?' }
         ];
-        var result = calculateSummary(bytes, byteMap);
+        const result = calculateSummary(bytes, byteMap);
         expect(result.total).toBe(5);
         expect(result.active).toBe(3);
         expect(result.zero).toBe(2);
@@ -395,7 +395,7 @@ describe('calculateSummary', function() {
     });
 
     it('handles all-zero bytes', function() {
-        var bytes = [0, 0, 0];
+        const bytes = [0, 0, 0];
         expect(calculateSummary(bytes, []).active).toBe(0);
         expect(calculateSummary(bytes, []).zero).toBe(3);
     });
@@ -407,7 +407,7 @@ describe('formatSummaryText', function() {
     });
 
     it('formats basic summary', function() {
-        var text = formatSummaryText({ total: 242, active: 180, zero: 62, reservedCount: 0 });
+        const text = formatSummaryText({ total: 242, active: 180, zero: 62, reservedCount: 0 });
         expect(text).toContain('242 bytes');
         expect(text).toContain('180 active');
         expect(text).toContain('62 zero');
@@ -415,7 +415,7 @@ describe('formatSummaryText', function() {
     });
 
     it('includes reserved count when > 0', function() {
-        var text = formatSummaryText({ total: 242, active: 180, zero: 62, reservedCount: 5 });
+        const text = formatSummaryText({ total: 242, active: 180, zero: 62, reservedCount: 5 });
         expect(text).toContain('reserved');
         expect(text).toContain('5');
     });
@@ -423,7 +423,7 @@ describe('formatSummaryText', function() {
 
 describe('getByteSelectionText', function() {
     it('formats with info', function() {
-        var text = getByteSelectionText(39, 200, { param: 'VCF Cutoff', region: 'VCF' });
+        const text = getByteSelectionText(39, 200, { param: 'VCF Cutoff', region: 'VCF' });
         expect(text).toContain('b[39]');
         expect(text).toContain('VCF Cutoff');
         expect(text).toContain('200');
@@ -432,7 +432,7 @@ describe('getByteSelectionText', function() {
     });
 
     it('formats without info as unmapped', function() {
-        var text = getByteSelectionText(5, 100, null);
+        const text = getByteSelectionText(5, 100, null);
         expect(text).toContain('b[5]');
         expect(text).toContain('100');
         expect(text).toContain('0x64');

@@ -23,189 +23,189 @@
  * @returns {object} Parameter ID → normalized value map
  */
 function generateMusicalRanges(rng) {
-    if (typeof rng !== 'function') rng = Math.random;
+    if (typeof rng !== 'function') {rng = Math.random;}
     const r = rng;
     return {
         // OSCs
-        "osc1_saw_enable": r() > 0.3 ? 1.0 : 0.0,
-        "osc1_square_enable": r() > 0.5 ? 1.0 : 0.0,
-        "osc1_pwm_amount": 0.2 + r() * 0.6,
-        "osc1_pitch_mod": r() * 0.3,
-        "osc1_range": Math.floor(r() * 3) / 2.0,
-        "osc1_pm_source": r() > 0.4 ? Math.floor(r() * 23) / 23.0 : 0.0,
-        "osc1_pwm_source": r() > 0.5 ? Math.floor(r() * 23) / 23.0 : 0.0,
-        "osc1_pm_mode": r() > 0.3 ? 1.0 : 0.0,
-        "osc1_lfo_aftertouch": r() * 0.3,
-        "osc1_lfo_modwheel": r() * 0.3,
+        'osc1_saw_enable': r() > 0.3 ? 1.0 : 0.0,
+        'osc1_square_enable': r() > 0.5 ? 1.0 : 0.0,
+        'osc1_pwm_amount': 0.2 + r() * 0.6,
+        'osc1_pitch_mod': r() * 0.3,
+        'osc1_range': Math.floor(r() * 3) / 2.0,
+        'osc1_pm_source': r() > 0.4 ? Math.floor(r() * 23) / 23.0 : 0.0,
+        'osc1_pwm_source': r() > 0.5 ? Math.floor(r() * 23) / 23.0 : 0.0,
+        'osc1_pm_mode': r() > 0.3 ? 1.0 : 0.0,
+        'osc1_lfo_aftertouch': r() * 0.3,
+        'osc1_lfo_modwheel': r() * 0.3,
 
-        "osc2_pitch": 0.3 + r() * 0.4,
-        "osc2_tone_mod": r() * 0.8,
-        "osc2_level": 0.2 + r() * 0.7,
-        "osc2_pitch_mod": r() * 0.3,
-        "osc2_range": Math.floor(r() * 3) / 2.0,
-        "osc2_pm_source": r() > 0.4 ? Math.floor(r() * 23) / 23.0 : 0.0,
-        "osc2_tpm_source": r() > 0.4 ? Math.floor(r() * 23) / 23.0 : 0.0,
-        "osc2_aftertouch_pitch": r() * 0.3,
-        "osc2_modwheel_pitch": r() * 0.3,
-        "osc2_pitch_mod_select": Math.floor(r() * 7) / 6.0,
+        'osc2_pitch': 0.3 + r() * 0.4,
+        'osc2_tone_mod': r() * 0.8,
+        'osc2_level': 0.2 + r() * 0.7,
+        'osc2_pitch_mod': r() * 0.3,
+        'osc2_range': Math.floor(r() * 3) / 2.0,
+        'osc2_pm_source': r() > 0.4 ? Math.floor(r() * 23) / 23.0 : 0.0,
+        'osc2_tpm_source': r() > 0.4 ? Math.floor(r() * 23) / 23.0 : 0.0,
+        'osc2_aftertouch_pitch': r() * 0.3,
+        'osc2_modwheel_pitch': r() * 0.3,
+        'osc2_pitch_mod_select': Math.floor(r() * 7) / 6.0,
 
-        "osc_sync_enable": r() > 0.8 ? 1.0 : 0.0,
-        "noise_level": r() * 0.2,
+        'osc_sync_enable': r() > 0.8 ? 1.0 : 0.0,
+        'noise_level': r() * 0.2,
 
         // Portamento / Performance
-        "global_portamento": r() * 0.5,
-        "porta_mode": r(),
-        "pitch_bend_up": 0.5,
-        "pitch_bend_down": 0.5,
+        'global_portamento': r() * 0.5,
+        'porta_mode': r(),
+        'pitch_bend_up': 0.5,
+        'pitch_bend_down': 0.5,
 
         // HPF / VCF
-        "hpf_cutoff": r() * 0.3,
-        "hpf_boost_enable": r() > 0.7 ? 1.0 : 0.0,
+        'hpf_cutoff': r() * 0.3,
+        'hpf_boost_enable': r() > 0.7 ? 1.0 : 0.0,
 
-        "vcf_cutoff": 0.3 + r() * 0.6,
-        "vcf_resonance": r() * 0.7,
-        "vcf_env_depth": 0.3 + r() * 0.5,
-        "vcf_env_vel": r() * 0.5,
-        "vcf_pitch_bend": r() * 0.5,
-        "vcf_lfo_depth": r() * 0.4,
-        "vcf_lfo_select": r() > 0.5 ? 1.0 : 0.0,
-        "vcf_aftertouch_lfo": r() * 0.3,
-        "vcf_modwheel_lfo": r() * 0.3,
-        "vcf_key_tracking": r() * 0.6,
-        "vcf_pole_mode": r() > 0.5 ? 1.0 : 0.0,
-        "vcf_env_polarity": 1.0,
+        'vcf_cutoff': 0.3 + r() * 0.6,
+        'vcf_resonance': r() * 0.7,
+        'vcf_env_depth': 0.3 + r() * 0.5,
+        'vcf_env_vel': r() * 0.5,
+        'vcf_pitch_bend': r() * 0.5,
+        'vcf_lfo_depth': r() * 0.4,
+        'vcf_lfo_select': r() > 0.5 ? 1.0 : 0.0,
+        'vcf_aftertouch_lfo': r() * 0.3,
+        'vcf_modwheel_lfo': r() * 0.3,
+        'vcf_key_tracking': r() * 0.6,
+        'vcf_pole_mode': r() > 0.5 ? 1.0 : 0.0,
+        'vcf_env_polarity': 1.0,
 
         // VCA
-        "vca_level": 0.7 + r() * 0.3,
-        "vca_mode": r() > 0.8 ? 1.0 : 0.0,
-        "vca_env_depth": 1.0,
-        "vca_vel_sens": r() * 0.4,
-        "vca_pan_spread": 0.0,
+        'vca_level': 0.7 + r() * 0.3,
+        'vca_mode': r() > 0.8 ? 1.0 : 0.0,
+        'vca_env_depth': 1.0,
+        'vca_vel_sens': r() * 0.4,
+        'vca_pan_spread': 0.0,
 
         // ENV 1 (VCA)
-        "env1_attack": r() * 0.15,
-        "env1_decay": 0.1 + r() * 0.5,
-        "env1_sustain": 0.5 + r() * 0.5,
-        "env1_release": 0.1 + r() * 0.6,
-        "env1_trigger_mode": 0.0,
-        "env1_attack_curve": 0.5,
-        "env1_decay_curve": 0.5,
-        "env1_sustain_curve": 0.5,
-        "env1_release_curve": 0.5,
+        'env1_attack': r() * 0.15,
+        'env1_decay': 0.1 + r() * 0.5,
+        'env1_sustain': 0.5 + r() * 0.5,
+        'env1_release': 0.1 + r() * 0.6,
+        'env1_trigger_mode': 0.0,
+        'env1_attack_curve': 0.5,
+        'env1_decay_curve': 0.5,
+        'env1_sustain_curve': 0.5,
+        'env1_release_curve': 0.5,
 
         // ENV 2 (VCF)
-        "env2_attack": r() * 0.4,
-        "env2_decay": 0.1 + r() * 0.7,
-        "env2_sustain": r() * 0.8,
-        "env2_release": 0.1 + r() * 0.8,
-        "env2_trigger_mode": 0.0,
-        "env2_attack_curve": 0.5,
-        "env2_decay_curve": 0.5,
-        "env2_sustain_curve": 0.5,
-        "env2_release_curve": 0.5,
+        'env2_attack': r() * 0.4,
+        'env2_decay': 0.1 + r() * 0.7,
+        'env2_sustain': r() * 0.8,
+        'env2_release': 0.1 + r() * 0.8,
+        'env2_trigger_mode': 0.0,
+        'env2_attack_curve': 0.5,
+        'env2_decay_curve': 0.5,
+        'env2_sustain_curve': 0.5,
+        'env2_release_curve': 0.5,
 
         // ENV 3 (MOD)
-        "env3_attack": r(),
-        "env3_decay": r(),
-        "env3_sustain": r(),
-        "env3_release": r(),
-        "env3_trigger_mode": 0.0,
-        "env3_attack_curve": 0.5,
-        "env3_decay_curve": 0.5,
-        "env3_sustain_curve": 0.5,
-        "env3_release_curve": 0.5,
+        'env3_attack': r(),
+        'env3_decay': r(),
+        'env3_sustain': r(),
+        'env3_release': r(),
+        'env3_trigger_mode': 0.0,
+        'env3_attack_curve': 0.5,
+        'env3_decay_curve': 0.5,
+        'env3_sustain_curve': 0.5,
+        'env3_release_curve': 0.5,
 
         // LFOs
-        "lfo1_rate": r() * 0.6,
-        "lfo1_delay": r() * 0.4,
-        "lfo1_shape": Math.floor(r() * 7) / 6.0,
-        "lfo1_key_sync": r() > 0.2 ? 1.0 : 0.0,
-        "lfo1_arp_sync": r() > 0.7 ? 1.0 : 0.0,
-        "lfo1_mono_mode": r() > 0.6 ? 1.0 : 0.0,
-        "lfo1_slew": r() * 0.3,
-        "lfo2_rate": r() * 0.6,
-        "lfo2_delay": r() * 0.4,
-        "lfo2_shape": Math.floor(r() * 7) / 6.0,
-        "lfo2_key_sync": r() > 0.2 ? 1.0 : 0.0,
-        "lfo2_arp_sync": r() > 0.7 ? 1.0 : 0.0,
-        "lfo2_mono_mode": r() > 0.6 ? 1.0 : 0.0,
-        "lfo2_slew": r() * 0.3,
+        'lfo1_rate': r() * 0.6,
+        'lfo1_delay': r() * 0.4,
+        'lfo1_shape': Math.floor(r() * 7) / 6.0,
+        'lfo1_key_sync': r() > 0.2 ? 1.0 : 0.0,
+        'lfo1_arp_sync': r() > 0.7 ? 1.0 : 0.0,
+        'lfo1_mono_mode': r() > 0.6 ? 1.0 : 0.0,
+        'lfo1_slew': r() * 0.3,
+        'lfo2_rate': r() * 0.6,
+        'lfo2_delay': r() * 0.4,
+        'lfo2_shape': Math.floor(r() * 7) / 6.0,
+        'lfo2_key_sync': r() > 0.2 ? 1.0 : 0.0,
+        'lfo2_arp_sync': r() > 0.7 ? 1.0 : 0.0,
+        'lfo2_mono_mode': r() > 0.6 ? 1.0 : 0.0,
+        'lfo2_slew': r() * 0.3,
 
         // Voice / Unison
-        "note_priority": 1.0,
-        "voice_mode": 0.0,
-        "trigger_mode": 0.0,
-        "unison_detune": r() * 0.5,
-        "voice_drift": r() * 0.3,
-        "param_drift": r() * 0.3,
-        "drift_rate": 0.5,
-        "porta_osc_bal": 0.5,
-        "osc_key_reset": 0.0,
-        "osc_drift": r() * 0.3,
+        'note_priority': 1.0,
+        'voice_mode': 0.0,
+        'trigger_mode': 0.0,
+        'unison_detune': r() * 0.5,
+        'voice_drift': r() * 0.3,
+        'param_drift': r() * 0.3,
+        'drift_rate': 0.5,
+        'porta_osc_bal': 0.5,
+        'osc_key_reset': 0.0,
+        'osc_drift': r() * 0.3,
 
         // Arp / Seq / Chord
-        "arp_rate": 0.3 + r() * 0.4,
-        "arp_gate": 0.5,
-        "arp_enable": 0.0,
-        "arp_hold": 0.0,
-        "arp_key_sync": 1.0,
-        "arp_clock_divider": 0.0,
-        "arp_mode": 0.0,
-        "arp_swing": 0.0,
-        "arp_octave": 0.0,
-        "arp_pattern": 0.0,
-        "seq_enable": 0.0,
-        "seq_clock": 0.0,
-        "seq_length": 0.0,
-        "seq_swing": 0.0,
-        "seq_key_loop": 0.0,
-        "seq_slew_rate": 0.0,
-        "chord_enable": 0.0,
-        "poly_chord_enable": 0.0,
+        'arp_rate': 0.3 + r() * 0.4,
+        'arp_gate': 0.5,
+        'arp_enable': 0.0,
+        'arp_hold': 0.0,
+        'arp_key_sync': 1.0,
+        'arp_clock_divider': 0.0,
+        'arp_mode': 0.0,
+        'arp_swing': 0.0,
+        'arp_octave': 0.0,
+        'arp_pattern': 0.0,
+        'seq_enable': 0.0,
+        'seq_clock': 0.0,
+        'seq_length': 0.0,
+        'seq_swing': 0.0,
+        'seq_key_loop': 0.0,
+        'seq_slew_rate': 0.0,
+        'chord_enable': 0.0,
+        'poly_chord_enable': 0.0,
 
         // MODULATION MATRIX
-        "mod_matrix_slot1_src": r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
-        "mod_matrix_slot1_dest": Math.floor(r() * 130) / 129.0,
-        "mod_matrix_slot1_depth": r() > 0.3 ? r() : 0.5,
-        "mod_matrix_slot2_src": r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
-        "mod_matrix_slot2_dest": Math.floor(r() * 130) / 129.0,
-        "mod_matrix_slot2_depth": r() > 0.3 ? r() : 0.5,
-        "mod_matrix_slot3_src": r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
-        "mod_matrix_slot3_dest": Math.floor(r() * 130) / 129.0,
-        "mod_matrix_slot3_depth": r() > 0.3 ? r() : 0.5,
-        "mod_matrix_slot4_src": r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
-        "mod_matrix_slot4_dest": Math.floor(r() * 130) / 129.0,
-        "mod_matrix_slot4_depth": r() > 0.3 ? r() : 0.5,
-        "mod_matrix_slot5_src": r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
-        "mod_matrix_slot5_dest": Math.floor(r() * 130) / 129.0,
-        "mod_matrix_slot5_depth": r() > 0.3 ? r() : 0.5,
-        "mod_matrix_slot6_src": r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
-        "mod_matrix_slot6_dest": Math.floor(r() * 130) / 129.0,
-        "mod_matrix_slot6_depth": r() > 0.3 ? r() : 0.5,
-        "mod_matrix_slot7_src": r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
-        "mod_matrix_slot7_dest": Math.floor(r() * 130) / 129.0,
-        "mod_matrix_slot7_depth": r() > 0.3 ? r() : 0.5,
-        "mod_matrix_slot8_src": r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
-        "mod_matrix_slot8_dest": Math.floor(r() * 130) / 129.0,
-        "mod_matrix_slot8_depth": r() > 0.3 ? r() : 0.5,
+        'mod_matrix_slot1_src': r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
+        'mod_matrix_slot1_dest': Math.floor(r() * 130) / 129.0,
+        'mod_matrix_slot1_depth': r() > 0.3 ? r() : 0.5,
+        'mod_matrix_slot2_src': r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
+        'mod_matrix_slot2_dest': Math.floor(r() * 130) / 129.0,
+        'mod_matrix_slot2_depth': r() > 0.3 ? r() : 0.5,
+        'mod_matrix_slot3_src': r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
+        'mod_matrix_slot3_dest': Math.floor(r() * 130) / 129.0,
+        'mod_matrix_slot3_depth': r() > 0.3 ? r() : 0.5,
+        'mod_matrix_slot4_src': r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
+        'mod_matrix_slot4_dest': Math.floor(r() * 130) / 129.0,
+        'mod_matrix_slot4_depth': r() > 0.3 ? r() : 0.5,
+        'mod_matrix_slot5_src': r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
+        'mod_matrix_slot5_dest': Math.floor(r() * 130) / 129.0,
+        'mod_matrix_slot5_depth': r() > 0.3 ? r() : 0.5,
+        'mod_matrix_slot6_src': r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
+        'mod_matrix_slot6_dest': Math.floor(r() * 130) / 129.0,
+        'mod_matrix_slot6_depth': r() > 0.3 ? r() : 0.5,
+        'mod_matrix_slot7_src': r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
+        'mod_matrix_slot7_dest': Math.floor(r() * 130) / 129.0,
+        'mod_matrix_slot7_depth': r() > 0.3 ? r() : 0.5,
+        'mod_matrix_slot8_src': r() > 0.3 ? Math.floor(r() * 22) / 22.0 : 0.0,
+        'mod_matrix_slot8_dest': Math.floor(r() * 130) / 129.0,
+        'mod_matrix_slot8_depth': r() > 0.3 ? r() : 0.5,
 
         // FX Global
-        "fx_routing": Math.floor(r() * 6) / 5.0,
-        "fx_mode": Math.floor(r() * 3) / 2.0,
-        "fx1_type": r() > 0.2 ? Math.floor(r() * 34) / 34.0 : 0.0,
-        "fx1_gain": 0.5 + r() * 0.5,
-        "fx1_param1": r(),
-        "fx1_param2": r(),
-        "fx1_param3": r(),
-        "fx2_type": r() > 0.2 ? Math.floor(r() * 34) / 34.0 : 0.0,
-        "fx2_gain": 0.5 + r() * 0.5,
-        "fx2_param1": r(),
-        "fx2_param2": r(),
-        "fx3_type": r() > 0.2 ? Math.floor(r() * 34) / 34.0 : 0.0,
-        "fx3_gain": 0.5 + r() * 0.5,
-        "fx3_param1": r(),
-        "fx4_type": r() > 0.2 ? Math.floor(r() * 34) / 34.0 : 0.0,
-        "fx4_gain": 0.5 + r() * 0.5,
+        'fx_routing': Math.floor(r() * 6) / 5.0,
+        'fx_mode': Math.floor(r() * 3) / 2.0,
+        'fx1_type': r() > 0.2 ? Math.floor(r() * 34) / 34.0 : 0.0,
+        'fx1_gain': 0.5 + r() * 0.5,
+        'fx1_param1': r(),
+        'fx1_param2': r(),
+        'fx1_param3': r(),
+        'fx2_type': r() > 0.2 ? Math.floor(r() * 34) / 34.0 : 0.0,
+        'fx2_gain': 0.5 + r() * 0.5,
+        'fx2_param1': r(),
+        'fx2_param2': r(),
+        'fx3_type': r() > 0.2 ? Math.floor(r() * 34) / 34.0 : 0.0,
+        'fx3_gain': 0.5 + r() * 0.5,
+        'fx3_param1': r(),
+        'fx4_type': r() > 0.2 ? Math.floor(r() * 34) / 34.0 : 0.0,
+        'fx4_gain': 0.5 + r() * 0.5,
     };
 }
 
@@ -281,7 +281,7 @@ const ALL_EXPECTED_KEYS = Object.values(CATEGORIES).flat();
 // =============================================================================
 
 describe('generateMusicalRanges — structure', function() {
-    var result = generateMusicalRanges(function() { return 0.5; });
+    const result = generateMusicalRanges(function() { return 0.5; });
 
     it('returns an object', function() {
         expect(typeof result).toBe('object');
@@ -289,8 +289,8 @@ describe('generateMusicalRanges — structure', function() {
     });
 
     it('contains all expected parameter keys', function() {
-        var keys = Object.keys(result).sort();
-        var expected = ALL_EXPECTED_KEYS.slice().sort();
+        const keys = Object.keys(result).sort();
+        const expected = ALL_EXPECTED_KEYS.slice().sort();
         expect(keys).toEqual(expected);
     });
 
@@ -299,7 +299,7 @@ describe('generateMusicalRanges — structure', function() {
     });
 
     it('all parameter values are finite numbers', function() {
-        for (var key in result) {
+        for (const key in result) {
             if (result.hasOwnProperty(key)) {
                 expect(typeof result[key]).toBe('number', key + ' is not a number');
                 expect(Number.isFinite(result[key])).toBe(true, key + ' is not finite');
@@ -309,13 +309,13 @@ describe('generateMusicalRanges — structure', function() {
 });
 
 describe('generateMusicalRanges — category param presence', function() {
-    var result = generateMusicalRanges(function() { return 0.5; });
+    const result = generateMusicalRanges(function() { return 0.5; });
 
-    for (var catName in CATEGORIES) {
+    for (const catName in CATEGORIES) {
         if (CATEGORIES.hasOwnProperty(catName)) {
             (function(category, ids) {
                 it('has ' + ids.length + ' params in ' + category, function() {
-                    for (var i = 0; i < ids.length; i++) {
+                    for (let i = 0; i < ids.length; i++) {
                         expect(result).toHaveProperty(ids[i]);
                     }
                 });
@@ -326,28 +326,28 @@ describe('generateMusicalRanges — category param presence', function() {
 
 describe('generateMusicalRanges — deterministic with seeded RNG', function() {
     it('produces identical results for same RNG function', function() {
-        var rng = function() { return 0.5; };
-        var result1 = generateMusicalRanges(rng);
-        var result2 = generateMusicalRanges(rng);
+        const rng = function() { return 0.5; };
+        const result1 = generateMusicalRanges(rng);
+        const result2 = generateMusicalRanges(rng);
         expect(result1).toEqual(result2);
     });
 
     it('produces different results for different RNG functions', function() {
-        var resultA = generateMusicalRanges(function() { return 0.1; });
-        var resultB = generateMusicalRanges(function() { return 0.9; });
+        const resultA = generateMusicalRanges(function() { return 0.1; });
+        const resultB = generateMusicalRanges(function() { return 0.9; });
         // osc1_saw_enable uses r() for threshold: 0.1 > 0.3 false, 0.9 > 0.3 true
         expect(resultA['osc1_saw_enable']).not.toBe(resultB['osc1_saw_enable']);
     });
 
     it('defaults to Math.random when no RNG provided', function() {
-        var result = generateMusicalRanges();
+        const result = generateMusicalRanges();
         expect(typeof result).toBe('object');
         expect(Object.keys(result).length).toBeGreaterThan(0);
     });
 });
 
 describe('generateMusicalRanges — constant values (no random variation)', function() {
-    var result = generateMusicalRanges(function() { return 0.0; });
+    const result = generateMusicalRanges(function() { return 0.0; });
 
     it('pitch_bend_up and pitch_bend_down are always 0.5', function() {
         expect(result['pitch_bend_up']).toBe(0.5);
@@ -373,24 +373,24 @@ describe('generateMusicalRanges — constant values (no random variation)', func
     });
 
     it('all env curve params are always 0.5', function() {
-        var curveParams = [
+        const curveParams = [
             'env1_attack_curve', 'env1_decay_curve', 'env1_sustain_curve', 'env1_release_curve',
             'env2_attack_curve', 'env2_decay_curve', 'env2_sustain_curve', 'env2_release_curve',
             'env3_attack_curve', 'env3_decay_curve', 'env3_sustain_curve', 'env3_release_curve',
         ];
-        for (var i = 0; i < curveParams.length; i++) {
+        for (let i = 0; i < curveParams.length; i++) {
             expect(result[curveParams[i]]).toBe(0.5);
         }
     });
 
     it('arp/seq/chord enable and related are always 0.0', function() {
-        var disabledParams = [
+        const disabledParams = [
             'arp_enable', 'arp_hold', 'arp_clock_divider', 'arp_mode',
             'arp_swing', 'arp_octave', 'arp_pattern',
             'seq_enable', 'seq_clock', 'seq_length', 'seq_swing',
             'seq_key_loop', 'seq_slew_rate', 'chord_enable', 'poly_chord_enable',
         ];
-        for (var i = 0; i < disabledParams.length; i++) {
+        for (let i = 0; i < disabledParams.length; i++) {
             expect(result[disabledParams[i]]).toBe(0.0);
         }
     });
@@ -414,7 +414,7 @@ describe('generateMusicalRanges — constant values (no random variation)', func
 });
 
 describe('generateMusicalRanges — value ranges with minimum RNG (returns 0.0)', function() {
-    var result = generateMusicalRanges(function() { return 0.0; });
+    const result = generateMusicalRanges(function() { return 0.0; });
 
     it('OSC params at minimum', function() {
         expect(result['osc1_saw_enable']).toBe(0.0);  // 0 > 0.3 false
@@ -516,7 +516,7 @@ describe('generateMusicalRanges — value ranges with minimum RNG (returns 0.0)'
     });
 
     it('Mod matrix params at minimum', function() {
-        for (var slot = 1; slot <= 8; slot++) {
+        for (let slot = 1; slot <= 8; slot++) {
             expect(result['mod_matrix_slot' + slot + '_src']).toBe(0.0);
             expect(result['mod_matrix_slot' + slot + '_dest']).toBe(0.0);
             expect(result['mod_matrix_slot' + slot + '_depth']).toBe(0.5); // 0 > 0.3 false → 0.5
@@ -547,8 +547,8 @@ describe('generateMusicalRanges — value ranges with near-max RNG (returns 0.99
     // Note: Use 0.999 instead of 1.0 because Math.random() returns [0, 1).
     // With r=1.0, floor(r() * n) = floor(n) = n, which can produce values outside
     // the intended enum range. Near-max (0.999) matches real-world Math.random() behavior.
-    var rng = function() { return 0.999; };
-    var result = generateMusicalRanges(rng);
+    const rng = function() { return 0.999; };
+    const result = generateMusicalRanges(rng);
 
     it('OSC params at maximum', function() {
         expect(result['osc1_saw_enable']).toBe(1.0);  // 0.999 > 0.3 true
@@ -642,7 +642,7 @@ describe('generateMusicalRanges — value ranges with near-max RNG (returns 0.99
     });
 
     it('Mod matrix params at maximum', function() {
-        for (var slot = 1; slot <= 8; slot++) {
+        for (let slot = 1; slot <= 8; slot++) {
             expect(result['mod_matrix_slot' + slot + '_src']).toBe(21.0 / 22.0); // floor(0.999*22)/22 = 21/22
             expect(result['mod_matrix_slot' + slot + '_dest']).toBe(1.0); // floor(0.999*130)/129 = 129/129 = 1.0
             expect(result['mod_matrix_slot' + slot + '_depth']).toBe(0.999); // 0.999 > 0.3 → true → r() = 0.999
@@ -769,8 +769,8 @@ describe('generateMusicalRanges — toggle/boolean probability thresholds', func
 
 describe('generateMusicalRanges — RNG call count', function() {
     it('consumes r() for each random expression in order', function() {
-        var calls = [];
-        var rng = function() {
+        const calls = [];
+        const rng = function() {
             calls.push(calls.length);
             return 0.5;
         };
@@ -783,8 +783,8 @@ describe('generateMusicalRanges — RNG call count', function() {
 
 describe('generateMusicalRanges — multiple calls produce independent results', function() {
     it('generates different values on successive calls with different RNG', function() {
-        var call1 = generateMusicalRanges(function() { return 0.1; });
-        var call2 = generateMusicalRanges(function() { return 0.9; });
+        const call1 = generateMusicalRanges(function() { return 0.1; });
+        const call2 = generateMusicalRanges(function() { return 0.9; });
         // 0.1 > 0.3 false, 0.9 > 0.3 true
         expect(call1['osc1_saw_enable']).toBe(0.0);
         expect(call2['osc1_saw_enable']).toBe(1.0);
@@ -793,8 +793,8 @@ describe('generateMusicalRanges — multiple calls produce independent results',
 
 describe('generateMusicalRanges — edge RNG boundary values', function() {
     it('handles r() returning 0 (minimum)', function() {
-        var result = generateMusicalRanges(function() { return 0.0; });
-        for (var key in result) {
+        const result = generateMusicalRanges(function() { return 0.0; });
+        for (const key in result) {
             if (result.hasOwnProperty(key)) {
                 expect(result[key]).toBeGreaterThanOrEqual(0.0, key + ' below 0');
             }
@@ -802,9 +802,9 @@ describe('generateMusicalRanges — edge RNG boundary values', function() {
     });
 
     it('handles r() returning near maximum (0.999)', function() {
-        var result = generateMusicalRanges(function() { return 0.999; });
+        const result = generateMusicalRanges(function() { return 0.999; });
         // All values should be within valid normalized range [0, 1]
-        for (var key in result) {
+        for (const key in result) {
             if (result.hasOwnProperty(key)) {
                 expect(result[key]).toBeGreaterThanOrEqual(0.0, key + ' below 0');
                 expect(result[key]).toBeLessThanOrEqual(1.0, key + ' above 1 (got ' + result[key] + ')');
@@ -817,9 +817,9 @@ describe('generateMusicalRanges — edge RNG boundary values', function() {
         // Only r=1.0 exactly would give floor(n) = n, producing n/n = 1.0 for some formulas
         // or n/(n-1) > 1.0 for others (e.g., floor(1*3)/2 = 3/2 = 1.5).
         // This test verifies that with realistic r() range [0, 1), all values are [0, 1].
-        var rng = function() { return 0.999; };
-        var result = generateMusicalRanges(rng);
-        for (var key in result) {
+        const rng = function() { return 0.999; };
+        const result = generateMusicalRanges(rng);
+        for (const key in result) {
             if (result.hasOwnProperty(key)) {
                 expect(result[key]).toBeGreaterThanOrEqual(0.0);
                 expect(result[key]).toBeLessThanOrEqual(1.0, key + '=' + result[key] + ' exceeds 1.0');

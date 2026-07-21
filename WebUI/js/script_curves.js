@@ -4,7 +4,7 @@
  */
 
 function _evalCustomCurve(x, points) {
-    if (!points || points.length < 2) return x;
+    if (!points || points.length < 2) {return x;}
     for (let i = 0; i < points.length - 1; i++) {
         const a = points[i], b = points[i + 1];
         if (x >= a.x && x <= b.x) {
@@ -16,15 +16,15 @@ function _evalCustomCurve(x, points) {
 }
 
 window.applyControllerCurve = function(value, curveType) {
-    if (curveType === 'linear' || !curveType) return value;
+    if (curveType === 'linear' || !curveType) {return value;}
     if (curveType === 'custom') {
         const atSel = document.getElementById('settings-curve-aftertouch');
         const mwSel = document.getElementById('settings-curve-modwheel');
         const pbSel = document.getElementById('settings-curve-pitchbend');
         let ctrlName = 'aftertouch';
-        if (atSel && atSel.value === 'custom') ctrlName = 'aftertouch';
-        else if (mwSel && mwSel.value === 'custom') ctrlName = 'modwheel';
-        else if (pbSel && pbSel.value === 'custom') ctrlName = 'pitchbend';
+        if (atSel && atSel.value === 'custom') {ctrlName = 'aftertouch';}
+        else if (mwSel && mwSel.value === 'custom') {ctrlName = 'modwheel';}
+        else if (pbSel && pbSel.value === 'custom') {ctrlName = 'pitchbend';}
         const points = window.getCustomCurvePoints(ctrlName);
         const v = Math.max(0, Math.min(1, value));
         return _evalCustomCurve(v, points);
@@ -51,7 +51,7 @@ window.setControllerCurve = function(ctrlName, curveType) {
 };
 
 window.applyBipolarCurve = function(value, curveType) {
-    if (curveType === 'linear' || !curveType) return value;
+    if (curveType === 'linear' || !curveType) {return value;}
     if (curveType === 'custom') {
         const points = window.getCustomCurvePoints('pitchbend');
         const abs = Math.max(0, Math.min(1, Math.abs(value)));

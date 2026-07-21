@@ -9,7 +9,7 @@
 // @param {string} [patchNameOverride] - Nombre opcional para la etiqueta (usado por RANDOM PATCH)
 function updateSysExMonitor(bytes, highlightIndex = -1, patchNameOverride) {
     const monitor = document.getElementById('sysex-hex-log');
-    if (!monitor) return;
+    if (!monitor) {return;}
 
     // Guardar referencia a los bytes para selección posterior
     monitor._bytes = bytes;
@@ -30,7 +30,7 @@ function updateSysExMonitor(bytes, highlightIndex = -1, patchNameOverride) {
     // Limpiar selección al cargar nuevos bytes
     monitor._selectedIndices = [];
     const infoEl = document.getElementById('sysex-selection-info');
-    if (infoEl) infoEl.textContent = 'Click a hex byte to select it. Shift+click to select range. Ctrl+click to toggle.';
+    if (infoEl) {infoEl.textContent = 'Click a hex byte to select it. Shift+click to select range. Ctrl+click to toggle.';}
 
     // Actualizar la etiqueta dedicada con el nombre del patch y banco activos
     const patchLabel = document.getElementById('sysex-active-patch-label');
@@ -53,7 +53,7 @@ function updateSysExMonitor(bytes, highlightIndex = -1, patchNameOverride) {
                 }
             }
 
-            const slotStr = (activeIdx !== -1) ? (activeIdx + 1).toString().padStart(3, '0') : "001";
+            const slotStr = (activeIdx !== -1) ? (activeIdx + 1).toString().padStart(3, '0') : '001';
             patchLabel.innerText = `LOADED PATCH: ${patchName.toUpperCase()} [${activeBankName} - SLOT ${slotStr}]`;
         }
         patchLabel.style.display = 'block';
@@ -63,7 +63,7 @@ function updateSysExMonitor(bytes, highlightIndex = -1, patchNameOverride) {
     if (highlightIndex !== -1) {
         setTimeout(() => {
             const el = monitor.querySelector('.changed');
-            if (el) el.classList.remove('changed');
+            if (el) {el.classList.remove('changed');}
         }, 1000);
     }
 }
@@ -79,9 +79,9 @@ function updateNrpnTrafficCounters(stats) {
     const txEl = document.getElementById('nrpn-tx-count');
     const rxEl = document.getElementById('nrpn-rx-count');
     const pktEl = document.getElementById('nrpn-pkt-count');
-    if (txEl) txEl.textContent = stats.tx;
-    if (rxEl) rxEl.textContent = stats.rx;
-    if (pktEl) pktEl.textContent = stats.pkts;
+    if (txEl) {txEl.textContent = stats.tx;}
+    if (rxEl) {rxEl.textContent = stats.rx;}
+    if (pktEl) {pktEl.textContent = stats.pkts;}
 }
 window.updateNrpnTrafficCounters = updateNrpnTrafficCounters;
 
@@ -94,15 +94,15 @@ document.addEventListener('DOMContentLoaded', () => {
         zoomBtn.addEventListener('click', () => {
             container.classList.toggle('zoomed');
             if (container.classList.contains('zoomed')) {
-                zoomBtn.innerText = "🔍 CLOSE";
-                zoomBtn.style.color = "var(--color-danger)";
-                zoomBtn.style.borderColor = "var(--color-danger)";
-                zoomBtn.style.background = "color-mix(in srgb, var(--color-danger) 15%, transparent)";
+                zoomBtn.innerText = '🔍 CLOSE';
+                zoomBtn.style.color = 'var(--color-danger)';
+                zoomBtn.style.borderColor = 'var(--color-danger)';
+                zoomBtn.style.background = 'color-mix(in srgb, var(--color-danger) 15%, transparent)';
             } else {
-                zoomBtn.innerText = "🔍 ZOOM";
-                zoomBtn.style.color = "var(--accent-green)";
-                zoomBtn.style.borderColor = "var(--accent-green)";
-                zoomBtn.style.background = "color-mix(in srgb, var(--accent-green) 15%, transparent)";
+                zoomBtn.innerText = '🔍 ZOOM';
+                zoomBtn.style.color = 'var(--accent-green)';
+                zoomBtn.style.borderColor = 'var(--accent-green)';
+                zoomBtn.style.background = 'color-mix(in srgb, var(--accent-green) 15%, transparent)';
             }
         });
     }
@@ -111,11 +111,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportBtn = document.getElementById('sysex-export-btn');
     if (exportBtn) {
         exportBtn.addEventListener('click', () => {
-            var bytes = window._lastUnpackedBytes;
+            let bytes = window._lastUnpackedBytes;
             if (!bytes || bytes.length < 242) {
                 // Fallback: intentar obtener bytes del patch activo
-                var bank = window.loadedBanks && window.loadedBanks[window.currentActiveBank];
-                var patch = bank && bank[window.currentActivePatchIndex];
+                const bank = window.loadedBanks && window.loadedBanks[window.currentActiveBank];
+                const patch = bank && bank[window.currentActivePatchIndex];
                 if (patch && patch.unpackedBytes) {
                     bytes = patch.unpackedBytes;
                 }
@@ -126,8 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             // Construir mensaje SysEx completo: header 8B + packed payload 278B + footer 1B = 291B
-            var packed = pack8to7(bytes);
-            var syxMsg = new Uint8Array(291);
+            const packed = pack8to7(bytes);
+            const syxMsg = new Uint8Array(291);
             syxMsg[0] = 0xF0;
             syxMsg[1] = 0x00;
             syxMsg[2] = 0x20;
@@ -140,11 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
             syxMsg[290] = 0xF7;
             
             // Nombre del archivo desde el patch activo o fallback
-            var patchName = window._lastPresetName || 'UNKNOWN_PATCH';
-            var fileName = patchName.replace(/[^a-zA-Z0-9_\-]/g, '_') + '.syx';
+            const patchName = window._lastPresetName || 'UNKNOWN_PATCH';
+            const fileName = patchName.replace(/[^a-zA-Z0-9_\-]/g, '_') + '.syx';
             
-            var blob = new Blob([syxMsg], { type: 'application/octet-stream' });
-            var link = document.createElement('a');
+            const blob = new Blob([syxMsg], { type: 'application/octet-stream' });
+            const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = fileName;
             document.body.appendChild(link);
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             URL.revokeObjectURL(link.href);
             
             // Feedback visual en el botón
-            var origText = exportBtn.innerText;
+            const origText = exportBtn.innerText;
             exportBtn.innerText = '✅ EXPORTED';
             exportBtn.style.color = 'var(--accent-green)';
             exportBtn.style.borderColor = 'var(--accent-green)';
@@ -188,16 +188,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (copyBtn) {
         copyBtn.addEventListener('click', () => {
             const monitor = document.getElementById('sysex-hex-log');
-            if (!monitor) return;
+            if (!monitor) {return;}
             
-            var textToCopy;
-            var selected = monitor._selectedIndices;
-            var bytes = monitor._bytes;
+            let textToCopy;
+            const selected = monitor._selectedIndices;
+            const bytes = monitor._bytes;
             
             if (selected && selected.length > 0 && bytes) {
                 // Copiar solo bytes seleccionados: "IDX:VAL IDX:VAL ..."
                 textToCopy = selected.map(function(idx) {
-                    var hex = bytes[idx].toString(16).toUpperCase().padStart(2, '0');
+                    const hex = bytes[idx].toString(16).toUpperCase().padStart(2, '0');
                     return idx + ':' + hex;
                 }).join(' ');
             } else {
@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             navigator.clipboard.writeText(textToCopy).then(function() {
-                var label = selected && selected.length > 0 ? selected.length + ' BYTES' : 'ALL';
+                const label = selected && selected.length > 0 ? selected.length + ' BYTES' : 'ALL';
                 copyBtn.innerText = '✅ ' + label;
                 copyBtn.style.color = 'var(--accent-green)';
                 copyBtn.style.borderColor = 'var(--accent-green)';
@@ -222,42 +222,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── SELECCIÓN DE BYTES EN EL MONITOR HEX ──
-    var hexLog = document.getElementById('sysex-hex-log');
+    const hexLog = document.getElementById('sysex-hex-log');
     if (hexLog) {
         hexLog.addEventListener('click', function(e) {
-            var byteEl = e.target.closest('.hex-byte');
+            const byteEl = e.target.closest('.hex-byte');
             if (!byteEl) {
                 // Click fuera de cualquier byte → deseleccionar todo
-                if (hexLog._selectedIndices) hexLog._selectedIndices = [];
+                if (hexLog._selectedIndices) {hexLog._selectedIndices = [];}
                 hexLog.querySelectorAll('.hex-byte.selected').forEach(function(el) {
                     el.classList.remove('selected');
                 });
-                var infoEl = document.getElementById('sysex-selection-info');
-                if (infoEl) infoEl.textContent = 'Click a hex byte to select it. Shift+click to select range. Ctrl+click to toggle.';
+                const infoEl = document.getElementById('sysex-selection-info');
+                if (infoEl) {infoEl.textContent = 'Click a hex byte to select it. Shift+click to select range. Ctrl+click to toggle.';}
                 return;
             }
             
-            var idx = parseInt(byteEl.getAttribute('data-idx'), 10);
-            if (isNaN(idx)) return;
+            const idx = parseInt(byteEl.getAttribute('data-idx'), 10);
+            if (isNaN(idx)) {return;}
             
-            if (!hexLog._selectedIndices) hexLog._selectedIndices = [];
+            if (!hexLog._selectedIndices) {hexLog._selectedIndices = [];}
             
             if (e.shiftKey && hexLog._selectedIndices.length > 0) {
                 // Shift+click: seleccionar rango desde el último seleccionado
-                var lastIdx = hexLog._selectedIndices[hexLog._selectedIndices.length - 1];
-                var start = Math.min(lastIdx, idx);
-                var end = Math.max(lastIdx, idx);
+                const lastIdx = hexLog._selectedIndices[hexLog._selectedIndices.length - 1];
+                const start = Math.min(lastIdx, idx);
+                const end = Math.max(lastIdx, idx);
                 // Agregar todos los bytes en el rango
-                for (var si = start; si <= end; si++) {
+                for (let si = start; si <= end; si++) {
                     if (hexLog._selectedIndices.indexOf(si) === -1) {
                         hexLog._selectedIndices.push(si);
-                        var el = hexLog.querySelector('.hex-byte[data-idx="' + si + '"]');
-                        if (el) el.classList.add('selected');
+                        const el = hexLog.querySelector('.hex-byte[data-idx="' + si + '"]');
+                        if (el) {el.classList.add('selected');}
                     }
                 }
             } else if (e.ctrlKey || e.metaKey) {
                 // Ctrl+click: toggle individual
-                var existingIdx = hexLog._selectedIndices.indexOf(idx);
+                const existingIdx = hexLog._selectedIndices.indexOf(idx);
                 if (existingIdx >= 0) {
                     hexLog._selectedIndices.splice(existingIdx, 1);
                     byteEl.classList.remove('selected');
@@ -285,35 +285,35 @@ document.addEventListener('DOMContentLoaded', () => {
  * y nombre del parámetro según BYTE_MAP.
  */
 function _updateHexSelectionInfo(monitor) {
-    var infoEl = document.getElementById('sysex-selection-info');
-    if (!infoEl || !monitor || !monitor._selectedIndices) return;
+    const infoEl = document.getElementById('sysex-selection-info');
+    if (!infoEl || !monitor || !monitor._selectedIndices) {return;}
     
-    var selected = monitor._selectedIndices;
-    var bytes = monitor._bytes;
+    const selected = monitor._selectedIndices;
+    const bytes = monitor._bytes;
     
     if (selected.length === 0) {
         infoEl.textContent = 'Click a hex byte to select it. Shift+click to select range. Ctrl+click to toggle.';
         return;
     }
     
-    var parts = [];
-    var nm = selected.length;
+    const parts = [];
+    const nm = selected.length;
     
     // Mostrar max 3 bytes en la info, con contador si hay más
-    var showIndices = selected.slice(0, 3);
+    const showIndices = selected.slice(0, 3);
     showIndices.forEach(function(idx) {
-        var val = bytes ? bytes[idx] : 0;
-        var hex = val.toString(16).toUpperCase().padStart(2, '0');
+        const val = bytes ? bytes[idx] : 0;
+        const hex = val.toString(16).toUpperCase().padStart(2, '0');
         // Buscar nombre del parámetro en BYTE_MAP
-        var paramName = '';
-        var bm = window.BYTE_MAP && window.BYTE_MAP[idx];
+        let paramName = '';
+        const bm = window.BYTE_MAP && window.BYTE_MAP[idx];
         if (bm && bm.param) {
             paramName = ' ' + bm.param;
         }
         parts.push('b[' + idx + ']=0x' + hex + paramName);
     });
     
-    var text = parts.join(' | ');
+    let text = parts.join(' | ');
     if (nm > 3) {
         text += ' | … +' + (nm - 3) + ' more';
     }

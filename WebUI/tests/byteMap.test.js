@@ -41,7 +41,7 @@ function bp(idx, param, region, type, extra = {}) {
 
 function buildByteMap() {
   const map = [];
-  for (let i = 0; i < 242; i++) map[i] = null;
+  for (let i = 0; i < 242; i++) {map[i] = null;}
 
   map[0]  = bp(0,  'LFO 1 Rate',          'LFO1', 'value',     { desc: '0=slow…255=fast' });
   map[1]  = bp(1,  'LFO 1 Delay/Fade',    'LFO1', 'value',     { desc: '0=no delay…255=max delay' });
@@ -237,27 +237,27 @@ function buildByteMap() {
 // ══════════════════════════════════════════════════════════════════
 
 function formatParamValue(paramId, normalizedVal) {
-  if (typeof normalizedVal !== 'number' || isNaN(normalizedVal)) return '\u2014';
+  if (typeof normalizedVal !== 'number' || isNaN(normalizedVal)) {return '\u2014';}
 
-  var p2b = window.BRIDGE_PARAM_MAPS && window.BRIDGE_PARAM_MAPS.PARAM_TO_BYTE_OFFSET;
-  var eBytes = window.BRIDGE_PARAM_MAPS && window.BRIDGE_PARAM_MAPS.ENUM_BYTES;
-  if (!p2b) return Math.round(normalizedVal * 100) + '%';
+  const p2b = window.BRIDGE_PARAM_MAPS && window.BRIDGE_PARAM_MAPS.PARAM_TO_BYTE_OFFSET;
+  const eBytes = window.BRIDGE_PARAM_MAPS && window.BRIDGE_PARAM_MAPS.ENUM_BYTES;
+  if (!p2b) {return Math.round(normalizedVal * 100) + '%';}
 
-  var byteOffset = p2b[paramId];
-  if (byteOffset === undefined) return Math.round(normalizedVal * 100) + '%';
+  const byteOffset = p2b[paramId];
+  if (byteOffset === undefined) {return Math.round(normalizedVal * 100) + '%';}
 
-  var entry = window.BYTE_MAP ? window.BYTE_MAP[byteOffset] : undefined;
-  if (!entry) return Math.round(normalizedVal * 100) + '%';
+  const entry = window.BYTE_MAP ? window.BYTE_MAP[byteOffset] : undefined;
+  if (!entry) {return Math.round(normalizedVal * 100) + '%';}
 
-  var type = entry.type;
+  const type = entry.type;
 
   if (type === 'toggle') {
     return normalizedVal > 0.5 ? 'ON' : 'OFF';
   }
 
   if (type === 'enum') {
-    var maxIdx = eBytes && eBytes[byteOffset] !== undefined ? eBytes[byteOffset] : (entry.enumLabels ? entry.enumLabels.length - 1 : 0);
-    var idx = Math.round(normalizedVal * maxIdx);
+    const maxIdx = eBytes && eBytes[byteOffset] !== undefined ? eBytes[byteOffset] : (entry.enumLabels ? entry.enumLabels.length - 1 : 0);
+    const idx = Math.round(normalizedVal * maxIdx);
     if (entry.enumLabels && idx >= 0 && idx < entry.enumLabels.length) {
       return entry.enumLabels[idx];
     }
@@ -265,7 +265,7 @@ function formatParamValue(paramId, normalizedVal) {
   }
 
   if (type === 'bipolar') {
-    var signed = Math.round((normalizedVal - 0.5) * 200);
+    const signed = Math.round((normalizedVal - 0.5) * 200);
     return (signed >= 0 ? '+' : '') + signed;
   }
 

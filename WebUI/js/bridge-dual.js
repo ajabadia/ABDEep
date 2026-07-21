@@ -8,13 +8,20 @@
  * @lastUpdated 2026-07-12T01:50:00.000Z
  */
 class DualMidiBridge {
+    get isJuce() {
+        return this._isJuce || (window.juce !== undefined || window.__juce__ !== undefined || window.__JUCE__ !== undefined);
+    }
+    set isJuce(val) {
+        this._isJuce = val;
+    }
     constructor() {
-        this.isJuce = false;
+        this._isJuce = false;
         this.midiAccess = null;
         this.midiOutput = null;
         this.midiInput = null;
         this.midiChannel = 1; // Canal MIDI base (1-16)
         this.parameterCache = {};
+        this._globalParams = {};
         this.onParameterChangedCallbacks = [];
 
         // Sistema de peticiones SysEx con timeout
@@ -76,22 +83,56 @@ class DualMidiBridge {
     }
 
     async init() {
+        // NOTE: Do NOT overwrite window.juce — the bootstrap sets up the JUCE 8
+        // compatibility shim with event-based native function wrappers.
         this._ready = false;
         this._readyPromise = new Promise((resolve) => {
             this._resolveReady = resolve;
         });
 
+        // Expose bridge instance for bootstrap event callbacks
+        window._bridgeInstance = this;
+
+        // Helper: check if any JUCE native bridge is available
+        const isJuceAvailable = () => !!(window.juce || window.__juce__ || window.__JUCE__);
+
+        // Detectar si la URL o el UA sugieren entorno JUCE
+        const isJuceHost = window.location.protocol === 'juce:' || 
+                           (window.location.hostname === 'localhost' && window.location.port === '') ||
+                           window.navigator.userAgent.includes('WebView') ||
+                           window.navigator.userAgent.includes('Edge/');
+        const maxAttempts = isJuceHost ? 150 : 5; // hasta 3 segundos en JUCE, 100ms en navegador normal
+
+        // Esperar por JUCE native bridge de forma asíncrona
+        for (let i = 0; i < maxAttempts; i++) {
+            if (isJuceAvailable()) {
+                console.log('[Bridge] JUCE native found after ' + (i * 20) + 'ms');
+                break;
+            }
+            await new Promise(r => setTimeout(r, 20));
+        }
+
+        // Log final detection state for diagnostics
+        console.log('[Bridge] Detection result: __juce__=' + typeof window.__juce__
+            + ' __JUCE__=' + typeof window.__JUCE__
+            + ' juce=' + typeof window.juce
+            + ' chrome.webview=' + typeof (window.chrome && window.chrome.webview));
+
         // Detectar si estamos en el entorno embebido de JUCE (Webview2)
-        if (window.juce || window.__juce__ || window.__JUCE__) {
+        if (isJuceAvailable()) {
             this.isJuce = true;
             this._connected = true;
-            console.log("[Bridge] Entorno JUCE 8 detectado. Canal nativo activo.");
+            
+            // Console redirect is handled by webview-bootstrap.js.
+            // No duplicate override here.
+
+            console.log('[Bridge] Entorno JUCE 8 detectado. Canal nativo activo.');
             this.setupJuceListeners();
             this._ready = true;
             this._resolveReady(true);
             this._updateConnectionUI();
         } else {
-            console.log("[Bridge] Ejecución en Navegador Web detectada. Inicializando Web MIDI API...");
+            console.log('[Bridge] Ejecución en Navegador Web detectada. Inicializando Web MIDI API...');
             await this.initWebMidi();
             this._ready = true;
             this._resolveReady(true);
@@ -104,7 +145,7 @@ class DualMidiBridge {
      * @returns {Promise<boolean>} true si el bridge está listo, false si timeout.
      */
     async waitForReady(timeoutMs = 10000) {
-        if (this._ready) return true;
+        if (this._ready) {return true;}
         try {
             await Promise.race([
                 this._readyPromise,
@@ -119,9 +160,19 @@ class DualMidiBridge {
 
     // --- CONFIGURACIÓN ENTORNO JUCE ---
     setupJuceListeners() {
-        // Escuchar eventos enviados desde el core C++ de JUCE
+        // JUCE 8 uses window.__JUCE__.backend.addEventListener for C++ → JS events.
+        // The bootstrap already installs an "onParameterChanged" listener that calls
+        // window._bridgeInstance.handleParameterChangeFromBackend().
+        // We also add a fallback for the old window.onJuceEvent API (pre-JUCE-8).
+        if (window.__JUCE__ && window.__JUCE__.backend) {
+            // JUCE 8 event-based listener (primary)
+            window.__JUCE__.backend.addEventListener('onParameterChanged', (data) => {
+                this.handleParameterChangeFromBackend(data.id, data.value);
+            });
+        }
+        // Legacy fallback
         window.onJuceEvent = (name, data) => {
-            if (name === "onParameterChanged") {
+            if (name === 'onParameterChanged') {
                 this.handleParameterChangeFromBackend(data.id, data.value);
             }
         };
@@ -130,13 +181,13 @@ class DualMidiBridge {
     // --- CONFIGURACIÓN ENTORNO WEB NATIVO ---
     async initWebMidi() {
         if (!navigator.requestMIDIAccess) {
-            console.error("[WebMIDI] Este navegador no soporta Web MIDI API.");
+            console.error('[WebMIDI] Este navegador no soporta Web MIDI API.');
             return;
         }
 
         try {
             this.midiAccess = await navigator.requestMIDIAccess({ sysex: true });
-            console.log("[WebMIDI] Acceso MIDI concedido.");
+            console.log('[WebMIDI] Acceso MIDI concedido.');
             this.scanMidiDevices();
 
             // Verificar si el hardware DeepMind 12 responde
@@ -165,7 +216,7 @@ class DualMidiBridge {
             // Escuchar si se conectan/desconectan dispositivos
             this.midiAccess.onstatechange = () => this.scanMidiDevices();
         } catch (err) {
-            console.error("[WebMIDI] Error al acceder a los dispositivos MIDI:", err);
+            console.error('[WebMIDI] Error al acceder a los dispositivos MIDI:', err);
         }
     }
 
@@ -175,7 +226,7 @@ class DualMidiBridge {
     }
 
     _detectConnectionType(portName) {
-        if (!portName) return 'Unknown';
+        if (!portName) {return 'Unknown';}
         const lower = portName.toLowerCase();
         if (lower.includes('deepmind') || lower.includes('u2midi')) {
             return 'USB MIDI';
@@ -193,7 +244,7 @@ class DualMidiBridge {
     }
 
     _selectMidiPort(ports, kind = 'output') {
-        if (!ports || ports.size === 0) return null;
+        if (!ports || ports.size === 0) {return null;}
         const list = Array.from(ports.values());
         const preferredNeedles = ['deepmind', 'u2midi'];
 
@@ -218,6 +269,11 @@ class DualMidiBridge {
         const outputs = this.midiAccess.outputs;
         const inputs = this.midiAccess.inputs;
 
+        // Clean up old handlers to prevent memory leaks on rescan
+        if (this.midiInput) {
+            this.midiInput.onmidimessage = null;
+        }
+
         this.midiOutput = this._selectMidiPort(outputs, 'output');
         this.midiInput = this._selectMidiPort(inputs, 'input');
 
@@ -231,10 +287,10 @@ class DualMidiBridge {
     }
 
     // --- ENVIAR PARÁMETRO (Hacia el Sinte / Hardware) ---
-    setParameter(paramId, normalizedValue) {
-        // Nivel 1: Evitar envío si el valor no cambia significativamente
+    setParameter(paramId, normalizedValue, forceResend) {
+        // Nivel 1: Evitar envío si el valor no cambia significativamente (excepto en carga forzada)
         const cached = this.parameterCache[paramId];
-        if (cached !== undefined && Math.abs(cached - normalizedValue) < 0.001) {
+        if (!forceResend && cached !== undefined && Math.abs(cached - normalizedValue) < 0.001) {
             this.parameterCache[paramId] = normalizedValue;
             return;
         }
@@ -245,10 +301,20 @@ class DualMidiBridge {
             if (window.juce && typeof window.juce.setParameter === 'function') {
                 window.juce.setParameter(paramId, normalizedValue);
             }
+            this.handleParameterChangeFromBackend(paramId, normalizedValue);
         } else {
             this.sendWebMidiParameter(paramId, normalizedValue);
             this.handleParameterChangeFromBackend(paramId, normalizedValue);
         }
+    }
+
+    async readFactoryBankFile(letter) {
+        if (this.isJuce) {
+            if (window.juce && typeof window.juce.readFactoryBankFile === 'function') {
+                return window.juce.readFactoryBankFile(letter);
+            }
+        }
+        return null;
     }
 
     async requestMidiDump(type, timeoutMs = 3000, retries = 2) {
@@ -268,10 +334,10 @@ class DualMidiBridge {
         let dumpCommand = 0;
         const devId = parseInt(this._hardwareInfo.deviceId) || 0;
 
-        if (type === "edit") {
+        if (type === 'edit') {
             requestBytes = [0xF0, 0x00, 0x20, 0x32, 0x20, devId & 0x0F, 0x03, 0xF7];
             dumpCommand = 0x04;
-        } else if (type === "global") {
+        } else if (type === 'global') {
             requestBytes = [0xF0, 0x00, 0x20, 0x32, 0x20, devId & 0x0F, 0x05, 0xF7];
             dumpCommand = 0x06;
         } else {
@@ -317,11 +383,11 @@ class DualMidiBridge {
             let disposed = false;
 
             const done = (err, msg) => {
-                if (disposed) return;
+                if (disposed) {return;}
                 disposed = true;
-                if (timer) clearTimeout(timer);
+                if (timer) {clearTimeout(timer);}
                 this._pendingSysExRequests = this._pendingSysExRequests.filter(r => r !== entry);
-                if (err) return reject(err);
+                if (err) {return reject(err);}
                 resolve(msg);
             };
 
@@ -346,11 +412,21 @@ class DualMidiBridge {
     }
 
     _parseGlobalDump(dump) {
-        if (!dump || dump.length < 15) return;
+        if (!dump || dump.length < 15) {return;}
         
-        const payload = [];
+        let payload = [];
         for (let i = 8; i < dump.length - 1; i++) {
             payload.push(dump[i]);
+        }
+
+        // Unpack payload if unpack7to8 is available
+        if (typeof window.unpack7to8 === 'function') {
+            try {
+                const unpacked = window.unpack7to8(new Uint8Array(payload));
+                payload = Array.from(unpacked);
+            } catch (e) {
+                console.warn('[Bridge] Error unpacking global dump:', e);
+            }
         }
 
         this._hardwareInfo.globalDumpBytes = payload;
@@ -371,9 +447,23 @@ class DualMidiBridge {
             const pedalRaw = payload.length > 4 ? payload[4] : 0;
             const contrastRaw = payload.length > 5 ? Math.min(payload[5], 14) : 10;
 
+            const globals = this._globalParams || {};
+
+            // Preserve localStorage values over hardware Global Dump
+            // User settings from Settings modal should take priority
+            const lsTune = typeof localStorage !== 'undefined' ? localStorage.getItem('abd-eep-master-tune') : null;
+            const lsTranspose = typeof localStorage !== 'undefined' ? localStorage.getItem('abd-eep-transpose') : null;
+
+            globals['global_tune'] = lsTune !== null ? globals['global_tune'] : tuneVal / 255.0;
+            globals['transpose'] = lsTranspose !== null ? globals['transpose'] : transpRaw / 96.0;
+            globals['velocity_curve'] = velCurveRaw / 4.0;
+            globals['pedal_polarity'] = pedalRaw > 0 ? 1.0 : 0.0;
+            globals['lcd_contrast'] = contrastRaw / 14.0;
+            this._globalParams = globals;
+
             if (this.parameterCache) {
-                this.parameterCache['global_tune'] = tuneVal / 255.0;
-                this.parameterCache['transpose'] = transpRaw / 96.0;
+                this.parameterCache['global_tune'] = lsTune !== null ? this.parameterCache['global_tune'] : tuneVal / 255.0;
+                this.parameterCache['transpose'] = lsTranspose !== null ? this.parameterCache['transpose'] : transpRaw / 96.0;
                 this.parameterCache['velocity_curve'] = velCurveRaw / 4.0;
                 this.parameterCache['pedal_polarity'] = pedalRaw > 0 ? 1.0 : 0.0;
                 this.parameterCache['lcd_contrast'] = contrastRaw / 14.0;
@@ -382,7 +472,7 @@ class DualMidiBridge {
     }
 
     sendGlobalDump(payloadBytes) {
-        if (!this.midiOutput || !payloadBytes || payloadBytes.length < 3) return;
+        if (!this.midiOutput || !payloadBytes || payloadBytes.length < 3) {return;}
 
         const devId = parseInt(this._hardwareInfo.deviceId) || 0;
         const msg = new Uint8Array(8 + payloadBytes.length + 1);
@@ -405,13 +495,33 @@ class DualMidiBridge {
         console.log(`[Bridge] Global Dump escrito vía SysEx (${payloadBytes.length} bytes, devId=${devId})`);
     }
 
+    getGlobalParameter(paramId) {
+        if (this._globalParams && paramId in this._globalParams) {
+            return this._globalParams[paramId];
+        }
+        return this.parameterCache[paramId];
+    }
+
     setGlobalParameter(paramId, normalizedValue) {
+        if (this._globalParams) {
+            this._globalParams[paramId] = normalizedValue;
+        }
         this.parameterCache[paramId] = normalizedValue;
         this.handleParameterChangeFromBackend(paramId, normalizedValue);
 
         let raw8Bit = -1;
         let byteOffset = -1;
-        if (paramId === 'global_tune') {
+        if (paramId === 'device_id') {
+            const devId = Math.round(normalizedValue * 15);
+            if (this._hardwareInfo && this._hardwareInfo.globalDumpBytes) {
+                const cached = this._hardwareInfo.globalDumpBytes;
+                const ch = (cached[0] & 0x0F);
+                const bytes = new Uint8Array(cached);
+                bytes[0] = ((devId & 0x0F) << 4) | ch;
+                this.sendGlobalDump(Array.from(bytes));
+            }
+            return;
+        } else if (paramId === 'global_tune') {
             raw8Bit = Math.round(normalizedValue * 255);
             byteOffset = 1;
         } else if (paramId === 'transpose') {
@@ -453,14 +563,17 @@ class DualMidiBridge {
                 window.juce.pianoNoteOn(note, velocity || 100);
             }
         } else {
-            velocity = velocity === undefined ? 100 : velocity;
+            velocity = velocity === undefined ? 100 : Math.round(Math.max(1, Math.min(127, velocity * 127)));
             console.log(`[Bridge Web-MIDI] Note On: ${note} (vel=${velocity})`);
             if (this.midiOutput) {
-                var channel = (this.midiChannel ? this.midiChannel - 1 : 0) & 0x0F;
+                const channel = (this.midiChannel ? this.midiChannel - 1 : 0) & 0x0F;
                 this.midiOutput.send([0x90 | channel, note, velocity]);
                 this._signalMidiActivity();
             }
         }
+        
+        // Mostrar nota en el LCD del Programmer (modo navegador: no hay C++ timer que llame a _handleEngineActiveNotes)
+        this._showNoteOnLcd(note, velocity);
     }
 
     pianoNoteOff(note) {
@@ -471,9 +584,17 @@ class DualMidiBridge {
         } else {
             console.log(`[Bridge Web-MIDI] Note Off: ${note}`);
             if (this.midiOutput) {
-                var channel = (this.midiChannel ? this.midiChannel - 1 : 0) & 0x0F;
+                const channel = (this.midiChannel ? this.midiChannel - 1 : 0) & 0x0F;
                 this.midiOutput.send([0x80 | channel, note, 0]);
                 this._signalMidiActivity();
+            }
+        }
+    }
+
+    panic() {
+        if (this.isJuce) {
+            if (window.juce && typeof window.juce.panic === 'function') {
+                window.juce.panic();
             }
         }
     }
@@ -488,6 +609,71 @@ class DualMidiBridge {
     async getAudioWaveform() {
         if (this.isJuce && window.juce && typeof window.juce.getAudioWaveform === 'function') {
             return await window.juce.getAudioWaveform();
+        }
+        return null;
+    }
+
+    async getDiagnosticSnapshot() {
+        if (this.isJuce && window.juce && typeof window.juce.getDiagnosticSnapshot === 'function') {
+            return await window.juce.getDiagnosticSnapshot();
+        }
+        return null;
+    }
+
+    getCalibration(callback) {
+        if (this.isJuce && window.juce && typeof window.juce.getCalibration === 'function') {
+            window.juce.getCalibration().then(function(json) { callback(json); }).catch(function() { callback(null); });
+        } else {
+            callback(null);
+        }
+    }
+
+    setCalibration(jsonString, callback) {
+        if (this.isJuce && window.juce && typeof window.juce.setCalibration === 'function') {
+            window.juce.setCalibration(jsonString).then(function(ok) { callback(ok); }).catch(function() { callback(false); });
+        } else {
+            callback(false);
+        }
+    }
+
+    async startAudioABRun(configJson, snapshotJson) {
+        if (this.isJuce && window.juce && typeof window.juce.startAudioABRun === 'function') {
+            return await window.juce.startAudioABRun(configJson, snapshotJson);
+        }
+        return { ok: false, error: 'Bridge not running under JUCE/WebView2' };
+    }
+
+    async renderAudioABSoftwareReference() {
+        if (this.isJuce && window.juce && typeof window.juce.renderAudioABSoftwareReference === 'function') {
+            return await window.juce.renderAudioABSoftwareReference();
+        }
+        return { ok: false, error: 'Bridge not running under JUCE/WebView2' };
+    }
+
+    async finishAudioABRun() {
+        if (this.isJuce && window.juce && typeof window.juce.finishAudioABRun === 'function') {
+            return await window.juce.finishAudioABRun();
+        }
+        return { ok: false, error: 'Bridge not running under JUCE/WebView2' };
+    }
+
+    async abortAudioABRun() {
+        if (this.isJuce && window.juce && typeof window.juce.abortAudioABRun === 'function') {
+            return await window.juce.abortAudioABRun();
+        }
+        return { ok: false, error: 'Bridge not running under JUCE/WebView2' };
+    }
+
+    async compareAudioABRun(refWavPath, capWavPath, configJson, contextJson) {
+        if (this.isJuce && window.juce && typeof window.juce.compareAudioABRun === 'function') {
+            return await window.juce.compareAudioABRun(refWavPath, capWavPath, configJson, contextJson);
+        }
+        return { status: 'error', reason_code: 'WAV_MISSING', errors: ['Bridge not running under JUCE/WebView2'] };
+    }
+
+    async runRoundTripValidator(unpackedBytesJson) {
+        if (this.isJuce && window.juce && typeof window.juce.runRoundTripValidator === 'function') {
+            return await window.juce.runRoundTripValidator(unpackedBytesJson);
         }
         return null;
     }
@@ -530,6 +716,12 @@ class DualMidiBridge {
                 this._hardwareInfo.midiChannel = deviceId + 1;
                 this._hardwareInfo.connectionType = this._detectConnectionType(this.midiOutput.name);
 
+                // Parse firmware versions from Identity Reply
+                const mainMajor = response[12] >> 4;
+                const mainMinor = response[12] & 0x0F;
+                this._hardwareInfo.hostVersion = mainMajor + '.' + mainMinor;
+                this._hardwareInfo.voiceVersion = response[14] + '.' + response[15];
+
                 if (typeof window._updateSettingsHardwareInfo === 'function') {
                     window._hardwareInfo = this._hardwareInfo;
                     window._updateSettingsHardwareInfo();
@@ -551,15 +743,42 @@ class DualMidiBridge {
         const statusBtn = document.getElementById('settings-connection-status');
         const reconnectBtn = document.getElementById('reconnect-hw-btn');
         const connected = this._connected && (this.isJuce || (this.midiOutput && this.midiInput));
+        const hasHardware = this._hardwareInfo && this._hardwareInfo.globalDumpBytes;
+
+        let color = 'var(--color-danger)';
+        let shadow = '0 0 4px var(--color-danger)';
+        let statusText = 'Disconnected';
+        let tooltipText = 'MIDI: Disconnected';
+        let statusColor = 'var(--text-primary)';
+        let statusBorder = '1px solid var(--color-danger)';
+
+        if (connected) {
+            if (this.isJuce && !hasHardware) {
+                color = '#00d2ff'; // Cyan/Azul brillante para motor local sin hardware
+                shadow = '0 0 6px #00d2ff';
+                statusText = 'Local DSP Active';
+                tooltipText = 'Engine: Connected (Emulator Mode)';
+                statusColor = '#00d2ff';
+                statusBorder = '1px solid #00d2ff';
+            } else {
+                color = 'var(--accent-green)';
+                shadow = '0 0 6px var(--accent-green)';
+                statusText = 'Connected';
+                tooltipText = 'MIDI: Connected to Hardware';
+                statusColor = 'var(--accent-green)';
+                statusBorder = '1px solid var(--accent-green)';
+            }
+        }
 
         if (indicator) {
-            indicator.style.backgroundColor = connected ? 'var(--accent-green)' : 'var(--color-danger)';
-            indicator.style.boxShadow = connected ? '0 0 6px var(--accent-green)' : '0 0 4px var(--color-danger)';
+            indicator.style.backgroundColor = color;
+            indicator.style.boxShadow = shadow;
+            indicator.setAttribute('data-ctrl-tooltip', tooltipText);
         }
         if (statusBtn) {
-            statusBtn.textContent = connected ? 'Connected' : 'Disconnected';
-            statusBtn.style.color = connected ? 'var(--accent-green)' : 'var(--text-primary)';
-            statusBtn.style.border = connected ? '1px solid var(--accent-green)' : '1px solid var(--color-danger)';
+            statusBtn.textContent = statusText;
+            statusBtn.style.color = statusColor;
+            statusBtn.style.border = statusBorder;
         }
         if (reconnectBtn) {
             reconnectBtn.style.display = connected ? 'none' : 'inline-block';
@@ -601,7 +820,7 @@ class DualMidiBridge {
 
     _signalMidiActivity() {
         const led = document.getElementById('midi-activity-led');
-        if (!led) return;
+        if (!led) {return;}
         if (led._midiTimer) {
             clearTimeout(led._midiTimer);
         }
@@ -627,6 +846,10 @@ class DualMidiBridge {
         return window.BRIDGE_PARAM_MAPS ? window.BRIDGE_PARAM_MAPS.PARAM_TO_CC : {};
     }
 
+    get ccToParam() {
+        return window.BRIDGE_PARAM_MAPS ? window.BRIDGE_PARAM_MAPS.CC_TO_PARAM : {};
+    }
+
     _rawToNormalized(byteOffset, rawValue) {
         return window.BRIDGE_PARAM_MAPS ? window.BRIDGE_PARAM_MAPS.rawToNormalized(byteOffset, rawValue) : rawValue / 255.0;
     }
@@ -637,7 +860,7 @@ class DualMidiBridge {
 
     // --- ENVIAR NRPN ---
     sendNRPN(byteOffset, rawValue, channel = this.midiChannel) {
-        if (!this.midiOutput) return;
+        if (!this.midiOutput) {return;}
 
         // Nivel 1: Evitar envío si es el mismo byte con el mismo valor
         if (this._lastNrpnByte === byteOffset && this._lastNrpnValue === rawValue) {
@@ -699,7 +922,7 @@ class DualMidiBridge {
     }
 
     async resetMidiConnection() {
-        if (this.isJuce) return true;
+        if (this.isJuce) {return true;}
         if (!this.midiAccess) {
             console.warn('[Bridge] No MIDI Access disponible. Inicializando...');
             try {
@@ -712,10 +935,11 @@ class DualMidiBridge {
         }
 
         this._resetNrpnCache();
+        this._resetNrpnCounters();
 
-        var savedCh = localStorage.getItem('abd-eep-midi-channel');
+        const savedCh = localStorage.getItem('abd-eep-midi-channel');
         if (savedCh) {
-            var parsed = parseInt(savedCh);
+            const parsed = parseInt(savedCh);
             if (parsed >= 1 && parsed <= 16) {
                 this.midiChannel = parsed;
                 this._hardwareInfo.midiChannel = parsed;
@@ -744,6 +968,92 @@ class DualMidiBridge {
             console.warn('[Bridge] ⚠️ Reconexión MIDI: DeepMind 12 no responde');
         }
         return connected;
+    }
+
+    /**
+     * Muestra la nota presionada en el LCD del Programmer.
+     * Necesario porque _handleEngineActiveNotes solo se llama desde el timer C++ en modo JUCE.
+     * Usa "._bridgeLcdNote" / "._bridgeLcdRestore" / "._bridgeLcdTimer" en el elemento
+     * para evitar conflictos con otros mecanismos LCD (keyboard.js, keyboard_active_notes.js).
+     */
+    _showNoteOnLcd(midiNote, velocity) {
+        const lcdText = document.getElementById('lcd-text');
+        if (!lcdText) {return;}
+        
+        const velNorm = (velocity === undefined) ? 1.0 : (velocity > 1.0 ? velocity / 127.0 : velocity);
+        const velInt = Math.round(velNorm * 100);
+        const html = '<span style="font-size:10px; opacity:0.6;">KEY PLAY</span><br>'
+            + '<strong style="font-size:18px; color:var(--brand-accent); letter-spacing:1px;">'
+            + this._midiNoteToName(midiNote) + ' <span style="font-size:11px; color:var(--text-dim);">(MIDI #' + midiNote + ')</span></strong><br>'
+            + '<span style="font-size:10px; color:var(--text-dim);">Vel ' + velInt + '%</span>';
+        
+        // Usar LcdQueue para que el bucle _updateCtrlOverlay (60fps) respete este mensaje
+        // en lugar de sobrescribirlo con el nombre del patch.
+        if (typeof window.LcdQueue !== 'undefined' && window.LcdQueue && typeof window.LcdQueue.push === 'function') {
+            window.LcdQueue.push('key_play', html, 1, { duration: 8000 });
+        } else {
+            // Fallback si LcdQueue no existe
+            lcdText.innerHTML = html;
+        }
+        
+        console.log('[LCD] _showNoteOnLcd: ' + this._midiNoteToName(midiNote) + ' (#' + midiNote + ') vel=' + velInt + '%');
+    }
+    
+    /**
+     * Convierte un número de nota MIDI (0-127) a nombre legible (Ej: C#4).
+     */
+    _midiNoteToName(midiNote) {
+        const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        if (midiNote === undefined || midiNote === null) {return '\u2014';}
+        if (midiNote < 0 || midiNote > 127) {return '\u2014';}
+        return NOTE_NAMES[midiNote % 12] + (Math.floor(midiNote / 12) - 1);
+    }
+
+    /**
+     * Inicia el monitoreo periódico de la conexión MIDI para reconexión automática.
+     * En modo JUCE la conexión es siempre activa vía el bridge nativo, no se necesita.
+     * En modo Web MIDI, verifica cada 5s si la conexión se perdió y reconecta.
+     */
+    startAutoReconnect() {
+        // En modo JUCE el bridge nativo siempre está conectado
+        if (this.isJuce) {return;}
+        
+        // Evitar timers duplicados
+        if (this._autoReconnectTimer) {return;}
+        
+        this._autoReconnectAttempts = 0;
+        this._autoReconnectTimer = setInterval(async () => {
+            // Solo intentar reconexión si tenemos MIDI Access pero perdimos conexión
+            if (this.midiAccess && !this._connected) {
+                // Backoff progresivo: 5s, 10s, 20s, 40s, max 120s
+                // Solo incrementa el contador cuando realmente se va a intentar
+                const attempted = this._lastReconnectAttempt || 0;
+                const elapsed = Date.now() - attempted;
+                const nextDelay = Math.min(5000 * Math.pow(2, this._autoReconnectAttempts || 0), 120000);
+                if (elapsed < nextDelay) {return;}
+                
+                this._autoReconnectAttempts = (this._autoReconnectAttempts || 0) + 1;
+                
+                this._lastReconnectAttempt = Date.now();
+                console.log('[Bridge] Auto-reconnect: intento #' + this._autoReconnectAttempts + ' (backoff ' + Math.round(nextDelay / 1000) + 's)...');
+                try {
+                    await this.resetMidiConnection();
+                    if (this._connected) {
+                        this._autoReconnectAttempts = 0; // Resetear backoff al reconectar
+                    }
+                } catch (e) {
+                    console.warn('[Bridge] Auto-reconnect falló:', e.message);
+                }
+            }
+        }, 5000);
+        
+        // Limpiar timer al descargar la página
+        window.addEventListener('beforeunload', () => {
+            if (this._autoReconnectTimer) {
+                clearInterval(this._autoReconnectTimer);
+                this._autoReconnectTimer = null;
+            }
+        });
     }
 
     async requestBankDump(bankNumber, options = {}) {
@@ -792,9 +1102,9 @@ class DualMidiBridge {
                 this._bankDumpTimeout = bankDumpTimeout;
 
                 this._bankDumpCallback = (patchData) => {
-                    if (this._bankDumpCancel) return;
+                    if (this._bankDumpCancel) {return;}
                     collectedCount++;
-                    if (onProgress) onProgress(collectedCount, 128);
+                    if (onProgress) {onProgress(collectedCount, 128);}
                     if (collectedCount >= 128) {
                         clearTimeout(bankDumpTimeout);
                         this._bankDumpTimeout = null;
@@ -808,7 +1118,7 @@ class DualMidiBridge {
 
                 for (let i = 0; i < 128; i++) {
                     setTimeout(() => {
-                        if (this._bankDumpCancel || !this._bankDumpInProgress) return;
+                        if (this._bankDumpCancel || !this._bankDumpInProgress) {return;}
                         const req = new Uint8Array([
                             0xF0, 0x00, 0x20, 0x32, 0x20,
                             0x7F, // broadcast device ID
@@ -833,7 +1143,7 @@ class DualMidiBridge {
     }
 
     cancelBankDump() {
-        if (!this._bankDumpInProgress) return;
+        if (!this._bankDumpInProgress) {return;}
         this._bankDumpCancel = true;
         this._bankDumpInProgress = false;
         this._bankDumpCallback = null;
@@ -849,9 +1159,9 @@ class DualMidiBridge {
     }
 
     _scheduleAutoDump() {
-        if (this._autoDumpTimer) clearTimeout(this._autoDumpTimer);
+        if (this._autoDumpTimer) {clearTimeout(this._autoDumpTimer);}
         this._autoDumpTimer = setTimeout(() => {
-            if (!this.midiOutput || !this.midiInput) return;
+            if (!this.midiOutput || !this.midiInput) {return;}
             console.log('[Bridge] Auto-dump triggered by Bank/Program change → requesting edit buffer dump');
             this.requestMidiDump('edit', 4000, 1).then((response) => {
                 if (!response) {
@@ -864,15 +1174,15 @@ class DualMidiBridge {
     }
 
     sendWebMidiParameter(paramId, normalizedValue) {
-        if (!this.midiOutput) return;
+        if (!this.midiOutput) {return;}
 
         // Para acordes o polychord, reenviar dump SysEx al hardware
-        if (paramId === "chord_enable" || paramId === "poly_chord_enable" || paramId === "chord_key" || paramId === "chord_type") {
+        if (paramId === 'chord_enable' || paramId === 'poly_chord_enable' || paramId === 'chord_key' || paramId === 'chord_type') {
             setTimeout(() => {
-                if (paramId === "chord_enable" || paramId === "chord_key" || paramId === "chord_type") {
-                    const chordNotes = this.parameterCache["chord_notes"] || new Array(28).fill(0xFF);
-                    const keyVal = Math.round((this.parameterCache["chord_key"] || 0.0) * 11.0);
-                    const typeVal = Math.round((this.parameterCache["chord_type"] || 0.0) * 11.0);
+                if (paramId === 'chord_enable' || paramId === 'chord_key' || paramId === 'chord_type') {
+                    const chordNotes = this.parameterCache['chord_notes'] || new Array(28).fill(0xFF);
+                    const keyVal = Math.round((this.parameterCache['chord_key'] || 0.0) * 11.0);
+                    const typeVal = Math.round((this.parameterCache['chord_type'] || 0.0) * 11.0);
 
                     const unpacked = new Uint8Array(26);
                     unpacked[0] = keyVal;
@@ -885,7 +1195,7 @@ class DualMidiBridge {
                     });
                     while (noteIdx < 26) { unpacked[noteIdx++] = 0xFF; }
 
-                    if (typeof window.pack8to7 === "function") {
+                    if (typeof window.pack8to7 === 'function') {
                         const packed = window.pack8to7(unpacked);
                         const header = [0xF0, 0x00, 0x20, 0x32, 0x20, 0x01, 0x1C, 0x06];
                         const footer = [0xF7];
@@ -895,8 +1205,8 @@ class DualMidiBridge {
                         msg.set(footer, header.length + 32);
                         this.midiOutput.send(msg);
                     }
-                } else if (paramId === "poly_chord_enable") {
-                    const polyNotes = this.parameterCache["poly_chord_notes"] || new Array(512).fill(0xFF);
+                } else if (paramId === 'poly_chord_enable') {
+                    const polyNotes = this.parameterCache['poly_chord_notes'] || new Array(512).fill(0xFF);
                     const unpacked = new Uint8Array(512);
                     for (let i = 0; i < 512; i++) {
                         unpacked[i] = polyNotes[i] !== undefined ? polyNotes[i] : 0xFF;
@@ -956,7 +1266,7 @@ class DualMidiBridge {
             return window.dualMidiBridge._applyMidiLearnMappingInternal(key, val, nrpnInfo);
         }
         const paramId = this.midiLearnMappings ? this.midiLearnMappings[key] : null;
-        if (!paramId) return false;
+        if (!paramId) {return false;}
 
         const byteOffset = this.paramToByteOffset[paramId];
         let normalized;
@@ -968,7 +1278,6 @@ class DualMidiBridge {
         }
 
         this.setParameter(paramId, normalized);
-        this.handleParameterChangeFromBackend(paramId, normalized);
         return true;
     }
 
@@ -982,7 +1291,7 @@ class DualMidiBridge {
     handleIncomingMidi(midiMessage) {
         this._signalMidiActivity();
         const data = midiMessage.data;
-        if (!data || data.length === 0) return;
+        if (!data || data.length === 0) {return;}
 
         // 1) Despachar a solicitudes SysEx pendientes
         if (data[0] === 0xF0 && data[data.length - 1] === 0xF7) {
@@ -1001,18 +1310,35 @@ class DualMidiBridge {
         }
 
         const status = data[0] & 0xF0;
-        // 2) Comprobar si es un mensaje SysEx de volcado de programa o edit buffer (291 bytes)
-        if (data[0] === 0xF0 && data.length === 291) {
-            if (data[1] === 0x00 && data[2] === 0x20 && data[3] === 0x32 && (data[6] === 0x02 || data[6] === 0x04)) {
-                const packedPayload = data.slice(8, 286);
+        // 2) Comprobar si es un mensaje SysEx de volcado de programa o edit buffer
+        if (data[0] === 0xF0 && data[1] === 0x00 && data[2] === 0x20 && data[3] === 0x32) {
+            const cmd = data[6];
+            if (cmd === 0x02 || cmd === 0x04) {
+                const headerLen = (cmd === 0x02) ? 10 : 8;
+                const payloadLen = 278;
+                const expectedMinLen = headerLen + payloadLen + 1; // Cabecera + Payload + F7
+                
+                if (data.length < expectedMinLen) {
+                    console.warn(`[WebMIDI SysEx] Ignorando dump cmd 0x0${cmd} por longitud insuficiente: ${data.length} bytes (mínimo esperado ${expectedMinLen})`);
+                    return;
+                }
+
+                const packedPayload = data.slice(headerLen, headerLen + payloadLen);
                 if (typeof window.unpack7to8 === 'function') {
                     const unpackedBytes = window.unpack7to8(packedPayload);
-                    const bankIndex = unpackedBytes[0] & 0x07;
-                    const progIndex = unpackedBytes[1] & 0x7F;
-                    const bankLetter = String.fromCharCode(65 + bankIndex);
+                    
+                    let bankIndex = 0;
+                    let progIndex = 0;
+                    let bankLetter = 'A';
+                    
+                    if (cmd === 0x02) {
+                        bankIndex = data[7] & 0x07;  // Leer banco desde el byte 7 del encabezado
+                        progIndex = data[8] & 0x7F;  // Leer programa desde el byte 8 del encabezado
+                        bankLetter = String.fromCharCode(65 + bankIndex);
+                    }
 
                     const patchName = (typeof window.extractNameFromRawSysex === 'function'
-                        ? window.extractNameFromRawSysex(data)
+                        ? window.extractNameFromRawSysex(data, cmd === 0x02 ? 0 : -2)
                         : undefined) || `Hw Patch ${progIndex + 1}`;
 
                     if (this._bankDumpInProgress) {
@@ -1064,16 +1390,16 @@ class DualMidiBridge {
                 if (typeof window.unpack7to8 === 'function' && data.length >= 40) {
                     const packed = data.slice(8, 40);
                     const unpacked = window.unpack7to8(packed);
-                    this.parameterCache["chord_notes"] = Array.from(unpacked);
-                    this.handleParameterChangeFromBackend("chord_notes", Array.from(unpacked));
+                    this.parameterCache['chord_notes'] = Array.from(unpacked);
+                    this.handleParameterChangeFromBackend('chord_notes', Array.from(unpacked));
                 }
             } else if (command === 0x1E) {
                 console.log(`[WebMIDI SysEx] Recibido Poly Chord Memory Dump del hardware (${data.length} bytes)`);
                 if (typeof window.unpack7to8 === 'function' && data.length >= 600) {
                     const packed = data.slice(8, 600);
                     const unpacked = window.unpack7to8(packed);
-                    this.parameterCache["poly_chord_notes"] = Array.from(unpacked);
-                    this.handleParameterChangeFromBackend("poly_chord_notes", Array.from(unpacked));
+                    this.parameterCache['poly_chord_notes'] = Array.from(unpacked);
+                    this.handleParameterChangeFromBackend('poly_chord_notes', Array.from(unpacked));
                 }
             }
             return;
@@ -1171,23 +1497,16 @@ class DualMidiBridge {
 
             // CC estándar fallback
             const normalized = val / 127.0;
-            const ccMappings = {
-                15: "osc1_saw_enable",
-                16: "osc1_square_enable",
-                17: "osc1_pwm_amount",
-                19: "osc2_tone_mod",
-                20: "osc2_pitch",
-                21: "osc2_level",
-                23: "vcf_cutoff",
-                24: "vcf_resonance",
-                27: "hpf_cutoff",
-                29: "vcf_cutoff",
-                30: "vcf_resonance"
-            };
-
-            const paramId = ccMappings[cc];
+            const paramId = this.ccToParam[cc];
             if (paramId) {
-                this.handleParameterChangeFromBackend(paramId, normalized);
+                // Route global params through setGlobalParameter for proper _globalParams + SysEx
+                if (paramId === 'global_tune' || paramId === 'transpose' ||
+                    paramId === 'velocity_curve' || paramId === 'pedal_polarity' ||
+                    paramId === 'lcd_contrast') {
+                    this.setGlobalParameter(paramId, normalized);
+                } else {
+                    this.handleParameterChangeFromBackend(paramId, normalized);
+                }
             }
         }
 
@@ -1209,6 +1528,13 @@ class DualMidiBridge {
 
     onParameterChanged(callback) {
         this.onParameterChangedCallbacks.push(callback);
+    }
+
+    offParameterChanged(callback) {
+        const idx = this.onParameterChangedCallbacks.indexOf(callback);
+        if (idx !== -1) {
+            this.onParameterChangedCallbacks.splice(idx, 1);
+        }
     }
 }
 

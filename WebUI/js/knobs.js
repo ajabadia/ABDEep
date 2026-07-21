@@ -9,12 +9,12 @@ function initKnobs() {
         const paramId = knobUnit.getAttribute('data-param');
         const ring = knobUnit.querySelector('.knob-ring');
         const pointer = knobUnit.querySelector('.knob-pointer');
-        if (!ring || !pointer) return;
+        if (!ring || !pointer) {return;}
 
         let isDragging = false;
         let startY = 0;
         let baseValue = 0.0;
-        if (paramId === "global_volume") baseValue = 0.8;
+        if (paramId === 'global_volume') {baseValue = 0.8;}
 
         ring.addEventListener('pointerdown', (e) => {
             isDragging = true;
@@ -24,7 +24,7 @@ function initKnobs() {
         });
 
         ring.addEventListener('pointermove', (e) => {
-            if (!isDragging) return;
+            if (!isDragging) {return;}
             const deltaY = startY - e.clientY;
             startY = e.clientY;
 
@@ -38,7 +38,7 @@ function initKnobs() {
 
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
-                    var displayVal = typeof window.formatParamValue === 'function' ? window.formatParamValue(paramId, baseValue) : baseValue.toFixed(2);
+                    const displayVal = typeof window.formatParamValue === 'function' ? window.formatParamValue(paramId, baseValue) : baseValue.toFixed(2);
                     lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">PERFORMANCE</span><br><strong>${paramId.toUpperCase()}</strong><br><span style="font-size:15px; color:var(--color-gold);">${displayVal}</span>`;
                     if (typeof window.setLcdParamDisplayTimer === 'function') {
                         window.setLcdParamDisplayTimer(lcdText);

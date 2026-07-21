@@ -11,8 +11,8 @@ globalThis.window = globalThis.window || {};
 // ===== Extracted Source Functions =====
 
 function generateSeqSimPattern() {
-    var sawPattern = [];
-    for (var i = 0; i < 32; i++) {
+    const sawPattern = [];
+    for (let i = 0; i < 32; i++) {
         var bipolar, raw;
         if (i === 0) {
             bipolar = 96;
@@ -21,7 +21,7 @@ function generateSeqSimPattern() {
         } else if (i === 31) {
             bipolar = -96;
         } else {
-            var phase = i / 31;
+            const phase = i / 31;
             bipolar = Math.round(96 * Math.cos(phase * Math.PI * 2));
         }
         raw = Math.max(1, Math.min(255, bipolar + 128));
@@ -32,9 +32,9 @@ function generateSeqSimPattern() {
 }
 
 function populateCacheFromPattern(sawPattern, bridge) {
-    if (!bridge || !bridge.parameterCache) return;
-    for (var si = 0; si < 32; si++) {
-        var normalized = sawPattern[si] / 255.0;
+    if (!bridge || !bridge.parameterCache) {return;}
+    for (let si = 0; si < 32; si++) {
+        const normalized = sawPattern[si] / 255.0;
         bridge.parameterCache['seq_step_' + (si + 1)] = normalized;
     }
     bridge.parameterCache['seq_length'] = 15 / 31.0;
@@ -46,12 +46,12 @@ function populateCacheFromPattern(sawPattern, bridge) {
 
 function populatePanelFromPattern(sawPattern, callbacks) {
     callbacks = callbacks || {};
-    var panelSeqValues = callbacks.panelSeqValues || [];
-    var panelSeqRaw = callbacks.panelSeqRaw || [];
-    var updateStepVisual = callbacks.updateStepVisual || function() {};
-    var syncDetailPanel = callbacks.syncDetailPanel || function() {};
+    const panelSeqValues = callbacks.panelSeqValues || [];
+    const panelSeqRaw = callbacks.panelSeqRaw || [];
+    const updateStepVisual = callbacks.updateStepVisual || function() {};
+    const syncDetailPanel = callbacks.syncDetailPanel || function() {};
 
-    for (var pi = 0; pi < 32; pi++) {
+    for (let pi = 0; pi < 32; pi++) {
         panelSeqRaw[pi] = sawPattern[pi];
         panelSeqValues[pi] = sawPattern[pi] === 0 ? -128 : sawPattern[pi] - 128;
         updateStepVisual(pi);
@@ -61,16 +61,16 @@ function populatePanelFromPattern(sawPattern, callbacks) {
 }
 
 function shouldActivateSimulation(bridge) {
-    if (!bridge || !bridge._ready) return 'waiting';
-    if (bridge.isJuce) return 'juce-mode';
-    if (bridge._connected && bridge.midiOutput) return 'midi-hardware';
+    if (!bridge || !bridge._ready) {return 'waiting';}
+    if (bridge.isJuce) {return 'juce-mode';}
+    if (bridge._connected && bridge.midiOutput) {return 'midi-hardware';}
     return 'activate';
 }
 
 // ===== Tests =====
 
 describe('generateSeqSimPattern — 32-step sawtooth pattern', function() {
-    var pattern;
+    let pattern;
 
     beforeEach(function() {
         pattern = generateSeqSimPattern();
@@ -97,7 +97,7 @@ describe('generateSeqSimPattern — 32-step sawtooth pattern', function() {
     });
 
     it('all values except step 8 are in range [1, 255]', function() {
-        for (var i = 0; i < 32; i++) {
+        for (let i = 0; i < 32; i++) {
             if (i === 7) {
                 expect(pattern[i]).toBe(0);
             } else {
@@ -108,8 +108,8 @@ describe('generateSeqSimPattern — 32-step sawtooth pattern', function() {
     });
 
     it('produces a valid sawtooth-like pattern (not all same value)', function() {
-        var unique = {};
-        for (var i = 0; i < 32; i++) {
+        const unique = {};
+        for (let i = 0; i < 32; i++) {
             unique[pattern[i]] = true;
         }
         expect(Object.keys(unique).length).toBeGreaterThan(5);
@@ -130,15 +130,15 @@ describe('generateSeqSimPattern — 32-step sawtooth pattern', function() {
     });
 
     it('positive and negative regions exist', function() {
-        var maxRaw = Math.max.apply(null, pattern);
-        var minRaw = Math.min.apply(null, pattern);
+        const maxRaw = Math.max.apply(null, pattern);
+        const minRaw = Math.min.apply(null, pattern);
         expect(maxRaw).toBe(224); // +96 + 128
         expect(minRaw).toBe(0);   // skip at index 7
     });
 });
 
 describe('populateCacheFromPattern — parameter cache mapping', function() {
-    var pattern, bridge;
+    let pattern, bridge;
 
     beforeEach(function() {
         pattern = generateSeqSimPattern();
@@ -157,14 +157,14 @@ describe('populateCacheFromPattern — parameter cache mapping', function() {
     });
 
     it('populates seq_step_1 through seq_step_32', function() {
-        for (var i = 1; i <= 32; i++) {
+        for (let i = 1; i <= 32; i++) {
             expect(bridge.parameterCache['seq_step_' + i]).toBeDefined();
         }
     });
 
     it('normalized values match pattern / 255', function() {
-        for (var i = 0; i < 32; i++) {
-            var expected = pattern[i] / 255.0;
+        for (let i = 0; i < 32; i++) {
+            const expected = pattern[i] / 255.0;
             expect(bridge.parameterCache['seq_step_' + (i + 1)]).toBeCloseTo(expected, 5);
         }
     });
@@ -187,7 +187,7 @@ describe('populateCacheFromPattern — parameter cache mapping', function() {
 });
 
 describe('populateCacheFromPattern — default sequencer params', function() {
-    var bridge;
+    let bridge;
 
     beforeEach(function() {
         bridge = { parameterCache: {} };
@@ -222,7 +222,7 @@ describe('populateCacheFromPattern — default sequencer params', function() {
 });
 
 describe('populatePanelFromPattern — panel value computation', function() {
-    var pattern, panelSeqValues, panelSeqRaw, updateCalls;
+    let pattern, panelSeqValues, panelSeqRaw, updateCalls;
 
     beforeEach(function() {
         pattern = generateSeqSimPattern();
@@ -232,7 +232,7 @@ describe('populatePanelFromPattern — panel value computation', function() {
     });
 
     it('computes correct panel values (bipolar: raw - 128, skip = -128)', function() {
-        var result = populatePanelFromPattern(pattern, {
+        const result = populatePanelFromPattern(pattern, {
             panelSeqValues: panelSeqValues,
             panelSeqRaw: panelSeqRaw
         });
@@ -245,7 +245,7 @@ describe('populatePanelFromPattern — panel value computation', function() {
     });
 
     it('skip step (index 7) maps to value -128', function() {
-        var result = populatePanelFromPattern(pattern, {
+        const result = populatePanelFromPattern(pattern, {
             panelSeqValues: panelSeqValues,
             panelSeqRaw: panelSeqRaw
         });
@@ -265,7 +265,7 @@ describe('populatePanelFromPattern — panel value computation', function() {
     });
 
     it('calls syncDetailPanel after populating', function() {
-        var syncCalled = false;
+        let syncCalled = false;
         populatePanelFromPattern(pattern, {
             panelSeqValues: panelSeqValues,
             panelSeqRaw: panelSeqRaw,
@@ -323,7 +323,7 @@ describe('shouldActivateSimulation — bridge state detection', function() {
 });
 
 describe('_seqSimMode flag', function() {
-    var pattern, bridge;
+    let pattern, bridge;
 
     beforeEach(function() {
         window._seqSimMode = false;
@@ -336,7 +336,7 @@ describe('_seqSimMode flag', function() {
     it('sets window._seqSimMode to true when activated', function() {
         // The IIFE sets window._seqSimMode = true when activating
         // Simulate the check: bridge browser-only + ready
-        var decision = shouldActivateSimulation({
+        const decision = shouldActivateSimulation({
             _ready: true,
             isJuce: false,
             _connected: false,
@@ -349,7 +349,7 @@ describe('_seqSimMode flag', function() {
     });
 
     it('does not set _seqSimMode in JUCE mode', function() {
-        var decision = shouldActivateSimulation({
+        const decision = shouldActivateSimulation({
             _ready: true, isJuce: true
         });
         if (decision !== 'activate') {

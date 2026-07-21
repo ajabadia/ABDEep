@@ -9,7 +9,7 @@ globalThis.window = globalThis.window || {};
 
 // ===== Extracted Source =====
 
-var CHORD_INTERVALS = {
+const CHORD_INTERVALS = {
     0: null,            // Memory
     1: [0, 4, 7],       // Major
     2: [0, 3, 7],       // Minor
@@ -25,7 +25,7 @@ var CHORD_INTERVALS = {
 };
 
 function initChordMemory(bridge) {
-    if (!bridge) return;
+    if (!bridge) {return;}
     if (!bridge.parameterCache['chord_notes']) {
         bridge.parameterCache['chord_notes'] = [];
     }
@@ -41,43 +41,43 @@ function initChordMemory(bridge) {
 }
 
 function playChordMemory(rootNote, velocity, bridge) {
-    if (!bridge) return false;
+    if (!bridge) {return false;}
 
-    var chordEn = bridge.parameterCache['chord_enable'] || 0.0;
-    if (chordEn < 0.5) return false;
+    const chordEn = bridge.parameterCache['chord_enable'] || 0.0;
+    if (chordEn < 0.5) {return false;}
 
-    var chordType = Math.min(11, Math.max(0, Math.round((bridge.parameterCache['chord_type'] || 0.0) * 11)));
+    const chordType = Math.min(11, Math.max(0, Math.round((bridge.parameterCache['chord_type'] || 0.0) * 11)));
 
-    if (!bridge._chordActiveNotes) bridge._chordActiveNotes = [];
+    if (!bridge._chordActiveNotes) {bridge._chordActiveNotes = [];}
 
-    var notesToPlay = [];
+    const notesToPlay = [];
 
     if (chordType === 0) {
-        var captured = bridge.parameterCache['chord_notes'];
-        if (!captured || captured.length === 0) return false;
+        const captured = bridge.parameterCache['chord_notes'];
+        if (!captured || captured.length === 0) {return false;}
 
-        var baseNote = captured[0];
-        var interval = rootNote - baseNote;
+        const baseNote = captured[0];
+        const interval = rootNote - baseNote;
 
         captured.forEach(function(note) {
-            var shiftedNote = note + interval;
+            const shiftedNote = note + interval;
             if (shiftedNote >= 0 && shiftedNote <= 127) {
                 notesToPlay.push(shiftedNote);
             }
         });
     } else {
-        var intervals = CHORD_INTERVALS[chordType];
-        if (!intervals) return false;
+        const intervals = CHORD_INTERVALS[chordType];
+        if (!intervals) {return false;}
 
         intervals.forEach(function(interval) {
-            var note = rootNote + interval;
+            const note = rootNote + interval;
             if (note >= 0 && note <= 127) {
                 notesToPlay.push(note);
             }
         });
     }
 
-    if (notesToPlay.length === 0) return false;
+    if (notesToPlay.length === 0) {return false;}
 
     notesToPlay.forEach(function(note) {
         bridge._chordActiveNotes.push(note);
@@ -87,6 +87,52 @@ function playChordMemory(rootNote, velocity, bridge) {
     });
 
     return true;
+}
+
+function stopChordMemory(rootNote, bridge) {
+    if (!bridge || !bridge._chordActiveNotes) {return;}
+
+    const chordEn = bridge.parameterCache['chord_enable'] || 0.0;
+    if (chordEn < 0.5) {return;}
+
+    const chordType = Math.min(11, Math.max(0, Math.round((bridge.parameterCache['chord_type'] || 0.0) * 11)));
+
+    const notesToStop = [];
+
+    if (chordType === 0) {
+        const captured = bridge.parameterCache['chord_notes'];
+        if (!captured || captured.length === 0) {return;}
+
+        const baseNote = captured[0];
+        const interval = rootNote - baseNote;
+
+        captured.forEach(function(note) {
+            const shiftedNote = note + interval;
+            if (shiftedNote >= 0 && shiftedNote <= 127) {
+                notesToStop.push(shiftedNote);
+            }
+        });
+    } else {
+        const intervals = CHORD_INTERVALS[chordType];
+        if (!intervals) {return;}
+
+        intervals.forEach(function(interval) {
+            const note = rootNote + interval;
+            if (note >= 0 && note <= 127) {
+                notesToStop.push(note);
+            }
+        });
+    }
+
+    notesToStop.forEach(function(note) {
+        const idx = bridge._chordActiveNotes.indexOf(note);
+        if (idx >= 0) {
+            bridge._chordActiveNotes.splice(idx, 1);
+            if (typeof bridge.pianoNoteOff === 'function') {
+                bridge.pianoNoteOff(note);
+            }
+        }
+    });
 }
 
 // ===== Tests =====
@@ -150,7 +196,7 @@ describe('CHORD_INTERVALS — chord type definitions', function() {
 });
 
 describe('initChordMemory — parameter initialization', function() {
-    var bridge;
+    let bridge;
 
     beforeEach(function() {
         bridge = {
@@ -199,7 +245,7 @@ describe('initChordMemory — parameter initialization', function() {
 });
 
 describe('playChordMemory — chord playback', function() {
-    var bridge, playedNotes;
+    let bridge, playedNotes;
 
     function makeBridge(config) {
         config = config || {};
@@ -249,7 +295,7 @@ describe('playChordMemory — chord playback', function() {
 
     it('plays a Major chord (chord_type=1) at root 60: notes 60, 64, 67', function() {
         bridge = makeBridge({ chordType: 1 / 11.0 }); // normalized
-        var result = playChordMemory(60, 0.8, bridge);
+        const result = playChordMemory(60, 0.8, bridge);
         expect(result).toBe(true);
         expect(playedNotes.length).toBe(3);
         expect(playedNotes[0].note).toBe(60);
@@ -277,7 +323,7 @@ describe('playChordMemory — chord playback', function() {
         // Captured notes: C4=60, E4=64, G4=67
         bridge = makeBridge({ chordType: 0.0, chordNotes: [60, 64, 67] });
         // Play at root 67 (G4) — interval = 67 - 60 = 7
-        var result = playChordMemory(67, 1.0, bridge);
+        const result = playChordMemory(67, 1.0, bridge);
         expect(result).toBe(true);
         expect(playedNotes.length).toBe(3);
         expect(playedNotes[0].note).toBe(67); // 60 + 7
@@ -343,7 +389,7 @@ describe('playChordMemory — chord playback', function() {
 
     it('returns false when no valid notes after MIDI range check', function() {
         bridge = makeBridge({ chordType: 1 / 11.0 });
-        var result = playChordMemory(-10, 0.8, bridge);
+        const result = playChordMemory(-10, 0.8, bridge);
         expect(result).toBe(false);
         expect(playedNotes.length).toBe(0);
     });
@@ -363,7 +409,7 @@ describe('playChordMemory — chord playback', function() {
 });
 
 describe('playChordMemory — edge cases for interval-based chords', function() {
-    var bridge, playedNotes;
+    let bridge, playedNotes;
 
     beforeEach(function() {
         playedNotes = [];
@@ -428,7 +474,7 @@ describe('playChordMemory — edge cases for interval-based chords', function() 
 });
 
 describe('playChordMemory — Memory mode edge cases', function() {
-    var bridge, playedNotes;
+    let bridge, playedNotes;
 
     beforeEach(function() {
         playedNotes = [];
@@ -467,5 +513,99 @@ describe('playChordMemory — Memory mode edge cases', function() {
         playChordMemory(148, 1.0, bridge); // interval = 148 - 48 = 100
         // 48+100=148 > 127 → skip, 52+100=152 > 127 → skip, 55+100=155 > 127 → skip, 60+100=160 > 127 → skip
         expect(playedNotes.length).toBe(0);
+    });
+});
+
+// ===== _stopChordMemory tests (Bug 6 fix) =====
+
+describe('stopChordMemory — stops all chord notes', function() {
+    let bridge, stoppedNotes;
+
+    beforeEach(function() {
+        stoppedNotes = [];
+        bridge = {
+            parameterCache: {
+                chord_enable: 1.0,
+                chord_type: 0.0, // Memory mode
+                chord_notes: [48, 52, 55, 60], // C major across octaves
+                chord_key: 0.0
+            },
+            _chordActiveNotes: [48, 52, 55, 60],
+            pianoNoteOff: function(note) { stoppedNotes.push(note); }
+        };
+    });
+
+    it('stops all chord notes when root matches', function() {
+        stopChordMemory(48, bridge);
+        expect(stoppedNotes.length).toBe(4);
+        expect(stoppedNotes).toContain(48);
+        expect(stoppedNotes).toContain(52);
+        expect(stoppedNotes).toContain(55);
+        expect(stoppedNotes).toContain(60);
+        expect(bridge._chordActiveNotes.length).toBe(0);
+    });
+
+    it('stops transposed chord notes in Memory mode', function() {
+        bridge._chordActiveNotes = [60, 64, 67, 72]; // C5 major chord
+        stopChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(4);
+        expect(stoppedNotes).toContain(60);
+        expect(stoppedNotes).toContain(64);
+        expect(stoppedNotes).toContain(67);
+        expect(stoppedNotes).toContain(72);
+    });
+
+    it('does nothing when chord disabled', function() {
+        bridge.parameterCache['chord_enable'] = 0.0;
+        stopChordMemory(48, bridge);
+        expect(stoppedNotes.length).toBe(0);
+        expect(bridge._chordActiveNotes.length).toBe(4);
+    });
+
+    it('stops Major chord (type 1) notes', function() {
+        bridge.parameterCache['chord_type'] = 1 / 11.0;
+        bridge._chordActiveNotes = [60, 64, 67]; // C Major
+        stopChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(3);
+        expect(stoppedNotes).toContain(60);
+        expect(stoppedNotes).toContain(64);
+        expect(stoppedNotes).toContain(67);
+    });
+
+    it('stops Minor chord (type 2) notes', function() {
+        bridge.parameterCache['chord_type'] = 2 / 11.0;
+        bridge._chordActiveNotes = [60, 63, 67]; // C Minor
+        stopChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(3);
+        expect(stoppedNotes).toContain(60);
+        expect(stoppedNotes).toContain(63);
+        expect(stoppedNotes).toContain(67);
+    });
+
+    it('stops Power chord (type 7) notes', function() {
+        bridge.parameterCache['chord_type'] = 7 / 11.0;
+        bridge._chordActiveNotes = [60, 67]; // C Power
+        stopChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(2);
+        expect(stoppedNotes).toContain(60);
+        expect(stoppedNotes).toContain(67);
+    });
+
+    it('only removes notes that are in _chordActiveNotes', function() {
+        bridge._chordActiveNotes = [60, 67]; // Only root and 5th
+        stopChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(2);
+        expect(stoppedNotes).toContain(60);
+        expect(stoppedNotes).toContain(67);
+    });
+
+    it('does nothing when bridge is null', function() {
+        expect(function() { stopChordMemory(60, null); }).not.toThrow();
+    });
+
+    it('does nothing when _chordActiveNotes is empty', function() {
+        bridge._chordActiveNotes = [];
+        stopChordMemory(60, bridge);
+        expect(stoppedNotes.length).toBe(0);
     });
 });

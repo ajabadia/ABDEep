@@ -5,6 +5,8 @@
 #include "SynthVoice.h"
 #include "ModulationMatrix.h"
 #include "FX/FXEngine.h"
+#include "Core/DiagnosticSnapshots.h"
+#include "Core/CalibrationSpec.h"
 
 namespace ABD
 {
@@ -40,6 +42,9 @@ namespace ABD
         /** Retorna un Array<var> con las últimas kAudioCaptureSize muestras del canal izquierdo */
         juce::var getAudioWaveform() const;
 
+        void panic();
+        bool isVoiceActive(int voiceIndex) const { return voiceIndex >= 0 && voiceIndex < kNumVoices ? voices[voiceIndex].isActive() : false; }
+
         /**
          * Retorna un JSON string con las notas activas y sus velocidades.
          * Ej: "[[60,0.8],[64,0.75],[67,0.82]]"
@@ -47,8 +52,22 @@ namespace ABD
          */
         juce::String getActiveNotesJSON() const;
 
+        EngineDiagnosticSnapshot getDiagnosticSnapshot() const;
+
+        //==============================================================================
+        // Calibration — thread-safe get/set, per-block immutable snapshot
+        //==============================================================================
+        /** Load calibration from JSON. Returns true on success. */
+        bool loadCalibrationFromJson(const juce::String& json);
+        /** Get current calibration as JSON string. */
+        juce::String getCalibrationJson() const;
+        /** Get the effective calibration for the current block (immutable snapshot). */
+        const CalibrationSpec& getCalibration() const { return activeCalibration; }
+        /** Get factory defaults. */
+        static CalibrationSpec getFactoryDefaults() { return CalibrationSpec::factoryDefaults(); }
+
     private:
-        static constexpr int kNumVoices = 12; // Clonación de polifonía de DeepMind 12
+        static constexpr int kNumVoices = 12;
         SynthVoice voices[kNumVoices];
         ModulationMatrix modMatrix;
         FXEngine fxEngine;
@@ -80,6 +99,12 @@ namespace ABD
         float snapPeakLevel = 0.0f;
         mutable VoiceSnapshot voiceSnapshots[kNumVoices];
         mutable juce::CriticalSection voiceStateLock;
+        mutable EngineDiagnosticSnapshot currentDiagnosticSnapshot;
+
+        // --- Calibration: master state + per-block immutable snapshot ---
+        CalibrationSpec pendingCalibration;    // written from UI/bridge thread
+        CalibrationSpec activeCalibration;     // resolved once per block, read by voices
+        mutable juce::CriticalSection calibrationLock;
 
         void updateVoiceSnapshot();
 

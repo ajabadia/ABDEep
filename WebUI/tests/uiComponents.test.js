@@ -32,7 +32,7 @@ function createElementStub() {
       if (matches) {
         for (const m of matches) {
           const idMatch = m.match(/id="([^"]*)"/);
-          if (idMatch) _children.push({ id: idMatch[1] });
+          if (idMatch) {_children.push({ id: idMatch[1] });}
         }
       }
     },

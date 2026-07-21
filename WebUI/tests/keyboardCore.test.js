@@ -66,17 +66,17 @@ const POLY_CHORD_DEFAULTS = [
  * ================================================================ */
 
 function midiNoteToName(midiNote) {
-  if (midiNote < 0 || midiNote > 127) return '\u2014';
+  if (midiNote < 0 || midiNote > 127) {return '\u2014';}
   return NOTE_NAMES[midiNote % 12] + (Math.floor(midiNote / 12) - 1);
 }
 
 function _engineMidiNoteToName(midiNote) {
-  if (midiNote < 0 || midiNote > 127) return '\u2014';
+  if (midiNote < 0 || midiNote > 127) {return '\u2014';}
   return ENGINE_NOTE_NAMES[midiNote % 12] + (Math.floor(midiNote / 12) - 1);
 }
 
 function _initChordMemory(bridge) {
-  if (!bridge) return;
+  if (!bridge) {return;}
   if (!bridge.parameterCache['chord_notes']) {
     bridge.parameterCache['chord_notes'] = [];
   }
@@ -93,47 +93,47 @@ function _initChordMemory(bridge) {
 
 function _playChordMemory(rootNote, bridge, cache) {
   cache = cache || bridge.parameterCache || {};
-  var chordEn = cache['chord_enable'] || 0.0;
-  if (chordEn < 0.5) return false;
+  const chordEn = cache['chord_enable'] || 0.0;
+  if (chordEn < 0.5) {return false;}
 
-  var chordType = Math.min(11, Math.max(0, Math.round((cache['chord_type'] || 0.0) * 11)));
+  const chordType = Math.min(11, Math.max(0, Math.round((cache['chord_type'] || 0.0) * 11)));
 
-  if (!bridge._chordActiveNotes) bridge._chordActiveNotes = [];
+  if (!bridge._chordActiveNotes) {bridge._chordActiveNotes = [];}
 
-  var notesToPlay = [];
+  const notesToPlay = [];
 
   if (chordType === 0) {
     // MEMORY MODE
-    var captured = cache['chord_notes'];
-    if (!captured || captured.length === 0) return false;
+    const captured = cache['chord_notes'];
+    if (!captured || captured.length === 0) {return false;}
 
-    var baseNote = captured[0];
-    var interval = rootNote - baseNote;
+    const baseNote = captured[0];
+    const interval = rootNote - baseNote;
 
     captured.forEach(function(note) {
-      var shiftedNote = note + interval;
+      const shiftedNote = note + interval;
       if (shiftedNote >= 0 && shiftedNote <= 127) {
         notesToPlay.push(shiftedNote);
       }
     });
   } else {
     // GENERATED MODE
-    var intervals = CHORD_INTERVALS[chordType];
-    if (!intervals) return false;
+    const intervals = CHORD_INTERVALS[chordType];
+    if (!intervals) {return false;}
 
     intervals.forEach(function(interval) {
-      var note = rootNote + interval;
+      const note = rootNote + interval;
       if (note >= 0 && note <= 127) {
         notesToPlay.push(note);
       }
     });
   }
 
-  if (notesToPlay.length === 0) return false;
+  if (notesToPlay.length === 0) {return false;}
 
   notesToPlay.forEach(function(note) {
     bridge._chordActiveNotes.push(note);
-    if (bridge.pianoNoteOn) bridge.pianoNoteOn(note, 0.8);
+    if (bridge.pianoNoteOn) {bridge.pianoNoteOn(note, 0.8);}
   });
 
   return true;
@@ -141,57 +141,57 @@ function _playChordMemory(rootNote, bridge, cache) {
 
 function _playPolyChordMemory(rootNote, bridge, cache) {
   cache = cache || bridge.parameterCache || {};
-  var polyChordEn = cache['poly_chord_enable'] || 0.0;
-  if (polyChordEn < 0.5) return false;
+  const polyChordEn = cache['poly_chord_enable'] || 0.0;
+  if (polyChordEn < 0.5) {return false;}
 
-  var polyMap = cache['poly_chord_map'];
-  if (!polyMap || polyMap.length < 12) return false;
+  const polyMap = cache['poly_chord_map'];
+  if (!polyMap || polyMap.length < 12) {return false;}
 
-  var keyClass = rootNote % 12;
-  var assignment = polyMap[keyClass];
+  const keyClass = rootNote % 12;
+  let assignment = polyMap[keyClass];
   if (!assignment) {
     assignment = POLY_CHORD_DEFAULTS[keyClass];
   }
 
-  var chordType = assignment.chordType;
-  if (chordType === undefined) chordType = 1;
+  let chordType = assignment.chordType;
+  if (chordType === undefined) {chordType = 1;}
 
-  if (!bridge._chordActiveNotes) bridge._chordActiveNotes = [];
+  if (!bridge._chordActiveNotes) {bridge._chordActiveNotes = [];}
 
-  var notesToPlay = [];
+  const notesToPlay = [];
 
   if (chordType === 0) {
     // MEMORY MODE
-    var captured = cache['chord_notes'];
-    if (!captured || captured.length === 0) return false;
+    const captured = cache['chord_notes'];
+    if (!captured || captured.length === 0) {return false;}
 
-    var baseNote = captured[0];
-    var interval = rootNote - baseNote;
+    const baseNote = captured[0];
+    const interval = rootNote - baseNote;
 
     captured.forEach(function(note) {
-      var shiftedNote = note + interval;
+      const shiftedNote = note + interval;
       if (shiftedNote >= 0 && shiftedNote <= 127) {
         notesToPlay.push(shiftedNote);
       }
     });
   } else {
     // GENERATED MODE
-    var intervals = CHORD_INTERVALS[chordType];
-    if (!intervals) return false;
+    const intervals = CHORD_INTERVALS[chordType];
+    if (!intervals) {return false;}
 
     intervals.forEach(function(interval) {
-      var note = rootNote + interval;
+      const note = rootNote + interval;
       if (note >= 0 && note <= 127) {
         notesToPlay.push(note);
       }
     });
   }
 
-  if (notesToPlay.length === 0) return false;
+  if (notesToPlay.length === 0) {return false;}
 
   notesToPlay.forEach(function(note) {
     bridge._chordActiveNotes.push(note);
-    if (bridge.pianoNoteOn) bridge.pianoNoteOn(note, 0.8);
+    if (bridge.pianoNoteOn) {bridge.pianoNoteOn(note, 0.8);}
   });
 
   return true;
@@ -199,18 +199,18 @@ function _playPolyChordMemory(rootNote, bridge, cache) {
 
 function _captureChordMemory(bridge, pushedKeyMidis, octaveShift) {
   octaveShift = octaveShift || 0;
-  var notes = [];
+  const notes = [];
   pushedKeyMidis.forEach(function(midiNote) {
     notes.push(midiNote + octaveShift);
   });
-  if (notes.length === 0) return null;
+  if (notes.length === 0) {return null;}
   bridge.parameterCache['chord_notes'] = notes;
   return notes;
 }
 
 function updateOctaveButtonsVisuals(octaveShift, octUpBtn, octDownBtn) {
-  var currentOctVal = octaveShift / 12;
-  var activeColor = 'var(--color-env-vca)';
+  const currentOctVal = octaveShift / 12;
+  let activeColor = 'var(--color-env-vca)';
   if (Math.abs(currentOctVal) === 1) {
     activeColor = 'var(--color-env-vcf)';
   } else if (Math.abs(currentOctVal) === 2) {
@@ -219,8 +219,8 @@ function updateOctaveButtonsVisuals(octaveShift, octUpBtn, octDownBtn) {
     activeColor = 'var(--color-oct-3)';
   }
 
-  var isUpActive = currentOctVal > 0;
-  var isDownActive = currentOctVal < 0;
+  const isUpActive = currentOctVal > 0;
+  const isDownActive = currentOctVal < 0;
 
   if (octUpBtn) {
     if (isUpActive) {
@@ -248,9 +248,9 @@ function updateOctaveButtonsVisuals(octaveShift, octUpBtn, octDownBtn) {
 
 /** Calculate velocity from pointer Y position within a key (mirrors noteOn) */
 function calcVelocity(clientY, rectTop, rectHeight, curve) {
-  var relY = (clientY - rectTop) / rectHeight;
-  var rawVelocity = Math.max(0.15, Math.min(1.0, 0.15 + (1.0 - relY) * 0.85));
-  var velocity = rawVelocity;
+  const relY = (clientY - rectTop) / rectHeight;
+  const rawVelocity = Math.max(0.15, Math.min(1.0, 0.15 + (1.0 - relY) * 0.85));
+  let velocity = rawVelocity;
   if (curve === 'soft') {
     velocity = rawVelocity * rawVelocity;
   } else if (curve === 'hard') {
@@ -265,21 +265,21 @@ function calcVelocity(clientY, rectTop, rectHeight, curve) {
 
 /** Wheel position math (mirrors setupWheel updateWheel) */
 function calcWheelPos(clientY, rectTop, rectHeight, wheelHeight) {
-  var pct = 1.0 - (clientY - rectTop) / rectHeight;
+  let pct = 1.0 - (clientY - rectTop) / rectHeight;
   pct = Math.max(0, Math.min(1, pct));
-  var pos = (1.0 - pct) * (rectHeight - wheelHeight);
-  var bottom = (rectHeight - wheelHeight - pos);
+  const pos = (1.0 - pct) * (rectHeight - wheelHeight);
+  const bottom = (rectHeight - wheelHeight - pos);
   return { pct: pct, pos: pos, bottom: bottom };
 }
 
 /** Pressure key update (mirrors _updateKeyPressure logic for a single key) */
 function applyKeyPressure(key, aftertouch, modWheel, pitchBend, pbSensitivity) {
   pbSensitivity = pbSensitivity || 6;
-  var combinedPressure = Math.max(aftertouch, modWheel);
-  var hasAnyPressure = combinedPressure > 0.01;
-  var mwAttr = (modWheel > 0.01) ? modWheel.toFixed(3) : null;
-  var pbPx = Math.round(pitchBend * pbSensitivity);
-  var pbAttr = Math.abs(pitchBend) > 0.01 ? String(pbPx) : null;
+  const combinedPressure = Math.max(aftertouch, modWheel);
+  const hasAnyPressure = combinedPressure > 0.01;
+  const mwAttr = (modWheel > 0.01) ? modWheel.toFixed(3) : null;
+  const pbPx = Math.round(pitchBend * pbSensitivity);
+  const pbAttr = Math.abs(pitchBend) > 0.01 ? String(pbPx) : null;
 
   if (hasAnyPressure) {
     key._pressure = combinedPressure;
@@ -1070,7 +1070,7 @@ describe('_engineMidiNoteToName — independent edge cases', () => {
 // ────────── _initPolyChordNotes ──────────────────────────────
 
 function _initPolyChordNotes(bridge) {
-  if (!bridge) return;
+  if (!bridge) {return;}
   if (!bridge.parameterCache['poly_chord_map']) {
     bridge.parameterCache['poly_chord_map'] = POLY_CHORD_DEFAULTS.map(function(a) {
       return { rootKey: a.rootKey, chordType: a.chordType };
@@ -1144,7 +1144,7 @@ function parseEngineActiveNotes(notesJSON) {
   } catch (e) {
     return null;
   }
-  if (activeNotes.length === 0) return null;
+  if (activeNotes.length === 0) {return null;}
 
   activeNotes.sort((a, b) => a[0] - b[0]);
 
@@ -1254,7 +1254,7 @@ describe('_handleEngineActiveNotes — core logic', () => {
 
   it('handles 10 notes (full chord) correctly', () => {
     const pairs = [];
-    for (let n = 60; n < 70; n++) pairs.push([n, 0.5 + (n - 60) * 0.05]);
+    for (let n = 60; n < 70; n++) {pairs.push([n, 0.5 + (n - 60) * 0.05]);}
     const result = parseEngineActiveNotes(JSON.stringify(pairs));
     expect(result.noteCount).toBe(10);
     expect(result.noteMidis.length).toBe(10);

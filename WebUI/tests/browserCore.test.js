@@ -30,8 +30,8 @@ function unpack7to8(packedBytes) {
   for (let i = 0; i < packedBytes.length; i += 8) {
     const msbFlags = packedBytes[i];
     for (let k = 1; k < 8; k++) {
-      if (i + k >= packedBytes.length) break;
-      if (writeIdx >= 242) break;
+      if (i + k >= packedBytes.length) {break;}
+      if (writeIdx >= 242) {break;}
       let val = packedBytes[i + k];
       if (msbFlags & (1 << (k - 1))) {
         val |= 0x80;
@@ -51,7 +51,7 @@ function pack8to7(unpackedBytes) {
     const startWriteIdx = writeIdx;
     writeIdx++;
     for (let k = 1; k < 8; k++) {
-      if (readIdx >= 242) break;
+      if (readIdx >= 242) {break;}
       let val = unpackedBytes[readIdx++];
       if (val & 0x80) {
         msbFlags |= (1 << (k - 1));
@@ -67,14 +67,14 @@ function pack8to7(unpackedBytes) {
 
 function extractNameFromRawSysex(rawSysex, baseOffset) {
   baseOffset = baseOffset || 0;
-  var rawOffsets = [];
-  for (var j = 265; j <= 271; j++) rawOffsets.push(j);
-  for (var j = 273; j <= 279; j++) rawOffsets.push(j);
+  const rawOffsets = [];
+  for (var j = 265; j <= 271; j++) {rawOffsets.push(j);}
+  for (var j = 273; j <= 279; j++) {rawOffsets.push(j);}
   rawOffsets.push(281);
 
-  var nameChars = [];
-  for (var idx = 0; idx < rawOffsets.length; idx++) {
-    var c = rawSysex[baseOffset + rawOffsets[idx]];
+  const nameChars = [];
+  for (let idx = 0; idx < rawOffsets.length; idx++) {
+    const c = rawSysex[baseOffset + rawOffsets[idx]];
     if (c >= 32 && c < 127) {
       nameChars.push(String.fromCharCode(c));
     } else if (c === 0) {
@@ -94,7 +94,7 @@ function createDefaultMeta() {
 }
 
 function createEmptyBank() {
-  let list = [];
+  const list = [];
   for (let i = 0; i < 128; i++) {
     const defaultUnpacked = new Uint8Array(242);
     const nameStr = 'INIT PATCH ' + (i + 1);
@@ -139,8 +139,8 @@ function _deserializeBankFromStorage(storedArray) {
 }
 
 function buildSingleSysex(patch) {
-  var packed = pack8to7(patch.unpackedBytes);
-  var syxMsg = new Uint8Array(291);
+  const packed = pack8to7(patch.unpackedBytes);
+  const syxMsg = new Uint8Array(291);
   syxMsg[0] = 0xF0;
   syxMsg[1] = 0x00;
   syxMsg[2] = 0x20;
@@ -155,16 +155,16 @@ function buildSingleSysex(patch) {
 }
 
 function parseSyxFile(bytes) {
-  var patchSize = 291;
-  var num = Math.floor(bytes.length / patchSize);
-  if (num === 0) return { patches: [], isSinglePatch: false };
+  const patchSize = 291;
+  const num = Math.floor(bytes.length / patchSize);
+  if (num === 0) {return { patches: [], isSinglePatch: false };}
 
-  var patches = [];
-  for (var i = 0; i < Math.min(128, num); i++) {
-    var offset = i * patchSize;
-    var packedPayload = bytes.slice(offset + 8, offset + 286);
-    var unpackedBytes = unpack7to8(packedPayload);
-    var patchName = extractNameFromRawSysex(bytes, offset) || 'Patch ' + (i + 1);
+  const patches = [];
+  for (let i = 0; i < Math.min(128, num); i++) {
+    const offset = i * patchSize;
+    const packedPayload = bytes.slice(offset + 8, offset + 286);
+    const unpackedBytes = unpack7to8(packedPayload);
+    const patchName = extractNameFromRawSysex(bytes, offset) || 'Patch ' + (i + 1);
     patches.push({
       index: i,
       name: patchName,
@@ -177,16 +177,16 @@ function parseSyxFile(bytes) {
 
 /** Navigate patch in a bank with wrapping */
 function navigatePatch(bank, currentIndex, direction) {
-  if (!bank || bank.length === 0) return { index: currentIndex, patch: null };
+  if (!bank || bank.length === 0) {return { index: currentIndex, patch: null };}
   let newIdx = currentIndex + direction;
-  if (newIdx < 0) newIdx = bank.length - 1;
-  if (newIdx >= bank.length) newIdx = 0;
+  if (newIdx < 0) {newIdx = bank.length - 1;}
+  if (newIdx >= bank.length) {newIdx = 0;}
   return { index: newIdx, patch: bank[newIdx] };
 }
 
 /** Swap two patches between or within banks */
 function swapPresetsPure(srcPatch, destPatch) {
-  if (!srcPatch || !destPatch || !srcPatch.unpackedBytes || !destPatch.unpackedBytes) return false;
+  if (!srcPatch || !destPatch || !srcPatch.unpackedBytes || !destPatch.unpackedBytes) {return false;}
   const tempBytes = new Uint8Array(destPatch.unpackedBytes);
   const tempName = destPatch.name;
 
@@ -200,10 +200,10 @@ function swapPresetsPure(srcPatch, destPatch) {
 
 /** Pure filter logic: match patch name against search term + optional category filter */
 function filterPatches(patches, searchTerm, categoryFilter) {
-  var searchFilter = searchTerm ? searchTerm.toLowerCase().trim() : '';
+  const searchFilter = searchTerm ? searchTerm.toLowerCase().trim() : '';
   return patches.filter(function(p, i) {
-    if (searchFilter && !p.name.toLowerCase().includes(searchFilter)) return false;
-    if (categoryFilter && (!p.meta || p.meta.category !== categoryFilter)) return false;
+    if (searchFilter && !p.name.toLowerCase().includes(searchFilter)) {return false;}
+    if (categoryFilter && (!p.meta || p.meta.category !== categoryFilter)) {return false;}
     return true;
   });
 }
@@ -303,11 +303,11 @@ describe('extractNameFromRawSysex', () => {
     offset = offset || 0;
     const raw = new Uint8Array(offset + 282); // 265-271 + 273-279 + 281
     // Offsets: 265-271 (7), skip 272, 273-279 (7), skip 280, 281 (1)
-    var nameOffsets = [];
-    for (var j = 265; j <= 271; j++) nameOffsets.push(j);
-    for (var j = 273; j <= 279; j++) nameOffsets.push(j);
+    const nameOffsets = [];
+    for (var j = 265; j <= 271; j++) {nameOffsets.push(j);}
+    for (var j = 273; j <= 279; j++) {nameOffsets.push(j);}
     nameOffsets.push(281);
-    for (var k = 0; k < Math.min(name.length, 15); k++) {
+    for (let k = 0; k < Math.min(name.length, 15); k++) {
       raw[offset + nameOffsets[k]] = name.charCodeAt(k);
     }
     return raw;
@@ -519,7 +519,7 @@ describe('Bank localStorage persistence', () => {
       getItem: vi.fn((key) => store[key] || null),
       setItem: vi.fn((key, value) => { store[key] = value; }),
       removeItem: vi.fn((key) => { delete store[key]; }),
-      clear: vi.fn(() => { for (var k in store) delete store[k]; }),
+      clear: vi.fn(() => { for (const k in store) {delete store[k];} }),
     });
   });
 
@@ -529,7 +529,7 @@ describe('Bank localStorage persistence', () => {
 
   function _saveUserBanksToStorage(loadedBanks) {
     try {
-      var userBanks = {};
+      const userBanks = {};
       Object.keys(loadedBanks).forEach(function(bankName) {
         if (!bankName.startsWith('Factory Bank')) {
           userBanks[bankName] = _serializeBankForStorage(loadedBanks[bankName]);
@@ -544,10 +544,10 @@ describe('Bank localStorage persistence', () => {
 
   function _loadUserBanksFromStorage(loadedBanks) {
     try {
-      var raw = localStorage.getItem('abd-eep-user-banks');
-      if (!raw) return false;
-      var parsed = JSON.parse(raw);
-      var count = 0;
+      const raw = localStorage.getItem('abd-eep-user-banks');
+      if (!raw) {return false;}
+      const parsed = JSON.parse(raw);
+      let count = 0;
       Object.keys(parsed).forEach(function(bankName) {
         if (!loadedBanks[bankName]) {
           loadedBanks[bankName] = _deserializeBankFromStorage(parsed[bankName]);
@@ -561,35 +561,35 @@ describe('Bank localStorage persistence', () => {
   }
 
   it('saves user banks (excludes Factory Banks) to localStorage', () => {
-    var loadedBanks = {
+    const loadedBanks = {
       'Factory Bank A': createEmptyBank(),
       'Factory Bank B': createEmptyBank(),
       'User Bank 1': createEmptyBank(),
     };
     _saveUserBanksToStorage(loadedBanks);
-    var raw = localStorage.getItem('abd-eep-user-banks');
+    const raw = localStorage.getItem('abd-eep-user-banks');
     expect(raw).toBeTruthy();
-    var parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
     expect(Object.keys(parsed)).toEqual(['User Bank 1']);
   });
 
   it('loads saved user banks back into loadedBanks', () => {
-    var loadedBanks = {};
+    const loadedBanks = {};
     // Manually set localStorage
-    var bankData = {
+    const bankData = {
       'My Bank': _serializeBankForStorage(createEmptyBank()),
     };
     localStorage.setItem('abd-eep-user-banks', JSON.stringify(bankData));
-    var result = _loadUserBanksFromStorage(loadedBanks);
+    const result = _loadUserBanksFromStorage(loadedBanks);
     expect(result).toBe(true);
     expect(loadedBanks['My Bank']).toBeDefined();
     expect(loadedBanks['My Bank'].length).toBe(128);
   });
 
   it('does not overwrite existing banks with same name', () => {
-    var existing = [{ index: 0, name: 'EXISTING', unpackedBytes: new Uint8Array(242), meta: createDefaultMeta() }];
-    var loadedBanks = { 'My Bank': existing };
-    var bankData = {
+    const existing = [{ index: 0, name: 'EXISTING', unpackedBytes: new Uint8Array(242), meta: createDefaultMeta() }];
+    const loadedBanks = { 'My Bank': existing };
+    const bankData = {
       'My Bank': _serializeBankForStorage(createEmptyBank()),
     };
     localStorage.setItem('abd-eep-user-banks', JSON.stringify(bankData));
@@ -599,35 +599,35 @@ describe('Bank localStorage persistence', () => {
   });
 
   it('returns false when no saved banks exist', () => {
-    var loadedBanks = {};
-    var result = _loadUserBanksFromStorage(loadedBanks);
+    const loadedBanks = {};
+    const result = _loadUserBanksFromStorage(loadedBanks);
     expect(result).toBe(false);
   });
 
   it('handles corrupt JSON gracefully (returns false)', () => {
     localStorage.setItem('abd-eep-user-banks', 'not valid json{{{');
-    var loadedBanks = {};
-    var result = _loadUserBanksFromStorage(loadedBanks);
+    const loadedBanks = {};
+    const result = _loadUserBanksFromStorage(loadedBanks);
     expect(result).toBe(false);
   });
 
   it('save multiple user banks', () => {
-    var loadedBanks = {
+    const loadedBanks = {
       'User Bank 1': createEmptyBank(),
       'User Bank 2': createEmptyBank(),
       'User Bank 3': createEmptyBank(),
     };
     _saveUserBanksToStorage(loadedBanks);
-    var raw = localStorage.getItem('abd-eep-user-banks');
-    var parsed = JSON.parse(raw);
+    const raw = localStorage.getItem('abd-eep-user-banks');
+    const parsed = JSON.parse(raw);
     expect(Object.keys(parsed).length).toBe(3);
   });
 
   it('saves with empty user banks list (no user banks)', () => {
-    var loadedBanks = { 'Factory Bank A': createEmptyBank() };
-    var result = _saveUserBanksToStorage(loadedBanks);
+    const loadedBanks = { 'Factory Bank A': createEmptyBank() };
+    const result = _saveUserBanksToStorage(loadedBanks);
     expect(result).toBe(true);
-    var raw = localStorage.getItem('abd-eep-user-banks');
+    const raw = localStorage.getItem('abd-eep-user-banks');
     expect(JSON.parse(raw)).toEqual({});
   });
 });
@@ -684,7 +684,7 @@ describe('buildSingleSysex', () => {
     const bank = createEmptyBank();
     // Update both name AND unpackedBytes[224..238]
     bank[0].name = 'TEST PATCH';
-    for (var k = 0; k < 15; k++) {
+    for (let k = 0; k < 15; k++) {
       bank[0].unpackedBytes[224 + k] = k < bank[0].name.length ? bank[0].name.charCodeAt(k) : 0x20;
     }
     const syx = buildSingleSysex(bank[0]);
@@ -768,7 +768,7 @@ describe('parseSyxFile', () => {
     // Update both names AND unpackedBytes[224..238]
     ['PATCH ONE', 'PATCH TWO'].forEach(function(name, i) {
       bank[i].name = name;
-      for (var k = 0; k < 15; k++) {
+      for (let k = 0; k < 15; k++) {
         bank[i].unpackedBytes[224 + k] = k < name.length ? name.charCodeAt(k) : 0x20;
       }
     });
@@ -970,7 +970,7 @@ describe('exportSinglePatch — validation logic', () => {
   });
 
   it('returns falsy (undefined) when patch is undefined', () => {
-    var result = undefined && undefined;
+    const result = undefined && undefined;
     expect(result).toBeFalsy();
   });
 

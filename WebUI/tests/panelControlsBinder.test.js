@@ -51,7 +51,7 @@ function _createFakeEl(tag, attrs) {
     dataset: {},
     classList: {
       _classes: [],
-      add(c) { if (!this._classes.includes(c)) this._classes.push(c); },
+      add(c) { if (!this._classes.includes(c)) {this._classes.push(c);} },
       remove(c) { this._classes = this._classes.filter(x => x !== c); },
       contains(c) { return this._classes.includes(c); },
       toggle(c, force) {
@@ -65,7 +65,7 @@ function _createFakeEl(tag, attrs) {
     setAttribute(name, val) { this._attrs[name] = val; },
     hasAttribute(name) { return name in this._attrs; },
     addEventListener(event, handler) {
-      if (!this._listeners[event]) this._listeners[event] = [];
+      if (!this._listeners[event]) {this._listeners[event] = [];}
       this._listeners[event].push(handler);
     },
     removeEventListener() {},
@@ -79,7 +79,7 @@ function _createFakeEl(tag, attrs) {
     closest(sel) {
       if (sel && sel.startsWith('[') && sel.endsWith(']')) {
         const attr = sel.slice(1, -1);
-        if (this._attrs[attr] !== undefined) return this;
+        if (this._attrs[attr] !== undefined) {return this;}
         return this._parent && this._parent._attrs && this._parent._attrs[attr] !== undefined ? this._parent : null;
       }
       return null;
@@ -135,10 +135,10 @@ function _makeToggle(id, paramId) {
 /** Create a shape-led-row with data attributes */
 function _makeShapeLedRow(dataShape, dataTrig, dataVal, paramId) {
   const attrs = {};
-  if (dataShape !== undefined) attrs['data-shape'] = String(dataShape);
-  if (dataTrig !== undefined) attrs['data-trig'] = String(dataTrig);
-  if (dataVal !== undefined) attrs['data-val'] = String(dataVal);
-  if (paramId !== undefined) attrs['data-param'] = paramId;
+  if (dataShape !== undefined) {attrs['data-shape'] = String(dataShape);}
+  if (dataTrig !== undefined) {attrs['data-trig'] = String(dataTrig);}
+  if (dataVal !== undefined) {attrs['data-val'] = String(dataVal);}
+  if (paramId !== undefined) {attrs['data-param'] = paramId;}
   const row = _createFakeEl('div', attrs);
   row.classList.add('shape-led-row');
   return row;
@@ -153,11 +153,11 @@ function _makeContainer() {
   cont._shapeRows = [];
 
   cont.querySelectorAll = function(sel) {
-    if (sel === '.v-slider') return cont._vSliders;
-    if (sel === 'select[data-param]') return cont._selects;
-    if (sel === '.toggle-box[data-param]') return cont._toggles;
-    if (sel === '.shape-led-row') return cont._shapeRows;
-    if (sel === '[data-param]') return [];
+    if (sel === '.v-slider') {return cont._vSliders;}
+    if (sel === 'select[data-param]') {return cont._selects;}
+    if (sel === '.toggle-box[data-param]') {return cont._toggles;}
+    if (sel === '.shape-led-row') {return cont._shapeRows;}
+    if (sel === '[data-param]') {return [];}
     return [];
   };
 
@@ -170,14 +170,14 @@ function _makeContainer() {
 // ══════════════════════════════════════════════════════════════════
 
 function updatePanelFromState(container) {
-  if (!window.dualMidiBridge) return;
+  if (!window.dualMidiBridge) {return;}
 
   // V-sliders
   container.querySelectorAll('.v-slider').forEach(function(slider) {
     const ctrlUnit = slider.closest('[data-param]');
-    if (!ctrlUnit) return;
+    if (!ctrlUnit) {return;}
     const paramId = ctrlUnit.getAttribute('data-param');
-    if (!paramId) return;
+    if (!paramId) {return;}
     const val = window.dualMidiBridge.parameterCache[paramId];
     if (val !== undefined) {
       const handle = slider.querySelector('.handle');
@@ -208,11 +208,11 @@ function updatePanelFromState(container) {
     const val = window.dualMidiBridge.parameterCache[paramId];
     if (val !== undefined) {
       if (paramId === 'vca_mode') {
-        if (box.id === 'panel-vca-mode-transparent') box.classList.toggle('active', val < 0.5);
-        if (box.id === 'panel-vca-mode-ballsy') box.classList.toggle('active', val > 0.5);
+        if (box.id === 'panel-vca-mode-transparent') {box.classList.toggle('active', val < 0.5);}
+        if (box.id === 'panel-vca-mode-ballsy') {box.classList.toggle('active', val > 0.5);}
       } else if (paramId === 'vcf_pole_mode') {
-        if (box.id === 'panel-vcf-pole-2') box.classList.toggle('active', val < 0.5);
-        if (box.id === 'panel-vcf-pole-4') box.classList.toggle('active', val > 0.5);
+        if (box.id === 'panel-vcf-pole-2') {box.classList.toggle('active', val < 0.5);}
+        if (box.id === 'panel-vcf-pole-4') {box.classList.toggle('active', val > 0.5);}
       } else {
         box.classList.toggle('active', val > 0.5);
       }
@@ -223,21 +223,21 @@ function updatePanelFromState(container) {
   container.querySelectorAll('.shape-led-row').forEach(function(row) {
     let paramId = row.getAttribute('data-param');
     if (!paramId) {
-      if (row.classList.contains('chord-key-led-row')) paramId = 'chord_key';
-      if (row.classList.contains('chord-type-led-row')) paramId = 'chord_type';
+      if (row.classList.contains('chord-key-led-row')) {paramId = 'chord_key';}
+      if (row.classList.contains('chord-type-led-row')) {paramId = 'chord_type';}
     }
-    if (!paramId) return;
+    if (!paramId) {return;}
 
     const val = window.dualMidiBridge.parameterCache[paramId];
     if (val !== undefined) {
       let maxVal = 6.0;
-      if (row.hasAttribute('data-trig')) maxVal = 4.0;
-      else if (paramId === 'note_priority') maxVal = 2.0;
-      else if (paramId === 'trigger_mode') maxVal = 3.0;
-      else if (paramId === 'osc1_range' || paramId === 'osc2_range') maxVal = 2.0;
-      else if (paramId === 'osc1_pm_mode') maxVal = 1.0;
-      else if (paramId === 'chord_key') maxVal = 11.0;
-      else if (paramId === 'chord_type') maxVal = 11.0;
+      if (row.hasAttribute('data-trig')) {maxVal = 4.0;}
+      else if (paramId === 'note_priority') {maxVal = 2.0;}
+      else if (paramId === 'trigger_mode') {maxVal = 3.0;}
+      else if (paramId === 'osc1_range' || paramId === 'osc2_range') {maxVal = 2.0;}
+      else if (paramId === 'osc1_pm_mode') {maxVal = 1.0;}
+      else if (paramId === 'chord_key') {maxVal = 11.0;}
+      else if (paramId === 'chord_type') {maxVal = 11.0;}
 
       const activeIndex = Math.round(val * maxVal);
       const currentIdx = parseInt(row.getAttribute('data-shape') || row.getAttribute('data-trig') || row.getAttribute('data-val') || '0');

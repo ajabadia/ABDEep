@@ -38,8 +38,8 @@ window._evalLfoWaveform = function(shapeVal, pct, phase) {
 window._evalOscWaveform = function(sawEn, sqEn, osc2Lvl, osc2Pitch, pct, phase) {
     const angle = pct * Math.PI * 6 + phase;
     let yVal = 0;
-    if (sawEn) yVal += -0.5 + ((angle % (Math.PI * 2)) / (Math.PI * 2));
-    if (sqEn) yVal += (angle % (Math.PI * 2)) < Math.PI ? 0.35 : -0.35;
+    if (sawEn) {yVal += -0.5 + ((angle % (Math.PI * 2)) / (Math.PI * 2));}
+    if (sqEn) {yVal += (angle % (Math.PI * 2)) < Math.PI ? 0.35 : -0.35;}
     const osc2Phase = phase + osc2Pitch * Math.PI * 2;
     const a2 = pct * Math.PI * 6 + osc2Phase;
     yVal += osc2Lvl * 0.3 * Math.sin(a2 * 1.5);
@@ -48,7 +48,7 @@ window._evalOscWaveform = function(sawEn, sqEn, osc2Lvl, osc2Pitch, pct, phase) 
 
 window.drawPanelGraphic = function() {
     const canvas = document.getElementById('panel-graphic-canvas');
-    if (!canvas) return;
+    if (!canvas) {return;}
     const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
@@ -58,12 +58,18 @@ window.drawPanelGraphic = function() {
     const currentPanelMode = state.currentPanelMode || 'LFO';
     const panelActiveLfo = state.panelActiveLfo || 1;
     const panelActiveEnv = state.panelActiveEnv || 1;
+    const panelActiveOsc = state.panelActiveOsc || 1;
     const _animTime = state._animTime || 0;
 
-    // Obtener color activo de la marca desde CSS variables de forma segura para Canvas
+    // Obtener color activo de la marca desde CSS variables de forma segura
     const brandColor = getComputedStyle(document.documentElement).getPropertyValue('--brand-accent').trim() || '#ff9900';
 
-    // Helper para convertir hex color + alpha a rgba
+    // Obtener colores del osciloscopio en tiempo real para coherencia visual completa
+    let colors = null;
+    if (typeof window._getScopeColors === 'function') {
+        colors = window._getScopeColors();
+    }
+    
     function hexToRgba(hex, alpha) {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
@@ -71,23 +77,46 @@ window.drawPanelGraphic = function() {
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
-    // Dibujar cuadrícula de fondo retro (CRT)
-    ctx.strokeStyle = hexToRgba(brandColor, 0.04);
+    if (!colors) {
+        colors = {
+            waveform: brandColor,
+            grid: hexToRgba(brandColor, 0.03),
+            center: hexToRgba(brandColor, 0.08),
+            text: hexToRgba(brandColor, 0.4),
+            glow: brandColor,
+            trigger: hexToRgba(brandColor, 0.15)
+        };
+    }
+
+    // Dibujar cuadrícula de fondo retro (CRT) coherente con el osciloscopio (spacing 15)
+    ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
-    for (let x = 0; x < w; x += 20) {
+    for (let x = 0; x < w; x += 15) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, h);
         ctx.stroke();
     }
-    for (let y = 0; y < h; y += 20) {
+    for (let y = 0; y < h; y += 15) {
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(w, y);
         ctx.stroke();
     }
 
-    if (!window.dualMidiBridge || !window.dualMidiBridge.parameterCache) return;
+    // Dibujar línea central discontinua en LFO y OSC para emular pantalla de osciloscopio real
+    if (currentPanelMode === 'LFO' || currentPanelMode === 'OSC') {
+        ctx.strokeStyle = colors.center;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath();
+        ctx.moveTo(0, h / 2);
+        ctx.lineTo(w, h / 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    if (!window.dualMidiBridge || !window.dualMidiBridge.parameterCache) {return;}
     const cache = window.dualMidiBridge.parameterCache;
 
     if (currentPanelMode === 'ENV' || currentPanelMode === 'VCA') {
@@ -104,8 +133,8 @@ window.drawPanelGraphic = function() {
         const rCurve = typeof cache[prefix + 'release_curve'] !== 'undefined' ? (cache[prefix + 'release_curve'] * 2.0 - 1.0) : 0.0;
 
         function applyCurve(t, curve) {
-            if (Math.abs(curve) < 0.01) return t;
-            const exp = curve > 0 ? 1.0 + curve * 3.0 : 1.0 / (1.0 - curve * 3.0);
+            if (Math.abs(curve) < 0.01) {return t;}
+            const exp = curve < 0 ? 1.0 - curve * 3.0 : 1.0 / (1.0 + curve * 3.0);
             return Math.pow(t, exp);
         }
 
@@ -114,7 +143,26 @@ window.drawPanelGraphic = function() {
         const graphH = h - padding * 2;
         const startX = padding;
         const startY = h - padding;
-        const topY = padding;
+
+        let envAmp = 1.0;
+        let baseOffset = 0.0;
+        let isBallsy = false;
+
+        if (currentPanelMode === 'VCA') {
+            const vcaLvl = typeof cache['vca_level'] !== 'undefined' ? cache['vca_level'] : 0.5;
+            const vcaEnvDepth = typeof cache['vca_env_depth'] !== 'undefined' ? cache['vca_env_depth'] : 0.5;
+            const vcaModeVal = typeof cache['vca_mode'] !== 'undefined' ? cache['vca_mode'] : 0.0;
+
+            envAmp = vcaEnvDepth;
+            baseOffset = vcaLvl;
+            isBallsy = vcaModeVal > 0.5;
+        }
+
+        const getY = (val) => {
+            const norm = baseOffset + val * envAmp;
+            const clamped = Math.max(0.0, Math.min(1.0, norm));
+            return startY - clamped * graphH * 0.9;
+        };
 
         const totalTime = a + d + 0.7 + r;
         const aW = Math.max(4, (a / totalTime) * graphW);
@@ -122,13 +170,13 @@ window.drawPanelGraphic = function() {
         const sW = Math.max(8, (0.7 / totalTime) * graphW);
         const rW = Math.max(4, (r / totalTime) * graphW);
 
-        const p0 = [startX, startY];
-        const p1 = [startX + aW, topY];
-        const p2 = [p1[0] + dW, startY - s * graphH];
+        const p0 = [startX, getY(0.0)];
+        const p1 = [startX + aW, getY(1.0)];
+        const p2 = [p1[0] + dW, getY(s)];
         const p3 = [p2[0] + sW, p2[1]];
-        const p4 = [p3[0] + rW, startY];
+        const p4 = [p3[0] + rW, getY(0.0)];
 
-        ctx.fillStyle = hexToRgba(brandColor, 0.06);
+        ctx.fillStyle = hexToRgba(colors.waveform, 0.05);
         ctx.beginPath();
         ctx.moveTo(p0[0], p0[1]);
         for (let i = 0; i <= 20; i++) {
@@ -148,8 +196,17 @@ window.drawPanelGraphic = function() {
         ctx.lineTo(startX, startY);
         ctx.fill();
 
-        ctx.strokeStyle = brandColor;
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = colors.waveform;
+        if (currentPanelMode === 'VCA' && isBallsy) {
+            ctx.shadowColor = colors.glow;
+            ctx.shadowBlur = 8;
+            ctx.lineWidth = 3;
+        } else {
+            ctx.shadowColor = hexToRgba(colors.waveform, 0.4);
+            ctx.shadowBlur = 4;
+            ctx.lineWidth = 2;
+        }
+
         ctx.beginPath();
         ctx.moveTo(p0[0], p0[1]);
         for (let i = 0; i <= 20; i++) {
@@ -167,15 +224,17 @@ window.drawPanelGraphic = function() {
         }
         ctx.stroke();
 
-        ctx.fillStyle = brandColor;
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = colors.waveform;
         [p1, p2, p3].forEach(pt => {
             ctx.beginPath();
             ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2);
             ctx.fill();
         });
 
-        const envLabel = currentPanelMode === 'VCA' ? 'ENV 1 (VCA)' : ['', 'ENV 1 VCA', 'ENV 2 VCF', 'ENV 3 MOD'][envNum] || `ENV ${envNum}`;
-        ctx.fillStyle = hexToRgba(brandColor, 0.4);
+        const envLabel = currentPanelMode === 'VCA' ? `ENV 1 (VCA) - ${isBallsy ? 'Ballsy' : 'Transparent'}` : ['', 'ENV 1 VCA', 'ENV 2 VCF', 'ENV 3 MOD'][envNum] || `ENV ${envNum}`;
+        ctx.fillStyle = colors.text;
         ctx.font = '7px Share Tech Mono, monospace';
         ctx.fillText(envLabel, padding + 2, padding + 8);
 
@@ -184,7 +243,9 @@ window.drawPanelGraphic = function() {
         const shapeVal = typeof cache[prefix + 'shape'] !== 'undefined' ? Math.round(cache[prefix + 'shape'] * 6) : 1;
         const lfoRate = typeof cache[prefix + 'rate'] !== 'undefined' ? cache[prefix + 'rate'] : 0.5;
 
-        ctx.strokeStyle = brandColor;
+        ctx.strokeStyle = colors.waveform;
+        ctx.shadowColor = hexToRgba(colors.waveform, 0.4);
+        ctx.shadowBlur = 4;
         ctx.lineWidth = 2;
         ctx.beginPath();
 
@@ -201,12 +262,14 @@ window.drawPanelGraphic = function() {
             const yVal = window._evalLfoWaveform(shapeVal, pct, phaseOffset);
             const canvasX = padding + x;
             const canvasY = centerY - yVal * (graphH / 2);
-            if (x === 0) ctx.moveTo(canvasX, canvasY);
-            else ctx.lineTo(canvasX, canvasY);
+            if (x === 0) {ctx.moveTo(canvasX, canvasY);}
+            else {ctx.lineTo(canvasX, canvasY);}
         }
         ctx.stroke();
         
-        ctx.strokeStyle = hexToRgba(brandColor, 0.08);
+        // Ghost wave (CRT phosphor trails)
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = hexToRgba(colors.waveform, 0.08);
         ctx.lineWidth = 1;
         ctx.beginPath();
         const ghostPhase = phaseOffset - freq * Math.PI * 0.2;
@@ -215,8 +278,8 @@ window.drawPanelGraphic = function() {
             const yVal = window._evalLfoWaveform(shapeVal, pct, ghostPhase);
             const canvasX = padding + x;
             const canvasY = centerY - yVal * (graphH / 2);
-            if (x === 0) ctx.moveTo(canvasX, canvasY);
-            else ctx.lineTo(canvasX, canvasY);
+            if (x === 0) {ctx.moveTo(canvasX, canvasY);}
+            else {ctx.lineTo(canvasX, canvasY);}
         }
         ctx.stroke();
 
@@ -240,7 +303,9 @@ window.drawPanelGraphic = function() {
             cutoff = Math.max(0.01, Math.min(0.99, cutoff));
         }
 
-        ctx.strokeStyle = brandColor;
+        ctx.strokeStyle = colors.waveform;
+        ctx.shadowColor = hexToRgba(colors.waveform, 0.4);
+        ctx.shadowBlur = 4;
         ctx.lineWidth = 2;
         ctx.beginPath();
 
@@ -277,14 +342,15 @@ window.drawPanelGraphic = function() {
             const canvasX = padding + x;
             const canvasY = startY - gain * (graphH * 0.7);
 
-            if (x === 0) ctx.moveTo(canvasX, canvasY);
-            else ctx.lineTo(canvasX, canvasY);
+            if (x === 0) {ctx.moveTo(canvasX, canvasY);}
+            else {ctx.lineTo(canvasX, canvasY);}
         }
         ctx.stroke();
         
         if (currentPanelMode === 'VCF') {
             const baseCutoff = typeof cache['vcf_cutoff'] !== 'undefined' ? cache['vcf_cutoff'] : 0.5;
-            ctx.strokeStyle = hexToRgba(brandColor, 0.08);
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = hexToRgba(colors.waveform, 0.08);
             ctx.lineWidth = 1;
             ctx.beginPath();
             for (let x = 0; x < graphW; x++) {
@@ -292,26 +358,23 @@ window.drawPanelGraphic = function() {
                 let gain = 1.0;
                 if (freq < baseCutoff) {
                     const dist = baseCutoff - freq;
-                    if (dist < 0.1) gain = 1.0 + resonance * 1.8 * (1.0 - dist / 0.1);
+                    if (dist < 0.1) {gain = 1.0 + resonance * 1.8 * (1.0 - dist / 0.1);}
                 } else {
                     const dist = freq - baseCutoff;
                     gain = 1.0 / (1.0 + (dist * 12.0) * (dist * 12.0));
                 }
                 const canvasX = padding + x;
                 const canvasY = startY - gain * (graphH * 0.7);
-                if (x === 0) ctx.moveTo(canvasX, canvasY);
-                else ctx.lineTo(canvasX, canvasY);
+                if (x === 0) {ctx.moveTo(canvasX, canvasY);}
+                else {ctx.lineTo(canvasX, canvasY);}
             }
             ctx.stroke();
         }
 
     } else if (currentPanelMode === 'OSC') {
-        const sawEn = typeof cache['osc1_saw_enable'] !== 'undefined' ? cache['osc1_saw_enable'] > 0.5 : true;
-        const sqEn = typeof cache['osc1_square_enable'] !== 'undefined' ? cache['osc1_square_enable'] > 0.5 : false;
-        const osc2Lvl = typeof cache['osc2_level'] !== 'undefined' ? cache['osc2_level'] : 0.5;
-        const osc2Pitch = typeof cache['osc2_pitch'] !== 'undefined' ? cache['osc2_pitch'] : 0.5;
-
-        ctx.strokeStyle = brandColor;
+        ctx.strokeStyle = colors.waveform;
+        ctx.shadowColor = hexToRgba(colors.waveform, 0.4);
+        ctx.shadowBlur = 4;
         ctx.lineWidth = 2;
         ctx.beginPath();
 
@@ -322,32 +385,67 @@ window.drawPanelGraphic = function() {
         
         const oscPhase = (_animTime / 1000) * Math.PI * 2 * 2.2;
 
-        for (let x = 0; x < graphW; x++) {
-            const pct = x / graphW;
-            const yVal = window._evalOscWaveform(sawEn, sqEn, osc2Lvl, osc2Pitch, pct, oscPhase);
-            const canvasX = padding + x;
-            const canvasY = centerY - yVal * (graphH / 2);
-            if (x === 0) ctx.moveTo(canvasX, canvasY);
-            else ctx.lineTo(canvasX, canvasY);
+        function drawOscWave(isOsc2) {
+            ctx.beginPath();
+            for (let x = 0; x < graphW; x++) {
+                const pct = x / graphW;
+                let yVal = 0;
+                if (!isOsc2) {
+                    const sawEn = typeof cache['osc1_saw_enable'] !== 'undefined' ? cache['osc1_saw_enable'] > 0.5 : true;
+                    const sqEn = typeof cache['osc1_square_enable'] !== 'undefined' ? cache['osc1_square_enable'] > 0.5 : false;
+                    const angle = pct * Math.PI * 6 + oscPhase;
+                    if (sawEn) {yVal += -0.5 + ((angle % (Math.PI * 2)) / (Math.PI * 2));}
+                    if (sqEn) {yVal += (angle % (Math.PI * 2)) < Math.PI ? 0.35 : -0.35;}
+                } else {
+                    const toneMod = typeof cache['osc2_tone_mod'] !== 'undefined' ? cache['osc2_tone_mod'] : 0.5;
+                    const angle = pct * Math.PI * 6 + oscPhase;
+                    const modAngle = angle % (Math.PI * 2);
+                    const duty = 0.2 + toneMod * 0.6;
+                    yVal = modAngle < Math.PI * duty ? 0.7 : -0.7;
+                }
+                const canvasX = padding + x;
+                const canvasY = centerY - yVal * (graphH / 2);
+                if (x === 0) {ctx.moveTo(canvasX, canvasY);}
+                else {ctx.lineTo(canvasX, canvasY);}
+            }
+            ctx.stroke();
         }
-        ctx.stroke();
-        
-        ctx.strokeStyle = hexToRgba(brandColor, 0.06);
+
+        drawOscWave(panelActiveOsc === 2);
+
+        // Ghost wave
+        ctx.shadowBlur = 0;
+        const ghostOscPhase = oscPhase - Math.PI * 0.5;
+        ctx.strokeStyle = hexToRgba(colors.waveform, 0.06);
         ctx.lineWidth = 1;
         ctx.beginPath();
-        const ghostOscPhase = oscPhase - Math.PI * 0.5;
         for (let x = 0; x < graphW; x++) {
             const pct = x / graphW;
-            const yVal = window._evalOscWaveform(sawEn, sqEn, osc2Lvl, osc2Pitch, pct, ghostOscPhase);
+            let yVal = 0;
+            if (panelActiveOsc !== 2) {
+                const sawEn = typeof cache['osc1_saw_enable'] !== 'undefined' ? cache['osc1_saw_enable'] > 0.5 : true;
+                const sqEn = typeof cache['osc1_square_enable'] !== 'undefined' ? cache['osc1_square_enable'] > 0.5 : false;
+                const angle = pct * Math.PI * 6 + ghostOscPhase;
+                if (sawEn) {yVal += -0.5 + ((angle % (Math.PI * 2)) / (Math.PI * 2));}
+                if (sqEn) {yVal += (angle % (Math.PI * 2)) < Math.PI ? 0.35 : -0.35;}
+            } else {
+                const toneMod = typeof cache['osc2_tone_mod'] !== 'undefined' ? cache['osc2_tone_mod'] : 0.5;
+                const angle = pct * Math.PI * 6 + ghostOscPhase;
+                const modAngle = angle % (Math.PI * 2);
+                const duty = 0.2 + toneMod * 0.6;
+                yVal = modAngle < Math.PI * duty ? 0.7 : -0.7;
+            }
             const canvasX = padding + x;
             const canvasY = centerY - yVal * (graphH / 2);
-            if (x === 0) ctx.moveTo(canvasX, canvasY);
-            else ctx.lineTo(canvasX, canvasY);
+            if (x === 0) {ctx.moveTo(canvasX, canvasY);}
+            else {ctx.lineTo(canvasX, canvasY);}
         }
         ctx.stroke();
 
     } else if (currentPanelMode === 'ARP') {
-        ctx.strokeStyle = brandColor;
+        ctx.strokeStyle = colors.waveform;
+        ctx.shadowColor = hexToRgba(colors.waveform, 0.4);
+        ctx.shadowBlur = 4;
         ctx.lineWidth = 2;
         const padding = 10;
         const graphW = w - padding * 2;
@@ -366,16 +464,18 @@ window.drawPanelGraphic = function() {
         for (let i = 0; i <= steps; i++) {
             const x = padding + i * stepW;
             const y = centerY + (i % 4 - 2) * (graphH / 4);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+            if (i === 0) {ctx.moveTo(x, y);}
+            else {ctx.lineTo(x, y);}
         }
         ctx.stroke();
         
+        ctx.shadowBlur = 0;
+
         if (stepIndex >= 0 && stepIndex < steps) {
             const dotX = padding + (stepIndex + 0.5) * stepW;
             const dotY = centerY + (stepIndex % 4 - 2) * (graphH / 4);
-            ctx.fillStyle = brandColor;
-            ctx.shadowColor = brandColor;
+            ctx.fillStyle = colors.waveform;
+            ctx.shadowColor = colors.glow;
             ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.arc(dotX, dotY, 4, 0, Math.PI * 2);

@@ -6,8 +6,8 @@
  */
 
 // ===== localStorage stub =====
-var persistStore = {};
-var mockLS = {
+let persistStore = {};
+const mockLS = {
     getItem: function(k) { return persistStore[k] !== undefined ? persistStore[k] : null; },
     setItem: function(k, v) { persistStore[k] = String(v); },
     removeItem: function(k) { delete persistStore[k]; },
@@ -28,11 +28,11 @@ function createDefaultMeta() {
 }
 
 function createEmptyBank() {
-    var list = [];
-    for (var i = 0; i < 128; i++) {
-        var defaultUnpacked = new Uint8Array(242);
-        var nameStr = 'INIT PATCH ' + (i + 1);
-        for (var k = 0; k < 15; k++) {
+    const list = [];
+    for (let i = 0; i < 128; i++) {
+        const defaultUnpacked = new Uint8Array(242);
+        const nameStr = 'INIT PATCH ' + (i + 1);
+        for (let k = 0; k < 15; k++) {
             defaultUnpacked[224 + k] = k < nameStr.length ? nameStr.charCodeAt(k) : 0x20;
         }
         defaultUnpacked[39] = 255;
@@ -76,7 +76,7 @@ function saveUserBanksToStorage(loadedBanks, getItem, setItem) {
     getItem = getItem || function() { return null; };
     setItem = setItem || function() {};
     try {
-        var userBanks = {};
+        const userBanks = {};
         Object.keys(loadedBanks).forEach(function(bankName) {
             if (bankName.indexOf('Factory Bank') !== 0) {
                 userBanks[bankName] = serializeBankForStorage(loadedBanks[bankName]);
@@ -95,10 +95,10 @@ function saveUserBanksToStorage(loadedBanks, getItem, setItem) {
 function loadUserBanksFromStorage(loadedBanks, getItem) {
     getItem = getItem || function() { return null; };
     try {
-        var raw = getItem('abd-eep-user-banks');
-        if (!raw) return false;
-        var parsed = JSON.parse(raw);
-        var count = 0;
+        const raw = getItem('abd-eep-user-banks');
+        if (!raw) {return false;}
+        const parsed = JSON.parse(raw);
+        let count = 0;
         Object.keys(parsed).forEach(function(bankName) {
             if (!loadedBanks[bankName]) {
                 loadedBanks[bankName] = deserializeBankFromStorage(parsed[bankName]);
@@ -115,7 +115,7 @@ function loadUserBanksFromStorage(loadedBanks, getItem) {
 
 describe('createDefaultMeta', function() {
     it('returns object with category, tags, favorite, dateCreated', function() {
-        var meta = createDefaultMeta();
+        const meta = createDefaultMeta();
         expect(meta.category).toBe('');
         expect(meta.tags).toBe('');
         expect(meta.favorite).toBe(false);
@@ -125,7 +125,7 @@ describe('createDefaultMeta', function() {
 });
 
 describe('createEmptyBank', function() {
-    var bank;
+    let bank;
 
     beforeEach(function() {
         bank = createEmptyBank();
@@ -136,7 +136,7 @@ describe('createEmptyBank', function() {
     });
 
     it('each patch has index from 0 to 127', function() {
-        for (var i = 0; i < 128; i++) {
+        for (let i = 0; i < 128; i++) {
             expect(bank[i].index).toBe(i);
         }
     });
@@ -152,7 +152,7 @@ describe('createEmptyBank', function() {
     });
 
     it('name is written into bytes 224-238', function() {
-        var bytes = bank[0].unpackedBytes;
+        const bytes = bank[0].unpackedBytes;
         expect(bytes[224]).toBe('I'.charCodeAt(0));
         expect(bytes[225]).toBe('N'.charCodeAt(0));
         expect(bytes[226]).toBe('I'.charCodeAt(0));
@@ -162,7 +162,7 @@ describe('createEmptyBank', function() {
     });
 
     it('default byte values: VCF cutoff=255, VCA level=0, env depth=128, vel sens=255, pan=64', function() {
-        for (var i = 0; i < 128; i++) {
+        for (let i = 0; i < 128; i++) {
             expect(bank[i].unpackedBytes[39]).toBe(255);  // vcf_cutoff
             expect(bank[i].unpackedBytes[80]).toBe(0);    // vca_level
             expect(bank[i].unpackedBytes[81]).toBe(128);  // vca_env_depth
@@ -172,7 +172,7 @@ describe('createEmptyBank', function() {
     });
 
     it('each patch has meta from createDefaultMeta', function() {
-        for (var i = 0; i < 128; i++) {
+        for (let i = 0; i < 128; i++) {
             expect(bank[i].meta.category).toBe('');
             expect(bank[i].meta.favorite).toBe(false);
         }
@@ -180,7 +180,7 @@ describe('createEmptyBank', function() {
 });
 
 describe('serializeBankForStorage', function() {
-    var bank, serialized;
+    let bank, serialized;
 
     beforeEach(function() {
         bank = createEmptyBank();
@@ -214,7 +214,7 @@ describe('serializeBankForStorage', function() {
 });
 
 describe('deserializeBankFromStorage', function() {
-    var bank, serialized, deserialized;
+    let bank, serialized, deserialized;
 
     beforeEach(function() {
         bank = createEmptyBank();
@@ -250,14 +250,14 @@ describe('deserializeBankFromStorage', function() {
 
 describe('serialize/deserialize round-trip integrity', function() {
     it('round-trips a full bank without data loss', function() {
-        var bank = createEmptyBank();
+        const bank = createEmptyBank();
         // Modify some bytes to make it non-default
         bank[3].unpackedBytes[0] = 100;
         bank[3].unpackedBytes[200] = 50;
         bank[3].name = 'CUSTOM PATCH';
 
-        var serialized = serializeBankForStorage(bank);
-        var deserialized = deserializeBankFromStorage(serialized);
+        const serialized = serializeBankForStorage(bank);
+        const deserialized = deserializeBankFromStorage(serialized);
 
         expect(deserialized.length).toBe(128);
         expect(deserialized[3].name).toBe('CUSTOM PATCH');
@@ -266,17 +266,17 @@ describe('serialize/deserialize round-trip integrity', function() {
     });
 
     it('round-trips preserves all 242 bytes for all 128 patches', function() {
-        var bank = createEmptyBank();
+        const bank = createEmptyBank();
         // Set unique values for each patch
-        for (var i = 0; i < 128; i++) {
-            for (var j = 0; j < 242; j++) {
+        for (let i = 0; i < 128; i++) {
+            for (let j = 0; j < 242; j++) {
                 bank[i].unpackedBytes[j] = (i + j) % 256;
             }
         }
-        var serialized = serializeBankForStorage(bank);
-        var deserialized = deserializeBankFromStorage(serialized);
-        for (var p = 0; p < 128; p++) {
-            for (var b = 0; b < 242; b++) {
+        const serialized = serializeBankForStorage(bank);
+        const deserialized = deserializeBankFromStorage(serialized);
+        for (let p = 0; p < 128; p++) {
+            for (let b = 0; b < 242; b++) {
                 expect(deserialized[p].unpackedBytes[b]).toBe((p + b) % 256);
             }
         }
@@ -284,7 +284,7 @@ describe('serialize/deserialize round-trip integrity', function() {
 });
 
 describe('saveUserBanksToStorage — filtering and persistence', function() {
-    var loadedBanks;
+    let loadedBanks;
 
     beforeEach(function() {
         persistStore = {};
@@ -300,14 +300,14 @@ describe('saveUserBanksToStorage — filtering and persistence', function() {
         saveUserBanksToStorage(loadedBanks, null, function(key, val) {
             persistStore[key] = val;
         });
-        var raw = persistStore['abd-eep-user-banks'];
+        const raw = persistStore['abd-eep-user-banks'];
         expect(raw).toBeDefined();
-        var parsed = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
         expect(Object.keys(parsed)).toEqual(['User Bank 1', 'My Custom Bank']);
     });
 
     it('returns true on successful save', function() {
-        var result = saveUserBanksToStorage(loadedBanks, null, function(k, v) {
+        const result = saveUserBanksToStorage(loadedBanks, null, function(k, v) {
             persistStore[k] = v;
         });
         expect(result).toBe(true);
@@ -317,13 +317,13 @@ describe('saveUserBanksToStorage — filtering and persistence', function() {
         saveUserBanksToStorage(loadedBanks, null, function(key, val) {
             persistStore[key] = val;
         });
-        var parsed = JSON.parse(persistStore['abd-eep-user-banks']);
+        const parsed = JSON.parse(persistStore['abd-eep-user-banks']);
         expect(parsed['User Bank 1'].length).toBe(128);
         expect(parsed['User Bank 1'][0].unpackedBytes.length).toBe(242);
     });
 
     it('returns false when setItem throws', function() {
-        var result = saveUserBanksToStorage(loadedBanks, null, function() {
+        const result = saveUserBanksToStorage(loadedBanks, null, function() {
             throw { name: 'QuotaExceededError' };
         });
         expect(result).toBe(false);
@@ -331,7 +331,7 @@ describe('saveUserBanksToStorage — filtering and persistence', function() {
 });
 
 describe('loadUserBanksFromStorage — restoration', function() {
-    var loadedBanks;
+    let loadedBanks;
 
     beforeEach(function() {
         persistStore = {};
@@ -339,12 +339,12 @@ describe('loadUserBanksFromStorage — restoration', function() {
             'Factory Bank A': createEmptyBank()
         };
         // Save some user banks first
-        var allBanks = {
+        const allBanks = {
             'Factory Bank A': createEmptyBank(),
             'User Bank 1': createEmptyBank(),
             'Custom': createEmptyBank()
         };
-        var userBanks = {};
+        const userBanks = {};
         Object.keys(allBanks).forEach(function(name) {
             if (name.indexOf('Factory Bank') !== 0) {
                 userBanks[name] = serializeBankForStorage(allBanks[name]);
@@ -354,7 +354,7 @@ describe('loadUserBanksFromStorage — restoration', function() {
     });
 
     it('loads user banks from storage', function() {
-        var result = loadUserBanksFromStorage(loadedBanks, function(key) {
+        const result = loadUserBanksFromStorage(loadedBanks, function(key) {
             return persistStore[key];
         });
         expect(result).toBe(true);
@@ -375,7 +375,7 @@ describe('loadUserBanksFromStorage — restoration', function() {
 
     it('returns false when storage is empty', function() {
         persistStore = {};
-        var result = loadUserBanksFromStorage(loadedBanks, function(key) {
+        const result = loadUserBanksFromStorage(loadedBanks, function(key) {
             return persistStore[key];
         });
         expect(result).toBe(false);
@@ -383,7 +383,7 @@ describe('loadUserBanksFromStorage — restoration', function() {
 
     it('returns false when JSON is malformed', function() {
         persistStore['abd-eep-user-banks'] = 'not-valid-json{{{';
-        var result = loadUserBanksFromStorage(loadedBanks, function(key) {
+        const result = loadUserBanksFromStorage(loadedBanks, function(key) {
             return persistStore[key];
         });
         expect(result).toBe(false);
@@ -395,7 +395,7 @@ describe('loadUserBanksFromStorage — restoration', function() {
         // Let's test differently: load a bank that was already there
         loadedBanks['User Bank 1'] = [{ index: 0, name: 'Already Here' }];
         // Now 'User Bank 1' exists → should not be overwritten
-        var result = loadUserBanksFromStorage(loadedBanks, function(key) {
+        const result = loadUserBanksFromStorage(loadedBanks, function(key) {
             return persistStore[key];
         });
         // 'Custom' is new → count > 0 → returns true
@@ -404,7 +404,7 @@ describe('loadUserBanksFromStorage — restoration', function() {
 });
 
 describe('full save/load round-trip via DI', function() {
-    var loadedBanks, savedStr;
+    let loadedBanks, savedStr;
 
     beforeEach(function() {
         persistStore = {};
@@ -420,15 +420,15 @@ describe('full save/load round-trip via DI', function() {
 
     it('save → load preserves all data', function() {
         // Save
-        var saved = saveUserBanksToStorage(loadedBanks, null, function(k, v) {
+        const saved = saveUserBanksToStorage(loadedBanks, null, function(k, v) {
             persistStore[k] = v;
             savedStr = v;
         });
         expect(saved).toBe(true);
 
         // Reset and load into fresh object
-        var freshBanks = { 'Factory Bank A': createEmptyBank() };
-        var loaded = loadUserBanksFromStorage(freshBanks, function(k) {
+        const freshBanks = { 'Factory Bank A': createEmptyBank() };
+        const loaded = loadUserBanksFromStorage(freshBanks, function(k) {
             return persistStore[k];
         });
         expect(loaded).toBe(true);
@@ -443,7 +443,7 @@ describe('full save/load round-trip via DI', function() {
             persistStore[k] = v;
             savedStr = v;
         });
-        var parsed = JSON.parse(savedStr);
+        const parsed = JSON.parse(savedStr);
         expect(parsed['Factory Bank A']).toBeUndefined();
         expect(parsed['User Bank 1']).toBeDefined();
     });

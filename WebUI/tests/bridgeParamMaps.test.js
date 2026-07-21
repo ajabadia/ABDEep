@@ -22,12 +22,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 function buildBridgeParamMaps() {
 
-  var BIPOLAR_BYTES = new Set([42, 83, 91, 95, 98, 101, 104, 107, 110, 113, 116, 123, 124, 125, 126, 127,
+  const BIPOLAR_BYTES = new Set([42, 83, 91, 95, 98, 101, 104, 107, 110, 113, 116, 123, 124, 125, 126, 127,
     128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143,
     144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154
   ]);
 
-  var ENUM_BYTES = {
+  const ENUM_BYTES = {
     2: 6, 3: 1, 4: 1, 9: 6, 10: 1, 11: 1, 14: 2, 15: 2, 16: 5, 17: 5, 18: 1, 19: 1, 20: 1, 22: 6, 32: 6,
     35: 9, 38: 1, 46: 1, 50: 1, 51: 1, 52: 1,
     57: 4, 66: 4, 75: 4, 84: 2, 85: 12, 86: 3, 92: 1,
@@ -35,7 +35,7 @@ function buildBridgeParamMaps() {
     166: 35, 179: 35, 192: 35, 205: 35, 222: 2
   };
 
-  var PARAM_TO_BYTE_OFFSET = {
+  const PARAM_TO_BYTE_OFFSET = {
     'lfo1_rate': 0, 'lfo1_delay': 1, 'lfo1_shape': 2, 'lfo1_key_sync': 3,
     'lfo1_arp_sync': 4, 'lfo1_mono_mode': 5, 'lfo1_slew': 6,
     'lfo2_rate': 7, 'lfo2_delay': 8, 'lfo2_shape': 9, 'lfo2_key_sync': 10,
@@ -107,7 +107,7 @@ function buildBridgeParamMaps() {
     'fx_send_level': 225
   };
 
-  var PARAM_TO_CC = {
+  const PARAM_TO_CC = {
     'lfo1_rate': 16, 'lfo1_delay': 17,
     'osc1_pitch_mod': 20, 'osc1_pwm_amount': 21,
     'osc2_pitch_mod': 23, 'osc2_tone_mod': 24, 'osc2_pitch': 25, 'osc2_level': 26,
@@ -127,11 +127,11 @@ function buildBridgeParamMaps() {
   };
 
   function buildReverseMap() {
-    var map = {};
-    for (var paramId in PARAM_TO_BYTE_OFFSET) {
+    const map = {};
+    for (const paramId in PARAM_TO_BYTE_OFFSET) {
       if (PARAM_TO_BYTE_OFFSET.hasOwnProperty(paramId)) {
-        var byteOff = PARAM_TO_BYTE_OFFSET[paramId];
-        if (!map[byteOff]) map[byteOff] = [];
+        const byteOff = PARAM_TO_BYTE_OFFSET[paramId];
+        if (!map[byteOff]) {map[byteOff] = [];}
         if (map[byteOff].indexOf(paramId) === -1) {
           map[byteOff].push(paramId);
         }
@@ -140,7 +140,7 @@ function buildBridgeParamMaps() {
     return map;
   }
 
-  var BYTE_OFFSET_TO_PARAM_IDS = buildReverseMap();
+  const BYTE_OFFSET_TO_PARAM_IDS = buildReverseMap();
 
   return {
     BIPOLAR_BYTES: BIPOLAR_BYTES,
@@ -161,7 +161,7 @@ function buildBridgeParamMaps() {
 
     normalizedToRaw: function(byteOffset, normalizedValue) {
       if (BIPOLAR_BYTES.has(byteOffset)) {
-        var val = ((normalizedValue * 2.0) - 1.0) * 127.0;
+        const val = ((normalizedValue * 2.0) - 1.0) * 127.0;
         return Math.round(val + 128);
       }
       if (ENUM_BYTES[byteOffset] !== undefined) {

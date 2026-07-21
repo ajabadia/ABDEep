@@ -25,11 +25,11 @@
             const backdrop = this.querySelector('#debug-modal-backdrop');
             if (backdrop) {
                 backdrop.addEventListener('click', (e) => {
-                    if (e.target === backdrop) this.hide();
+                    if (e.target === backdrop) {this.hide();}
                 });
             }
 
-            this._escHandler = (e) => { if (e.key === 'Escape') this.hide(); };
+            this._escHandler = (e) => { if (e.key === 'Escape') {this.hide();} };
             document.addEventListener('keydown', this._escHandler);
 
             this._updateInterval = setInterval(this._boundUpdate, 250);
@@ -47,42 +47,49 @@
 
         show() {
             const backdrop = this.querySelector('#debug-modal-backdrop');
-            if (backdrop) backdrop.style.display = 'flex';
+            if (backdrop) {backdrop.style.display = 'flex';}
             this._updateFromCache();
         }
 
         hide() {
             const backdrop = this.querySelector('#debug-modal-backdrop');
-            if (backdrop) backdrop.style.display = 'none';
+            if (backdrop) {backdrop.style.display = 'none';}
         }
 
         async _updateFromCache() {
+            if (this._updating) {return;}
+            this._updating = true;
+            try {
             const backdrop = this.querySelector('#debug-modal-backdrop');
-            if (!backdrop || backdrop.style.display === 'none') return;
-            if (!window.dualMidiBridge) return;
+            if (!backdrop || backdrop.style.display === 'none') {return;}
+            if (!window.dualMidiBridge) {return;}
 
             const bridge = window.dualMidiBridge;
             const cache = bridge.parameterCache || {};
             const voiceMode = Math.min(12, Math.max(0, Math.round((cache['voice_mode'] || 0) * 12)));
             const voicesPerNote = window.DEBUG_VOICES_PER_MODE ? window.DEBUG_VOICES_PER_MODE[voiceMode] : 1;
 
-            const setText = (id, txt) => { const el = this.querySelector('#' + id); if (el) el.textContent = txt; };
+            const setText = (id, txt) => { const el = this.querySelector('#' + id); if (el) {el.textContent = txt;} };
             setText('debug-mode-name', window.DEBUG_VOICE_MODE_NAMES ? window.DEBUG_VOICE_MODE_NAMES[voiceMode] : 'Poly');
             setText('debug-stack-count', voicesPerNote + (voicesPerNote === 1 ? ' voice' : ' voices'));
 
             const grid = this.querySelector('#debug-voice-grid');
-            if (!grid) return;
+            if (!grid) {return;}
 
             let activeCount = 0;
             let voices = [];
             let dataSource = '';
             let polyChordHeldCount = 0;
+            let peakLevel = 0.0;
 
             if (bridge.isJuce) {
                 dataSource = 'C++ Engine';
                 setText('debug-detune-val', ((cache['unison_detune'] || 0) * 50.0).toFixed(1) + ' ¢');
                 setText('debug-pan-val', Math.round((cache['vca_pan_spread'] || 0) * 100) + '%');
-                const raw = await bridge.getVoiceState().catch(() => null);
+                const raw = (typeof bridge.getVoiceState === 'function') ? await bridge.getVoiceState().catch(() => null) : null;
+                if (raw) {
+                    peakLevel = raw.peakLevel !== undefined ? raw.peakLevel : 0.0;
+                }
                 if (raw && raw.voices && Array.isArray(raw.voices)) {
                     const voiceArray = raw.voices;
                     polyChordHeldCount = raw.polyChordNoteCount !== undefined ? raw.polyChordNoteCount : 0;
@@ -96,7 +103,7 @@
                         const modOsc2DC = (v.modOsc2DetuneSemitones || 0) * 100.0;
                         const modPan = v.modPan !== undefined ? v.modPan : basePan;
                         const modVcfHz = v.modVcfCutoffHz || 0;
-                        if (v.active) activeCount++;
+                        if (v.active) {activeCount++;}
                         voices.push({
                             voiceIndex: i,
                             active: v.active || false,
@@ -132,18 +139,18 @@
             const chordTypeIdx = Math.min(11, Math.max(0, Math.round((cache['chord_type'] || 0) * 11)));
             const chordTypeName = window.DEBUG_CHORD_TYPE_NAMES ? window.DEBUG_CHORD_TYPE_NAMES[chordTypeIdx] : '—';
             if (chordOn || polyChordOn) {
-                const setHtml = (id, html) => { const el = this.querySelector('#' + id); if (el) el.innerHTML = html; };
+                const setHtml = (id, html) => { const el = this.querySelector('#' + id); if (el) {el.innerHTML = html;} };
                 if (chordOn)
-                    setHtml('debug-chord-status', `<span style="color:var(--accent-green)">● ON</span> ${chordTypeName}`);
+                    {setHtml('debug-chord-status', `<span style="color:var(--accent-green)">● ON</span> ${chordTypeName}`);}
                 else
-                    setText('debug-chord-status', 'OFF');
+                    {setText('debug-chord-status', 'OFF');}
                 if (polyChordOn) {
                     if (polyChordHeldCount > 0)
-                        setHtml('debug-polychord-status', `<span style="color:var(--accent-blue)">● ${polyChordHeldCount}</span> ${chordTypeName}`);
+                        {setHtml('debug-polychord-status', `<span style="color:var(--accent-blue)">● ${polyChordHeldCount}</span> ${chordTypeName}`);}
                     else
-                        setHtml('debug-polychord-status', `<span style="color:var(--accent-blue)">● ON</span> ${chordTypeName}`);
+                        {setHtml('debug-polychord-status', `<span style="color:var(--accent-blue)">● ON</span> ${chordTypeName}`);}
                 } else
-                    setText('debug-polychord-status', 'OFF');
+                    {setText('debug-polychord-status', 'OFF');}
             } else {
                 setText('debug-chord-status', '—');
                 setText('debug-polychord-status', '—');
@@ -152,13 +159,8 @@
             setText('debug-data-source', dataSource);
             setText('debug-active-count', String(activeCount) + '/' + String(voices.length));
 
-            let peakLevel = 0.0;
-            const raw = (bridge.isJuce && typeof bridge.getVoiceState === 'function') ? await bridge.getVoiceState().catch(() => null) : null;
-            if (bridge.isJuce && raw) {
-                peakLevel = raw.peakLevel !== undefined ? raw.peakLevel : 0.0;
-            }
-            if (this._vuSmoothed === undefined) this._vuSmoothed = 0.0;
-            if (this._vuLastTime === undefined) this._vuLastTime = Date.now();
+            if (this._vuSmoothed === undefined) {this._vuSmoothed = 0.0;}
+            if (this._vuLastTime === undefined) {this._vuLastTime = Date.now();}
             const now = Date.now();
             const dt = Math.min(100, Math.max(1, now - this._vuLastTime));
             this._vuLastTime = now;
@@ -173,7 +175,7 @@
                 const releaseCoeff = Math.exp(-dt / VU_RELEASE_MS);
                 this._vuSmoothed = peakLevel + (this._vuSmoothed - peakLevel) * releaseCoeff;
             }
-            if (this._vuSmoothed < 0.001) this._vuSmoothed = 0.0;
+            if (this._vuSmoothed < 0.001) {this._vuSmoothed = 0.0;}
             
             const pct = Math.max(0, Math.min(1, this._vuSmoothed));
             const vuFill = document.getElementById('vu-fill');
@@ -196,14 +198,14 @@
                 }
 
                 if (peakLevel > 0.9) {
-                    if (vuClip) vuClip.style.opacity = '1';
+                    if (vuClip) {vuClip.style.opacity = '1';}
                     if (this._vuClipTimer) {
                         clearTimeout(this._vuClipTimer);
                         this._vuClipTimer = null;
                     }
                 } else if (!this._vuClipTimer) {
                     this._vuClipTimer = setTimeout(() => {
-                        if (vuClip) vuClip.style.opacity = '0';
+                        if (vuClip) {vuClip.style.opacity = '0';}
                         this._vuClipTimer = null;
                     }, 500);
                 }
@@ -329,7 +331,7 @@
                     : `margin-left:${50 - barW}%;width:${barW}%;background:var(--accent-pink)`;
 
                 function fmtDetune(cents) {
-                    if (Math.abs(cents) < 0.1) return '0.0¢';
+                    if (Math.abs(cents) < 0.1) {return '0.0¢';}
                     const s = cents >= 0 ? '+' : '';
                     return s + cents.toFixed(1) + '¢';
                 }
@@ -362,6 +364,9 @@
                     </div>`;
             }
             grid.innerHTML = html;
+            } finally {
+                this._updating = false;
+            }
         }
     }
 

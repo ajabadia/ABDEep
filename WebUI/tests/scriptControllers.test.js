@@ -21,8 +21,8 @@
 
 // LcdQueue — priority queue with auto-expiry
 function createLcdQueue() {
-    var messages = {};
-    var expiryTimers = {};
+    const messages = {};
+    const expiryTimers = {};
 
     return {
         _getMessages: function() { return messages; },
@@ -38,9 +38,9 @@ function createLcdQueue() {
             if (expiryTimers[id]) {
                 clearTimeout(expiryTimers[id]);
             }
-            var duration = (options.duration !== undefined) ? options.duration : 2000;
+            const duration = (options.duration !== undefined) ? options.duration : 2000;
             if (duration !== null) {
-                var self = this;
+                const self = this;
                 expiryTimers[id] = setTimeout(function() {
                     delete messages[id];
                     delete expiryTimers[id];
@@ -49,9 +49,9 @@ function createLcdQueue() {
         },
 
         getActive: function() {
-            var best = null;
-            for (var id in messages) {
-                var m = messages[id];
+            let best = null;
+            for (const id in messages) {
+                const m = messages[id];
                 if (!best || m.priority < best.priority) {
                     best = m;
                 }
@@ -86,61 +86,61 @@ function getLcdFadeTiming(speed) {
 
 // VU ballistics — exponential moving average with different attack/release
 function calcVuSmoothed(rawPeak, smoothed, dt, isAttack) {
-    var VU_ATTACK_MS = 5;
-    var VU_RELEASE_MS = 300;
+    const VU_ATTACK_MS = 5;
+    const VU_RELEASE_MS = 300;
     rawPeak = Math.max(0, Math.min(1, rawPeak));
 
     if (isAttack !== undefined ? isAttack : rawPeak > smoothed) {
-        var attackCoeff = Math.exp(-dt / VU_ATTACK_MS);
+        const attackCoeff = Math.exp(-dt / VU_ATTACK_MS);
         smoothed = smoothed * attackCoeff + rawPeak * (1 - attackCoeff);
     } else {
-        var releaseCoeff = Math.exp(-dt / VU_RELEASE_MS);
+        const releaseCoeff = Math.exp(-dt / VU_RELEASE_MS);
         smoothed = rawPeak + (smoothed - rawPeak) * releaseCoeff;
     }
-    if (smoothed < 0.001) smoothed = 0.0;
+    if (smoothed < 0.001) {smoothed = 0.0;}
     return smoothed;
 }
 
 // Peak level → dB conversion
 function calcDbFromPeak(peakLevel) {
-    if (peakLevel < 0.0001) return '-\\u221E';
+    if (peakLevel < 0.0001) {return '-\\u221E';}
     return (20.0 * Math.log10(peakLevel)).toFixed(1);
 }
 
 // Peak level → CSS color variable name
 function getVuColor(peakLevel) {
-    if (peakLevel < 0.001) return 'var(--text-faint)';
-    if (peakLevel < 0.06)  return 'var(--accent-green)';
-    if (peakLevel < 0.5)   return 'var(--accent-yellow)';
-    if (peakLevel < 0.7)   return 'var(--accent-orange)';
+    if (peakLevel < 0.001) {return 'var(--text-faint)';}
+    if (peakLevel < 0.06)  {return 'var(--accent-green)';}
+    if (peakLevel < 0.5)   {return 'var(--accent-yellow)';}
+    if (peakLevel < 0.7)   {return 'var(--accent-orange)';}
     return 'var(--color-danger)';
 }
 
 // Pitch bend → st string with sign
 function formatPitchBend(pb) {
     pb = Math.max(-1, Math.min(1, pb));
-    var st = pb * 2.0;
+    const st = pb * 2.0;
     return (st >= 0 ? '+' : '') + st.toFixed(2);
 }
 
 // Sequencer value → bipolar display value
 function calcSeqStepVal(seqVal) {
-    var bipVal = (seqVal * 2.0) - 1.0;
+    const bipVal = (seqVal * 2.0) - 1.0;
     return Math.round(bipVal * 127);
 }
 
 // Sequencer value → bar segments (left, center-marker, right)
 function calcSeqStepBar(seqVal) {
-    var bipVal = (seqVal * 2.0) - 1.0;
-    var barHalf = 12;
-    var fillLen = Math.round(Math.abs(bipVal) * barHalf);
-    var leftBar = bipVal >= 0
+    const bipVal = (seqVal * 2.0) - 1.0;
+    const barHalf = 12;
+    const fillLen = Math.round(Math.abs(bipVal) * barHalf);
+    const leftBar = bipVal >= 0
         ? window._genFillBar(0, barHalf)
         : window._genFillBar(fillLen, barHalf);
-    var rightBar = bipVal < 0
+    const rightBar = bipVal < 0
         ? window._genFillBar(0, barHalf)
         : window._genFillBar(fillLen, barHalf);
-    var centerMarker = '\\u2502';
+    const centerMarker = '\\u2502';
     return { left: leftBar, center: centerMarker, right: rightBar };
 }
 
@@ -152,7 +152,7 @@ function calcControllerPercent(val) {
 // Typewriter animation: how many chars to show at given elapsed time
 function calcTypewriterChars(text, elapsedMs, charMs) {
     charMs = charMs || 65;
-    if (elapsedMs <= 0) return 1;
+    if (elapsedMs <= 0) {return 1;}
     return Math.min(text.length, Math.max(1, Math.floor(elapsedMs / charMs)));
 }
 
@@ -160,10 +160,10 @@ function calcTypewriterChars(text, elapsedMs, charMs) {
 function calcSeqFadeOpacity(elapsed, fadeHalf) {
     fadeHalf = fadeHalf || 40;
     if (elapsed < fadeHalf) {
-        var fadeOut = 1.0 - (elapsed / fadeHalf);
+        const fadeOut = 1.0 - (elapsed / fadeHalf);
         return { phase: 'out', opacity: Math.max(0, fadeOut) };
     } else if (elapsed < fadeHalf * 2) {
-        var fadeIn = (elapsed - fadeHalf) / fadeHalf;
+        const fadeIn = (elapsed - fadeHalf) / fadeHalf;
         return { phase: 'in', opacity: Math.min(1, fadeIn) };
     } else {
         return { phase: 'done', opacity: 1.0 };
@@ -180,8 +180,8 @@ if (typeof window._genFillBar !== 'function') {
     window._genFillBar = function(fillLen, totalLen, fillChar, emptyChar) {
         fillChar = fillChar || '\\u2588';
         emptyChar = emptyChar || '\\u2591';
-        var bar = '';
-        for (var i = 0; i < totalLen; i++) {
+        let bar = '';
+        for (let i = 0; i < totalLen; i++) {
             bar += i < fillLen ? fillChar : emptyChar;
         }
         return bar;
@@ -207,43 +207,43 @@ describe('LcdQueue', function () {
     });
 
     it('push and getActive returns the pushed message', function () {
-        var q = createLcdQueue();
+        const q = createLcdQueue();
         q.push('test1', 'Hello', 1);
-        var active = q.getActive();
+        const active = q.getActive();
         expect(active).not.toBeNull();
         expect(active.content).toBe('Hello');
         expect(active.priority).toBe(1);
     });
 
     it('getActive returns message with lowest priority (highest urgency)', function () {
-        var q = createLcdQueue();
+        const q = createLcdQueue();
         q.push('low', 'Low Priority', 5);
         q.push('high', 'High Priority', 1);
         q.push('mid', 'Mid Priority', 3);
-        var active = q.getActive();
+        const active = q.getActive();
         expect(active.content).toBe('High Priority');
         expect(active.priority).toBe(1);
     });
 
     it('getActive returns null when queue is empty', function () {
-        var q = createLcdQueue();
+        const q = createLcdQueue();
         expect(q.getActive()).toBeNull();
     });
 
     it('push with same id replaces previous message', function () {
-        var q = createLcdQueue();
+        const q = createLcdQueue();
         q.push('dup', 'First', 1);
         q.push('dup', 'Second', 2);
-        var active = q.getActive();
+        const active = q.getActive();
         expect(active.content).toBe('Second');
         // Only one message in queue
-        var count = 0;
-        for (var id in q._getMessages()) count++;
+        let count = 0;
+        for (const id in q._getMessages()) {count++;}
         expect(count).toBe(1);
     });
 
     it('message auto-expires after default 2000ms', function () {
-        var q = createLcdQueue();
+        const q = createLcdQueue();
         q.push('exp', 'Expires', 1);
         expect(q.getActive()).not.toBeNull();
 
@@ -253,7 +253,7 @@ describe('LcdQueue', function () {
     });
 
     it('message auto-expires after custom duration', function () {
-        var q = createLcdQueue();
+        const q = createLcdQueue();
         q.push('fast', 'Fast Expire', 1, { duration: 100 });
         expect(q.getActive()).not.toBeNull();
 
@@ -263,7 +263,7 @@ describe('LcdQueue', function () {
     });
 
     it('push with duration=null does not expire', function () {
-        var q = createLcdQueue();
+        const q = createLcdQueue();
         q.push('perm', 'Permanent', 1, { duration: null });
         expect(q.getActive()).not.toBeNull();
 
@@ -273,19 +273,19 @@ describe('LcdQueue', function () {
     });
 
     it('clear removes all messages and timers', function () {
-        var q = createLcdQueue();
+        const q = createLcdQueue();
         q.push('a', 'A', 1);
         q.push('b', 'B', 2);
         q.clear();
 
         expect(q.getActive()).toBeNull();
-        var count = 0;
-        for (var id in q._getMessages()) count++;
+        let count = 0;
+        for (const id in q._getMessages()) {count++;}
         expect(count).toBe(0);
     });
 
     it('multiple messages: highest priority (lowest number) wins', function () {
-        var q = createLcdQueue();
+        const q = createLcdQueue();
         q.push('p3', 'Prio 3', 3);
         q.push('p1', 'Prio 1', 1);
         q.push('p2', 'Prio 2', 2);
@@ -301,7 +301,7 @@ describe('LcdQueue', function () {
     });
 
     it('push restarts expiry timer for existing id', function () {
-        var q = createLcdQueue();
+        const q = createLcdQueue();
         q.push('test', 'First', 1, { duration: 500 });
         vi.advanceTimersByTime(300);
 
@@ -325,7 +325,7 @@ describe('LcdQueue', function () {
 describe('getLcdFadeTiming', function () {
 
     it('returns zero timings for "off"', function () {
-        var t = getLcdFadeTiming('off');
+        const t = getLcdFadeTiming('off');
         expect(t.out).toBe(0);
         expect(t.swap).toBe(0);
         expect(t.in).toBe(0);
@@ -337,7 +337,7 @@ describe('getLcdFadeTiming', function () {
     });
 
     it('returns fast timings', function () {
-        var t = getLcdFadeTiming('fast');
+        const t = getLcdFadeTiming('fast');
         expect(t.out).toBe(60);
         expect(t.in).toBe(60);
         expect(t.swap).toBe(70);
@@ -345,7 +345,7 @@ describe('getLcdFadeTiming', function () {
     });
 
     it('returns normal timings by default', function () {
-        var t = getLcdFadeTiming('normal');
+        const t = getLcdFadeTiming('normal');
         expect(t.out).toBe(100);
         expect(t.in).toBe(100);
         expect(t.swap).toBe(110);
@@ -353,7 +353,7 @@ describe('getLcdFadeTiming', function () {
     });
 
     it('returns slow timings', function () {
-        var t = getLcdFadeTiming('slow');
+        const t = getLcdFadeTiming('slow');
         expect(t.out).toBe(220);
         expect(t.in).toBe(220);
         expect(t.swap).toBe(230);
@@ -361,13 +361,13 @@ describe('getLcdFadeTiming', function () {
     });
 
     it('unknown speed defaults to normal', function () {
-        var t = getLcdFadeTiming('unknown');
+        const t = getLcdFadeTiming('unknown');
         expect(t.out).toBe(100);
         expect(t.in).toBe(100);
     });
 
     it('restore timings (outR/inR) are longer than regular fade timings', function () {
-        var t = getLcdFadeTiming('normal');
+        const t = getLcdFadeTiming('normal');
         expect(t.outR).toBe(150);
         expect(t.inR).toBe(150);
         expect(t.outR).toBeGreaterThan(t.out);
@@ -383,7 +383,7 @@ describe('calcVuSmoothed', function () {
 
     it('attack: approaches rawPeak quickly (small time step)', function () {
         // rawPeak=1.0, smoothed=0, dt=1ms, attack
-        var result = calcVuSmoothed(1.0, 0, 1, true);
+        const result = calcVuSmoothed(1.0, 0, 1, true);
         // attackCoeff = exp(-1/5) ≈ 0.8187
         // result = 0 * 0.8187 + 1 * 0.1813 ≈ 0.1813
         expect(result).toBeGreaterThan(0.15);
@@ -392,7 +392,7 @@ describe('calcVuSmoothed', function () {
 
     it('release: decays slowly over time', function () {
         // rawPeak=0, smoothed=0.5, dt=100ms, release
-        var result = calcVuSmoothed(0, 0.5, 100, false);
+        const result = calcVuSmoothed(0, 0.5, 100, false);
         // releaseCoeff = exp(-100/300) ≈ 0.7165
         // result = 0 + 0.5 * 0.7165 ≈ 0.3583
         expect(result).toBeGreaterThan(0.3);
@@ -400,25 +400,25 @@ describe('calcVuSmoothed', function () {
     });
 
     it('clamps below 0.001 to 0.0', function () {
-        var result = calcVuSmoothed(0, 0.0005, 100, false);
+        const result = calcVuSmoothed(0, 0.0005, 100, false);
         expect(result).toBe(0.0);
     });
 
     it('auto-detects attack when rawPeak > smoothed', function () {
-        var result = calcVuSmoothed(1.0, 0.3, 5);
+        const result = calcVuSmoothed(1.0, 0.3, 5);
         // rawPeak (1.0) > smoothed (0.3) → attack path
         expect(result).toBeGreaterThan(0.3);
     });
 
     it('auto-detects release when rawPeak < smoothed', function () {
-        var result = calcVuSmoothed(0, 0.8, 50);
+        const result = calcVuSmoothed(0, 0.8, 50);
         // rawPeak (0) < smoothed (0.8) → release path
         expect(result).toBeLessThan(0.8);
         expect(result).toBeGreaterThan(0.6);
     });
 
     it('clamps rawPeak to [0, 1]', function () {
-        var result = calcVuSmoothed(2.0, 0, 1, true);
+        let result = calcVuSmoothed(2.0, 0, 1, true);
         expect(result).toBeGreaterThan(0);
         expect(result).toBeLessThanOrEqual(1);
 
@@ -580,7 +580,7 @@ describe('calcSeqStepVal', function () {
 describe('calcSeqStepBar', function () {
 
     it('positive value: left bar is empty, right bar fills', function () {
-        var bar = calcSeqStepBar(0.75);
+        const bar = calcSeqStepBar(0.75);
         // bipVal = 0.5, fillLen = round(0.5 * 12) = 6
         // leftBar: genFillBar(0, 12) → empty
         // rightBar: genFillBar(6, 12) → 6 filled + 6 empty
@@ -594,7 +594,7 @@ describe('calcSeqStepBar', function () {
     });
 
     it('negative value: left bar fills, right bar is empty', function () {
-        var bar = calcSeqStepBar(0.25);
+        const bar = calcSeqStepBar(0.25);
         // bipVal = -0.5, fillLen = round(0.5 * 12) = 6
         // leftBar: genFillBar(6, 12) → 6 filled + 6 empty
         // rightBar: genFillBar(0, 12) → all empty
@@ -603,7 +603,7 @@ describe('calcSeqStepBar', function () {
     });
 
     it('center value (0.5): both bars empty', function () {
-        var bar = calcSeqStepBar(0.5);
+        const bar = calcSeqStepBar(0.5);
         expect(bar.left.indexOf('\\u2588')).toBe(-1);
         expect(bar.right.indexOf('\\u2588')).toBe(-1);
         expect(bar.center).toBe('\\u2502');
@@ -649,7 +649,7 @@ describe('calcTypewriterChars', function () {
 describe('calcSeqFadeOpacity', function () {
 
     it('phase="out" in first half, decreasing from 1.0', function () {
-        var r = calcSeqFadeOpacity(0);
+        let r = calcSeqFadeOpacity(0);
         expect(r.phase).toBe('out');
         expect(r.opacity).toBe(1.0);
 
@@ -663,7 +663,7 @@ describe('calcSeqFadeOpacity', function () {
     });
 
     it('phase="in" in second half, increasing from 0', function () {
-        var r = calcSeqFadeOpacity(40);
+        let r = calcSeqFadeOpacity(40);
         expect(r.phase).toBe('in');
         expect(r.opacity).toBeCloseTo(0.0, 3);
 
@@ -673,7 +673,7 @@ describe('calcSeqFadeOpacity', function () {
     });
 
     it('phase="done" after full cycle', function () {
-        var r = calcSeqFadeOpacity(80);
+        let r = calcSeqFadeOpacity(80);
         expect(r.phase).toBe('done');
         expect(r.opacity).toBe(1.0);
 
@@ -683,7 +683,7 @@ describe('calcSeqFadeOpacity', function () {
     });
 
     it('supports custom fadeHalf duration', function () {
-        var r = calcSeqFadeOpacity(50, 50);
+        let r = calcSeqFadeOpacity(50, 50);
         expect(r.phase).toBe('in');
         expect(r.opacity).toBeCloseTo(0.0, 3);
 

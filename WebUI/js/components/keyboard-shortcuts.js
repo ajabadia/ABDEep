@@ -42,12 +42,15 @@
             const backdrop = this.querySelector('#keyboard-shortcuts-backdrop');
             if (backdrop) {
                 backdrop.addEventListener('click', (e) => {
-                    if (e.target === backdrop) this.hide();
+                    if (e.target === backdrop) {this.hide();}
                 });
             }
 
-            // Esc key to close
-            this._escHandler = (e) => { if (e.key === 'Escape') this.hide(); };
+            // Esc key to close (remove previous handler to avoid leak on reconnect)
+            if (this._escHandler) {
+                document.removeEventListener('keydown', this._escHandler);
+            }
+            this._escHandler = (e) => { if (e.key === 'Escape') {this.hide();} };
             document.addEventListener('keydown', this._escHandler);
         }
 
@@ -59,39 +62,39 @@
 
         show() {
             const backdrop = this.querySelector('#keyboard-shortcuts-backdrop');
-            if (backdrop) backdrop.style.display = 'flex';
+            if (backdrop) {backdrop.style.display = 'flex';}
             this._renderDynamic();
         }
 
         _renderDynamic() {
-            var container = this.querySelector('#keyboard-shortcuts-dynamic-list');
-            if (!container) return;
+            const container = this.querySelector('#keyboard-shortcuts-dynamic-list');
+            if (!container) {return;}
             if (!window.ShortcutConfig) {
                 container.innerHTML = '<div class="text-dim text-center" style="padding:20px;font-size:var(--text-sm)">Shortcut system not loaded.</div>';
                 return;
             }
-            var config = window.ShortcutConfig.load();
-            var ids = window.ShortcutConfig.getAllIds();
-            var meta = window.ShortcutConfig._meta;
+            const config = window.ShortcutConfig.load();
+            const ids = window.ShortcutConfig.getAllIds();
+            const meta = window.ShortcutConfig._meta;
 
-            var groups = {};
+            const groups = {};
             ids.forEach(function(id) {
-                var m = meta[id] || { group: 'other', label: id, description: '', color: '--text-dim' };
-                if (!groups[m.group]) groups[m.group] = [];
+                const m = meta[id] || { group: 'other', label: id, description: '', color: '--text-dim' };
+                if (!groups[m.group]) {groups[m.group] = [];}
                 groups[m.group].push({ id: id, meta: m, combo: config[id] });
             });
 
-            var html = '';
-            var groupOrder = ['global', 'sequencer', 'other'];
-            var groupLabels = { 'global': 'Global', 'sequencer': 'Sequencer', 'other': 'Other' };
-            var groupColors = { 'global': '--accent-cyan', 'sequencer': '--accent-pink', 'other': '--text-dim' };
+            let html = '';
+            const groupOrder = ['global', 'sequencer', 'other'];
+            const groupLabels = { 'global': 'Global', 'sequencer': 'Sequencer', 'other': 'Other' };
+            const groupColors = { 'global': '--accent-cyan', 'sequencer': '--accent-pink', 'other': '--text-dim' };
 
             groupOrder.forEach(function(group) {
-                var items = groups[group];
-                if (!items || items.length === 0) return;
+                const items = groups[group];
+                if (!items || items.length === 0) {return;}
                 html += '<div style="font-size:var(--text-xs);text-transform:uppercase;font-weight:bold;color:var(' + groupColors[group] + ');padding:6px 8px;border-bottom:1px solid var(--border-dim);margin-bottom:4px">' + groupLabels[group] + '</div>';
                 items.forEach(function(item) {
-                    var comboStr = window.ShortcutConfig.formatCombo(item.combo);
+                    const comboStr = window.ShortcutConfig.formatCombo(item.combo);
                     html += '<div style="display:grid;grid-template-columns:auto 1fr 160px;gap:10px;align-items:center;padding:5px 8px;border-radius:var(--radius-xs);font-size:var(--text-base)">'
                         + '<kbd style="display:inline-block;background:var(--bg-deepest);border:1px solid var(--border);border-radius:3px;padding:2px 7px;font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-primary);min-width:100px;text-align:center">' + comboStr + '</kbd>'
                         + '<span style="color:var(--text-primary)">' + item.meta.label + '</span>'
@@ -122,7 +125,7 @@
 
         hide() {
             const backdrop = this.querySelector('#keyboard-shortcuts-backdrop');
-            if (backdrop) backdrop.style.display = 'none';
+            if (backdrop) {backdrop.style.display = 'none';}
         }
     }
 

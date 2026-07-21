@@ -6,10 +6,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     initUIControls();
 
-    if (typeof window.initKeyboardAndWheels === 'function') window.initKeyboardAndWheels();
-    if (typeof window.initKnobs === 'function') window.initKnobs();
-    if (typeof window.initSettingsAndModals === 'function') window.initSettingsAndModals();
-    if (typeof window.initEditActions === 'function') window.initEditActions();
+    if (typeof window.initKeyboardAndWheels === 'function') {window.initKeyboardAndWheels();}
+    if (typeof window.initKnobs === 'function') {window.initKnobs();}
+    if (typeof window.initSettingsAndModals === 'function') {window.initSettingsAndModals();}
+    if (typeof window.initEditActions === 'function') {window.initEditActions();}
 
     // Configurar botón de Debug: Unison
     document.addEventListener('click', (e) => {
@@ -20,21 +20,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 debugModal.show();
             }
         }
+        if (e.target.closest('#menu-calibration-lab')) {
+            e.preventDefault();
+            const calPage = document.querySelector('calibration-lab-page');
+            if (calPage && typeof calPage.show === 'function') {
+                calPage.show();
+            }
+        }
     });
 
     // ── MIDI LEARN ──
     function initMidiLearn () {
-        var bridge = window.dualMidiBridge;
-        if (!bridge) return;
+        const bridge = window.dualMidiBridge;
+        if (!bridge) {return;}
 
         if (typeof bridge._loadMidiLearnMappings === 'function') {
             bridge._loadMidiLearnMappings();
         }
 
-        var learnBtn = document.getElementById('programmer-midi-learn-btn');
+        const learnBtn = document.getElementById('programmer-midi-learn-btn');
 
         function toggleLearn () {
-            if (!bridge) return;
+            if (!bridge) {return;}
             bridge.toggleMidiLearn();
         }
 
@@ -44,17 +51,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const settingsModal = document.getElementById('settings-modal-backdrop');
                 if (settingsModal) {
                     settingsModal.style.display = 'flex';
-                    if (typeof populateMidiPortsLists === 'function') populateMidiPortsLists();
-                    if (typeof _updateSettingsHardwareInfo === 'function') _updateSettingsHardwareInfo();
+                    if (typeof populateMidiPortsLists === 'function') {populateMidiPortsLists();}
+                    if (typeof _updateSettingsHardwareInfo === 'function') {_updateSettingsHardwareInfo();}
                     
                     const tabBtn = document.querySelector('.btn[data-tab="midilearn"]');
-                    if (tabBtn) tabBtn.click();
+                    if (tabBtn) {tabBtn.click();}
                 }
             }
         });
 
         function updateButtonStyle (active, targetParam) {
-            if (!learnBtn) return;
+            if (!learnBtn) {return;}
             if (active) {
                 learnBtn.style.background = 'color-mix(in srgb, var(--accent-blue) 35%, transparent)';
                 learnBtn.style.borderColor = 'var(--accent-blue)';
@@ -70,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (learnBtn) learnBtn.addEventListener('click', toggleLearn);
+        if (learnBtn) {learnBtn.addEventListener('click', toggleLearn);}
 
 
         if (typeof bridge.onMidiLearnChange === 'function') {
@@ -85,14 +92,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── MIDI LEARN: param-click-to-learn ──
     function initMidiLearnParamClick () {
         document.addEventListener('click', function (e) {
-            var bridge = window.dualMidiBridge;
-            if (!bridge || !bridge.midiLearnActive) return;
+            const bridge = window.dualMidiBridge;
+            if (!bridge || !bridge.midiLearnActive) {return;}
 
-            var ctrlUnit = e.target.closest('[data-param]');
-            if (!ctrlUnit) return;
+            const ctrlUnit = e.target.closest('[data-param]');
+            if (!ctrlUnit) {return;}
 
-            var paramId = ctrlUnit.getAttribute('data-param');
-            if (!paramId) return;
+            const paramId = ctrlUnit.getAttribute('data-param');
+            if (!paramId) {return;}
 
             e.preventDefault();
             bridge.setMidiLearnTarget(paramId);
@@ -100,10 +107,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── PANIC (All Notes Off / All Sound Off) ──
-    var panicBtn = document.getElementById('programmer-panic-btn');
+    const panicBtn = document.getElementById('programmer-panic-btn');
     if (panicBtn) {
         panicBtn.addEventListener('click', function() {
-            var _pBtn_ = this;
+            if (typeof window.playKeyLedAnimation === 'function') {
+                window.playKeyLedAnimation('panic');
+            }
+            const _pBtn_ = this;
             _pBtn_.style.transition = 'background 60ms ease-out, box-shadow 60ms ease-out';
             _pBtn_.style.background = 'color-mix(in srgb, var(--color-danger) 80%, transparent)';
             _pBtn_.style.boxShadow = '0 0 24px var(--color-danger), inset 0 0 12px var(--color-danger)';
@@ -119,48 +129,46 @@ document.addEventListener('DOMContentLoaded', () => {
                     _pBtn_.style.transition = '';
                 }, 320);
             }, 60);
-            var bridge = window.dualMidiBridge;
+            const bridge = window.dualMidiBridge;
             if (!bridge) {
                 alert('Bridge not initialized.');
                 return;
             }
             
-            var msgCount = 0;
+            let msgCount = 0;
             
             if (bridge.isJuce) {
-                for (var n = 0; n < 128; n++) {
-                    bridge.pianoNoteOff(n);
-                    msgCount++;
-                }
+                bridge.panic();
+                msgCount = 1;
             } else if (bridge.midiOutput) {
                 bridge._signalMidiActivity();
-                for (var ch = 0; ch < 16; ch++) {
-                    var status = 0xB0 | ch;
+                for (let ch = 0; ch < 16; ch++) {
+                    const status = 0xB0 | ch;
                     bridge.midiOutput.send([status, 123, 0]); // All Notes Off
                     bridge.midiOutput.send([status, 120, 0]); // All Sound Off
                     msgCount += 2;
                 }
             }
             
-            console.log('[Panic] Sent ' + msgCount + ' MIDI messages to stop all sounding notes');
+            console.log('[Panic] Triggered panic routine. Sent ' + msgCount + ' messages/actions to stop notes.');
             
-            var seqResetMsg = '';
+            let seqResetMsg = '';
             if (bridge._seqEngine) {
-                var seqWasRunning = bridge._seqEngine.running;
+                const seqWasRunning = bridge._seqEngine.running;
                 bridge._seqEngine.stop();
                 bridge._seqEngine.stepIndex = 0;
-                for (var si = 0; si < bridge._seqEngine.previousValues.length; si++) {
+                for (let si = 0; si < bridge._seqEngine.previousValues.length; si++) {
                     bridge._seqEngine.previousValues[si] = 0;
                 }
                 bridge._seqEngine.heldNotes = [];
                 if (seqWasRunning || (bridge.parameterCache['seq_enable'] || 0) > 0.5) {
                     bridge._updateSeqEngine();
-                    var _seqNotesHeld_ = bridge._seqEngine.heldNotes.length;
-                    var _seqStepIdx_ = bridge._seqEngine.stepIndex;
-                    var _seqLen_ = Math.round((bridge.parameterCache['seq_length'] || 0) * 31) + 2;
+                    const _seqNotesHeld_ = bridge._seqEngine.heldNotes.length;
+                    const _seqStepIdx_ = bridge._seqEngine.stepIndex;
+                    const _seqLen_ = Math.round((bridge.parameterCache['seq_length'] || 0) * 31) + 2;
                     window._seqLastResetTime = Date.now();
                     window._seqResetCount++;
-                    var _seqBar_ = window._genPosBar(Math.round((_seqStepIdx_ / Math.max(_seqLen_ - 1, 1)) * 18), 18);
+                    const _seqBar_ = window._genPosBar(Math.round((_seqStepIdx_ / Math.max(_seqLen_ - 1, 1)) * 18), 18);
                     seqResetMsg = '<br>' + window._genLcdBarHtml('seq', {
                         decorated: true,
                         header: '\u2500\u2500\u2500 SEQ RESET #' + window._seqResetCount + ' \u2500\u2500\u2500',
@@ -170,20 +178,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            var arpResetMsg = '';
+            let arpResetMsg = '';
             if (bridge._arpEngine) {
-                var arpWasRunning = bridge._arpEngine.running;
+                const arpWasRunning = bridge._arpEngine.running;
                 bridge._arpEngine.stop();
                 bridge._arpEngine.stepIndex = 0;
                 bridge._arpEngine.heldNotes = [];
                 bridge._arpEngine.currentDirection = 1;
                 bridge._arpActiveNotes = [];
                 if (arpWasRunning || (bridge.parameterCache['arp_enable'] || 0) > 0.5) {
-                    var _arpNotesHeld_ = bridge._arpEngine.heldNotes.length;
-                    var _arpStepIdx_ = bridge._arpEngine.stepIndex;
+                    const _arpNotesHeld_ = bridge._arpEngine.heldNotes.length;
+                    const _arpStepIdx_ = bridge._arpEngine.stepIndex;
                     window._arpLastResetTime = Date.now();
                     window._arpResetCount++;
-                    var _arpBar_ = window._genFillBar(Math.round((_arpNotesHeld_ / 12) * 18), 18);
+                    const _arpBar_ = window._genFillBar(Math.round((_arpNotesHeld_ / 12) * 18), 18);
                     arpResetMsg = '<br>' + window._genLcdBarHtml('arp', {
                         decorated: true,
                         header: '\u2500\u2500\u2500 ARP RESET #' + window._arpResetCount + ' \u2500\u2500\u2500',
@@ -193,40 +201,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            var lcdText = document.getElementById('lcd-text');
+            const lcdText = document.getElementById('lcd-text');
             if (lcdText) {
-                var panicHtml = '<span style="font-size:10px; opacity:0.6;">\u26A0\uFE0F PANIC</span><br><strong style="color:var(--color-danger);">ALL NOTES OFF</strong><br><span style="font-size:11px; color:var(--text-dim);">' + msgCount + ' MIDI messages sent</span>' + seqResetMsg + arpResetMsg;
-                window.lcdSafeUpdate(lcdText, panicHtml)
+                const panicHtml = '<span style="font-size:10px; opacity:0.6;">\u26A0\uFE0F PANIC</span><br><strong style="color:var(--color-danger);">ALL NOTES OFF</strong><br><span style="font-size:11px; color:var(--text-dim);">' + msgCount + ' MIDI messages sent</span>' + seqResetMsg + arpResetMsg;
+                window.lcdSafeUpdate(lcdText, panicHtml);
             }
         });
     }
 
     // ── REQUEST FROM HW ──
-    var requestHwBtn = document.getElementById('programmer-request-hw-btn');
+    const requestHwBtn = document.getElementById('programmer-request-hw-btn');
     if (requestHwBtn) {
         requestHwBtn.addEventListener('click', function() {
-            var bridge = window.dualMidiBridge;
+            const bridge = window.dualMidiBridge;
             if (!bridge) {
                 alert('Bridge not initialized.');
                 return;
             }
-            var lcdText = document.getElementById('lcd-text');
+            const lcdText = document.getElementById('lcd-text');
             if (lcdText) {
-                var html = '<span style="font-size:10px; opacity:0.6;">REQUESTING...</span><br><strong>EDIT BUFFER</strong>';
-                window.lcdSafeUpdate(lcdText, html)
+                const html = '<span style="font-size:10px; opacity:0.6;">REQUESTING...</span><br><strong>EDIT BUFFER</strong>';
+                window.lcdSafeUpdate(lcdText, html);
             }
-            bridge.requestMidiDump("edit", 4000).then(function(response) {
+            bridge.requestMidiDump('edit', 4000).then(function(response) {
                 if (response) {
                     console.log('[RequestHW] Edit buffer received:', response.length, 'bytes');
                     if (lcdText) {
-                        var okHtml = '<span style="color:var(--accent-green);font-weight:bold">✅ DUMP RECEIVED</span>';
-                        window.lcdSafeUpdate(lcdText, okHtml)
+                        const okHtml = '<span style="color:var(--accent-green);font-weight:bold">✅ DUMP RECEIVED</span>';
+                        window.lcdSafeUpdate(lcdText, okHtml);
                     }
                 } else {
                     console.warn('[RequestHW] No response from hardware');
                     if (lcdText) {
-                        var failHtml = '<span style="color:var(--color-danger);font-weight:bold">❌ NO RESPONSE</span>';
-                        window.lcdSafeUpdate(lcdText, failHtml)
+                        const failHtml = '<span style="color:var(--color-danger);font-weight:bold">❌ NO RESPONSE</span>';
+                        window.lcdSafeUpdate(lcdText, failHtml);
                     }
                 }
             });
@@ -258,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    var kbShortcutsIcon = document.getElementById('keyboard-shortcuts-icon');
+    const kbShortcutsIcon = document.getElementById('keyboard-shortcuts-icon');
     if (kbShortcutsIcon) {
         kbShortcutsIcon.addEventListener('click', function(e) {
             e.preventDefault();
@@ -280,10 +288,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('#menu-dump-midi')) {
             e.preventDefault();
             if (window.dualMidiBridge) {
-                window.dualMidiBridge.requestMidiDump("edit");
+                window.dualMidiBridge.requestMidiDump('edit');
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
-                    const html = `<span style="font-size:10px; opacity:0.6;">REQUESTING...</span><br><strong>MIDI DUMP</strong><br><span style="font-size:11px; color:var(--color-gold);">EDIT BUFFER REQ</span>`;
+                    const html = '<span style="font-size:10px; opacity:0.6;">REQUESTING...</span><br><strong>MIDI DUMP</strong><br><span style="font-size:11px; color:var(--color-gold);">EDIT BUFFER REQ</span>';
                     window.lcdSafeUpdate(lcdText, html);
                 }
             }
@@ -297,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const polychordBtnEl = document.getElementById('programmer-polychord-btn');
 
     function setButtonInactive(el, mixColor, accentColor) {
-        if (!el) return;
+        if (!el) {return;}
         el.style.background = `color-mix(in srgb, var(${mixColor}) 20%, transparent)`;
         el.style.borderColor = `var(${accentColor})`;
         el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.4)';
@@ -311,10 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let isPolyChordOn = false;
 
         if (window.dualMidiBridge && window.dualMidiBridge.parameterCache) {
-            isArpOn = window.dualMidiBridge.parameterCache["arp_enable"] > 0.5;
-            isSeqOn = window.dualMidiBridge.parameterCache["seq_enable"] > 0.5;
-            isChordMemOn = window.dualMidiBridge.parameterCache["chord_enable"] > 0.5;
-            isPolyChordOn = window.dualMidiBridge.parameterCache["poly_chord_enable"] > 0.5;
+            isArpOn = window.dualMidiBridge.parameterCache['arp_enable'] > 0.5;
+            isSeqOn = window.dualMidiBridge.parameterCache['seq_enable'] > 0.5;
+            isChordMemOn = window.dualMidiBridge.parameterCache['chord_enable'] > 0.5;
+            isPolyChordOn = window.dualMidiBridge.parameterCache['poly_chord_enable'] > 0.5;
         }
 
         if (!isArpOn && !isSeqOn && !isChordMemOn && !isPolyChordOn) {
@@ -328,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let bpm = 120;
         if (window.dualMidiBridge && window.dualMidiBridge.parameterCache) {
-            const arpRateVal = window.dualMidiBridge.parameterCache["arp_rate"];
+            const arpRateVal = window.dualMidiBridge.parameterCache['arp_rate'];
             if (typeof arpRateVal !== 'undefined') {
                 bpm = 20 + arpRateVal * 220;
             }
@@ -357,26 +365,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (seqBtnEl) {
             if (isSeqOn) {
-                if (window._lastSeqStep === undefined) window._lastSeqStep = -1;
-                var currentSeqStep = window.dualMidiBridge && window.dualMidiBridge.parameterCache
+                if (window._lastSeqStep === undefined) {window._lastSeqStep = -1;}
+                const currentSeqStep = window.dualMidiBridge && window.dualMidiBridge.parameterCache
                     ? window.dualMidiBridge.parameterCache['seq_current_step']
                     : undefined;
-                var seqStepChanged = currentSeqStep !== undefined && currentSeqStep !== window._lastSeqStep;
+                const seqStepChanged = currentSeqStep !== undefined && currentSeqStep !== window._lastSeqStep;
                 if (seqStepChanged) {
                     window._lastSeqStep = currentSeqStep;
                     window._seqPulseTime = timestamp;
                 }
                 
-                var seqPulseAge = timestamp - (window._seqPulseTime || 0);
-                var seqStepPulseMs = 200;
-                var isEngRunning = window.dualMidiBridge && window.dualMidiBridge._seqEngine
+                const seqPulseAge = timestamp - (window._seqPulseTime || 0);
+                const seqStepPulseMs = 200;
+                const isEngRunning = window.dualMidiBridge && window.dualMidiBridge._seqEngine
                     ? window.dualMidiBridge._seqEngine.running
                     : false;
                 
                 if (seqPulseAge < seqStepPulseMs && isEngRunning) {
-                    var pulseFade = seqPulseAge / seqStepPulseMs;
-                    var brightness = 60 - pulseFade * 35;
-                    var glowSize = 14 - pulseFade * 10;
+                    const pulseFade = seqPulseAge / seqStepPulseMs;
+                    const brightness = 60 - pulseFade * 35;
+                    const glowSize = 14 - pulseFade * 10;
                     seqBtnEl.style.background = 'color-mix(in srgb, var(--accent-pink) ' + brightness.toFixed(0) + '%, transparent)';
                     seqBtnEl.style.borderColor = 'var(--accent-pink)';
                     seqBtnEl.style.boxShadow = '0 0 ' + glowSize.toFixed(1) + 'px var(--accent-pink)';
@@ -440,13 +448,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 1. INICIALIZACIÓN DE SLIDERS, KNOBS Y LEDS
 function initUIControls() {
-    let _lcdLastParam = null;
+    const _lcdLastParam = null;
 
     function _getLcdTimeoutMs() {
-        var saved = localStorage.getItem('abd-eep-lcd-timeout');
-        if (saved === null) return 2000;
-        if (saved === 'off') return null;
-        var ms = parseInt(saved, 10);
+        const saved = localStorage.getItem('abd-eep-lcd-timeout');
+        if (saved === null) {return 2000;}
+        if (saved === 'off') {return null;}
+        const ms = parseInt(saved, 10);
         return isNaN(ms) ? 2000 : ms;
     }
 
@@ -476,120 +484,120 @@ function initUIControls() {
                 window.dualMidiBridge.setParameter(paramId, pct);
                 
                 const midiMappings = {
-                    "lfo1_rate": "NRPN 0:00 (CC 16)",
-                    "lfo1_delay": "NRPN 0:01 (CC 17)",
-                    "lfo1_shape": "NRPN 0:02",
-                    "lfo1_key_sync": "NRPN 0:03",
-                    "lfo1_arp_sync": "NRPN 0:04",
-                    "lfo1_mono_mode": "NRPN 0:05",
-                    "lfo1_slew": "NRPN 0:06",
-                    "lfo2_rate": "NRPN 0:07 (CC 18)",
-                    "lfo2_delay": "NRPN 0:08 (CC 19)",
-                    "lfo2_shape": "NRPN 0:09",
-                    "lfo2_key_sync": "NRPN 0:10",
-                    "lfo2_arp_sync": "NRPN 0:11",
-                    "lfo2_mono_mode": "NRPN 0:12",
-                    "lfo2_slew": "NRPN 0:13",
-                    "osc1_range": "NRPN 0:14",
-                    "osc1_square_enable": "NRPN 0:18",
-                    "osc1_saw_enable": "NRPN 0:19",
-                    "osc_sync_enable": "NRPN 0:20",
-                    "osc1_pitch_mod": "NRPN 0:21 (CC 20)",
-                    "osc1_pwm_amount": "NRPN 0:25 (CC 21)",
-                    "osc2_range": "NRPN 0:15",
-                    "osc2_level": "NRPN 0:26 (CC 26)",
-                    "osc2_pitch": "NRPN 0:27 (CC 25)",
-                    "osc2_tone_mod": "NRPN 0:28 (CC 24)",
-                    "osc2_pitch_mod": "NRPN 0:29 (CC 23)",
-                    "noise_level": "NRPN 0:33 (CC 27)",
-                    "global_portamento": "NRPN 0:34 (CC 5)",
-                    "porta_mode": "NRPN 0:35",
-                    "pitch_bend_up": "NRPN 0:36",
-                    "pitch_bend_down": "NRPN 0:37",
-                    "vcf_cutoff": "NRPN 0:39 (CC 29)",
-                    "hpf_cutoff": "NRPN 0:40 (CC 35)",
-                    "vcf_resonance": "NRPN 0:41 (CC 30)",
-                    "vcf_env_depth": "NRPN 0:42 (CC 31)",
-                    "vcf_env_vel": "NRPN 0:43",
-                    "vcf_pitch_bend": "NRPN 0:44",
-                    "vcf_lfo_depth": "NRPN 0:45 (CC 33)",
-                    "vcf_lfo_select": "NRPN 0:46",
-                    "vcf_aftertouch_lfo": "NRPN 0:47",
-                    "vcf_modwheel_lfo": "NRPN 0:48",
-                    "vcf_key_tracking": "NRPN 0:49 (CC 34)",
-                    "vcf_env_polarity": "NRPN 0:50",
-                    "vcf_pole_mode": "NRPN 0:51",
-                    "hpf_boost_enable": "NRPN 0:52",
-                    "env1_attack": "NRPN 0:53 (CC 37)",
-                    "env1_decay": "NRPN 0:54 (CC 39)",
-                    "env1_sustain": "NRPN 0:55 (CC 40)",
-                    "env1_release": "NRPN 0:56 (CC 41)",
-                    "env1_trigger_mode": "NRPN 0:57",
-                    "env1_attack_curve": "NRPN 0:58",
-                    "env1_decay_curve": "NRPN 0:59",
-                    "env1_sustain_curve": "NRPN 0:60",
-                    "env1_release_curve": "NRPN 0:61",
-                    "env2_attack": "NRPN 0:62 (CC 42)",
-                    "env2_decay": "NRPN 0:63 (CC 43)",
-                    "env2_sustain": "NRPN 0:64 (CC 44)",
-                    "env2_release": "NRPN 0:65 (CC 45)",
-                    "env2_trigger_mode": "NRPN 0:66",
-                    "env2_attack_curve": "NRPN 0:67",
-                    "env2_decay_curve": "NRPN 0:68",
-                    "env2_sustain_curve": "NRPN 0:69",
-                    "env2_release_curve": "NRPN 0:70",
-                    "env3_attack": "NRPN 0:71 (CC 46)",
-                    "env3_decay": "NRPN 0:72 (CC 47)",
-                    "env3_sustain": "NRPN 0:73 (CC 48)",
-                    "env3_release": "NRPN 0:74 (CC 49)",
-                    "env3_trigger_mode": "NRPN 0:75",
-                    "env3_attack_curve": "NRPN 0:76",
-                    "env3_decay_curve": "NRPN 0:77",
-                    "env3_sustain_curve": "NRPN 0:78",
-                    "env3_release_curve": "NRPN 0:79",
-                    "vca_level": "NRPN 0:80 (CC 36)",
-                    "vca_env_depth": "NRPN 0:81",
-                    "vca_vel_sens": "NRPN 0:82",
-                    "vca_pan_spread": "NRPN 0:83",
-                    "note_priority": "NRPN 0:84",
-                    "voice_mode": "NRPN 0:85",
-                    "trigger_mode": "NRPN 0:86",
-                    "unison_detune": "NRPN 0:87 (CC 28)",
-                    "voice_drift": "NRPN 0:88",
-                    "param_drift": "NRPN 0:89",
-                    "drift_rate": "NRPN 0:90",
-                    "porta_osc_bal": "NRPN 0:91",
-                    "osc_key_reset": "NRPN 0:92",
-                    "arp_enable": "NRPN 1:27",
-                    "arp_mode": "NRPN 1:28",
-                    "arp_rate": "NRPN 1:29 (CC 12)",
-                    "arp_clock_divider": "NRPN 1:30",
-                    "arp_key_sync": "NRPN 1:31",
-                    "arp_gate_time": "NRPN 1:32 (CC 13)",
-                    "arp_gate": "NRPN 1:32 (CC 13)",
-                    "arp_hold": "NRPN 1:33",
-                    "arp_pattern": "NRPN 1:34",
-                    "arp_swing": "NRPN 1:35",
-                    "arp_octave": "NRPN 1:36",
-                    "seq_enable": "NRPN 0:117",
-                    "seq_clock": "NRPN 0:118",
-                    "seq_length": "NRPN 0:119",
-                    "seq_swing": "NRPN 0:120",
-                    "seq_key_loop": "NRPN 0:121",
-                    "seq_slew_rate": "NRPN 0:122",
-                    "fx_routing": "NRPN 1:37",
-                    "fx1_type": "NRPN 1:38",
-                    "fx1_gain": "NRPN 1:90",
-                    "fx2_type": "NRPN 1:51",
-                    "fx2_gain": "NRPN 1:91",
-                    "fx3_type": "NRPN 1:64",
-                    "fx3_gain": "NRPN 1:92",
-                    "fx4_type": "NRPN 1:77",
-                    "fx4_gain": "NRPN 1:93",
-                    "fx_mode": "NRPN 1:94"
+                    'lfo1_rate': 'NRPN 0:00 (CC 16)',
+                    'lfo1_delay': 'NRPN 0:01 (CC 17)',
+                    'lfo1_shape': 'NRPN 0:02',
+                    'lfo1_key_sync': 'NRPN 0:03',
+                    'lfo1_arp_sync': 'NRPN 0:04',
+                    'lfo1_mono_mode': 'NRPN 0:05',
+                    'lfo1_slew': 'NRPN 0:06',
+                    'lfo2_rate': 'NRPN 0:07 (CC 18)',
+                    'lfo2_delay': 'NRPN 0:08 (CC 19)',
+                    'lfo2_shape': 'NRPN 0:09',
+                    'lfo2_key_sync': 'NRPN 0:10',
+                    'lfo2_arp_sync': 'NRPN 0:11',
+                    'lfo2_mono_mode': 'NRPN 0:12',
+                    'lfo2_slew': 'NRPN 0:13',
+                    'osc1_range': 'NRPN 0:14',
+                    'osc1_square_enable': 'NRPN 0:18',
+                    'osc1_saw_enable': 'NRPN 0:19',
+                    'osc_sync_enable': 'NRPN 0:20',
+                    'osc1_pitch_mod': 'NRPN 0:21 (CC 20)',
+                    'osc1_pwm_amount': 'NRPN 0:25 (CC 21)',
+                    'osc2_range': 'NRPN 0:15',
+                    'osc2_level': 'NRPN 0:26 (CC 26)',
+                    'osc2_pitch': 'NRPN 0:27 (CC 25)',
+                    'osc2_tone_mod': 'NRPN 0:28 (CC 24)',
+                    'osc2_pitch_mod': 'NRPN 0:29 (CC 23)',
+                    'noise_level': 'NRPN 0:33 (CC 27)',
+                    'global_portamento': 'NRPN 0:34 (CC 5)',
+                    'porta_mode': 'NRPN 0:35',
+                    'pitch_bend_up': 'NRPN 0:36',
+                    'pitch_bend_down': 'NRPN 0:37',
+                    'vcf_cutoff': 'NRPN 0:39 (CC 29)',
+                    'hpf_cutoff': 'NRPN 0:40 (CC 35)',
+                    'vcf_resonance': 'NRPN 0:41 (CC 30)',
+                    'vcf_env_depth': 'NRPN 0:42 (CC 31)',
+                    'vcf_env_vel': 'NRPN 0:43',
+                    'vcf_pitch_bend': 'NRPN 0:44',
+                    'vcf_lfo_depth': 'NRPN 0:45 (CC 33)',
+                    'vcf_lfo_select': 'NRPN 0:46',
+                    'vcf_aftertouch_lfo': 'NRPN 0:47',
+                    'vcf_modwheel_lfo': 'NRPN 0:48',
+                    'vcf_key_tracking': 'NRPN 0:49 (CC 34)',
+                    'vcf_env_polarity': 'NRPN 0:50',
+                    'vcf_pole_mode': 'NRPN 0:51',
+                    'hpf_boost_enable': 'NRPN 0:52',
+                    'env1_attack': 'NRPN 0:53 (CC 37)',
+                    'env1_decay': 'NRPN 0:54 (CC 39)',
+                    'env1_sustain': 'NRPN 0:55 (CC 40)',
+                    'env1_release': 'NRPN 0:56 (CC 41)',
+                    'env1_trigger_mode': 'NRPN 0:57',
+                    'env1_attack_curve': 'NRPN 0:58',
+                    'env1_decay_curve': 'NRPN 0:59',
+                    'env1_sustain_curve': 'NRPN 0:60',
+                    'env1_release_curve': 'NRPN 0:61',
+                    'env2_attack': 'NRPN 0:62 (CC 42)',
+                    'env2_decay': 'NRPN 0:63 (CC 43)',
+                    'env2_sustain': 'NRPN 0:64 (CC 44)',
+                    'env2_release': 'NRPN 0:65 (CC 45)',
+                    'env2_trigger_mode': 'NRPN 0:66',
+                    'env2_attack_curve': 'NRPN 0:67',
+                    'env2_decay_curve': 'NRPN 0:68',
+                    'env2_sustain_curve': 'NRPN 0:69',
+                    'env2_release_curve': 'NRPN 0:70',
+                    'env3_attack': 'NRPN 0:71 (CC 46)',
+                    'env3_decay': 'NRPN 0:72 (CC 47)',
+                    'env3_sustain': 'NRPN 0:73 (CC 48)',
+                    'env3_release': 'NRPN 0:74 (CC 49)',
+                    'env3_trigger_mode': 'NRPN 0:75',
+                    'env3_attack_curve': 'NRPN 0:76',
+                    'env3_decay_curve': 'NRPN 0:77',
+                    'env3_sustain_curve': 'NRPN 0:78',
+                    'env3_release_curve': 'NRPN 0:79',
+                    'vca_level': 'NRPN 0:80 (CC 36)',
+                    'vca_env_depth': 'NRPN 0:81',
+                    'vca_vel_sens': 'NRPN 0:82',
+                    'vca_pan_spread': 'NRPN 0:83',
+                    'note_priority': 'NRPN 0:84',
+                    'voice_mode': 'NRPN 0:85',
+                    'trigger_mode': 'NRPN 0:86',
+                    'unison_detune': 'NRPN 0:87 (CC 28)',
+                    'voice_drift': 'NRPN 0:88',
+                    'param_drift': 'NRPN 0:89',
+                    'drift_rate': 'NRPN 0:90',
+                    'porta_osc_bal': 'NRPN 0:91',
+                    'osc_key_reset': 'NRPN 0:92',
+                    'arp_enable': 'NRPN 1:27',
+                    'arp_mode': 'NRPN 1:28',
+                    'arp_rate': 'NRPN 1:29 (CC 12)',
+                    'arp_clock_divider': 'NRPN 1:30',
+                    'arp_key_sync': 'NRPN 1:31',
+                    'arp_gate_time': 'NRPN 1:32 (CC 13)',
+                    'arp_gate': 'NRPN 1:32 (CC 13)',
+                    'arp_hold': 'NRPN 1:33',
+                    'arp_pattern': 'NRPN 1:34',
+                    'arp_swing': 'NRPN 1:35',
+                    'arp_octave': 'NRPN 1:36',
+                    'seq_enable': 'NRPN 0:117',
+                    'seq_clock': 'NRPN 0:118',
+                    'seq_length': 'NRPN 0:119',
+                    'seq_swing': 'NRPN 0:120',
+                    'seq_key_loop': 'NRPN 0:121',
+                    'seq_slew_rate': 'NRPN 0:122',
+                    'fx_routing': 'NRPN 1:37',
+                    'fx1_type': 'NRPN 1:38',
+                    'fx1_gain': 'NRPN 1:90',
+                    'fx2_type': 'NRPN 1:51',
+                    'fx2_gain': 'NRPN 1:91',
+                    'fx3_type': 'NRPN 1:64',
+                    'fx3_gain': 'NRPN 1:92',
+                    'fx4_type': 'NRPN 1:77',
+                    'fx4_gain': 'NRPN 1:93',
+                    'fx_mode': 'NRPN 1:94'
                 };
                 
-                const midiInfo = midiMappings[paramId] || "MIDI CONTROLLER";
+                const midiInfo = midiMappings[paramId] || 'MIDI CONTROLLER';
                 
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
@@ -646,6 +654,9 @@ function initUIControls() {
                 lfoSelectBtn.style.color = 'var(--accent-teal)';
             }
             window.updateLfoSlidersFromCurrentPreset();
+            if (typeof window.syncDetailPanelControls === 'function') {
+                window.syncDetailPanelControls();
+            }
         });
     }
 
@@ -696,9 +707,9 @@ function initUIControls() {
         btn.addEventListener('click', () => {
             envBtns.forEach(b => {
                 b.classList.remove('active');
-                b.style.background = "var(--bg-hover)";
-                b.style.borderColor = "var(--border-dim)";
-                b.style.color = "var(--text-labels)";
+                b.style.background = 'var(--bg-hover)';
+                b.style.borderColor = 'var(--border-dim)';
+                b.style.color = 'var(--text-labels)';
             });
 
             btn.classList.add('active');
@@ -710,25 +721,25 @@ function initUIControls() {
             const relUnit = document.getElementById('env-ctrl-release');
 
             if (activeEnvNumber === 1) {
-                btn.style.background = "color-mix(in srgb, var(--accent-primary) 15%, transparent)";
-                btn.style.borderColor = "var(--brand-accent)";
-                btn.style.color = "var(--brand-accent)";
+                btn.style.background = 'color-mix(in srgb, var(--accent-primary) 15%, transparent)';
+                btn.style.borderColor = 'var(--brand-accent)';
+                btn.style.color = 'var(--brand-accent)';
                 atkUnit.setAttribute('data-param', 'env1_attack');
                 dcyUnit.setAttribute('data-param', 'env1_decay');
                 susUnit.setAttribute('data-param', 'env1_sustain');
                 relUnit.setAttribute('data-param', 'env1_release');
             } else if (activeEnvNumber === 2) {
-                btn.style.background = "color-mix(in srgb, var(--accent-teal) 15%, transparent)";
-                btn.style.borderColor = "var(--accent-teal)";
-                btn.style.color = "var(--accent-teal)";
+                btn.style.background = 'color-mix(in srgb, var(--accent-teal) 15%, transparent)';
+                btn.style.borderColor = 'var(--accent-teal)';
+                btn.style.color = 'var(--accent-teal)';
                 atkUnit.setAttribute('data-param', 'env2_attack');
                 dcyUnit.setAttribute('data-param', 'env2_decay');
                 susUnit.setAttribute('data-param', 'env2_sustain');
                 relUnit.setAttribute('data-param', 'env2_release');
             } else {
-                btn.style.background = "color-mix(in srgb, var(--accent-pink) 15%, transparent)";
-                btn.style.borderColor = "var(--accent-pink)";
-                btn.style.color = "var(--accent-pink)";
+                btn.style.background = 'color-mix(in srgb, var(--accent-pink) 15%, transparent)';
+                btn.style.borderColor = 'var(--accent-pink)';
+                btn.style.color = 'var(--accent-pink)';
                 atkUnit.setAttribute('data-param', 'env3_attack');
                 dcyUnit.setAttribute('data-param', 'env3_decay');
                 susUnit.setAttribute('data-param', 'env3_sustain');
@@ -743,7 +754,9 @@ function initUIControls() {
     });
 
     document.querySelectorAll('.led').forEach(led => {
-        const paramId = led.closest('[data-param]').getAttribute('data-param');
+        const parent = led.closest('[data-param]');
+        if (!parent) {return;}
+        const paramId = parent.getAttribute('data-param');
         led.addEventListener('click', () => {
             const active = led.classList.toggle('active');
             if (window.dualMidiBridge) {
@@ -755,7 +768,7 @@ function initUIControls() {
     // MIDI PARAMETER CHANGES ROUTER
     if (window.dualMidiBridge) {
         window.dualMidiBridge.onParameterChanged((paramId, val) => {
-            let sliderUnits = Array.from(document.querySelectorAll(`[data-param="${paramId}"] .v-slider`));
+            const sliderUnits = Array.from(document.querySelectorAll(`[data-param="${paramId}"] .v-slider`));
             
             const activeAtkParam = document.getElementById('env-ctrl-attack')?.getAttribute('data-param');
             const activeDcyParam = document.getElementById('env-ctrl-decay')?.getAttribute('data-param');
@@ -764,31 +777,53 @@ function initUIControls() {
             
             if (paramId === activeAtkParam) {
                 const el = document.querySelector('#env-ctrl-attack .v-slider');
-                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
+                if (el && !sliderUnits.includes(el)) {sliderUnits.push(el);}
             }
             if (paramId === activeDcyParam) {
                 const el = document.querySelector('#env-ctrl-decay .v-slider');
-                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
+                if (el && !sliderUnits.includes(el)) {sliderUnits.push(el);}
             }
             if (paramId === activeSusParam) {
                 const el = document.querySelector('#env-ctrl-sustain .v-slider');
-                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
+                if (el && !sliderUnits.includes(el)) {sliderUnits.push(el);}
             }
             if (paramId === activeRelParam) {
                 const el = document.querySelector('#env-ctrl-release .v-slider');
-                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
+                if (el && !sliderUnits.includes(el)) {sliderUnits.push(el);}
             }
 
             const activePitchModParam = document.getElementById('osc-ctrl-pitchmod')?.getAttribute('data-param');
             const activePwmToneParam = document.getElementById('osc-ctrl-pwm-tone')?.getAttribute('data-param');
+            const activeOscPitchParam = document.getElementById('osc-ctrl-pitch')?.getAttribute('data-param');
+            const activeOscLevelParam = document.getElementById('osc-ctrl-level')?.getAttribute('data-param');
             
             if (paramId === activePitchModParam) {
                 const el = document.querySelector('#osc-ctrl-pitchmod .v-slider');
-                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
+                if (el && !sliderUnits.includes(el)) {sliderUnits.push(el);}
             }
             if (paramId === activePwmToneParam) {
                 const el = document.querySelector('#osc-ctrl-pwm-tone .v-slider');
-                if (el && !sliderUnits.includes(el)) sliderUnits.push(el);
+                if (el && !sliderUnits.includes(el)) {sliderUnits.push(el);}
+            }
+            if (paramId === activeOscPitchParam) {
+                const el = document.querySelector('#osc-ctrl-pitch .v-slider');
+                if (el && !sliderUnits.includes(el)) {sliderUnits.push(el);}
+            }
+            if (paramId === activeOscLevelParam) {
+                const el = document.querySelector('#osc-ctrl-level .v-slider');
+                if (el && !sliderUnits.includes(el)) {sliderUnits.push(el);}
+            }
+
+            const activeLfoRateParam = document.getElementById('lfo-ctrl-rate')?.getAttribute('data-param');
+            const activeLfoDelayParam = document.getElementById('lfo-ctrl-delay')?.getAttribute('data-param');
+            
+            if (paramId === activeLfoRateParam) {
+                const el = document.querySelector('#lfo-ctrl-rate .v-slider');
+                if (el && !sliderUnits.includes(el)) {sliderUnits.push(el);}
+            }
+            if (paramId === activeLfoDelayParam) {
+                const el = document.querySelector('#lfo-ctrl-delay .v-slider');
+                if (el && !sliderUnits.includes(el)) {sliderUnits.push(el);}
             }
 
             sliderUnits.forEach(sliderUnit => {
@@ -806,28 +841,28 @@ function initUIControls() {
                 ledUnit.classList.toggle('active', val > 0.5);
             });
 
-            if (paramId === "hpf_boost_enable") {
+            if (paramId === 'hpf_boost_enable') {
                 const boostBtn = document.getElementById('hpf-boost-btn');
                 if (boostBtn) {
                     const active = val > 0.5;
-                    boostBtn.innerText = active ? "BOOST ON" : "BOOST OFF";
-                    boostBtn.style.color = active ? "var(--brand-accent)" : "var(--text-labels)";
-                    boostBtn.style.borderColor = active ? "var(--brand-accent)" : "var(--border-dim)";
-                    boostBtn.style.background = active ? "color-mix(in srgb, var(--accent-primary) 15%, transparent)" : "var(--bg-hover)";
+                    boostBtn.innerText = active ? 'BOOST ON' : 'BOOST OFF';
+                    boostBtn.style.color = active ? 'var(--brand-accent)' : 'var(--text-labels)';
+                    boostBtn.style.borderColor = active ? 'var(--brand-accent)' : 'var(--border-dim)';
+                    boostBtn.style.background = active ? 'color-mix(in srgb, var(--accent-primary) 15%, transparent)' : 'var(--bg-hover)';
                 }
             }
 
-            if (paramId === "vca_mode") {
+            if (paramId === 'vca_mode') {
                 try {
                     localStorage.setItem('abd-eep-vca-mode', val > 0.5 ? 'ballsy' : 'transparent');
                 } catch(e) {}
                 const modeBtn = document.getElementById('vca-mode-btn');
                 if (modeBtn) {
                     const active = val > 0.5;
-                    modeBtn.innerText = active ? "BALLSY" : "TRANSPARENT";
-                    modeBtn.style.color = active ? "var(--accent-teal)" : "var(--text-labels)";
-                    modeBtn.style.borderColor = active ? "var(--accent-teal)" : "var(--border-dim)";
-                    modeBtn.style.background = active ? "color-mix(in srgb, var(--accent-teal) 15%, transparent)" : "var(--bg-hover)";
+                    modeBtn.innerText = active ? 'BALLSY' : 'TRANSPARENT';
+                    modeBtn.style.color = active ? 'var(--accent-teal)' : 'var(--text-labels)';
+                    modeBtn.style.borderColor = active ? 'var(--accent-teal)' : 'var(--border-dim)';
+                    modeBtn.style.background = active ? 'color-mix(in srgb, var(--accent-teal) 15%, transparent)' : 'var(--bg-hover)';
                 }
             }
             
@@ -836,123 +871,123 @@ function initUIControls() {
                 window._twBank = (window.currentActiveBank || '').toUpperCase();
             } else if (paramId !== 'seq_current_value' && paramId !== 'seq_current_step' && paramId !== 'seq_current_step_skip') {
                 const midiMappings = {
-                    "lfo1_rate": "NRPN 0:00 (CC 16)",
-                    "lfo1_delay": "NRPN 0:01 (CC 17)",
-                    "lfo1_shape": "NRPN 0:02",
-                    "lfo1_key_sync": "NRPN 0:03",
-                    "lfo1_arp_sync": "NRPN 0:04",
-                    "lfo1_mono_mode": "NRPN 0:05",
-                    "lfo1_slew": "NRPN 0:06",
-                    "lfo2_rate": "NRPN 0:07 (CC 18)",
-                    "lfo2_delay": "NRPN 0:08 (CC 19)",
-                    "lfo2_shape": "NRPN 0:09",
-                    "lfo2_key_sync": "NRPN 0:10",
-                    "lfo2_arp_sync": "NRPN 0:11",
-                    "lfo2_mono_mode": "NRPN 0:12",
-                    "lfo2_slew": "NRPN 0:13",
-                    "osc1_range": "NRPN 0:14",
-                    "osc1_square_enable": "NRPN 0:18",
-                    "osc1_saw_enable": "NRPN 0:19",
-                    "osc_sync_enable": "NRPN 0:20",
-                    "osc1_pitch_mod": "NRPN 0:21 (CC 20)",
-                    "osc1_pwm_amount": "NRPN 0:25 (CC 21)",
-                    "osc2_range": "NRPN 0:15",
-                    "osc2_level": "NRPN 0:26 (CC 26)",
-                    "osc2_pitch": "NRPN 0:27 (CC 25)",
-                    "osc2_tone_mod": "NRPN 0:28 (CC 24)",
-                    "osc2_pitch_mod": "NRPN 0:29 (CC 23)",
-                    "noise_level": "NRPN 0:33 (CC 27)",
-                    "global_portamento": "NRPN 0:34 (CC 5)",
-                    "porta_mode": "NRPN 0:35",
-                    "pitch_bend_up": "NRPN 0:36",
-                    "pitch_bend_down": "NRPN 0:37",
-                    "vcf_cutoff": "NRPN 0:39 (CC 29)",
-                    "hpf_cutoff": "NRPN 0:40 (CC 35)",
-                    "vcf_resonance": "NRPN 0:41 (CC 30)",
-                    "vcf_env_depth": "NRPN 0:42 (CC 31)",
-                    "vcf_env_vel": "NRPN 0:43",
-                    "vcf_pitch_bend": "NRPN 0:44",
-                    "vcf_lfo_depth": "NRPN 0:45 (CC 33)",
-                    "vcf_lfo_select": "NRPN 0:46",
-                    "vcf_aftertouch_lfo": "NRPN 0:47",
-                    "vcf_modwheel_lfo": "NRPN 0:48",
-                    "vcf_key_tracking": "NRPN 0:49 (CC 34)",
-                    "vcf_env_polarity": "NRPN 0:50",
-                    "vcf_pole_mode": "NRPN 0:51",
-                    "hpf_boost_enable": "NRPN 0:52",
-                    "env1_attack": "NRPN 0:53 (CC 37)",
-                    "env1_decay": "NRPN 0:54 (CC 39)",
-                    "env1_sustain": "NRPN 0:55 (CC 40)",
-                    "env1_release": "NRPN 0:56 (CC 41)",
-                    "env1_trigger_mode": "NRPN 0:57",
-                    "env1_attack_curve": "NRPN 0:58",
-                    "env1_decay_curve": "NRPN 0:59",
-                    "env1_sustain_curve": "NRPN 0:60",
-                    "env1_release_curve": "NRPN 0:61",
-                    "env2_attack": "NRPN 0:62 (CC 42)",
-                    "env2_decay": "NRPN 0:63 (CC 43)",
-                    "env2_sustain": "NRPN 0:64 (CC 44)",
-                    "env2_release": "NRPN 0:65 (CC 45)",
-                    "env2_trigger_mode": "NRPN 0:66",
-                    "env2_attack_curve": "NRPN 0:67",
-                    "env2_decay_curve": "NRPN 0:68",
-                    "env2_sustain_curve": "NRPN 0:69",
-                    "env2_release_curve": "NRPN 0:70",
-                    "env3_attack": "NRPN 0:71 (CC 46)",
-                    "env3_decay": "NRPN 0:72 (CC 47)",
-                    "env3_sustain": "NRPN 0:73 (CC 48)",
-                    "env3_release": "NRPN 0:74 (CC 49)",
-                    "env3_trigger_mode": "NRPN 0:75",
-                    "env3_attack_curve": "NRPN 0:76",
-                    "env3_decay_curve": "NRPN 0:77",
-                    "env3_sustain_curve": "NRPN 0:78",
-                    "env3_release_curve": "NRPN 0:79",
-                    "vca_level": "NRPN 0:80 (CC 36)",
-                    "vca_env_depth": "NRPN 0:81",
-                    "vca_vel_sens": "NRPN 0:82",
-                    "vca_pan_spread": "NRPN 0:83",
-                    "note_priority": "NRPN 0:84",
-                    "voice_mode": "NRPN 0:85",
-                    "trigger_mode": "NRPN 0:86",
-                    "unison_detune": "NRPN 0:87 (CC 28)",
-                    "voice_drift": "NRPN 0:88",
-                    "param_drift": "NRPN 0:89",
-                    "drift_rate": "NRPN 0:90",
-                    "porta_osc_bal": "NRPN 0:91",
-                    "osc_key_reset": "NRPN 0:92",
-                    "arp_enable": "NRPN 1:27",
-                    "arp_mode": "NRPN 1:28",
-                    "arp_rate": "NRPN 1:29 (CC 12)",
-                    "arp_clock_divider": "NRPN 1:30",
-                    "arp_key_sync": "NRPN 1:31",
-                    "arp_gate_time": "NRPN 1:32 (CC 13)",
-                    "arp_gate": "NRPN 1:32 (CC 13)",
-                    "arp_hold": "NRPN 1:33",
-                    "arp_pattern": "NRPN 1:34",
-                    "arp_swing": "NRPN 1:35",
-                    "arp_octave": "NRPN 1:36",
-                    "seq_enable": "NRPN 0:117",
-                    "seq_clock": "NRPN 0:118",
-                    "seq_length": "NRPN 0:119",
-                    "seq_swing": "NRPN 0:120",
-                    "seq_key_loop": "NRPN 0:121",
-                    "seq_slew_rate": "NRPN 0:122",
-                    "fx_routing": "NRPN 1:37",
-                    "fx1_type": "NRPN 1:38",
-                    "fx1_gain": "NRPN 1:90",
-                    "fx2_type": "NRPN 1:51",
-                    "fx2_gain": "NRPN 1:91",
-                    "fx3_type": "NRPN 1:64",
-                    "fx3_gain": "NRPN 1:92",
-                    "fx4_type": "NRPN 1:77",
-                    "fx4_gain": "NRPN 1:93",
-                    "fx_mode": "NRPN 1:94"
+                    'lfo1_rate': 'NRPN 0:00 (CC 16)',
+                    'lfo1_delay': 'NRPN 0:01 (CC 17)',
+                    'lfo1_shape': 'NRPN 0:02',
+                    'lfo1_key_sync': 'NRPN 0:03',
+                    'lfo1_arp_sync': 'NRPN 0:04',
+                    'lfo1_mono_mode': 'NRPN 0:05',
+                    'lfo1_slew': 'NRPN 0:06',
+                    'lfo2_rate': 'NRPN 0:07 (CC 18)',
+                    'lfo2_delay': 'NRPN 0:08 (CC 19)',
+                    'lfo2_shape': 'NRPN 0:09',
+                    'lfo2_key_sync': 'NRPN 0:10',
+                    'lfo2_arp_sync': 'NRPN 0:11',
+                    'lfo2_mono_mode': 'NRPN 0:12',
+                    'lfo2_slew': 'NRPN 0:13',
+                    'osc1_range': 'NRPN 0:14',
+                    'osc1_square_enable': 'NRPN 0:18',
+                    'osc1_saw_enable': 'NRPN 0:19',
+                    'osc_sync_enable': 'NRPN 0:20',
+                    'osc1_pitch_mod': 'NRPN 0:21 (CC 20)',
+                    'osc1_pwm_amount': 'NRPN 0:25 (CC 21)',
+                    'osc2_range': 'NRPN 0:15',
+                    'osc2_level': 'NRPN 0:26 (CC 26)',
+                    'osc2_pitch': 'NRPN 0:27 (CC 25)',
+                    'osc2_tone_mod': 'NRPN 0:28 (CC 24)',
+                    'osc2_pitch_mod': 'NRPN 0:29 (CC 23)',
+                    'noise_level': 'NRPN 0:33 (CC 27)',
+                    'global_portamento': 'NRPN 0:34 (CC 5)',
+                    'porta_mode': 'NRPN 0:35',
+                    'pitch_bend_up': 'NRPN 0:36',
+                    'pitch_bend_down': 'NRPN 0:37',
+                    'vcf_cutoff': 'NRPN 0:39 (CC 29)',
+                    'hpf_cutoff': 'NRPN 0:40 (CC 35)',
+                    'vcf_resonance': 'NRPN 0:41 (CC 30)',
+                    'vcf_env_depth': 'NRPN 0:42 (CC 31)',
+                    'vcf_env_vel': 'NRPN 0:43',
+                    'vcf_pitch_bend': 'NRPN 0:44',
+                    'vcf_lfo_depth': 'NRPN 0:45 (CC 33)',
+                    'vcf_lfo_select': 'NRPN 0:46',
+                    'vcf_aftertouch_lfo': 'NRPN 0:47',
+                    'vcf_modwheel_lfo': 'NRPN 0:48',
+                    'vcf_key_tracking': 'NRPN 0:49 (CC 34)',
+                    'vcf_env_polarity': 'NRPN 0:50',
+                    'vcf_pole_mode': 'NRPN 0:51',
+                    'hpf_boost_enable': 'NRPN 0:52',
+                    'env1_attack': 'NRPN 0:53 (CC 37)',
+                    'env1_decay': 'NRPN 0:54 (CC 39)',
+                    'env1_sustain': 'NRPN 0:55 (CC 40)',
+                    'env1_release': 'NRPN 0:56 (CC 41)',
+                    'env1_trigger_mode': 'NRPN 0:57',
+                    'env1_attack_curve': 'NRPN 0:58',
+                    'env1_decay_curve': 'NRPN 0:59',
+                    'env1_sustain_curve': 'NRPN 0:60',
+                    'env1_release_curve': 'NRPN 0:61',
+                    'env2_attack': 'NRPN 0:62 (CC 42)',
+                    'env2_decay': 'NRPN 0:63 (CC 43)',
+                    'env2_sustain': 'NRPN 0:64 (CC 44)',
+                    'env2_release': 'NRPN 0:65 (CC 45)',
+                    'env2_trigger_mode': 'NRPN 0:66',
+                    'env2_attack_curve': 'NRPN 0:67',
+                    'env2_decay_curve': 'NRPN 0:68',
+                    'env2_sustain_curve': 'NRPN 0:69',
+                    'env2_release_curve': 'NRPN 0:70',
+                    'env3_attack': 'NRPN 0:71 (CC 46)',
+                    'env3_decay': 'NRPN 0:72 (CC 47)',
+                    'env3_sustain': 'NRPN 0:73 (CC 48)',
+                    'env3_release': 'NRPN 0:74 (CC 49)',
+                    'env3_trigger_mode': 'NRPN 0:75',
+                    'env3_attack_curve': 'NRPN 0:76',
+                    'env3_decay_curve': 'NRPN 0:77',
+                    'env3_sustain_curve': 'NRPN 0:78',
+                    'env3_release_curve': 'NRPN 0:79',
+                    'vca_level': 'NRPN 0:80 (CC 36)',
+                    'vca_env_depth': 'NRPN 0:81',
+                    'vca_vel_sens': 'NRPN 0:82',
+                    'vca_pan_spread': 'NRPN 0:83',
+                    'note_priority': 'NRPN 0:84',
+                    'voice_mode': 'NRPN 0:85',
+                    'trigger_mode': 'NRPN 0:86',
+                    'unison_detune': 'NRPN 0:87 (CC 28)',
+                    'voice_drift': 'NRPN 0:88',
+                    'param_drift': 'NRPN 0:89',
+                    'drift_rate': 'NRPN 0:90',
+                    'porta_osc_bal': 'NRPN 0:91',
+                    'osc_key_reset': 'NRPN 0:92',
+                    'arp_enable': 'NRPN 1:27',
+                    'arp_mode': 'NRPN 1:28',
+                    'arp_rate': 'NRPN 1:29 (CC 12)',
+                    'arp_clock_divider': 'NRPN 1:30',
+                    'arp_key_sync': 'NRPN 1:31',
+                    'arp_gate_time': 'NRPN 1:32 (CC 13)',
+                    'arp_gate': 'NRPN 1:32 (CC 13)',
+                    'arp_hold': 'NRPN 1:33',
+                    'arp_pattern': 'NRPN 1:34',
+                    'arp_swing': 'NRPN 1:35',
+                    'arp_octave': 'NRPN 1:36',
+                    'seq_enable': 'NRPN 0:117',
+                    'seq_clock': 'NRPN 0:118',
+                    'seq_length': 'NRPN 0:119',
+                    'seq_swing': 'NRPN 0:120',
+                    'seq_key_loop': 'NRPN 0:121',
+                    'seq_slew_rate': 'NRPN 0:122',
+                    'fx_routing': 'NRPN 1:37',
+                    'fx1_type': 'NRPN 1:38',
+                    'fx1_gain': 'NRPN 1:90',
+                    'fx2_type': 'NRPN 1:51',
+                    'fx2_gain': 'NRPN 1:91',
+                    'fx3_type': 'NRPN 1:64',
+                    'fx3_gain': 'NRPN 1:92',
+                    'fx4_type': 'NRPN 1:77',
+                    'fx4_gain': 'NRPN 1:93',
+                    'fx_mode': 'NRPN 1:94'
                 };
-                const midiInfo = midiMappings[paramId] || "MIDI CONTROLLER";
+                const midiInfo = midiMappings[paramId] || 'MIDI CONTROLLER';
 
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
-                    let displayVal = typeof window.formatParamValue === 'function' ? window.formatParamValue(paramId, val) : val.toFixed(2);
+                    const displayVal = typeof window.formatParamValue === 'function' ? window.formatParamValue(paramId, val) : val.toFixed(2);
                     const html = `<span style="font-size:10px; opacity:0.6;">${midiInfo}</span><br><strong>${paramId.toUpperCase()}</strong><br><span style="font-size:15px; color:var(--color-gold);">${displayVal}</span>`;
                     if (typeof window.lcdFadeUpdate === 'function') {
                         window.lcdFadeUpdate(lcdText, html, paramId);
@@ -965,9 +1000,9 @@ function initUIControls() {
     }
 
     function _updateHexByteForParam(paramId, normalizedVal) {
-        if (!window.dualMidiBridge) return;
-        var byteOffset = window.dualMidiBridge.paramToByteOffset[paramId];
-        if (byteOffset === undefined) return;
+        if (!window.dualMidiBridge) {return;}
+        const byteOffset = window.dualMidiBridge.paramToByteOffset[paramId];
+        if (byteOffset === undefined) {return;}
         
         if (!window._liveUnpackedBytes) {
             if (window._lastUnpackedBytes) {
@@ -977,16 +1012,16 @@ function initUIControls() {
             }
         }
         
-        var rawVal = window.dualMidiBridge._normalizedToRaw(byteOffset, normalizedVal);
+        const rawVal = window.dualMidiBridge._normalizedToRaw(byteOffset, normalizedVal);
         window._liveUnpackedBytes[byteOffset] = rawVal;
         
         if (window._lastUnpackedBytes && window._lastUnpackedBytes[byteOffset] !== undefined) {
             window._lastUnpackedBytes[byteOffset] = rawVal;
         }
         
-        var byteEl = document.querySelector('.hex-byte[data-idx="' + byteOffset + '"]');
+        const byteEl = document.querySelector('.hex-byte[data-idx="' + byteOffset + '"]');
         if (byteEl) {
-            var hex = rawVal.toString(16).toUpperCase().padStart(2, '0');
+            const hex = rawVal.toString(16).toUpperCase().padStart(2, '0');
             byteEl.textContent = hex;
             byteEl.classList.add('changed');
             if (byteEl._changeTimer) {
@@ -1002,12 +1037,12 @@ function initUIControls() {
     const hpfBoostBtn = document.getElementById('hpf-boost-btn');
     if (hpfBoostBtn) {
         hpfBoostBtn.addEventListener('click', () => {
-            const cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache["hpf_boost_enable"] : 0.0;
+            const cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['hpf_boost_enable'] : 0.0;
             const active = cacheVal > 0.5;
             const nextVal = active ? 0.0 : 1.0;
             if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter("hpf_boost_enable", nextVal);
-                window.dualMidiBridge.handleParameterChangeFromBackend("hpf_boost_enable", nextVal);
+                window.dualMidiBridge.setParameter('hpf_boost_enable', nextVal);
+                window.dualMidiBridge.handleParameterChangeFromBackend('hpf_boost_enable', nextVal);
             }
         });
     }
@@ -1015,21 +1050,21 @@ function initUIControls() {
     const vcaModeBtn = document.getElementById('vca-mode-btn');
     if (vcaModeBtn) {
         vcaModeBtn.addEventListener('click', () => {
-            const cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache["vca_mode"] : 0.0;
+            const cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['vca_mode'] : 0.0;
             const active = cacheVal > 0.5;
             const nextVal = active ? 0.0 : 1.0;
             if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter("vca_mode", nextVal);
-                window.dualMidiBridge.handleParameterChangeFromBackend("vca_mode", nextVal);
+                window.dualMidiBridge.setParameter('vca_mode', nextVal);
+                window.dualMidiBridge.handleParameterChangeFromBackend('vca_mode', nextVal);
             }
         });
     }
 }
 
 function updateSliderPosition(sliderUnit, val) {
-    if (!sliderUnit) return;
+    if (!sliderUnit) {return;}
     const handle = sliderUnit.querySelector('.handle');
-    if (!handle) return;
+    if (!handle) {return;}
     const rect = sliderUnit.getBoundingClientRect();
     const height = rect.height > 0 ? rect.height : (sliderUnit.clientHeight > 0 ? sliderUnit.clientHeight : 100);
     const handleHeight = 16;
@@ -1038,42 +1073,42 @@ function updateSliderPosition(sliderUnit, val) {
 }
 
 window.updateEnvSlidersFromCurrentPreset = function() {
-    if (!window.dualMidiBridge) return;
+    if (!window.dualMidiBridge) {return;}
     const cache = window.dualMidiBridge.parameterCache;
     const ids = ['env-ctrl-attack', 'env-ctrl-decay', 'env-ctrl-sustain', 'env-ctrl-release'];
     ids.forEach(id => {
         const el = document.getElementById(id);
-        if (!el) return;
+        if (!el) {return;}
         const paramId = el.getAttribute('data-param');
-        if (!paramId) return;
+        if (!paramId) {return;}
         const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
         updateSliderPosition(el.querySelector('.v-slider'), val);
     });
 };
 
 window.updateLfoSlidersFromCurrentPreset = function() {
-    if (!window.dualMidiBridge) return;
+    if (!window.dualMidiBridge) {return;}
     const cache = window.dualMidiBridge.parameterCache;
     const ids = ['lfo-ctrl-rate', 'lfo-ctrl-delay'];
     ids.forEach(id => {
         const el = document.getElementById(id);
-        if (!el) return;
+        if (!el) {return;}
         const paramId = el.getAttribute('data-param');
-        if (!paramId) return;
+        if (!paramId) {return;}
         const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
         updateSliderPosition(el.querySelector('.v-slider'), val);
     });
 };
 
 window.updateOscSlidersFromCurrentPreset = function() {
-    if (!window.dualMidiBridge) return;
+    if (!window.dualMidiBridge) {return;}
     const cache = window.dualMidiBridge.parameterCache;
     const ids = ['osc-ctrl-pitchmod', 'osc-ctrl-pwm-tone', 'osc-ctrl-pitch', 'osc-ctrl-level'];
     ids.forEach(id => {
         const el = document.getElementById(id);
-        if (!el) return;
+        if (!el) {return;}
         const paramId = el.getAttribute('data-param');
-        if (!paramId) return;
+        if (!paramId) {return;}
         const val = cache[paramId] !== undefined ? cache[paramId] : 0.0;
         updateSliderPosition(el.querySelector('.v-slider'), val);
     });
@@ -1085,23 +1120,23 @@ window._arpLastResetTime = null;
 window._seqLastResetTime = null;
 
 window._formatElapsedTime = function(timestamp) {
-    if (timestamp === null) return null;
-    var elapsed = Math.floor((Date.now() - timestamp) / 1000);
-    if (elapsed < 2) return 'Just now';
-    if (elapsed < 60) return elapsed + 's ago';
-    var mins = Math.floor(elapsed / 60);
-    var secs = elapsed % 60;
-    if (mins < 60) return mins + 'm ' + secs + 's ago';
-    var hours = Math.floor(mins / 60);
+    if (timestamp === null) {return null;}
+    const elapsed = Math.floor((Date.now() - timestamp) / 1000);
+    if (elapsed < 2) {return 'Just now';}
+    if (elapsed < 60) {return elapsed + 's ago';}
+    let mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+    if (mins < 60) {return mins + 'm ' + secs + 's ago';}
+    const hours = Math.floor(mins / 60);
     mins = mins % 60;
     return hours + 'h ' + mins + 'm ago';
 };
 
 window._updateResetTooltips = function() {
-    var arpBtn = document.getElementById('modal-arp-reset-btn');
-    var seqBtn = document.getElementById('modal-seq-reset-btn');
-    var arpRel = window._formatElapsedTime(window._arpLastResetTime);
-    var seqRel = window._formatElapsedTime(window._seqLastResetTime);
+    const arpBtn = document.getElementById('modal-arp-reset-btn');
+    const seqBtn = document.getElementById('modal-seq-reset-btn');
+    const arpRel = window._formatElapsedTime(window._arpLastResetTime);
+    const seqRel = window._formatElapsedTime(window._seqLastResetTime);
     if (arpBtn) {
         arpBtn.title = arpRel !== null
             ? 'Reset ARP engine — ' + arpRel + ' (#' + window._arpResetCount + ')'

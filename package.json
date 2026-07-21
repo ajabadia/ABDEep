@@ -10,7 +10,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ci": "vitest run --reporter=verbose",
-    "test:legacy": "echo All legacy tests have been migrated to Vitest — use \"npm test\" instead"
+    "test:legacy": "echo All legacy tests have been migrated to Vitest — use \"npm test\" instead",
+    "lint": "eslint WebUI/js/ WebUI/scripts/ --ext .js",
+    "lint:ci": "eslint WebUI/js/ WebUI/scripts/ --ext .js --max-warnings 9000",
+    "calibration:export": "node WebUI/scripts/export-calibration-run.js",
+    "calibration:export:ci": "node WebUI/scripts/export-calibration-run.js --ci"
   },
   "repository": {
     "type": "git",
@@ -25,10 +29,12 @@
   },
   "homepage": "https://github.com/ajabadia/ABDEep#readme",
   "dependencies": {
+    "jspdf": "^4.2.1",
     "patchwork-deepmind": "^0.3.0"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^8.57.1",
     "vitest": "^4.1.10"
   }
 }

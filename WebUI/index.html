@@ -13,6 +13,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ABD Eep Controller</title>
+    <script src="js/webview-bootstrap.js"></script>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="css/debug-panel.css">
     <script src="js/components/bank-manager.js"></script>
@@ -62,6 +63,7 @@
         <keyboard-section></keyboard-section>
         <keyboard-shortcuts-modal></keyboard-shortcuts-modal>
         <settings-modal></settings-modal>
+        <calibration-lab-page></calibration-lab-page>
     </div>
 
     <!-- Scripts de Comunicación y Lógica Modular -->
@@ -96,6 +98,11 @@
     <script src="js/edit_cache_mapper.js"></script>
     <script src="js/edit_actions.js"></script>
     <script src="js/browser_packer.js"></script>
+    <script src="js/bank_sampler.js"></script>
+    <script src="js/calibration_store.js"></script>
+    <script src="js/calibration_patch_picker.js"></script>
+    <script src="js/calibration_lab_page.js"></script>
+    <script src="js/calibration_report_exporter.js"></script>
     <script src="js/browser_persistence.js"></script>
     <script src="js/browser_mapper.js"></script>
     <script src="js/browser_io.js"></script>
@@ -109,6 +116,9 @@
     <script src="js/panel_controls_arp_seq_mod.js"></script>
     <script src="js/panel_controls_binder.js"></script>
     <script src="js/panel_edit.js"></script>
+    <script src="js/components/mod-matrix-canvas.js"></script>
+    <script src="js/components/chord-display-canvas.js"></script>
+    <script src="js/components/sequencer-steps-canvas.js"></script>
     <script src="js/modmatrix.js"></script>
     <script src="js/arpeggiator.js"></script>
     <script src="js/factory_seq_presets.js"></script>

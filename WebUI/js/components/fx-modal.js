@@ -4,11 +4,11 @@
  * @classification UI Component
  */
 (function() {
-    const FX_TYPE_OPTIONS = `<option value="0">BYPASS</option><option value="1">Ambience</option><option value="2">tcDeepVerb</option><option value="3">RoomRev</option><option value="4">VintageRoom</option><option value="5">HallReverb</option><option value="6">ChamberRev</option><option value="7">Plate Reverb</option><option value="8">Rich Plate</option><option value="9">Gated Reverb</option><option value="10">Reverse Reverb</option><option value="11">ChorusRev</option><option value="12">DelayRev</option><option value="13">FlangerRev</option><option value="14">MidasEQ</option><option value="15">Enhancer</option><option value="16">FairComp</option><option value="17">MBDistortion</option><option value="18">RackAmp</option><option value="19">Edison</option><option value="20">AutoPan/Trem</option><option value="21">NoiseGate</option><option value="22">Delay</option><option value="23">3Tap Delay</option><option value="24">4Tap Delay</option><option value="25">T-RayDelay</option><option value="26">DecimatorDelay</option><option value="27">ModDlyRev</option><option value="28">Stereo Chorus</option><option value="29">Chorus-D</option><option value="30">Stereo Flanger</option><option value="31">Stereo Phaser</option><option value="32">Mood Filter</option><option value="33">Dual Pitch</option><option value="34">Vintage Pitch</option><option value="35">Rotary Speaker</option></select>`;
+    const FX_TYPE_OPTIONS = '<option value="0">BYPASS</option><option value="1">Ambience</option><option value="2">tcDeepVerb</option><option value="3">RoomRev</option><option value="4">VintageRoom</option><option value="5">HallReverb</option><option value="6">ChamberRev</option><option value="7">Plate Reverb</option><option value="8">Rich Plate</option><option value="9">Gated Reverb</option><option value="10">Reverse Reverb</option><option value="11">ChorusRev</option><option value="12">DelayRev</option><option value="13">FlangerRev</option><option value="14">MidasEQ</option><option value="15">Enhancer</option><option value="16">FairComp</option><option value="17">MBDistortion</option><option value="18">RackAmp</option><option value="19">Edison</option><option value="20">AutoPan/Trem</option><option value="21">NoiseGate</option><option value="22">Delay</option><option value="23">3Tap Delay</option><option value="24">4Tap Delay</option><option value="25">T-RayDelay</option><option value="26">DecimatorDelay</option><option value="27">ModDlyRev</option><option value="28">Stereo Chorus</option><option value="29">Chorus-D</option><option value="30">Stereo Flanger</option><option value="31">Stereo Phaser</option><option value="32">Mood Filter</option><option value="33">Dual Pitch</option><option value="34">Vintage Pitch</option><option value="35">Rotary Speaker</option>';
 
     function fxSlotHTML(id) {
         return `
-            <div class="fx-slot-column${id === 1 ? ' selected' : ''}" id="fx-slot-${id}" class="flex-col" style="background:var(--bg-surface);border:1px solid ${id === 1 ? 'var(--accent-primary)' : 'var(--border-dim)'};border-radius:var(--radius);padding:8px;gap:8px;cursor:pointer">
+            <div class="fx-slot-column flex-col${id === 1 ? ' selected' : ''}" id="fx-slot-${id}" style="background:var(--bg-surface);border:1px solid ${id === 1 ? 'var(--accent-primary)' : 'var(--border-dim)'};border-radius:var(--radius);padding:8px;gap:8px;cursor:pointer">
                 <div class="flex-row justify-between items-center">
                     <span class="text-bold" style="font-size:var(--text-xs);color:var(--text-dim)">FX${id}</span>
                     <select class="fx-type-select modal-select" data-slot="${id}" style="font-size:var(--text-xs);padding:2px;width:75%">${FX_TYPE_OPTIONS}</select>
@@ -108,9 +108,9 @@
             alert('Cannot save FX presets on factory patches. Please copy this patch to a User Bank first.');
             return;
         }
-        var input = document.getElementById('fx-preset-name-input');
-        if (!input) return;
-        var name = input.value.trim();
+        const input = document.getElementById('fx-preset-name-input');
+        if (!input) {return;}
+        const name = input.value.trim();
         if (name) {
             if (typeof window.saveFxPreset === 'function') {
                 window.saveFxPreset(name);

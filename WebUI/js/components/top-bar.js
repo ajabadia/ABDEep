@@ -47,6 +47,8 @@
                         <li class="divider"></li>
                         <li id="menu-debug-unison">Debug: Unison Stacking...</li>
                         <li class="divider"></li>
+                        <li id="menu-calibration-lab">Calibration Lab Diagnostics...</li>
+                        <li class="divider"></li>
                         <li id="menu-keyboard-shortcuts">Keyboard Shortcuts <span class="text-faint float-right">?</span></li>
                         <li class="divider"></li>
                         <li id="menu-about">About ABD Eep...</li>

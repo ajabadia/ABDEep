@@ -19,7 +19,7 @@
     let currentTarget = null;
     let paramMeta = null;
     /* Separate store for programmer-button / custom-text tooltips (no NRPN/SysEx) */
-    var customTextStore = {};
+    const customTextStore = {};
 
     /* ── Build parameter lookup from byte-map.js + dualMidiBridge ── */
     function buildParamMeta () {
@@ -30,7 +30,7 @@
 
         // Index byte-map entries by param id (the name in the map)
         byteMap.forEach((info, idx) => {
-            if (!info) return;
+            if (!info) {return;}
             const nrpnMsb = idx < 128 ? 0 : 1;
             const nrpnLsb = idx < 128 ? idx : idx - 128;
             meta[info.param] = {
@@ -73,7 +73,7 @@
 
     /* ── Tooltip element ── */
     function ensureTooltipEl () {
-        if (tooltipEl) return tooltipEl;
+        if (tooltipEl) {return tooltipEl;}
         tooltipEl = document.createElement('div');
         tooltipEl.className = TOOLTIP_CLASS;
         tooltipEl.setAttribute('role', 'tooltip');
@@ -83,12 +83,12 @@
 
     /* ── Render HTML content ── */
     function renderTooltipContent (paramId) {
-        if (!paramMeta) paramMeta = buildParamMeta();
+        if (!paramMeta) {paramMeta = buildParamMeta();}
 
         const info = paramMeta[paramId];
         // Check custom text store for programmer / non-param controls
         if (!info && customTextStore[paramId]) {
-            var data = customTextStore[paramId];
+            const data = customTextStore[paramId];
             var html = '<div class="ctrl-tt-header" style="color:var(--accent-primary,#ff9900);font-weight:700;font-size:var(--text-sm,9px);text-transform:uppercase;margin-bottom:4px">' +
                 data.name +
                 '</div>';
@@ -148,7 +148,7 @@
             '</div>';
 
         // Type
-        var typeLabel = info.type.charAt(0).toUpperCase() + info.type.slice(1);
+        const typeLabel = info.type.charAt(0).toUpperCase() + info.type.slice(1);
         html +=
             '<div class="ctrl-tt-row" style="display:flex;justify-content:space-between;gap:10px">' +
             '<span style="color:var(--text-dim,#888)">Type</span>' +
@@ -160,15 +160,15 @@
         // Enum labels — show current resolved value + full list
         if (info.enumLabels && info.enumLabels.length > 0) {
             // Look up current value from parameter cache
-            var currentIdx = 0;
+            let currentIdx = 0;
             try {
-                var cache = window.dualMidiBridge && window.dualMidiBridge.parameterCache;
+                const cache = window.dualMidiBridge && window.dualMidiBridge.parameterCache;
                 if (cache && typeof cache[paramId] === 'number') {
                     currentIdx = Math.round(cache[paramId] * (info.enumLabels.length - 1));
                     currentIdx = Math.max(0, Math.min(currentIdx, info.enumLabels.length - 1));
                 }
             } catch (e) {}
-            var currentLabel = info.enumLabels[currentIdx];
+            const currentLabel = info.enumLabels[currentIdx];
             // Current value row
             html +=
                 '<div class="ctrl-tt-row" style="display:flex;justify-content:space-between;gap:10px">' +
@@ -178,7 +178,7 @@
                 '</span>' +
                 '</div>';
             // All possible values (compact, dim)
-            var allLabels = info.enumLabels.join(', ');
+            const allLabels = info.enumLabels.join(', ');
             html +=
                 '<div class="ctrl-tt-row" style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--border-dim,#1f2228);padding-top:2px;margin-top:1px">' +
                 '<span style="color:var(--text-faint,#555)">Options</span>' +
@@ -208,21 +208,21 @@
 
         showTimer = setTimeout(function () {
             showTimer = null;
-            var el = ensureTooltipEl();
+            const el = ensureTooltipEl();
 
             if (el.dataset.paramId !== paramId) {
                 el.dataset.paramId = paramId;
                 el.innerHTML = renderTooltipContent(paramId);
             }
 
-            var padding = 12;
-            var left = e.clientX + padding;
-            var top = e.clientY + padding;
+            const padding = 12;
+            let left = e.clientX + padding;
+            let top = e.clientY + padding;
 
             // Let layout settle
-            var rect = el.getBoundingClientRect();
-            var w = rect.width || 220;
-            var h = rect.height || 100;
+            const rect = el.getBoundingClientRect();
+            const w = rect.width || 220;
+            const h = rect.height || 100;
 
             // Flip horizontally if too close to right edge
             if (left + w > window.innerWidth - 10) {
@@ -232,8 +232,8 @@
             if (top + h > window.innerHeight - 10) {
                 top = e.clientY - h - padding;
             }
-            if (left < 5) left = 5;
-            if (top < 5) top = 5;
+            if (left < 5) {left = 5;}
+            if (top < 5) {top = 5;}
 
             el.style.left = left + 'px';
             el.style.top = top + 'px';
@@ -248,17 +248,17 @@
 
         hideTimer = setTimeout(function () {
             hideTimer = null;
-            if (tooltipEl) tooltipEl.classList.remove('visible');
+            if (tooltipEl) {tooltipEl.classList.remove('visible');}
         }, HIDE_DELAY);
     }
 
     /* ── Get custom tooltip text from data-ctrl-tooltip ── */
     function getCustomTooltipText (el) {
-        var text = el.getAttribute('data-ctrl-tooltip');
-        if (text) return { name: text, desc: '' };
+        const text = el.getAttribute('data-ctrl-tooltip');
+        if (text) {return { name: text, desc: '' };}
 
         // Known programmer button IDs with expanded names and descriptions
-        var idMap = {
+        const idMap = {
             'programmer-bank-mngr-btn':    { name: 'Bank Manager',          desc: 'Load, save, and organize patches' },
             'programmer-mod-matrix-btn':   { name: 'Modulation Matrix',     desc: '8 configurable modulation slots' },
             'programmer-fx-btn':           { name: 'Effects Engine',        desc: '4 FX slots with routing' },
@@ -287,19 +287,19 @@
         // Mouse over capture phase — detect [data-param] and [data-ctrl-tooltip] elements
         document.addEventListener('mouseover', function (e) {
             // Check for data-param first
-            var target = e.target.closest('[data-param]');
+            const target = e.target.closest('[data-param]');
             if (target) {
-                var paramId = target.getAttribute('data-param');
-                if (!paramId) return;
+                const paramId = target.getAttribute('data-param');
+                if (!paramId) {return;}
                 currentTarget = target;
                 showTooltip(e, paramId);
                 return;
             }
 
             // Fallback: data-ctrl-tooltip for non-param controls
-            var ctrlTarget = e.target.closest('[data-ctrl-tooltip]');
+            const ctrlTarget = e.target.closest('[data-ctrl-tooltip]');
             if (ctrlTarget) {
-                var text = ctrlTarget.getAttribute('data-ctrl-tooltip');
+                const text = ctrlTarget.getAttribute('data-ctrl-tooltip');
                 if (text) {
                     currentTarget = ctrlTarget;
                     customTextStore['__custom__'] = { name: text, desc: '' };
@@ -309,12 +309,12 @@
             }
 
             // Known programmer buttons by id (use separate store, avoid polluting paramMeta)
-            var knownBtn = e.target.closest('button[id]');
+            const knownBtn = e.target.closest('button[id]');
             if (knownBtn) {
-                var btnData = getCustomTooltipText(knownBtn);
+                const btnData = getCustomTooltipText(knownBtn);
                 if (btnData) {
                     currentTarget = knownBtn;
-                    var sid = 'btn:' + knownBtn.id;
+                    const sid = 'btn:' + knownBtn.id;
                     customTextStore[sid] = { name: btnData.name, desc: btnData.desc || '' };
                     showTooltip(e, sid);
                     return;
@@ -329,7 +329,7 @@
 
         // Mouse out
         document.addEventListener('mouseout', function (e) {
-            var target = e.target.closest('[data-param],[data-ctrl-tooltip],button[id]');
+            const target = e.target.closest('[data-param],[data-ctrl-tooltip],button[id]');
             if (target === currentTarget || !target) {
                 hideTooltip();
                 currentTarget = null;

@@ -23,17 +23,17 @@
 // =============================================================================
 // Constants (from effects.js)
 // =============================================================================
-var FX_TYPE_NAMES = [
-    "Bypass", "Ambience", "tcDeepVerb", "RoomRev", "VintageRoom",
-    "HallReverb", "ChamberRev", "Plate Reverb", "Rich Plate",
-    "Gated Reverb", "Reverse Reverb", "ChorusRev", "DelayRev",
-    "FlangerRev", "MidasEQ", "Enhancer", "FairComp",
-    "MBDistortion", "RackAmp", "Edison", "AutoPan/Trem",
-    "NoiseGate", "Delay", "3Tap Delay", "4Tap Delay",
-    "T-RayDelay", "DecimatorDelay", "ModDlyRev",
-    "Stereo Chorus", "Chorus-D", "Stereo Flanger",
-    "Stereo Phaser", "Mood Filter", "Dual Pitch",
-    "Vintage Pitch", "Rotary Speaker"
+const FX_TYPE_NAMES = [
+    'Bypass', 'Ambience', 'tcDeepVerb', 'RoomRev', 'VintageRoom',
+    'HallReverb', 'ChamberRev', 'Plate Reverb', 'Rich Plate',
+    'Gated Reverb', 'Reverse Reverb', 'ChorusRev', 'DelayRev',
+    'FlangerRev', 'MidasEQ', 'Enhancer', 'FairComp',
+    'MBDistortion', 'RackAmp', 'Edison', 'AutoPan/Trem',
+    'NoiseGate', 'Delay', '3Tap Delay', '4Tap Delay',
+    'T-RayDelay', 'DecimatorDelay', 'ModDlyRev',
+    'Stereo Chorus', 'Chorus-D', 'Stereo Flanger',
+    'Stereo Phaser', 'Mood Filter', 'Dual Pitch',
+    'Vintage Pitch', 'Rotary Speaker'
 ];
 
 // =============================================================================
@@ -45,7 +45,7 @@ function calcKnobRotation(val) {
 }
 
 function calcSliderTop(val, sliderHeight, handleHeight) {
-    var limit = sliderHeight - handleHeight;
+    const limit = sliderHeight - handleHeight;
     return (1.0 - val) * limit;
 }
 
@@ -130,13 +130,13 @@ function generateFxTemplate(effectType, pVals) {
     }
 
     if (effectType === 2) { // tcDeepVerb
-        var knobs = [
+        const knobs = [
             { label: 'PRE DELAY', rotation: calcKnobRotation(pVals[0]) },
             { label: 'DECAY TIME', rotation: calcKnobRotation(pVals[1]) },
             { label: 'TONE', rotation: calcKnobRotation(pVals[2]) },
             { label: 'MIX', rotation: calcKnobRotation(pVals[3]) }
         ];
-        var knobHtml = '';
+        let knobHtml = '';
         for (var i = 0; i < knobs.length; i++) {
             knobHtml += '<div style="text-align:center; color:#fff; font-family:sans-serif;">'
                 + '<div class="knob-ring" style="width:36px; height:36px; margin: 0 auto 4px;">'
@@ -149,8 +149,8 @@ function generateFxTemplate(effectType, pVals) {
     }
 
     if (effectType === 7) { // Plate Reverb
-        var plateLabels = ['PRE DEL', 'DECAY', 'SIZE', 'DAMP', 'DIFF', 'LO CUT', 'HI CUT', 'BASS M', 'XOVER', 'MOD DEP'];
-        var plateKnobs = '';
+        const plateLabels = ['PRE DEL', 'DECAY', 'SIZE', 'DAMP', 'DIFF', 'LO CUT', 'HI CUT', 'BASS M', 'XOVER', 'MOD DEP'];
+        let plateKnobs = '';
         for (var i = 0; i < plateLabels.length; i++) {
             plateKnobs += '<div style="display: flex; flex-direction: column; align-items: center;">'
                 + '<div class="knob-ring" style="width: 24px; height: 24px; margin-bottom: 3px;">'
@@ -166,8 +166,8 @@ function generateFxTemplate(effectType, pVals) {
     }
 
     if (effectType === 14) { // MidasEQ
-        var eqNames = ['Low Freq', 'Low Gain', 'Low Mid Freq', 'Low Mid Gain', 'High Mid Freq', 'High Mid Gain', 'High Freq', 'High Gain'];
-        var eqKnobs = '';
+        const eqNames = ['Low Freq', 'Low Gain', 'Low Mid Freq', 'Low Mid Gain', 'High Mid Freq', 'High Mid Gain', 'High Freq', 'High Gain'];
+        let eqKnobs = '';
         for (var i = 0; i < eqNames.length; i++) {
             eqKnobs += '<div style="text-align:center;">'
                 + '<div class="knob-ring" style="width:24px; height:24px; margin: 0 auto 3px;">'
@@ -180,8 +180,8 @@ function generateFxTemplate(effectType, pVals) {
     }
 
     if (effectType === 20) { // AutoPan/Trem
-        var autoPanLabels = ['SPEED', 'PHASE', 'WAVE', 'DEPTH', 'ENV SPD', 'ENV DPTH', 'ATTACK', 'HOLD', 'RELEASE'];
-        var autoPanKnobs = '';
+        const autoPanLabels = ['SPEED', 'PHASE', 'WAVE', 'DEPTH', 'ENV SPD', 'ENV DPTH', 'ATTACK', 'HOLD', 'RELEASE'];
+        let autoPanKnobs = '';
         for (var i = 0; i < autoPanLabels.length; i++) {
             autoPanKnobs += '<div style="display: flex; flex-direction: column; align-items: center;">'
                 + '<div class="knob-ring" style="width: 22px; height: 22px; margin-bottom: 2px; border-color:#fff;">'
@@ -197,8 +197,8 @@ function generateFxTemplate(effectType, pVals) {
     }
 
     if (effectType === 21) { // NoiseGate
-        var gateLabels = ['Threshold', 'Range', 'Attack', 'Release', 'Hold', 'Ratio', 'Knee'];
-        var gateKnobs = '';
+        const gateLabels = ['Threshold', 'Range', 'Attack', 'Release', 'Hold', 'Ratio', 'Knee'];
+        let gateKnobs = '';
         for (var i = 0; i < gateLabels.length; i++) {
             gateKnobs += '<div style="text-align:center; color:#fff;">'
                 + '<div class="knob-ring" style="width:22px; height:22px; margin: 0 auto 2px;">'
@@ -212,8 +212,8 @@ function generateFxTemplate(effectType, pVals) {
     }
 
     if (effectType === 25) { // T-RayDelay
-        var tRayLabels = ['Mix', 'Delay', 'Sustain', 'Wobble', 'Tone'];
-        var tRayKnobs = '';
+        const tRayLabels = ['Mix', 'Delay', 'Sustain', 'Wobble', 'Tone'];
+        let tRayKnobs = '';
         for (var i = 0; i < tRayLabels.length; i++) {
             tRayKnobs += '<div style="text-align:center;">'
                 + '<div class="knob-ring" style="width:26px; height:26px; margin: 0 auto 3px; border-color:#000;">'
@@ -243,8 +243,8 @@ function generateFxTemplate(effectType, pVals) {
     }
 
     if (effectType === 35) { // Rotary Speaker
-        var rotaryLabels = ['LO SPEED', 'HI SPEED', 'ACCEL', 'DISTANCE', 'BALANCE', 'MIX'];
-        var rotaryKnobs = '';
+        const rotaryLabels = ['LO SPEED', 'HI SPEED', 'ACCEL', 'DISTANCE', 'BALANCE', 'MIX'];
+        let rotaryKnobs = '';
         for (var i = 0; i < rotaryLabels.length; i++) {
             rotaryKnobs += '<div style="text-align:center;">'
                 + '<div class="knob-ring" style="width:20px; height:20px; margin: 0 auto 2px;">'
@@ -261,8 +261,8 @@ function generateFxTemplate(effectType, pVals) {
     }
 
     // Fallback: generic reverb/ambience template
-    var fallbackLabels = ['PRE DEL', 'DECAY', 'SIZE', 'DAMPING', 'DIFFUSE', 'MIX'];
-    var fallbackVals = '';
+    const fallbackLabels = ['PRE DEL', 'DECAY', 'SIZE', 'DAMPING', 'DIFFUSE', 'MIX'];
+    let fallbackVals = '';
     for (var i = 0; i < fallbackLabels.length; i++) {
         fallbackVals += '<div>' + fallbackLabels[i] + '<br><span style="color:#ff2200; font-size:7px;">'
             + (i === 0 ? Math.round(pVals[0] * 100) + 'ms' : '')
@@ -280,8 +280,8 @@ function generateFxTemplate(effectType, pVals) {
 
 // Helper: generates a grid of knob-ring HTML
 function generateKnobGrid(labels, pVals, knobSize, textColor, fontSize) {
-    var html = '';
-    for (var i = 0; i < labels.length; i++) {
+    let html = '';
+    for (let i = 0; i < labels.length; i++) {
         html += '<div style="display: flex; flex-direction: column; align-items: center;">'
             + '<div class="knob-ring" style="width: ' + knobSize + 'px; height: ' + knobSize + 'px; margin-bottom: 2px;">'
             + '<div class="knob-pointer" style="transform: translateX(-50%) rotate(' + calcKnobRotation(pVals[i]) + 'deg)"></div></div>'
@@ -465,7 +465,7 @@ describe('FX_TYPE_NAMES', function () {
     });
 
     it('all entries are non-empty strings', function () {
-        for (var i = 0; i < FX_TYPE_NAMES.length; i++) {
+        for (let i = 0; i < FX_TYPE_NAMES.length; i++) {
             expect(typeof FX_TYPE_NAMES[i]).toBe('string');
             expect(FX_TYPE_NAMES[i].length).toBeGreaterThan(0);
         }
@@ -480,12 +480,12 @@ describe('FX_TYPE_NAMES', function () {
 describe('generateFxTemplate — type 0 (Bypass)', function () {
 
     it('returns "Effect Bypassed" message', function () {
-        var html = generateFxTemplate(0, []);
+        const html = generateFxTemplate(0, []);
         expect(html).toContain('Effect Bypassed');
     });
 
     it('does not contain knob-ring', function () {
-        var html = generateFxTemplate(0, []);
+        const html = generateFxTemplate(0, []);
         expect(html).not.toContain('knob-ring');
     });
 
@@ -494,7 +494,7 @@ describe('generateFxTemplate — type 0 (Bypass)', function () {
 describe('generateFxTemplate — type 2 (tcDeepVerb)', function () {
 
     it('contains title and 4 knob labels', function () {
-        var html = generateFxTemplate(2, [0.5, 0.5, 0.5, 0.5]);
+        const html = generateFxTemplate(2, [0.5, 0.5, 0.5, 0.5]);
         expect(html).toContain('tcDeepVerb');
         expect(html).toContain('PRE DELAY');
         expect(html).toContain('DECAY TIME');
@@ -503,19 +503,19 @@ describe('generateFxTemplate — type 2 (tcDeepVerb)', function () {
     });
 
     it('knob rotation is 0deg for center values', function () {
-        var html = generateFxTemplate(2, [0.5, 0.5, 0.5, 0.5]);
-        var match = html.match(/rotate\(([^)]+)\)/g);
+        const html = generateFxTemplate(2, [0.5, 0.5, 0.5, 0.5]);
+        const match = html.match(/rotate\(([^)]+)\)/g);
         expect(match.length).toBe(4);
         expect(match[0]).toBe('rotate(0deg)');
     });
 
     it('rotation is -135deg for val=0', function () {
-        var html = generateFxTemplate(2, [0, 0, 0, 0]);
+        const html = generateFxTemplate(2, [0, 0, 0, 0]);
         expect(html).toContain('rotate(-135deg)');
     });
 
     it('rotation is 135deg for val=1', function () {
-        var html = generateFxTemplate(2, [1.0, 1.0, 1.0, 1.0]);
+        const html = generateFxTemplate(2, [1.0, 1.0, 1.0, 1.0]);
         expect(html).toContain('rotate(135deg)');
     });
 
@@ -524,7 +524,7 @@ describe('generateFxTemplate — type 2 (tcDeepVerb)', function () {
 describe('generateFxTemplate — type 4 (VintageRoomReverb)', function () {
 
     it('contains all 8 parameter labels', function () {
-        var html = generateFxTemplate(4, [0.3, 0.5, 0.7, 0.2, 0.6, 0.4, 0.8, 0.1]);
+        const html = generateFxTemplate(4, [0.3, 0.5, 0.7, 0.2, 0.6, 0.4, 0.8, 0.1]);
         expect(html).toContain('PRE DELAY');
         expect(html).toContain('DECAY');
         expect(html).toContain('SIZE');
@@ -537,22 +537,22 @@ describe('generateFxTemplate — type 4 (VintageRoomReverb)', function () {
     });
 
     it('displays correct values for val=0.3 pre-delay (60 ms)', function () {
-        var html = generateFxTemplate(4, [0.3, 0, 0, 0, 0, 0, 0, 0]);
+        const html = generateFxTemplate(4, [0.3, 0, 0, 0, 0, 0, 0, 0]);
         expect(html).toContain('60 ms');
     });
 
     it('displays correct multiplier for val=0.6 → x1.2', function () {
-        var html = generateFxTemplate(4, [0, 0, 0, 0, 0.6, 0.5, 0, 0]);
+        const html = generateFxTemplate(4, [0, 0, 0, 0, 0.6, 0.5, 0, 0]);
         expect(html).toContain('x1.2');
     });
 
     it('displays correct low cut for val=0.8 → 400 Hz', function () {
-        var html = generateFxTemplate(4, [0, 0, 0, 0, 0, 0, 0.8, 0]);
+        const html = generateFxTemplate(4, [0, 0, 0, 0, 0, 0, 0.8, 0]);
         expect(html).toContain('400 Hz');
     });
 
     it('displays correct high cut for val=0.1 → 2 kHz', function () {
-        var html = generateFxTemplate(4, [0, 0, 0, 0, 0, 0, 0, 0.1]);
+        const html = generateFxTemplate(4, [0, 0, 0, 0, 0, 0, 0, 0.1]);
         expect(html).toContain('2 kHz');
     });
 
@@ -561,7 +561,7 @@ describe('generateFxTemplate — type 4 (VintageRoomReverb)', function () {
 describe('generateFxTemplate — type 7 (Plate Reverb)', function () {
 
     it('contains PLATE badge and 10 knob labels', function () {
-        var html = generateFxTemplate(7, Array(10).fill(0.5));
+        const html = generateFxTemplate(7, Array(10).fill(0.5));
         expect(html).toContain('REVERB');
         expect(html).toContain('PLATE');
         expect(html).toContain('PRE DEL');
@@ -581,7 +581,7 @@ describe('generateFxTemplate — type 7 (Plate Reverb)', function () {
 describe('generateFxTemplate — type 14 (MidasEQ)', function () {
 
     it('contains 4 Band EQ title and 8 param labels', function () {
-        var html = generateFxTemplate(14, Array(8).fill(0.5));
+        const html = generateFxTemplate(14, Array(8).fill(0.5));
         expect(html).toContain('4 Band');
         expect(html).toContain('Low Freq');
         expect(html).toContain('Low Gain');
@@ -598,7 +598,7 @@ describe('generateFxTemplate — type 14 (MidasEQ)', function () {
 describe('generateFxTemplate — type 20 (AutoPan/Trem)', function () {
 
     it('contains title and speed display', function () {
-        var html = generateFxTemplate(20, [0.4, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+        const html = generateFxTemplate(20, [0.4, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
         expect(html).toContain('Stereo Tremolo');
         expect(html).toContain('SPEED');
         expect(html).toContain('PHASE');
@@ -612,7 +612,7 @@ describe('generateFxTemplate — type 20 (AutoPan/Trem)', function () {
     });
 
     it('displays correct speed Hz for val=0.4 → 2.0 Hz', function () {
-        var html = generateFxTemplate(20, [0.4, 0, 0, 0, 0, 0, 0, 0, 0]);
+        const html = generateFxTemplate(20, [0.4, 0, 0, 0, 0, 0, 0, 0, 0]);
         expect(html).toContain('SPEED: 2.0 Hz');
     });
 
@@ -621,7 +621,7 @@ describe('generateFxTemplate — type 20 (AutoPan/Trem)', function () {
 describe('generateFxTemplate — type 21 (NoiseGate)', function () {
 
     it('contains Noise Gate title and 7 param labels', function () {
-        var html = generateFxTemplate(21, Array(7).fill(0.5));
+        const html = generateFxTemplate(21, Array(7).fill(0.5));
         expect(html).toContain('Noise Gate');
         expect(html).toContain('Threshold');
         expect(html).toContain('Range');
@@ -637,7 +637,7 @@ describe('generateFxTemplate — type 21 (NoiseGate)', function () {
 describe('generateFxTemplate — type 25 (T-RayDelay)', function () {
 
     it('contains Tel-Ray title and 5 param labels', function () {
-        var html = generateFxTemplate(25, Array(5).fill(0.5));
+        const html = generateFxTemplate(25, Array(5).fill(0.5));
         expect(html).toContain('Tel-Ray');
         expect(html).toContain('Delay');
         expect(html).toContain('Mix');
@@ -651,7 +651,7 @@ describe('generateFxTemplate — type 25 (T-RayDelay)', function () {
 describe('generateFxTemplate — type 31 (Stereo Phaser)', function () {
 
     it('contains title and 12 param labels', function () {
-        var html = generateFxTemplate(31, Array(12).fill(0.5));
+        const html = generateFxTemplate(31, Array(12).fill(0.5));
         expect(html).toContain('Stereo Phaser');
         expect(html).toContain('SPEED');
         expect(html).toContain('DEPTH');
@@ -668,11 +668,11 @@ describe('generateFxTemplate — type 31 (Stereo Phaser)', function () {
     });
 
     it('uses 18px knob rings', function () {
-        var html = generateFxTemplate(31, Array(12).fill(0.5));
-        var match = html.match(/width:\s*(\d+)px/g);
+        const html = generateFxTemplate(31, Array(12).fill(0.5));
+        const match = html.match(/width:\s*(\d+)px/g);
         expect(match).toBeDefined();
-        var widths = [];
-        for (var i = 0; i < match.length; i++) {
+        const widths = [];
+        for (let i = 0; i < match.length; i++) {
             widths.push(parseInt(match[i].match(/\d+/)[0]));
         }
         expect(widths).toContain(18);
@@ -683,7 +683,7 @@ describe('generateFxTemplate — type 31 (Stereo Phaser)', function () {
 describe('generateFxTemplate — type 32 (Mood Filter)', function () {
 
     it('contains title and 11 param labels', function () {
-        var html = generateFxTemplate(32, Array(11).fill(0.5));
+        const html = generateFxTemplate(32, Array(11).fill(0.5));
         expect(html).toContain('mood filter');
         expect(html).toContain('SPEED');
         expect(html).toContain('DEPTH');
@@ -703,7 +703,7 @@ describe('generateFxTemplate — type 32 (Mood Filter)', function () {
 describe('generateFxTemplate — type 35 (Rotary Speaker)', function () {
 
     it('contains title, 6 params, and SLOW/FAST buttons', function () {
-        var html = generateFxTemplate(35, Array(6).fill(0.5));
+        const html = generateFxTemplate(35, Array(6).fill(0.5));
         expect(html).toContain('Rotary');
         expect(html).toContain('Speaker');
         expect(html).toContain('LO SPEED');
@@ -721,7 +721,7 @@ describe('generateFxTemplate — type 35 (Rotary Speaker)', function () {
 describe('generateFxTemplate — fallback types (1, 3, 5, 6, 8)', function () {
 
     it('type 1 (Ambience) uses fallback with PRE DEL, DECAY, SIZE, DAMPING, DIFFUSE, MIX', function () {
-        var html = generateFxTemplate(1, [0.3, 0.5, 0.7, 0.2, 0.6, 0.4]);
+        const html = generateFxTemplate(1, [0.3, 0.5, 0.7, 0.2, 0.6, 0.4]);
         expect(html).toContain('PRE DEL');
         expect(html).toContain('DECAY');
         expect(html).toContain('SIZE');
@@ -731,7 +731,7 @@ describe('generateFxTemplate — fallback types (1, 3, 5, 6, 8)', function () {
     });
 
     it('type 3 (RoomRev) uses fallback', function () {
-        var html = generateFxTemplate(3, Array(6).fill(0.5));
+        const html = generateFxTemplate(3, Array(6).fill(0.5));
         expect(html).toContain('PRE DEL');
         expect(html).toContain('DECAY');
         expect(html).toContain('SIZE');
@@ -739,24 +739,24 @@ describe('generateFxTemplate — fallback types (1, 3, 5, 6, 8)', function () {
     });
 
     it('type 5 (HallReverb) uses fallback', function () {
-        var html = generateFxTemplate(5, Array(6).fill(0.5));
+        const html = generateFxTemplate(5, Array(6).fill(0.5));
         expect(html).toContain('DAMPING');
         expect(html).toContain('DIFFUSE');
         expect(html).toContain('MIX');
     });
 
     it('type 6 (ChamberRev) uses fallback', function () {
-        var html = generateFxTemplate(6, Array(6).fill(0.5));
+        const html = generateFxTemplate(6, Array(6).fill(0.5));
         expect(html).toContain('DAMPING');
     });
 
     it('type 8 (Rich Plate) uses fallback', function () {
-        var html = generateFxTemplate(8, Array(6).fill(0.5));
+        const html = generateFxTemplate(8, Array(6).fill(0.5));
         expect(html).toContain('DAMPING');
     });
 
     it('fallback displays correct values: pre-delay 30ms, decay 2.00s, size 7, damping 2kHz', function () {
-        var html = generateFxTemplate(1, [0.3, 0.5, 0.7, 0.2, 0.5, 0.5]);
+        const html = generateFxTemplate(1, [0.3, 0.5, 0.7, 0.2, 0.5, 0.5]);
         expect(html).toContain('30ms');
         expect(html).toContain('2.00s');
         expect(html).toContain('7'); // size: round(0.7*10)=7
@@ -768,12 +768,12 @@ describe('generateFxTemplate — fallback types (1, 3, 5, 6, 8)', function () {
 describe('generateFxTemplate — default pVals', function () {
 
     it('uses default [0.5]*8 when no pVals provided', function () {
-        var html = generateFxTemplate(2);
+        const html = generateFxTemplate(2);
         expect(html).toContain('rotate(0deg)'); // center rotation
     });
 
     it('handles partial pVals array (shorter than expected)', function () {
-        var html = generateFxTemplate(2, [0]);
+        const html = generateFxTemplate(2, [0]);
         expect(html).toContain('rotate(-135deg)');
         // Remaining vals would be undefined → calcKnobRotation(undefined)
         // (undefined * 270) - 135 = NaN - 135 = NaN → fails
@@ -789,7 +789,7 @@ describe('generateFxTemplate — default pVals', function () {
 describe('generateKnobGrid', function () {
 
     it('generates HTML for each label', function () {
-        var html = generateKnobGrid(['A', 'B', 'C'], [0.5, 0.5, 0.5], 20, '#fff', 5);
+        const html = generateKnobGrid(['A', 'B', 'C'], [0.5, 0.5, 0.5], 20, '#fff', 5);
         expect(html).toContain('A');
         expect(html).toContain('B');
         expect(html).toContain('C');
@@ -799,8 +799,8 @@ describe('generateKnobGrid', function () {
     });
 
     it('generates correct number of knob-ring divs', function () {
-        var html = generateKnobGrid(['X', 'Y'], [0.3, 0.7], 22, '#aaa', 4);
-        var count = (html.match(/knob-ring/g) || []).length;
+        const html = generateKnobGrid(['X', 'Y'], [0.3, 0.7], 22, '#aaa', 4);
+        const count = (html.match(/knob-ring/g) || []).length;
         expect(count).toBe(2);
     });
 
@@ -816,7 +816,7 @@ function readFxParamValue(paramId, fallbackByte, defaultVal, bridge, activeBank,
     }
     if (typeof currentActivePatchIndex !== 'undefined' && currentActivePatchIndex !== -1) {
         if (activeBank) {
-            var patch = activeBank[currentActivePatchIndex];
+            const patch = activeBank[currentActivePatchIndex];
             if (patch && patch.unpackedBytes && patch.unpackedBytes[fallbackByte] !== undefined) {
                 return patch.unpackedBytes[fallbackByte] / 255.0;
             }
@@ -828,43 +828,43 @@ function readFxParamValue(paramId, fallbackByte, defaultVal, bridge, activeBank,
 describe('_readFxParamValue (extracted logic)', function () {
 
     it('returns value from bridge cache when available', function () {
-        var bridge = { parameterCache: { fx1_type: 0.5 } };
-        var result = readFxParamValue('fx1_type', 166, 0.0, bridge, [], 0);
+        const bridge = { parameterCache: { fx1_type: 0.5 } };
+        const result = readFxParamValue('fx1_type', 166, 0.0, bridge, [], 0);
         expect(result).toBe(0.5);
     });
 
     it('falls back to patch unpackedBytes when bridge cache is missing', function () {
-        var bridge = { parameterCache: {} };
-        var patch = { unpackedBytes: new Uint8Array(242) };
+        const bridge = { parameterCache: {} };
+        const patch = { unpackedBytes: new Uint8Array(242) };
         patch.unpackedBytes[166] = 51; // 51/255 = 0.2
-        var activeBank = [patch];
-        var result = readFxParamValue('fx1_type', 166, 0.0, bridge, activeBank, 0);
+        const activeBank = [patch];
+        const result = readFxParamValue('fx1_type', 166, 0.0, bridge, activeBank, 0);
         expect(result).toBeCloseTo(0.2, 5);
     });
 
     it('returns defaultVal when neither bridge nor patch has data', function () {
-        var bridge = { parameterCache: {} };
-        var result = readFxParamValue('fx1_type', 166, 1.0, bridge, [], 0);
+        const bridge = { parameterCache: {} };
+        const result = readFxParamValue('fx1_type', 166, 1.0, bridge, [], 0);
         expect(result).toBe(1.0);
     });
 
     it('returns defaultVal when currentActivePatchIndex is -1', function () {
-        var bridge = { parameterCache: {} };
-        var result = readFxParamValue('fx1_type', 166, 0.5, bridge, [], -1);
+        const bridge = { parameterCache: {} };
+        const result = readFxParamValue('fx1_type', 166, 0.5, bridge, [], -1);
         expect(result).toBe(0.5);
     });
 
     it('returns defaultVal when activeBank is empty', function () {
-        var bridge = { parameterCache: {} };
-        var result = readFxParamValue('fx1_type', 166, 0.3, bridge, [], 0);
+        const bridge = { parameterCache: {} };
+        const result = readFxParamValue('fx1_type', 166, 0.3, bridge, [], 0);
         expect(result).toBe(0.3);
     });
 
     it('bridge cache takes priority over patch bytes', function () {
-        var bridge = { parameterCache: { fx1_type: 0.9 } };
-        var patch = { unpackedBytes: new Uint8Array(242) };
+        const bridge = { parameterCache: { fx1_type: 0.9 } };
+        const patch = { unpackedBytes: new Uint8Array(242) };
         patch.unpackedBytes[166] = 51;
-        var result = readFxParamValue('fx1_type', 166, 0.0, bridge, [patch], 0);
+        const result = readFxParamValue('fx1_type', 166, 0.0, bridge, [patch], 0);
         expect(result).toBe(0.9); // bridge wins
     });
 
