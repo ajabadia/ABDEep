@@ -114,6 +114,327 @@ function parseSyxFile(bytes) {
     return { patches: patches, isSinglePatch: (num === 1) };
 }
 
+function parseSysexText(text) {
+    if (!text || typeof text !== 'string') {return null;}
+    let cleaned = text.trim();
+    
+    // Si contiene formato "IDX:VAL" producido por el botón COPY del monitor (ej: "0:F0 1:00 2:20 ...")
+    if (/\b\d+:[0-9a-fA-F]{1,2}\b/.test(cleaned)) {
+        const matches = cleaned.match(/\b(\d+):([0-9a-fA-F]{1,2})\b/g);
+        if (matches) {
+            const tempMap = {};
+            let maxIdx = -1;
+            matches.forEach(m => {
+                const parts = m.split(':');
+                const idx = parseInt(parts[0], 10);
+                const val = parseInt(parts[1], 16);
+                tempMap[idx] = val;
+                if (idx > maxIdx) {maxIdx = idx;}
+            });
+            if (maxIdx >= 0) {
+                const bytes = new Uint8Array(maxIdx + 1);
+                for (let i = 0; i <= maxIdx; i++) {
+                    bytes[i] = tempMap[i] !== undefined ? tempMap[i] : 0;
+                }
+                return bytes;
+            }
+        }
+    }
+
+    // Formato normal Hex (con o sin 0x, espacios, saltos de linea)
+    cleaned = cleaned.replace(/0x/gi, '').replace(/[\s,;\-\r\n:]+/g, '');
+    if (!cleaned) {return null;}
+    
+    // Si la longitud es impar, descartar el último nibble incompleto para mantener alineación correcta de bytes
+    if (cleaned.length % 2 !== 0) {
+        cleaned = cleaned.substring(0, cleaned.length - 1);
+    }
+    if (!cleaned || !/^[0-9a-fA-F]+$/.test(cleaned)) {
+        return null;
+    }
+    const bytes = new Uint8Array(cleaned.length / 2);
+    for (let i = 0; i < cleaned.length; i += 2) {
+        bytes[i / 2] = parseInt(cleaned.substring(i, i + 2), 16);
+    }
+    return bytes;
+}
+
+function parseSysexBytes(bytes) {
+    if (!bytes || !(bytes instanceof Uint8Array) || bytes.length === 0) {return null;}
+
+    // Caso 1: Buffer desempaquetado exacto de 242 bytes (desde el monitor SysEx sin F0/F7)
+    if (bytes.length === 242) {
+        let patchName = '';
+        // En los 242 bytes desempaquetados de DeepMind, los 15 caracteres del nombre están exactamente en las posiciones 223 a 237
+        for (let i = 223; i <= 237; i++) {
+            const c = bytes[i];
+            if (c >= 32 && c < 127) {
+                patchName += String.fromCharCode(c);
+            } else if (c === 0) {
+                break;
+            }
+        }
+        patchName = patchName.trim() || 'Pasted Patch';
+        return {
+            name: patchName,
+            unpackedBytes: new Uint8Array(bytes),
+            meta: window.createDefaultMeta ? window.createDefaultMeta() : {}
+        };
+    }
+    
+    // Caso 2: Mensajes SysEx estándar (empiezan con F0 y acaban con F7) o volcado empaquetado
+    let activeBytes = bytes;
+    if (bytes[0] === 0xF0) {
+        if (bytes.length >= 291) {
+            const parsed = parseSyxFile(bytes);
+            if (parsed.patches && parsed.patches.length > 0) {
+                return parsed.patches[0];
+            }
+        } else if (bytes.length >= 40) {
+            // SysEx empaquetado genérico DeepMind
+            const packedPayload = bytes.slice(10, Math.min(bytes.length - 1, 288));
+            const unpackedBytes = window.unpack7to8 ? window.unpack7to8(packedPayload) : new Uint8Array(242);
+            let patchName = window.extractNameFromRawSysex ? window.extractNameFromRawSysex(bytes, 0) : 'Pasted Patch';
+            return {
+                name: patchName || 'Pasted Patch',
+                unpackedBytes: unpackedBytes,
+                meta: window.createDefaultMeta ? window.createDefaultMeta() : {}
+            };
+        }
+    }
+
+    // Caso 3: Fallback tolerante para cualquier array Hex de datos (ej. edición manual o copia parcial)
+    const padded242 = new Uint8Array(242);
+    padded242.set(activeBytes.slice(0, Math.min(activeBytes.length, 242)));
+    let patchName = '';
+    for (let i = 223; i <= 237; i++) {
+        const c = padded242[i];
+        if (c >= 32 && c < 127) {
+            patchName += String.fromCharCode(c);
+        } else if (c === 0) {
+            break;
+        }
+    }
+    patchName = patchName.trim() || 'Pasted Patch';
+    return {
+        name: patchName,
+        unpackedBytes: padded242,
+        meta: window.createDefaultMeta ? window.createDefaultMeta() : {}
+    };
+}
+
+function pasteSysexFromClipboard(targetBankName, targetPatchIndex) {
+    const bankName = targetBankName || window.currentActiveBank;
+    let patchIdx = (targetPatchIndex !== undefined && targetPatchIndex !== null && targetPatchIndex >= 0) 
+        ? targetPatchIndex 
+        : (window.currentActivePatchIndex >= 0 ? window.currentActivePatchIndex : 0);
+
+    const FACTORY_BANKS_LIST = [
+        'Factory Bank A', 'Factory Bank B', 'Factory Bank C', 'Factory Bank D',
+        'Factory Bank E', 'Factory Bank F', 'Factory Bank G', 'Factory Bank H'
+    ];
+
+    if (FACTORY_BANKS_LIST.includes(bankName)) {
+        alert('No está permitido pegar ni sobreescribir presets en bancos de fábrica.');
+        return false;
+    }
+
+    const backdrop = document.getElementById('paste-sysex-modal-backdrop');
+    const textarea = document.getElementById('paste-sysex-textarea');
+    const statusEl = document.getElementById('paste-sysex-status');
+    const applyBtn = document.getElementById('paste-sysex-btn-apply');
+    const clearBtn = document.getElementById('paste-sysex-btn-clear');
+    const cancelBtn = document.getElementById('paste-sysex-btn-cancel');
+    const closeBtn = document.getElementById('paste-sysex-close-btn');
+
+    if (!backdrop || !textarea) {
+        return false;
+    }
+
+    // Intentar rellenar el textarea automáticamente con Clipboard API si hay datos
+    textarea.value = '';
+    if (statusEl) {
+        const slotNum = (patchIdx + 1).toString().padStart(3, '0');
+        statusEl.style.color = 'var(--accent-teal,#00e5ff)';
+        statusEl.textContent = `Target: ${bankName} [Slot ${slotNum}]`;
+    }
+
+    backdrop.style.display = 'flex';
+    
+    // Si Clipboard API está disponible, autocompletar
+    if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+        navigator.clipboard.readText().then(text => {
+            if (text && text.trim()) {
+                textarea.value = text.trim();
+            }
+            setTimeout(() => { textarea.focus(); textarea.select(); }, 50);
+        }).catch(() => {
+            setTimeout(() => { textarea.focus(); }, 50);
+        });
+    } else {
+        setTimeout(() => { textarea.focus(); }, 50);
+    }
+
+    const closeModal = () => {
+        backdrop.style.display = 'none';
+    };
+
+    if (closeBtn) {closeBtn.onclick = closeModal;}
+    if (cancelBtn) {cancelBtn.onclick = closeModal;}
+    const readClipBtn = document.getElementById('paste-sysex-btn-read-clip');
+    if (readClipBtn) {
+        readClipBtn.onclick = () => {
+            if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+                navigator.clipboard.readText().then(text => {
+                    if (text && text.trim()) {
+                        textarea.value = text.trim();
+                        if (statusEl) {
+                            statusEl.style.color = 'var(--accent-green,#00ff66)';
+                            statusEl.textContent = `📋 Contenido pegado del portapapeles (${text.trim().length} caracteres)`;
+                        }
+                    } else {
+                        if (statusEl) {
+                            statusEl.style.color = 'var(--accent-primary,#ff8c00)';
+                            statusEl.textContent = '⚠️ Portapapeles sin texto simple directo. Si usaste Win+V, haz clic dentro del cuadro y pulsa Ctrl+V.';
+                        }
+                        textarea.focus();
+                    }
+                }).catch(err => {
+                    if (statusEl) {
+                        statusEl.style.color = 'var(--accent-primary,#ff8c00)';
+                        statusEl.textContent = '⚠️ Permisos de portapapeles bloqueados. Haz clic en el cuadro de texto y pulsa Ctrl+V para pegar (o Win+V).';
+                    }
+                    textarea.focus();
+                });
+            } else {
+                if (statusEl) {
+                    statusEl.style.color = 'var(--accent-primary,#ff8c00)';
+                    statusEl.textContent = '⚠️ Navegador en contexto no seguro. Haz clic en el cuadro de texto y pulsa Ctrl+V para pegar.';
+                }
+                textarea.focus();
+            }
+        };
+    }
+
+    if (applyBtn) {
+        applyBtn.onclick = () => {
+            try {
+                console.log('[PasteSysEx] Process & Paste clicked');
+                const content = textarea.value;
+                if (!content || !content.trim()) {
+                    if (statusEl) {
+                        statusEl.style.color = 'var(--accent-red,#ff4444)';
+                        statusEl.textContent = '⚠️ Ingresa o pega un texto SysEx Hexadecimal.';
+                    }
+                    return;
+                }
+
+                console.log('[PasteSysEx] Parsing text, length:', content.trim().length);
+                const rawBytes = parseSysexText(content);
+                if (!rawBytes) {
+                    if (statusEl) {
+                        statusEl.style.color = 'var(--accent-red,#ff4444)';
+                        statusEl.textContent = '⚠️ Texto no válido. Revisa formato hex.';
+                    }
+                    return;
+                }
+                console.log('[PasteSysEx] Raw bytes parsed, length:', rawBytes.length);
+
+                const parsedPatch = parseSysexBytes(rawBytes);
+                if (!parsedPatch || !parsedPatch.unpackedBytes) {
+                    if (statusEl) {
+                        statusEl.style.color = 'var(--accent-red,#ff4444)';
+                        statusEl.textContent = '⚠️ Formato SysEx incompatible o no se pudo extraer preset.';
+                    }
+                    return;
+                }
+                console.log('[PasteSysEx] Parsed patch:', parsedPatch.name, 'bytes:', parsedPatch.unpackedBytes.length);
+
+                const bank = window.loadedBanks ? window.loadedBanks[bankName] : null;
+                if (!bank) {
+                    console.error('[PasteSysEx] Bank not found:', bankName, 'Available:', Object.keys(window.loadedBanks || {}));
+                    if (statusEl) {
+                        statusEl.style.color = 'var(--accent-red,#ff4444)';
+                        statusEl.textContent = `⚠️ Banco "${bankName}" no encontrado.`;
+                    }
+                    return;
+                }
+                if (!bank[patchIdx]) {
+                    console.error('[PasteSysEx] Patch slot not found:', patchIdx, 'bank length:', bank.length);
+                    if (statusEl) {
+                        statusEl.style.color = 'var(--accent-red,#ff4444)';
+                        statusEl.textContent = `⚠️ Slot ${patchIdx} no válido en "${bankName}".`;
+                    }
+                    return;
+                }
+
+                const existingPatch = bank[patchIdx];
+                const isExistingFilled = existingPatch.unpackedBytes && existingPatch.name && !existingPatch.name.startsWith('[Empty Slot');
+
+                // Función que realiza el pegado efectivo
+                const doApply = () => {
+                    bank[patchIdx].name = parsedPatch.name;
+                    bank[patchIdx].unpackedBytes = new Uint8Array(parsedPatch.unpackedBytes);
+                    bank[patchIdx].meta = parsedPatch.meta ? JSON.parse(JSON.stringify(parsedPatch.meta)) : (window.createDefaultMeta ? window.createDefaultMeta() : {});
+
+                    if (typeof window.renderPatchesForBank === 'function') {
+                        window.renderPatchesForBank(bankName);
+                    }
+                    if (typeof window._saveUserBanksToStorage === 'function') {
+                        window._saveUserBanksToStorage();
+                    }
+
+                    closeModal();
+                    console.log('[PasteSysEx] ✅ Patch pasted successfully:', parsedPatch.name);
+                };
+
+                if (isExistingFilled) {
+                    // Mostrar confirmación inline en el statusEl en lugar de confirm() nativo
+                    const slotNum = (patchIdx + 1).toString().padStart(3, '0');
+                    if (statusEl) {
+                        statusEl.innerHTML = '';
+                        statusEl.style.color = 'var(--accent-primary,#ff8c00)';
+
+                        const warnText = document.createElement('span');
+                        warnText.textContent = `⚠️ Sobreescribir "${existingPatch.name}" (Slot ${slotNum}) con "${parsedPatch.name}"?  `;
+                        statusEl.appendChild(warnText);
+
+                        const confirmBtn = document.createElement('button');
+                        confirmBtn.textContent = '✅ Sí, sobreescribir';
+                        confirmBtn.style.cssText = 'background:var(--accent-green,#00ff66);color:#000;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-weight:bold;margin-right:8px;';
+                        confirmBtn.onclick = (ev) => {
+                            ev.stopPropagation();
+                            doApply();
+                        };
+                        statusEl.appendChild(confirmBtn);
+
+                        const denyBtn = document.createElement('button');
+                        denyBtn.textContent = '❌ Cancelar';
+                        denyBtn.style.cssText = 'background:var(--accent-red,#ff4444);color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-weight:bold;';
+                        denyBtn.onclick = (ev) => {
+                            ev.stopPropagation();
+                            statusEl.style.color = 'var(--accent-teal,#00e5ff)';
+                            statusEl.textContent = `Target: ${bankName} [Slot ${slotNum}]`;
+                        };
+                        statusEl.appendChild(denyBtn);
+                    }
+                } else {
+                    // Slot vacío — pegar directamente
+                    doApply();
+                }
+            } catch (err) {
+                console.error('[PasteSysEx] Error in Process & Paste:', err);
+                if (statusEl) {
+                    statusEl.style.color = 'var(--accent-red,#ff4444)';
+                    statusEl.textContent = `❌ Error: ${err.message}`;
+                }
+            }
+        };
+    }
+
+    return true;
+}
+
 function exportSinglePatch(patch, fileName) {
     if (!patch || !patch.unpackedBytes) {
         alert('No patch data to export.');
@@ -128,6 +449,13 @@ function exportSinglePatch(patch, fileName) {
     setTimeout(() => URL.revokeObjectURL(link.href), 5000);
     return true;
 }
+
+window.parseSysexText = parseSysexText;
+window.parseSysexBytes = parseSysexBytes;
+window.pasteSysexFromClipboard = pasteSysexFromClipboard;
+window.exportSinglePatch = exportSinglePatch;
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
     let _fetchBankCancel = false;

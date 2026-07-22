@@ -86,8 +86,7 @@
 }
 
 .patch-item .cat-badge {
-    float: right;
-    margin-top: 1px;
+    margin-top: 0;
 }
 
 /* Edición inline de nombres de banco */

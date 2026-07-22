@@ -6,7 +6,7 @@
 (function() {
     const template = `
         <!-- BANK MANAGER MODAL -->
-        <div class="modal-backdrop" id="browser-modal-backdrop" style="display:none">
+        <div class="modal-backdrop" id="browser-modal-backdrop" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999999;background:rgba(10,11,13,0.96)">
             <div class="modal" style="width:1024px;height:680px">
                 <div class="modal-header">
                     <h2>Bank & Preset Manager (Dual Container)</h2>
@@ -29,7 +29,6 @@
                         </div>
                         
                         <div class="flex-row gap-6 border-bottom" style="margin-bottom:10px;padding-bottom:10px">
-                            <button class="manager-btn btn-solid" id="hw-load-btn">LOAD TO EDIT</button>
                             <button class="manager-btn" id="hw-dump-to-synth" data-accent="green" style="background:color-mix(in srgb,var(--accent-green) 10%,transparent);border-color:var(--accent-green);color:var(--accent-green)">Dump to Synth</button>
                             <button class="manager-btn" id="hw-fetch-from-synth" style="background:color-mix(in srgb,var(--accent-blue) 10%,transparent);border-color:var(--accent-blue);color:var(--accent-blue)">Fetch Bank</button>
                         </div>
@@ -48,9 +47,8 @@
                         </div>
 
                         <div class="flex-row gap-6 border-bottom" style="margin-bottom:10px;padding-bottom:10px">
-                            <button class="manager-btn btn-solid" id="local-load-btn">LOAD TO EDIT</button>
-                            <button class="manager-btn" id="mngr-import-sysex" style="background:color-mix(in srgb,var(--accent-primary) 15%,transparent);border-color:var(--accent-primary);color:var(--text-primary)">Import SysEx</button>
-                            <button class="manager-btn" id="mngr-export-sysex">Export SysEx</button>
+                            <button class="manager-btn" id="mngr-import-sysex" style="background:color-mix(in srgb,var(--accent-primary) 15%,transparent);border-color:var(--accent-primary);color:var(--text-primary)">Import Bank (.syx)</button>
+                            <button class="manager-btn" id="mngr-export-sysex">Export Bank (.syx)</button>
                         </div>
 
                         <div class="flex-row gap-4" style="margin-bottom:6px">
@@ -121,6 +119,65 @@
                         <button class="manager-btn" id="saveas-btn-cancel" style="background:var(--bg-hover);color:var(--text-primary)">Cancel</button>
                         <button class="manager-btn btn-solid" id="saveas-btn-confirm" style="padding:6px 20px;font-size:var(--text-base)">Save Patch</button>
                     </div>
+                </div>
+            </div>
+        </div>
+        <!-- PASTE SYSEX EDITOR MODAL -->
+        <div class="modal-backdrop" id="paste-sysex-modal-backdrop" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999999;background:rgba(10,11,13,0.98)">
+            <div class="modal" data-accent="teal" style="width:640px;height:460px;display:flex;flex-direction:column">
+                <div class="modal-header">
+                    <h2>📋 Paste / Edit SysEx Data</h2>
+                    <div class="close-btn" id="paste-sysex-close-btn">&times;</div>
+                </div>
+                <div class="modal-body flex-col" style="padding:15px;flex:1;gap:10px;overflow:hidden">
+                    <div style="font-size:11px;color:var(--text-secondary,#aaa)">
+                        Pega texto SysEx en formato Hex (soporta <code>Win+V</code>, espacios, saltos de línea o prefijos <code>0x</code>). Puedes editar valores a mano antes de procesar:
+                    </div>
+                    <textarea id="paste-sysex-textarea" style="flex:1;width:100%;background:var(--bg-deepest,#0d0d0d);border:1px solid var(--border-dim,#333);color:var(--text-primary,#ddd);font-family:monospace;font-size:11px;padding:10px;border-radius:var(--radius-xs,#4px);resize:none;outline:none" placeholder="F0 00 20 32 20 7F 02 07 ... F7"></textarea>
+                    <div id="paste-sysex-status" style="font-size:11px;font-weight:bold;min-height:16px;color:var(--accent-teal,#00e5ff)"></div>
+                </div>
+                <div class="modal-footer justify-between" style="padding:10px 15px;border-top:1px solid var(--border-dim,#333)">
+                    <div class="flex-row gap-10">
+                        <button class="manager-btn" id="paste-sysex-btn-clear" style="background:var(--bg-hover,#222);color:var(--text-secondary,#aaa)">Clear</button>
+                        <button class="manager-btn" id="paste-sysex-btn-read-clip" style="background:color-mix(in srgb,var(--accent-teal,#00e5ff) 20%,transparent);border-color:var(--accent-teal,#00e5ff);color:var(--accent-teal,#00e5ff)">📋 Paste from Clipboard</button>
+                    </div>
+                    <div class="flex-row gap-10">
+                        <button class="manager-btn" id="paste-sysex-btn-cancel" style="background:var(--bg-hover,#222);color:var(--text-primary,#ddd)">Cancel</button>
+                        <button class="manager-btn btn-solid" id="paste-sysex-btn-apply" style="padding:6px 20px;font-size:var(--text-base);background:var(--accent-teal,#00e5ff);color:#000;border-color:var(--accent-teal,#00e5ff)">Process & Paste</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RENAME PRESET MODAL -->
+        <div class="modal-backdrop" id="rename-patch-modal-backdrop" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999999;background:rgba(10,11,13,0.85)">
+            <div class="modal" data-accent="orange" style="width:420px;height:auto;display:flex;flex-direction:column">
+                <div class="modal-header">
+                    <h2>✏️ Rename Preset</h2>
+                    <div class="close-btn" id="rename-patch-close-btn">&times;</div>
+                </div>
+                <div class="modal-body flex-col" style="padding:15px;gap:12px">
+                    <span style="font-size:12px;color:var(--text-secondary,#aaa)">Enter new patch name (max 15 characters):</span>
+                    <input type="text" id="rename-patch-input" maxlength="15" class="modal-input" style="width:100%;font-size:14px;padding:8px" placeholder="Preset Name">
+                </div>
+                <div class="modal-footer justify-end" style="padding:10px 15px;gap:10px;border-top:1px solid var(--border-dim,#333)">
+                    <button class="manager-btn" id="rename-patch-btn-cancel">Cancel</button>
+                    <button class="manager-btn btn-solid" id="rename-patch-btn-save" style="padding:6px 20px">Save Name</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CATEGORY PICKER MODAL -->
+        <div class="modal-backdrop" id="category-picker-modal-backdrop" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999999;background:rgba(10,11,13,0.85)">
+            <div class="modal" data-accent="blue" style="width:380px;height:auto;display:flex;flex-direction:column">
+                <div class="modal-header">
+                    <h2>🏷️ Select Category</h2>
+                    <div class="close-btn" id="cat-picker-close-btn">&times;</div>
+                </div>
+                <div class="modal-body flex-col" style="padding:15px;gap:8px" id="cat-picker-options">
+                </div>
+                <div class="modal-footer justify-end" style="padding:10px 15px;border-top:1px solid var(--border-dim,#333)">
+                    <button class="manager-btn" id="cat-picker-btn-cancel">Cancel</button>
                 </div>
             </div>
         </div>

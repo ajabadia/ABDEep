@@ -62,7 +62,16 @@ function renderHardwarePatches() {
         el.className = 'patch-item';
         el.draggable = true;
         if (i === currentHwPatchIndex) {el.classList.add('active');}
-        el.innerText = `${currentHwBankLetter}-${(i+1).toString().padStart(3, '0')}: ${patch.name}`;
+        const labelText = `${currentHwBankLetter}-${(i+1).toString().padStart(3, '0')}: ${patch.name}`;
+        
+        let htmlContent = `<span class="patch-name-text" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${labelText}</span>`;
+        htmlContent += `<div class="patch-actions-group" style="display:flex;gap:3px;align-items:center;margin-left:auto;flex-shrink:0">`;
+        htmlContent += `<button class="patch-action-btn hw-load-btn" title="Load patch to editor" style="font-size:9px;padding:1px 5px;background:var(--bg-hover);border:1px solid var(--border-dim);color:var(--accent-primary);border-radius:3px;cursor:pointer">▶</button>`;
+        htmlContent += `<button class="patch-action-btn menu-btn" title="More options" style="font-size:9px;padding:1px 5px;background:var(--bg-hover);border:1px solid var(--border-dim);color:var(--text-dim);border-radius:3px;cursor:pointer">⋮</button>`;
+        htmlContent += `</div>`;
+
+        el.innerHTML = htmlContent;
+        el.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:3px 6px;gap:4px;overflow:hidden';
 
         el.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/plain', JSON.stringify({ source: 'hw', bank: currentHwBankLetter, index: i }));
@@ -75,15 +84,34 @@ function renderHardwarePatches() {
             swapPresets(dragData, { source: 'hw', bank: currentHwBankLetter, index: i });
         });
 
-        el.addEventListener('click', () => {
+        el.addEventListener('click', (e) => {
             currentHwPatchIndex = i;
             window.currentHwPatchIndex = i;
             document.querySelectorAll('#hw-patches-grid .patch-item').forEach(p => p.classList.remove('active'));
             el.classList.add('active');
+
+            const loadBtn = e.target.closest('.hw-load-btn');
+            const menuBtn = e.target.closest('.menu-btn');
+
+            if (loadBtn) {
+                if (patch && patch.unpackedBytes && typeof window.triggerMidiDump === 'function') {
+                    window.triggerMidiDump(patch);
+                    const lcdText = document.getElementById('lcd-text');
+                    if (lcdText) {
+                        lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">HW PATCH LOADED</span><br><strong>${patch.name.toUpperCase()}</strong>`;
+                    }
+                    const modal = document.getElementById('browser-modal-backdrop');
+                    if (modal) {modal.style.display = 'none';}
+                }
+            } else if (menuBtn) {
+                showPatchContextMenu(e, currentHwBankLetter, i, 'hw');
+            }
         });
 
         el.addEventListener('contextmenu', function(e) {
             e.preventDefault();
+            currentHwPatchIndex = i;
+            window.currentHwPatchIndex = i;
             showPatchContextMenu(e, currentHwBankLetter, i, 'hw');
         });
 
@@ -97,13 +125,13 @@ function showPatchContextMenu(e, bankName, idx, source) {
     if (oldMenu) {oldMenu.remove();}
     
     const patch = (source === 'hw')
-        ? hardwareBanks[bankName][idx]
-        : loadedBanks[bankName][idx];
-    if (!patch || !patch.unpackedBytes) {return;}
+        ? (hardwareBanks[bankName] ? hardwareBanks[bankName][idx] : null)
+        : (loadedBanks[bankName] ? loadedBanks[bankName][idx] : null);
+    if (!patch) {return;}
     
     const menu = document.createElement('div');
     menu.className = 'patch-context-menu';
-    menu.style.cssText = 'position:fixed;z-index:10000;background:var(--bg-elevated,#1a1a1a);border:1px solid var(--border-dim,#333);border-radius:4px;padding:4px 0;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,0.6);font-size:11px;font-family:sans-serif;';
+    menu.style.cssText = 'position:fixed;z-index:999999999;background:var(--bg-elevated,#1a1a1a);border:1px solid var(--border-dim,#333);border-radius:4px;padding:4px 0;min-width:160px;box-shadow:0 4px 20px rgba(0,0,0,0.6);font-size:11px;font-family:sans-serif;';
     menu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
     menu.style.top = Math.min(e.clientY, window.innerHeight - 120) + 'px';
     
@@ -129,17 +157,27 @@ function showPatchContextMenu(e, bankName, idx, source) {
     }
     
     if (source === 'local' && !FACTORY_BANKS_LIST.includes(bankName)) {
+        const pasteItem = _createContextMenuItem('📋 Paste SysEx from Clipboard', function() {
+            menu.remove();
+            if (typeof window.pasteSysexFromClipboard === 'function') {
+                window.pasteSysexFromClipboard(bankName, idx);
+            }
+        });
+        menu.appendChild(pasteItem);
+
         const renameItem = _createContextMenuItem('Rename...', function() {
-            const newName = prompt('New name:', patch.name);
-            if (newName && newName.trim()) {
-                patch.name = newName.trim();
+            menu.remove();
+            showRenameModal(patch, (newName) => {
+                patch.name = newName;
+                if (!patch.unpackedBytes) {
+                    patch.unpackedBytes = new Uint8Array(242);
+                }
                 for (let k = 0; k < 15; k++) {
                     patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
                 }
                 renderPatchesForBank(currentActiveBank);
                 if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
-            }
-            menu.remove();
+            });
         });
         menu.appendChild(renameItem);
         
@@ -189,26 +227,99 @@ function _createContextMenuItem(text, callback) {
     return item;
 }
 
+function showRenameModal(patch, onSave) {
+    const backdrop = document.getElementById('rename-patch-modal-backdrop');
+    const input = document.getElementById('rename-patch-input');
+    const closeBtn = document.getElementById('rename-patch-close-btn');
+    const cancelBtn = document.getElementById('rename-patch-btn-cancel');
+    const saveBtn = document.getElementById('rename-patch-btn-save');
+
+    if (!backdrop || !input) {
+        const legacyName = prompt('New patch name:', patch.name);
+        if (legacyName && legacyName.trim()) { onSave(legacyName.trim()); }
+        return;
+    }
+
+    input.value = patch.name || '';
+    backdrop.style.display = 'flex';
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+
+    const closeModal = () => { backdrop.style.display = 'none'; };
+
+    closeBtn.onclick = closeModal;
+    cancelBtn.onclick = closeModal;
+    saveBtn.onclick = () => {
+        const val = input.value.trim();
+        if (val) {
+            onSave(val);
+        }
+        closeModal();
+    };
+
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            const val = input.value.trim();
+            if (val) { onSave(val); }
+            closeModal();
+        } else if (e.key === 'Escape') {
+            closeModal();
+        }
+    };
+}
+
 function showCategoryPicker(patch) {
-    const CATEGORIES = ['', 'Bass', 'Lead', 'Pad', 'FX', 'Keys', 'Perc', 'Synth', 'Other'];
-    const current = patch.meta && patch.meta.category ? patch.meta.category : '';
-    
-    let promptMsg = 'Set category for "' + patch.name + '":\n\n';
-    CATEGORIES.forEach(function(c, i) {
-        const marker = c === current ? ' ●' : '';
-        promptMsg += (i + 1) + '. ' + c + marker + '\n';
+    const CATEGORIES = ['None', 'Bass', 'Lead', 'Pad', 'FX', 'Keys', 'Perc', 'Synth', 'Other'];
+    const current = patch.meta && patch.meta.category ? patch.meta.category : 'None';
+
+    const backdrop = document.getElementById('category-picker-modal-backdrop');
+    const optionsContainer = document.getElementById('cat-picker-options');
+    const closeBtn = document.getElementById('cat-picker-close-btn');
+    const cancelBtn = document.getElementById('cat-picker-btn-cancel');
+
+    if (!backdrop || !optionsContainer) {
+        let promptMsg = 'Set category for "' + patch.name + '":\n\n';
+        CATEGORIES.forEach(function(c, i) {
+            const marker = c === current ? ' ●' : '';
+            promptMsg += (i + 1) + '. ' + c + marker + '\n';
+        });
+        promptMsg += '\nEnter number (1-' + CATEGORIES.length + ') or leave empty:';
+        const choice = prompt(promptMsg);
+        if (choice === null) {return;}
+        const num = parseInt(choice, 10);
+        if (isNaN(num) || num < 1 || num > CATEGORIES.length) {return;}
+        if (!patch.meta) {patch.meta = window.createDefaultMeta();}
+        patch.meta.category = CATEGORIES[num - 1] === 'None' ? '' : CATEGORIES[num - 1];
+        renderPatchesForBank(currentActiveBank);
+        if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
+        return;
+    }
+
+    optionsContainer.innerHTML = '';
+    CATEGORIES.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'manager-btn';
+        btn.style.cssText = 'width:100%;text-align:left;padding:8px 12px;font-size:12px;display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated,#222);border:1px solid var(--border-dim,#333);color:var(--text-primary,#ddd)';
+        if (cat === current || (cat === 'None' && !current)) {
+            btn.style.borderColor = 'var(--brand-accent,#ff9900)';
+            btn.style.color = 'var(--brand-accent,#ff9900)';
+            btn.innerHTML = `<span>${cat}</span><span>✓ Selected</span>`;
+        } else {
+            btn.innerHTML = `<span>${cat}</span>`;
+        }
+        btn.onclick = () => {
+            if (!patch.meta) {patch.meta = window.createDefaultMeta();}
+            patch.meta.category = cat === 'None' ? '' : cat;
+            renderPatchesForBank(currentActiveBank);
+            if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
+            backdrop.style.display = 'none';
+        };
+        optionsContainer.appendChild(btn);
     });
-    promptMsg += '\nEnter number (1-' + CATEGORIES.length + ') or leave empty to cancel:';
-    
-    const choice = prompt(promptMsg);
-    if (choice === null) {return;}
-    const num = parseInt(choice, 10);
-    if (isNaN(num) || num < 1 || num > CATEGORIES.length) {return;}
-    
-    if (!patch.meta) {patch.meta = window.createDefaultMeta();}
-    patch.meta.category = CATEGORIES[num - 1];
-    renderPatchesForBank(currentActiveBank);
-    if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
+
+    backdrop.style.display = 'flex';
+    const closeModal = () => { backdrop.style.display = 'none'; };
+    closeBtn.onclick = closeModal;
+    cancelBtn.onclick = closeModal;
 }
 
 function renderPatchesForBank(bankName, searchTerm) {
@@ -226,8 +337,8 @@ function renderPatchesForBank(bankName, searchTerm) {
     
     let visibleCount = 0;
 
-    for (var i = 0; i < 128; i++) {
-        var patch = patches[i] || { name: '[Empty Slot ' + (i + 1) + ']', unpackedBytes: null, meta: null };
+    for (let patchIdx = 0; patchIdx < 128; patchIdx++) {
+        let patch = patches[patchIdx] || { name: '[Empty Slot ' + (patchIdx + 1) + ']', unpackedBytes: null, meta: null };
         
         if (searchFilter && !patch.name.toLowerCase().includes(searchFilter)) {
             continue;
@@ -237,61 +348,105 @@ function renderPatchesForBank(bankName, searchTerm) {
         }
         visibleCount++;
         
-        var el = document.createElement('div');
+        let el = document.createElement('div');
         el.className = 'patch-item';
         el.draggable = true;
-        if (i === currentActivePatchIndex && bankName === currentActiveBank) {el.classList.add('active');}
+        if (patchIdx === currentActivePatchIndex && bankName === currentActiveBank) {el.classList.add('active');}
         
-        const label = (i + 1).toString().padStart(3, '0') + ': ' + patch.name;
-        if (patch.meta && patch.meta.category) {
-            el.innerHTML = label + ' <span class="cat-badge">' + patch.meta.category + '</span>';
-        } else {
-            el.innerText = label;
+        const isFactory = FACTORY_BANKS_LIST.includes(bankName);
+        const labelText = (patchIdx + 1).toString().padStart(3, '0') + ': ' + patch.name;
+        
+        const isFav = patch.meta && patch.meta.favorite;
+        const starPrefix = isFav ? '<span style="color:#ffcc00;margin-right:4px">★</span>' : '';
+        let htmlContent = `<span class="patch-name-text" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:${isGridView ? 'bold' : 'normal'}">${starPrefix}${labelText}</span>`;
+        if (!isGridView && patch.meta && patch.meta.category) {
+            htmlContent += ` <span class="cat-badge" style="margin-right:6px;flex-shrink:0">${patch.meta.category}</span>`;
         }
+        
+        htmlContent += `<div class="patch-actions-group" style="display:flex;gap:3px;align-items:center;margin-left:auto;flex-shrink:0">`;
+        htmlContent += `<button class="patch-action-btn load-btn" title="Load patch to editor" style="font-size:9px;padding:1px 5px;background:var(--bg-hover);border:1px solid var(--border-dim);color:var(--accent-primary);border-radius:3px;cursor:pointer">▶</button>`;
+        if (!isFactory) {
+            if (!isGridView) {
+                htmlContent += `<button class="patch-action-btn rename-btn" title="Rename patch" style="font-size:9px;padding:1px 5px;background:var(--bg-hover);border:1px solid var(--border-dim);color:var(--text-secondary);border-radius:3px;cursor:pointer">✏️</button>`;
+            }
+            htmlContent += `<button class="patch-action-btn paste-btn" title="Paste SysEx to this patch" style="font-size:9px;padding:1px 5px;background:var(--bg-hover);border:1px solid var(--border-dim);color:var(--accent-teal,#00e5ff);border-radius:3px;cursor:pointer">📋</button>`;
+        }
+        htmlContent += `<button class="patch-action-btn menu-btn" title="More options" style="font-size:9px;padding:1px 5px;background:var(--bg-hover);border:1px solid var(--border-dim);color:var(--text-dim);border-radius:3px;cursor:pointer">⋮</button>`;
+        htmlContent += `</div>`;
+
+        el.innerHTML = htmlContent;
+        el.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:3px 6px;gap:4px;overflow:hidden';
 
         el.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', JSON.stringify({ source: 'local', bank: bankName, index: i }));
+            e.dataTransfer.setData('text/plain', JSON.stringify({ source: 'local', bank: bankName, index: patchIdx }));
         });
 
         el.addEventListener('dragover', (e) => e.preventDefault());
         el.addEventListener('drop', (e) => {
             e.preventDefault();
-            if (FACTORY_BANKS_LIST.includes(bankName)) {
+            if (isFactory) {
                 alert('No está permitido modificar bancos de fábrica.');
                 return;
             }
             const dragData = JSON.parse(e.dataTransfer.getData('text/plain'));
-            swapPresets(dragData, { source: 'local', bank: bankName, index: i });
+            swapPresets(dragData, { source: 'local', bank: bankName, index: patchIdx });
         });
 
-        el.addEventListener('click', () => {
-            currentActivePatchIndex = i;
-            window.currentActivePatchIndex = i;
+        el.addEventListener('click', (e) => {
+            currentActiveBank = bankName;
+            window.currentActiveBank = bankName;
+            currentActivePatchIndex = patchIdx;
+            window.currentActivePatchIndex = patchIdx;
             document.querySelectorAll('#browser-patches-grid .patch-item').forEach(p => p.classList.remove('active'));
             el.classList.add('active');
-        });
 
-        el.addEventListener('dblclick', () => {
-            if (FACTORY_BANKS_LIST.includes(bankName)) {
-                alert('No está permitido modificar presets de fábrica.');
-                return;
-            }
-            const newName = prompt('Escribe el nuevo nombre del preset:', patch.name);
-            if (newName && newName.trim() !== '') {
-                patch.name = newName.trim();
-                for (let k = 0; k < 15; k++) {
-                    patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
+            const loadBtn = e.target.closest('.load-btn');
+            const renameBtn = e.target.closest('.rename-btn');
+            const pasteBtn = e.target.closest('.paste-btn');
+            const menuBtn = e.target.closest('.menu-btn');
+
+            if (loadBtn) {
+                if (patch && patch.unpackedBytes && typeof window.triggerMidiDump === 'function') {
+                    window.triggerMidiDump(patch);
+                    const lcdText = document.getElementById('lcd-text');
+                    if (lcdText) {
+                        lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">LOADED FROM LIBRARY</span><br><strong>${patch.name.toUpperCase()}</strong>`;
+                    }
+                    const modal = document.getElementById('browser-modal-backdrop');
+                    if (modal) {modal.style.display = 'none';}
                 }
-                el.innerText = `${(i+1).toString().padStart(3, '0')}: ${patch.name}`;
-                if (typeof window._saveUserBanksToStorage === 'function') {
-                    window._saveUserBanksToStorage();
+            } else if (renameBtn) {
+                if (isFactory) {return alert('No está permitido renombrar presets de fábrica.');}
+                showRenameModal(patch, (newName) => {
+                    patch.name = newName;
+                    if (!patch.unpackedBytes) {
+                        patch.unpackedBytes = new Uint8Array(242);
+                    }
+                    for (let k = 0; k < 15; k++) {
+                        patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
+                    }
+                    renderPatchesForBank(currentActiveBank);
+                    if (typeof window._saveUserBanksToStorage === 'function') {
+                        window._saveUserBanksToStorage();
+                    }
+                });
+            } else if (pasteBtn) {
+                if (isFactory) {return alert('No está permitido pegar en bancos de fábrica.');}
+                if (typeof window.pasteSysexFromClipboard === 'function') {
+                    window.pasteSysexFromClipboard(bankName, patchIdx);
                 }
+            } else if (menuBtn) {
+                showPatchContextMenu(e, bankName, patchIdx, 'local');
             }
         });
 
         el.addEventListener('contextmenu', function(e) {
             e.preventDefault();
-            showPatchContextMenu(e, bankName, i, 'local');
+            currentActiveBank = bankName;
+            window.currentActiveBank = bankName;
+            currentActivePatchIndex = patchIdx;
+            window.currentActivePatchIndex = patchIdx;
+            showPatchContextMenu(e, bankName, patchIdx, 'local');
         });
 
         grid.appendChild(el);
@@ -400,6 +555,8 @@ function initBankManager() {
         localSelect.addEventListener('change', function(e) {
             currentActiveBank = e.target.value;
             window.currentActiveBank = currentActiveBank;
+            currentActivePatchIndex = 0;
+            window.currentActivePatchIndex = 0;
             const searchInput = document.getElementById('browser-search-input');
             if (searchInput) {searchInput.value = '';}
             renderPatchesForBank(currentActiveBank);
@@ -509,6 +666,18 @@ function initBankManager() {
                 updateLocalBanksDropdown();
                 renderPatchesForBank(currentActiveBank);
                 if (typeof window._saveUserBanksToStorage === 'function') {window._saveUserBanksToStorage();}
+            }
+        });
+    }
+
+    const pasteSysexBtn = document.getElementById('mngr-paste-sysex');
+    if (pasteSysexBtn) {
+        pasteSysexBtn.addEventListener('click', () => {
+            if (FACTORY_BANKS_LIST.includes(currentActiveBank)) {
+                return alert('No está permitido pegar SysEx en bancos de fábrica.');
+            }
+            if (typeof window.pasteSysexFromClipboard === 'function') {
+                window.pasteSysexFromClipboard(currentActiveBank, currentActivePatchIndex);
             }
         });
     }
