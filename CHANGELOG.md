@@ -4,6 +4,66 @@
 
 ---
 
+## [0.2.16] — 2026-08-09
+
+### 🧪 Fase 4 — Batería de igualdad de round-trip en 3 niveles + fuzzing acotado (Plan v3.2 §5)
+
+- **Nuevo `WebUI/js/roundtrip_equality.js`** (UMD — `window.RoundTripEquality` /
+  `module.exports`): implementa la matriz de pruebas del §5:
+  - **Nivel 1 `rawCodecEqual`** — `Bytes → Pack → Unpack → Bytes`: verifica la
+    invariante del codec (pack→unpack es la identidad, paridad con
+    `browser_packer.js`/`RoundTripValidator.cpp`) y la igualdad byte a byte tras el
+    round-trip. Acepta entrada de 242 (unpacked), 278 (packed) o 291 bytes (sysex,
+    con validación de cabecera canónica opcional).
+  - **Nivel 2 `semanticEqual`** — `Patch → Parámetros → Patch`: decodifica con el
+    registro (`registry.gen.js`, `rawToNormalized`) descartando los **bytes
+    reservados** (nombre 223-238 + cola 239-241) y el **padding** (bytes sin
+    parámetro); tolerancia configurable (default 1/255) y verificación de
+    **estabilidad de re-encode ±1 raw** (solo en el rango válido de enums — fuera
+    de rango el codec clampa, documentado en `registryGen.test.js`). Sin registro,
+    degrada a comparación estructural.
+  - **Nivel 3a `hardwareCanonicalEqual`** — comparación contra el **corpus A–H** con
+    clasificación `exact_match` (bytes idénticos + misma posición declarada en la
+    cabecera), `canonical_match` (payload idéntico, posición distinta/desconocida),
+    `semantic_match` (parámetros iguales con tolerancia), `known_exception`
+    (prioridad sobre exact) y `no_match`.
+  - **`fuzzRoundTrip`** — property-based testing acotado (§5): PRNG determinista
+    `mulberry32` (reproducible en CI), invariantes de codec (242 B y payload
+    arbitrario), estabilidad decode/encode con muestreo en rango válido de enums,
+    **Max Payload 500B** y **Max Timeout 100ms por caso** (violaciones de timeout
+    registradas). Holder `api` mutable para inyección de fallos en tests.
+  - **`loadCorpusFromBanks`** (solo Node): carga los 8 factory banks A–H como corpus
+    `{bank, prog, unpacked, packed}` para CI/scripts.
+- **`WebUI/tests/roundtripEquality.test.js` (27 tests)**: invariante de codec sobre
+  patches fijos y aleatorios, mismatch con offset reportado, comparación cross-form
+  sysex↔patch, cabecera corrupta, región reservada ignorada, detección de VCF Cutoff
+  con `paramIds`, tolerancia configurable, degradación sin registro, `exact/canonical/
+  semantic/known_exception` contra el corpus real de banco A (128 presets), forma de
+  objeto `{unpacked, bank, prog}` (posición declarada → exact/canonical), paridad de
+  codec con `browser_packer.js`, fuzzing determinista (mismo seed → `violations`
+  idénticas con presupuesto alto), límites por defecto del plan y detección de un
+  codec roto por monkey-patch (violación de invariante) y de un codec lento
+  (violación de timeout).
+- **Hallazgo documentado durante la implementación**: los enums con raw > enumMax
+  clampa en el codec del registro (comportamiento heredado y cubierto por
+  `registryGen.test.js`) — el guard de re-encode lo excluye del criterio de
+  inestabilidad.
+- **Post-reviewer (2 hallazgos corregidos)**: (1) la forma de objeto `{unpacked,
+  bank, prog}` de `hardwareCanonicalEqual` ignoraba `bank`/`prog` (la posición solo
+  se extraía de sysex de 291 B) — ahora extrae el header del objeto igual que de una
+  cabecera (2 tests nuevos); (2) `deterministic: true` era un campo hardcodeado que
+  se volvía falso con timeouts — ahora se computa (`false` si hay violaciones de
+  timeout, que dependen del reloj de pared). Menores: `kind` simplificado, fallback
+  degradado de `semanticEqual` comentado (compara padding por no poder distinguirlo
+  sin registro), `loadCorpusFromBanks` lee `prog` de `msg[9]` en vez de por orden de
+  iteración.
+- **Verificación**: Vitest **91 files / 4541 tests / 0 fallos** (+27); ESLint 0 en
+  los archivos nuevos (6 warnings `no-var` preexistentes en otros archivos);
+  `node --check` OK. Checkbox de Fase 4 §5 (Niveles 1/2/3a + fuzzing) marcado;
+  queda el Nivel 3b (hardware-in-the-loop, requiere hardware físico).
+
+---
+
 ## [0.2.15] — 2026-08-09
 
 ### 🛡️ Fase 7 — Job CI `security-scan` (workflow `security-scan.yml`) + 2 XSS reales corregidos
