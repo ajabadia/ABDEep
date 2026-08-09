@@ -1,0 +1,119 @@
+name: WASM Build CI
+
+# wasm-build (Fase 7 del plan v3.2 §7) — compila el motor DSP C++ a WebAssembly
+# (emcmake + cmake --build wasm/build) y verifica que el invariante de tiempo real
+# §3.4 se mantiene:
+#   - Artefactos: WebUI/wasm/abdeep_dsp.{js,wasm} generados y no vacíos, glue con
+#     EXPORT_NAME ABDEepDSP y las 9 funciones exportadas (EXPORTED_FUNCTIONS).
+#   - Exports: el .wasm exporta >= 9 funciones (bridge wasm_* + malloc/free). Los
+#     nombres canónicos viven en el glue (con -O3 --strip-all Emscripten minifica
+#     los nombres de export del binario a identificadores cortos).
+#   - Preasignación: sección Memory con initial >= 512 páginas (32 MiB) — la
+#     reserva fija de wasminitengine() del plan.
+#   - Invariante fuente: WasmBridge.cpp preasigna gAudioBuffer en init y NO
+#     reasigna por bloque si la capacidad ya alcanza.
+# La verificación la ejecuta scripts/check_wasm_build.js (exit 0/1 con ::error::).
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "Source/Wasm/**"
+      - "Source/DSP/**"
+      - "Source/Core/**"
+      - "wasm/**"
+      - "scripts/check_wasm_build.js"
+      - ".github/workflows/wasm-build.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "Source/Wasm/**"
+      - "Source/DSP/**"
+      - "Source/Core/**"
+      - "wasm/**"
+      - "scripts/check_wasm_build.js"
+      - ".github/workflows/wasm-build.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wasm-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wasm-build:
+    name: Build DSP → WASM & verify preallocation invariant
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Emscripten SDK
+        uses: myMindstorm/setup-emsdk@v14
+        with:
+          # Versión PINNED (determinismo de CI — no `latest`): un cambio futuro de
+          # Emscripten podría alterar la minificación de exports o el glue y
+          # romper el job sin que el código cambie. Alineada con la rama 3.1.x
+          # usada en el build local (C:\emsdk).
+          version: 3.1.64
+          actions-cache-folder: emsdk-cache
+
+      - name: Fetch JUCE 8.0.12 (no submodule; shim se copia desde aquí)
+        shell: bash
+        run: |
+          if [ ! -d JUCE ]; then
+            git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+          fi
+          echo "JUCE at: $PWD/JUCE"
+
+      - name: Prepare juce_core shim (gitignored — copia local + patch ThreadPriorities)
+        shell: bash
+        run: |
+          # Reproduce los pasos de wasm/build_wasm.bat (el shim local de juce_core
+          # está en .gitignore; se genera copiando el módulo de JUCE y parcheando
+          # juce_ThreadPriorities_native.h para Emscripten).
+          mkdir -p wasm/juce_shim
+          cp -r JUCE/modules/juce_core wasm/juce_shim/juce_core
+          cp wasm/juce_shim/native/juce_ThreadPriorities_native.h \
+             wasm/juce_shim/juce_core/native/juce_ThreadPriorities_native.h
+          echo "shim juce_core listo"
+
+      - name: Configure CMake with Emscripten
+        shell: bash
+        run: |
+          emcmake cmake -S wasm -B wasm/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DJUCE_PATH="${{ github.workspace }}/JUCE" \
+            -G Ninja
+
+      - name: Build WASM module
+        shell: bash
+        run: |
+          cmake --build wasm/build
+          ls -la WebUI/wasm/abdeep_dsp.js WebUI/wasm/abdeep_dsp.wasm
+
+      - name: Verify WASM artifacts, exports & preallocation invariant
+        shell: bash
+        run: |
+          # Patrón establecido `if ! cmd`: los comandos en condiciones están
+          # exentos del `set -e` de GH Actions, así que los ::error:: del script
+          # se imprimen antes del exit 1 (mismo contrato que property-fuzzing).
+          if ! node scripts/check_wasm_build.js --json; then
+            echo "::error::wasm-build — invariantes WASM violados (ver reporte)."
+            exit 1
+          fi
+          echo "OK — build WASM válido (artefactos, exports, preasignación e invariante fuente)."

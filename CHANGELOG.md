@@ -4,6 +4,64 @@
 
 ---
 
+## [0.2.25] — 2026-08-09
+
+### 🧩 Fase 7 — Job CI `wasm-build` (workflow `wasm-build.yml`) + verificación de la reserva fija
+
+- **Nuevo `scripts/check_wasm_build.js`**: verificación del build WASM ejecutable en
+  CI (plan v3.2 §3.4/§7):
+  - **Artefactos**: `WebUI/wasm/abdeep_dsp.{js,wasm}` existen y no están vacíos; el
+    glue .js contiene el EXPORT_NAME `ABDEepDSP` y las 9 funciones de
+    `EXPORTED_FUNCTIONS` (`_wasm_init_engine`, `_wasm_process_audio`,
+    `_wasm_set_parameter`, `_wasm_note_on/off`, `_wasm_pitch_bend`, `_wasm_panic`,
+    `_malloc`, `_free`).
+  - **Exports del .wasm**: parser mínimo de secciones WASM (LEB128 u32, sin
+    dependencias externas — no requiere wabt) que lee la sección Export y exige
+    **≥ 9 exports de función**. Hallazgo documentado: con `-O3 --strip-all`
+    Emscripten **minifica los nombres de export del binario** a identificadores
+    cortos (i, j, k…) — los nombres canónicos viven en el glue JS; el conteo es la
+    invariante del binario.
+  - **Preasignación (§3.4)**: la sección Memory debe declarar `initial >= 512`
+    páginas (512 × 64 KiB = 32 MiB = INITIAL_MEMORY de `wasm/CMakeLists.txt`) — la
+    «capacidad preasignada en wasminitengine()».
+  - **Invariante fuente**: `WasmBridge.cpp` debe preasignar `gAudioBuffer.setSize(2,
+    gBlockSize)` en init y guardar `getNumSamples() < numSamples` en
+    `wasm_process_audio` (no reasignar si el bloque cabe) — si alguien rompe la
+    reserva fija, el job falla antes de mergear.
+  - CLI (`--wasm-dir`, `--json`, `--out`), exit 0/1 con `::error::wasm-build`.
+  - Verificado localmente sobre los artefactos commiteados: exit 0 — 13 exports de
+    función, Memory initial=512 páginas (32 MiB), invariante fuente OK.
+- **Nuevo `.github/workflows/wasm-build.yml`** (job `wasm-build`, ubuntu-latest,
+  Node 20, timeout 30min): `myMindstorm/setup-emsdk@v14` (Emscripten latest),
+  clonado de JUCE 8.0.12, **preparación del shim `juce_core` gitignored** (copia
+  desde JUCE + patch `juce_ThreadPriorities_native.h` — reproduce `build_wasm.bat`),
+  `emcmake cmake -S wasm -B wasm/build -DJUCE_PATH=...` + `cmake --build`, y
+  verificación con el patrón establecido `if ! node scripts/check_wasm_build.js
+  --json` (los `::error::` se imprimen antes del exit 1). Triggers: `Source/Wasm`,
+  `Source/DSP`, `Source/Core`, `wasm/**`, el script y el workflow.
+- **`WebUI/tests/checkWasmBuild.test.js` (9 tests)**: unit tests del parser WASM
+  con binarios sintéticos (Memory initial+maximum+export count → OK; initial 256 →
+  falla «reserva fija» aislado con glue completo; glue sin `_wasm_process_audio` →
+  falla; magic inválido → falla; artefactos ausentes → falla; **2 tests negativos
+  del invariante FUENTE con `--src-file`**: sin el guard `getNumSamples() <
+  numSamples` → falla «reserva fija rota» y sin preasignación `setSize(2,
+  gBlockSize)` en init → falla) e integración con `skipIf` sin artefactos locales
+  (exit 0 + `--json` con Memory initial ≥ 512 y exports ≥ 9).
+- **Post-reviewer (4 fixes)**: (1) tests negativos del invariante fuente — el
+  requisito central del job (verificar que wasminitengine/preasignación se
+  mantienen) no tenía cobertura de fallo; (2) versión de Emscripten PINNED a
+  `3.1.64` en `setup-emsdk` (determinismo de CI — `latest` rompería sin cambio de
+  código); (3) test de Memory 256 aislado con glue completo (antes también
+  fallaba por glue, el assert pasaba solo porque el script reporta todos los
+  problemas); (4) `readULEB` endurecido contra overflow de `<<` en LEBs de 5
+  bytes + `--src-file` resuelto contra `__dirname` (funciona desde cualquier
+  cwd) + `import os` en el test.
+- **Verificación**: Vitest **95 files / 4597 tests / 0 fallos** (+9); ESLint 0;
+  `node --check` OK; YAML del workflow válido. Checkbox de Fase 7 actualizado —
+  queda solo `pluginval`.
+
+---
+
 ## [0.2.24] — 2026-08-09
 
 ### 🔬 Fase 4/7 — Batería de fuzzing ampliada: 16 seeds × 500 casos = 8.000 casos en CI
