@@ -47,12 +47,20 @@ jobs:
           fi
           echo "JUCE at: $PWD/JUCE"
 
+      - name: Fetch WebView2 SDK (juce_add_plugin exige find_package(WebView2) al configurar)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP/wv2/Microsoft.Web.WebView2.1.0.3800.47" | Out-Null
+          Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.3800.47" -OutFile "$env:RUNNER_TEMP/wv2/pkg.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP/wv2/pkg.zip" -DestinationPath "$env:RUNNER_TEMP/wv2/Microsoft.Web.WebView2.1.0.3800.47" -Force
+          Write-Host "WebView2 SDK listo en $env:RUNNER_TEMP/wv2"
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
       - name: Configure CMake (model 2 — Enhanced, full test coverage)
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2
+          cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2 -DJUCE_WEBVIEW2_PACKAGE_LOCATION="${{ runner.temp }}/wv2"
 
       - name: Build Unit Tests target
         run: |
@@ -90,12 +98,20 @@ jobs:
           fi
           echo "JUCE at: $PWD/JUCE"
 
+      - name: Fetch WebView2 SDK (juce_add_plugin exige find_package(WebView2) al configurar)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP/wv2/Microsoft.Web.WebView2.1.0.3800.47" | Out-Null
+          Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.3800.47" -OutFile "$env:RUNNER_TEMP/wv2/pkg.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP/wv2/pkg.zip" -DestinationPath "$env:RUNNER_TEMP/wv2/Microsoft.Web.WebView2.1.0.3800.47" -Force
+          Write-Host "WebView2 SDK listo en $env:RUNNER_TEMP/wv2"
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
       - name: Configure CMake (model 2 — Enhanced, full test coverage)
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2
+          cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2 -DJUCE_WEBVIEW2_PACKAGE_LOCATION="${{ runner.temp }}/wv2"
 
       - name: Build ABDEep_Benchmarks target
         run: |
@@ -150,12 +166,20 @@ jobs:
           fi
           echo "JUCE at: $PWD/JUCE"
 
+      - name: Fetch WebView2 SDK (juce_add_plugin exige find_package(WebView2) al configurar)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP/wv2/Microsoft.Web.WebView2.1.0.3800.47" | Out-Null
+          Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.3800.47" -OutFile "$env:RUNNER_TEMP/wv2/pkg.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP/wv2/pkg.zip" -DestinationPath "$env:RUNNER_TEMP/wv2/Microsoft.Web.WebView2.1.0.3800.47" -Force
+          Write-Host "WebView2 SDK listo en $env:RUNNER_TEMP/wv2"
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
       - name: Configure CMake (model 2 — Enhanced, full test coverage)
         run: |
-          cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2
+          cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2 -DJUCE_WEBVIEW2_PACKAGE_LOCATION="${{ runner.temp }}/wv2"
 
       - name: Build ABDEep_Benchmarks target
         run: |
