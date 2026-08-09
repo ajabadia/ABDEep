@@ -4,6 +4,33 @@
 
 ---
 
+## [0.2.37] — 2026-08-10
+
+### 🔎 docs-verification — validación de la mención del workflow en los bullets de plan y baseline
+
+- `scripts/verify_docs_ci_jobs.js`: nueva validación **nivel 4** — el TEXTO completo de
+  cada bullet `Job \`x\`` (línea del bullet + líneas de continuación indentadas) en el
+  plan (`implementation_plan architecture.md` §Fase 7) y en `docs/baseline_fase0_v32.md`
+  §7 debe **mencionar el nombre del workflow real** que lo implementa
+  (`JOB_WORKFLOWS`, p. ej. `dsp-ci.yml`) — anti-drift si un bullet omite la referencia o
+  apunta a un workflow equivocado.
+- Nueva función `extractJobBulletTexts()`: Map<job, texto> del bullet completo; un
+  bullet termina en la siguiente línea de lista (`- ` / `* `) o heading. La validación
+  aplica sobre el texto íntegro, no solo la primera línea.
+- Reporte JSON: nuevos campos `planWorkflowMention` / `baselineWorkflowMention`
+  (violaciones) con `::error::docs-verification`.
+- **Corregido**: el bullet de `benchmark` en baseline §7 no mencionaba su workflow
+  (`dsp-ci.yml`) — añadida la referencia (la nueva validación lo detectaba).
+- Tests ampliados 25 → 31: unit de `extractJobBulletTexts` (texto completo con
+  continuaciones + corte en siguiente bullet/heading + mención solo en línea de
+  continuación), contrato en vivo (los bullets reales de plan y baseline mencionan
+  el workflow correcto con la ruta completa `.github/workflows/<wf>`) y negativos
+  (bullet sin mención de workflow, bullet con workflow ERRÓNEO). Helpers sintéticos
+  `buildPlan`/`buildBaseline` ahora generan la mención real del workflow. Baseline:
+  102 files / 4681 tests.
+
+---
+
 ## [0.2.34] — 2026-08-09
 
 ### 🧹 Baseline ESLint a 0 warnings + guard anti-drift de la baseline

@@ -27,7 +27,7 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 
 ## 2. Baseline WebUI (Vitest + ESLint)
 
-> **2026-08-09 — actualizado a los números vigentes** (102 files / 4675 tests,
+> **2026-08-10 — actualizado a los números vigentes** (102 files / 4681 tests,
 > ESLint 0 warnings). El count de test files/tests lo verifica en cada `npm test` el
 > **guard `WebUI/tests/baselineGuard.test.js`** (anti-drift: corre la suite en un
 > subproceso excluyéndose y reconcilia con esta sección).
@@ -35,7 +35,7 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 | Métrica | Valor |
 |---|---|
 | Test files | **102** (102 passed) |
-| Tests | **4675** (4673 passed, 2 skipped, 0 failed) |
+| Tests | **4681** (4679 passed, 2 skipped, 0 failed) |
 | Duración | ~16 s |
 | ESLint | **0 errores, 0 warnings** (`curly` limpios con `--fix`; `npm run lint`
   ahora es `--max-warnings 0` → CI falla ante cualquier warning) |
@@ -253,7 +253,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   `ABDEep_Benchmarks` y **falla si `allocs > 0`** (invariante §3.1). Ampliado a
   **idle + poly12 (+poly12_fx4) + max_all** (3 repeticiones cada uno, con el filtro
   `--scenario` del exe) → verificado en CI: **0 allocs en todos los escenarios auditados**.
-- ✅ **Job `benchmark`**: 18 escenarios × 3 repeticiones en windows-2022 dedicado y
+- ✅ **Job `benchmark`** en `.github/workflows/dsp-ci.yml`: 18 escenarios × 3 repeticiones en windows-2022 dedicado y
   publica `bench_results.txt` + `bench_full.log` como **artefacto de Actions**
   (`benchmark-results-<run_id>`, 90 días) — se descarga vía API o UI. Presupuesto
   definitivo en la sección 5.3.
@@ -262,7 +262,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   0 fallos**. Nota: **3 fallos FX preexistentes documentados** (refactor FX en curso:
   fidelidad delay + full-gain wet) — el paso usa `continue-on-error` (no bloquean CI).
 - ✅ **Job `vitest` + lint** en `.github/workflows/webui-ci.yml` (ubuntu-latest): suite
-  completa de WebUI (**102 files / 4675 tests, 0 fallos**) y ESLint **0 errores / 0
+  completa de WebUI (**102 files / 4681 tests, 0 fallos**) y ESLint **0 errores / 0
   warnings** (`npm run lint` con `--max-warnings 0`). El guard `baselineGuard.test.js`
   incluido en la suite verifica que los counts de esta sección no deriven.
   `package-lock.json` commiteado; `patchwork-deepmind` eliminado de `dependencies`
@@ -424,7 +424,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
    en `bridge-dual.js`). 93 fuentes migradas mecánicamente (0 refs residuales a
    `window.dualMidiBridge`), setup de vitest con fallback para tests que stubbean el
    alias, y `bridgeAliasDeprecation.test.js` (acceso canónico + dedup del aviso).
-   Baseline WebUI actualizada a 102 files / 4664 tests.
+   Baseline WebUI actualizada a 102 files / 4681 tests.
 
 ### ⏳ Pendientes
 

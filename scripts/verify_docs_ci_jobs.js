@@ -20,6 +20,11 @@
  *      contrato debe aparecer como JOB ID dentro de su workflow (tabla
  *      JOB_WORKFLOW_JOBS — el nombre del job puede diferir del nombre documentado,
  *      p. ej. `cpp-unit-tests` vive en dsp-ci.yml como job `build-and-test`).
+ *   4. Mención del workflow en los bullets: el TEXTO de cada bullet `Job \`x\``
+ *      (línea del bullet + líneas de continuación) en el plan Y en baseline §7
+ *      debe mencionar el nombre del workflow real que lo implementa
+ *      (JOB_WORKFLOWS, p. ej. `dsp-ci.yml`) — anti-drift si un bullet apunta a
+ *      un workflow equivocado u omite la referencia.
  *
  * Uso:
  *   node scripts/verify_docs_ci_jobs.js [--plan-file implementation_plan\ architecture.md]
@@ -126,6 +131,42 @@ function extractJobNames(section, jobRe) {
 }
 
 /**
+ * Extrae el TEXTO COMPLETO de cada bullet `Job \`name\`` de una sección:
+ * Map<job, texto> con la línea del bullet más sus líneas de continuación
+ * (indentadas). Un bullet termina cuando aparece otra línea de lista (`- ` /
+ * `* ` sin indentar) o un heading — permite validar menciones en el cuerpo
+ * completo del bullet, no solo en la primera línea.
+ */
+function extractJobBulletTexts(section, jobRe) {
+  const bullets = new Map();
+  const lines = String(section).split(/\r?\n/);
+  const lineRe = new RegExp(jobRe.source);
+  let current = null;
+  let acc = [];
+  const flush = () => {
+    if (current !== null) { bullets.set(current, acc.join('\n').trim()); }
+  };
+  for (const line of lines) {
+    const m = lineRe.exec(line);
+    if (m) {
+      flush();
+      current = m[1];
+      acc = [line];
+    } else if (current !== null) {
+      if (/^[-*] /.test(line) || /^#{1,6} /.test(line)) {
+        flush();
+        current = null;
+        acc = [];
+      } else {
+        acc.push(line);
+      }
+    }
+  }
+  flush();
+  return bullets;
+}
+
+/**
  * Extrae los JOB IDs de la sección `jobs:` de un workflow YAML (formato GitHub
  * Actions: `jobs:` en columna 0 y cada job con indentación de 2 espacios).
  * Parser ligero y determinista — suficiente para el subconjunto de YAML que usa
@@ -199,6 +240,8 @@ function main() {
     extraInBaseline: [],
     missingWorkflows: [],
     missingJobDefs: [],
+    planWorkflowMention: [],
+    baselineWorkflowMention: [],
     problems: [],
   };
 
@@ -255,6 +298,25 @@ function main() {
     }
   }
 
+  // 2.5. Mención del workflow en los bullets de plan y baseline (anti-drift doc→workflow)
+  // Se exige la ruta completa `.github/workflows/<wf>` (no solo el nombre del
+  // archivo) para que la mención referencie el workflow de forma inequívoca.
+  const planBullets = planSection === null ? new Map() : extractJobBulletTexts(planSection, PLAN_JOB_RE);
+  const baselineBullets = baselineSection === null ? new Map() : extractJobBulletTexts(baselineSection, BASELINE_JOB_RE);
+  for (const job of EXPECTED_JOBS) {
+    const wf = JOB_WORKFLOWS[job];
+    const planText = planBullets.get(job);
+    if (planText !== undefined && !planText.includes('.github/workflows/' + wf)) {
+      report.planWorkflowMention.push(job + ' → bullet no menciona .github/workflows/' + wf);
+      report.problems.push('plan: el bullet de ' + job + ' no menciona su workflow (.github/workflows/' + wf + ')');
+    }
+    const baselineText = baselineBullets.get(job);
+    if (baselineText !== undefined && !baselineText.includes('.github/workflows/' + wf)) {
+      report.baselineWorkflowMention.push(job + ' → bullet no menciona .github/workflows/' + wf);
+      report.problems.push('baseline §7: el bullet de ' + job + ' no menciona su workflow (.github/workflows/' + wf + ')');
+    }
+  }
+
   // 3. Workflows reales: el archivo existe Y contiene un job con el ID esperado
   for (const job of EXPECTED_JOBS) {
     const wf = JOB_WORKFLOWS[job];
@@ -289,7 +351,7 @@ function finish(report, wantJson, exitCode) {
   ];
 
   if (report.ok) {
-    lines.push('\n✅ OK — los 12 jobs de Fase 7 del plan coinciden con baseline_fase0_v32.md §7 y tienen workflow real.');
+    lines.push('\n✅ OK — los 12 jobs de Fase 7 del plan coinciden con baseline_fase0_v32.md §7, tienen workflow real y sus bullets mencionan el workflow correcto.');
   } else {
     lines.push('\n❌ Violaciones:');
     for (const p of report.problems) {
@@ -309,7 +371,7 @@ function finish(report, wantJson, exitCode) {
 // Los tests (webui-ci) importan las constantes sin ejecutar el script: main()
 // solo corre cuando se invoca como CLI (node scripts/verify_docs_ci_jobs.js).
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { EXPECTED_JOBS, JOB_WORKFLOWS, JOB_WORKFLOW_JOBS, PLAN_JOB_RE, BASELINE_JOB_RE, extractSection, extractJobNames, extractJobsFromWorkflow, setEquals };
+  module.exports = { EXPECTED_JOBS, JOB_WORKFLOWS, JOB_WORKFLOW_JOBS, PLAN_JOB_RE, BASELINE_JOB_RE, extractSection, extractJobNames, extractJobBulletTexts, extractJobsFromWorkflow, setEquals };
   if (require.main === module) {
     main();
   }

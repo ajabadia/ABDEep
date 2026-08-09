@@ -25,7 +25,7 @@ const REAL_WORKFLOWS = path.join(ROOT, '.github', 'workflows');
 const require = createRequire(import.meta.url);
 const {
   EXPECTED_JOBS, JOB_WORKFLOWS, JOB_WORKFLOW_JOBS, PLAN_JOB_RE, BASELINE_JOB_RE,
-  extractSection, extractJobNames, extractJobsFromWorkflow, setEquals,
+  extractSection, extractJobNames, extractJobBulletTexts, extractJobsFromWorkflow, setEquals,
 } = require(SCRIPT);
 
 // Jobs por defecto para cada workflow sintético — DERIVADO de JOB_WORKFLOW_JOBS
@@ -46,12 +46,22 @@ const DEFAULT_WORKFLOW_JOBS = buildDefaultWorkflowJobs();
 // ────────────────────────────────────────────────────────────────────────────
 
 function buildPlan(jobs) {
-  const bullets = jobs.map((j) => `- [x] Job \`${j}\` (workflow): bullet de prueba`).join('\n');
+  const bullets = jobs
+    .map((j) => {
+      const wf = JOB_WORKFLOWS[j] || 'unknown.yml';
+      return `- [x] Job \`${j}\` (\`.github/workflows/${wf}\`): bullet de prueba`;
+    })
+    .join('\n');
   return '### Fase 7: Pipeline CI/CD Reproducible\n' + bullets + '\n\n## 🧪 8. Criterios de Aceptación Definitivos\n';
 }
 
 function buildBaseline(jobs) {
-  const bullets = jobs.map((j) => `- ✅ **Job \`${j}\`** en workflow: bullet de prueba`).join('\n');
+  const bullets = jobs
+    .map((j) => {
+      const wf = JOB_WORKFLOWS[j] || 'unknown.yml';
+      return `- ✅ **Job \`${j}\`** en \`.github/workflows/${wf}\`: bullet de prueba`;
+    })
+    .join('\n');
   return '## 7. CI — estado de Fase 7\n' + bullets + '\n\n## 8. Estado y próximos pasos\n';
 }
 
@@ -178,6 +188,44 @@ describe('verify_docs_ci_jobs.js — extracción de secciones', () => {
     expect(setEquals(new Set(['a', 'b']), new Set(['b', 'a']))).toBe(true);
     expect(setEquals(new Set(['a']), new Set(['a', 'b']))).toBe(false);
   });
+
+  it('extractJobBulletTexts captura la línea del bullet y sus continuaciones', () => {
+    const section = [
+      '- [x] Job `pluginval` (`.github/workflows/pluginval.yml`): valida el VST3',
+      '  con pluginval pinneda a v1.0.4 en windows-2022.',
+      '- [x] Job `wasm-build` (`.github/workflows/wasm-build.yml`): compila',
+    ].join('\n');
+    const bullets = extractJobBulletTexts(section, PLAN_JOB_RE);
+    expect(bullets.get('pluginval')).toContain('.github/workflows/pluginval.yml');
+    expect(bullets.get('pluginval')).toContain('v1.0.4');
+    expect(bullets.get('wasm-build')).toContain('.github/workflows/wasm-build.yml');
+  });
+
+  it('extractJobBulletTexts: la mención del workflow en una línea de continuación vale como mención del bullet', () => {
+    // El workflow solo aparece en la 2ª línea (continuación indentada) — la
+    // validación 2.5 exige que el texto COMPLETO del bullet lo mencione.
+    const section = [
+      '- [x] Job `benchmark`: 18 escenarios × 3 repeticiones',
+      '  (`.github/workflows/dsp-ci.yml`): en windows-2022 dedicado',
+      '- [x] Job `vitest` (`.github/workflows/webui-ci.yml`): suite completa',
+    ].join('\n');
+    const bullets = extractJobBulletTexts(section, PLAN_JOB_RE);
+    expect(bullets.get('benchmark')).toContain('.github/workflows/dsp-ci.yml');
+    expect(bullets.get('vitest')).toContain('.github/workflows/webui-ci.yml');
+  });
+
+  it('extractJobBulletTexts corta el bullet en la siguiente línea de lista o heading', () => {
+    const section = [
+      '- [x] Job `vitest` (`.github/workflows/webui-ci.yml`): suite completa',
+      '- 🔎 **Verificación documental**: no es un job',
+      '- [x] Job `benchmark` (`.github/workflows/dsp-ci.yml`): 18 escenarios',
+      '  en windows-2022',
+      '## Otra sección',
+    ].join('\n');
+    const bullets = extractJobBulletTexts(section, PLAN_JOB_RE);
+    expect(bullets.get('vitest')).not.toContain('Verificación documental');
+    expect(bullets.get('benchmark')).toContain('windows-2022');
+  });
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -236,6 +284,22 @@ describe('verify_docs_ci_jobs.js — docs commiteados', () => {
     expect(r.planJobs).toEqual(r.baselineJobs);
     expect(r.planJobs).toEqual(r.expectedJobs);
     expect(r.missingWorkflows).toEqual([]);
+  });
+
+  it('los bullets reales de plan y baseline mencionan el workflow correcto (anti-drift doc→workflow)', () => {
+    const planText = fs.readFileSync(path.join(ROOT, 'implementation_plan architecture.md'), 'utf8');
+    const baselineText = fs.readFileSync(path.join(ROOT, 'docs', 'baseline_fase0_v32.md'), 'utf8');
+    const planSection = extractSection(planText, /### Fase 7: Pipeline CI\/CD Reproducible/, /^## /m);
+    const baselineSection = extractSection(baselineText, /## 7\. CI — estado de Fase 7/, /^## 8\./m);
+    const planBullets = extractJobBulletTexts(planSection, PLAN_JOB_RE);
+    const baselineBullets = extractJobBulletTexts(baselineSection, BASELINE_JOB_RE);
+    for (const job of EXPECTED_JOBS) {
+      const wf = JOB_WORKFLOWS[job];
+      // Ruta completa (no solo el nombre del archivo): la mención debe referenciar
+      // el workflow de forma inequívoca (misma regla que la validación 2.5 del script).
+      expect(planBullets.get(job), 'plan: bullet de ' + job).toContain('.github/workflows/' + wf);
+      expect(baselineBullets.get(job), 'baseline §7: bullet de ' + job).toContain('.github/workflows/' + wf);
+    }
   });
 });
 
@@ -387,6 +451,59 @@ describe('verify_docs_ci_jobs.js — divergencias plan ↔ baseline', () => {
       expect(stderr).toContain('::error::docs-verification');
       expect(stderr).toContain('Fase 7');
       expect(extractJson(stdout).planSectionFound).toBe(false);
+    } finally {
+      fs.rmSync(tmp.dir, { recursive: true, force: true });
+    }
+  });
+
+  it('bullet que no menciona su workflow en la baseline falla (anti-drift doc→workflow)', () => {
+    // baseline con bullets SIN la mención del workflow — la validación 2.5 falla
+    const baselineNoMention = [
+      '## 7. CI — estado de Fase 7',
+      ...EXPECTED_JOBS.map((j) => `- ✅ **Job \`${j}\`**: sin mención de workflow`),
+      '## 8. Estado y próximos pasos',
+    ].join('\n');
+    const tmp = writeTemp({
+      plan: buildPlan(EXPECTED_JOBS),
+      baseline: baselineNoMention,
+      workflows: Object.values(JOB_WORKFLOWS),
+    });
+    try {
+      const { status, stderr, stdout } = runScript([
+        '--plan-file', tmp.planFile, '--baseline-file', tmp.baselineFile,
+        '--workflows-dir', tmp.workflowsDir, '--json',
+      ]);
+      expect(status).toBe(1);
+      expect(stderr).toContain('::error::docs-verification');
+      expect(stderr).toContain('no menciona su workflow');
+      expect(extractJson(stdout).baselineWorkflowMention.length).toBe(EXPECTED_JOBS.length);
+    } finally {
+      fs.rmSync(tmp.dir, { recursive: true, force: true });
+    }
+  });
+
+  it('bullet que menciona un workflow ERRÓNEO en el plan falla', () => {
+    const planWrong = [
+      '### Fase 7: Pipeline CI/CD Reproducible',
+      ...EXPECTED_JOBS.map((j) => {
+        const wrongWf = 'otro-workflow.yml';
+        return `- [x] Job \`${j}\` (\`.github/workflows/${wrongWf}\`): bullet de prueba`;
+      }),
+      '## 🧪 8. Criterios de Aceptación Definitivos',
+    ].join('\n');
+    const tmp = writeTemp({
+      plan: planWrong,
+      baseline: buildBaseline(EXPECTED_JOBS),
+      workflows: Object.values(JOB_WORKFLOWS),
+    });
+    try {
+      const { status, stderr, stdout } = runScript([
+        '--plan-file', tmp.planFile, '--baseline-file', tmp.baselineFile,
+        '--workflows-dir', tmp.workflowsDir, '--json',
+      ]);
+      expect(status).toBe(1);
+      expect(stderr).toContain('no menciona su workflow');
+      expect(extractJson(stdout).planWorkflowMention.length).toBe(EXPECTED_JOBS.length);
     } finally {
       fs.rmSync(tmp.dir, { recursive: true, force: true });
     }
