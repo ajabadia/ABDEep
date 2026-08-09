@@ -30,6 +30,41 @@
 
 ---
 
+## [0.2.6] — 2026-08-09
+
+### 🔄 Fase 2 — ParameterStore Transaccional, FSM MIDI y Feature Flags (Plan v3.2 §2/§6)
+
+- **Nuevo `ParameterStore`** (`WebUI/js/parameter_store.js`, UMD): ciclo de vida de ediciones con
+  `PendingTransaction` (transactionId, originId, revision, expectedRawValue, normalizedValue,
+  createdAt, **expiresAt = TTL 300ms**, state `pending|confirmed|timeout|superseded|cancelled`).
+  - **Dedup por TTL**: una nueva edición del mismo parámetro marca la anterior como `superseded`.
+  - **Confirmación explícita**: `confirm()`/`confirmByValue()` → `transportStatus=confirmed` SIN
+    re-escribir el slider (evita escrituras redundantes); `sweep()` expira vencidas.
+  - **Rollback tipado (§2.1)**: `parameter_edit` (restaura committedValue + `out_of_sync`),
+    `patch_load` (conserva patch previo + resync) y `localstorage_migration` (restaura backup + factory-safe).
+  - **Feature flag `comparisonMode` (§6.1)**: diff estructurado `{parameterId, legacy, value,
+    difference, classification}` con clasificación `identical | quantization | divergence`.
+  - `inspect()` serializable para depuración + eventos `subscribe()`.
+- **Nuevo `HardwareMidiService`** (`WebUI/js/hardware_midi_service.js`): FSM del puerto §2.2
+  `disconnected → connected → syncing → ready → transmitting → resync_required` con guardas de
+  transición, `onStateChange`, `forceState` y métricas.
+- **Nuevo `SysExAssembler`** (`WebUI/js/sysex_assembler.js`): FSM de mensajes independiente
+  `waiting → collecting → complete | malformed | timeout` (F0/F7, basura tolerada, doble F0,
+  overflow, timeout configurable, timers inyectables).
+- **Integración** (`WebUI/js/bridge-parameter-store.js`): `setParameter` inicia transacción
+  (JUCE → confirm inmediato; HW → pending hasta eco NRPN); hook guardado en
+  `bridge-midi-rx-nrpn-handlers.js` (CC38) que confirma por eco y **no re-escribe la UI** en
+  `isEcho`; `isConnected`/`sendNRPN` alimentan la FSM; sweep 100ms con reenvío del valor restaurado.
+- **Verificación**: Vitest **87 files / 4457 tests / 0 fallos** (74 nuevos); ESLint 0 errores;
+  sin regresiones en `bridgeDual.test.js` (hook guardado, no-op sin store).
+- **Nota de operación**: con `timeoutPolicy: 'rollback'` (spec §2.1) una edición HW-mode sin eco
+  NRPN del hardware se revierte a los 300ms; si el DM12 no re-emite NRPN recibido, usar
+  `timeoutPolicy: 'mark_only'` (solo marca `out_of_sync`).
+- **Docs**: `docs/fase2_parameter_store.md` (arquitectura, contrato, políticas y verificación);
+  checkboxes de Fase 2 marcados en el plan.
+
+---
+
 ## [0.2.5] — 2026-08-09
 
 ### 🧪 Fase 7 — Job CI `schema-validation` (workflow `schema-validation.yml`)

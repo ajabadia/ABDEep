@@ -66,6 +66,15 @@
                 if (paramIds && paramIds.length > 0) {
                     const normalized = this._rawToNormalized(byteOffset, rawValue);
                     paramIds.forEach(pid => {
+                        // Fase 2 (§2.1): si este NRPN entrante confirma una transacción
+                        // pendiente del ParameterStore (eco del propio envío de la UI),
+                        // NO se re-escribe el slider: solo transportStatus='confirmed'.
+                        // Guardado: sin ParameterStore el comportamiento es el legacy.
+                        if (typeof window !== 'undefined' && window.parameterStore &&
+                            typeof window.parameterStore.confirmByValue === 'function') {
+                            const res = window.parameterStore.confirmByValue(pid, rawValue, normalized);
+                            if (res && res.isEcho) { return; }
+                        }
                         this.handleParameterChangeFromBackend(pid, normalized);
                     });
                 }

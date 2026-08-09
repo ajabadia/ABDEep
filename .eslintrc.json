@@ -91,7 +91,17 @@
     "_updateConnectionUI": "readonly",
     "hexToRgba": "readonly",
     "setLcdParamDisplayTimer": "readonly",
-    "lcdSafeUpdate": "readonly"
+    "lcdSafeUpdate": "readonly",
+    "ParameterStore": "readonly",
+    "ParameterStoreModule": "readonly",
+    "PendingTransaction": "readonly",
+    "HardwareMidiService": "readonly",
+    "HardwareMidiServiceModule": "readonly",
+    "SysExAssembler": "readonly",
+    "SysExAssemblerModule": "readonly",
+    "parameterStore": "readonly",
+    "hardwareMidiService": "readonly",
+    "sysexAssembler": "readonly"
   },
   "parserOptions": {
     "ecmaVersion": 2022,

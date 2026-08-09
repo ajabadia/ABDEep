@@ -1,0 +1,28 @@
+feat(fase-2): ParameterStore transaccional + FSM HardwareMidiService + SysExAssembler + comparisonMode
+
+- WebUI/js/parameter_store.js (UMD): ciclo de vida de ediciones con PendingTransaction
+  (transactionId, originId, revision, expectedRawValue, normalizedValue, createdAt,
+  expiresAt TTL 300ms, state pending|confirmed|timeout|superseded|cancelled).
+  - Dedup por TTL: nueva edicion del mismo parametro -> superseded.
+  - Confirmacion explicita: confirm()/confirmByValue() -> transportStatus=confirmed
+    sin re-escribir el slider (dedup UI/Hardware por eco NRPN).
+  - sweep() expira vencidas -> rollback tipado 'parameter_edit' (restaura committedValue
+    + out_of_sync). Politicas patch_load y localstorage_migration incluidas.
+  - Feature flag comparisonMode (seccion 6.1): diff estructurado legacy/value con
+    clasificacion identical|quantization|divergence.
+  - inspect() serializable + subscribe() con eventos.
+- WebUI/js/hardware_midi_service.js (UMD): FSM del puerto seccion 2.2
+  disconnected->connected->syncing->ready->transmitting->resync_required con guardas
+  de transicion, onStateChange, forceState y metricas.
+- WebUI/js/sysex_assembler.js (UMD): FSM de mensajes independiente
+  waiting->collecting->complete|malformed|timeout (F0/F7, doble F0, overflow, timeout
+  configurable, timers inyectables).
+- WebUI/js/bridge-parameter-store.js: integracion no destructiva con DualMidiBridge.
+  setParameter inicia transaccion (JUCE confirma inmediato; HW pending hasta eco).
+  isConnected alimenta la FSM; sendNRPN -> transmitting; sweep 100ms con reenvio del
+  valor restaurado en rollback.
+- Hook guardado en bridge-midi-rx-nrpn-handlers.js (CC38): confirmByValue por eco;
+  si isEcho no re-escribe la UI. Sin window.parameterStore es no-op (legacy intacto).
+- Tests: parameterStore (30), hardwareMidiService (16), sysexAssembler (17),
+  bridgeParameterStore (11). Vitest 87 files / 4457 tests / 0 fallos. ESLint 0 errores.
+- Docs: docs/fase2_parameter_store.md; checkboxes Fase 2 marcados en el plan; CHANGELOG 0.2.6.

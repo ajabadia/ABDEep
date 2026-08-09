@@ -104,6 +104,12 @@
     <script src="js/wasm_bridge_audio.js"></script>
     <script src="js/wasm_bridge_synth.js"></script>
     <script src="js/wasm_bridge.js"></script>
+    <!-- 5b) Fase 2: ParameterStore transaccional + FSM puerto MIDI + SysExAssembler (plan v3.2 §2)
+         Debe cargar después de bridge-dual.js y de los módulos de conexión/NRPN. -->
+    <script src="js/parameter_store.js"></script>
+    <script src="js/hardware_midi_service.js"></script>
+    <script src="js/sysex_assembler.js"></script>
+    <script src="js/bridge-parameter-store.js"></script>
     <!-- 6) MIDI Learn (añade métodos al prototipo de DualMidiBridge) -->
     <script src="js/bridge-midi-learn.js"></script>
     <script src="js/bridge-midi-learn_storage.js"></script>

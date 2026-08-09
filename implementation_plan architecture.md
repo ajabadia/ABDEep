@@ -139,9 +139,15 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 - [ ] Vincular con CMake (`add_custom_command`).
 
 ### Fase 2: ParameterStore Transaccional, FSM MIDI y Feature Flags
-- [ ] Implementar `ParameterStore` con `PendingTransaction` (TTL, revisiones, transactionId, rollback e inspección depurable de estado).
-- [ ] Implementar `HardwareMidiService` con FSM de puerto y `SysExAssembler` independiente.
-- [ ] Introducir **Feature Flag de comparación paralela** (`comparisonMode`) con diff estructurado.
+- [x] Implementar `ParameterStore` con `PendingTransaction` (TTL, revisiones, transactionId, rollback e inspección depurable de estado).
+- [x] Implementar `HardwareMidiService` con FSM de puerto y `SysExAssembler` independiente.
+- [x] Introducir **Feature Flag de comparación paralela** (`comparisonMode`) con diff estructurado.
+
+> **2026-08-09 — Completado.** Módulos UMD: `WebUI/js/parameter_store.js`, `hardware_midi_service.js`,
+> `sysex_assembler.js` + integración `bridge-parameter-store.js`. Confirmación explícita por eco NRPN
+> (dedup UI/Hardware, sin bucles), sweep TTL 300ms con rollback tipado (`parameter_edit`/`patch_load`/
+> `localstorage_migration`), FSM de puerto con guardas y ensamblador SysEx independiente. Ver `docs/fase2_parameter_store.md`.
+> Vitest: 87 files / 4455 tests / 0 fallos.
 
 ### Fase 3: Sanitización DOM, ASCII y Manejo de Errores Tipados
 - [ ] Auditar sinks dinámicos HTML no escapados y migrar a `textContent` en `MIDI Learn`, monitores SysEx y visores de parches.
