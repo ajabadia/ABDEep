@@ -4,6 +4,29 @@
 
 ---
 
+## [0.2.34] — 2026-08-09
+
+### 🧹 Baseline ESLint a 0 warnings + guard anti-drift de la baseline
+
+- **27 warnings ESLint (`curly`) eliminados** con `--fix` en 9 archivos
+  (`calibration_store.js`, `effects_presets_bank_extract.js`, `effects_presets_storage.js`,
+  `settings_global_dump.js`, `sysex_monitor_events.js`, `sysex_monitor_render.js`,
+  `registryGen.test.js`, `registry_generator.js`, `validate_sysex_mapping.js`) — solo
+  formato, sin cambios de lógica (verificado: regeneración `.gen` sin drift).
+- **`npm run lint` endurecido a `--max-warnings 0`** (antes permitía 9000 en `lint:ci`):
+  CI falla ante cualquier warning futuro.
+- **Nuevo guard `WebUI/tests/baselineGuard.test.js`:** corre la suite completa en un
+  subproceso excluyéndose y reconcilia los counts documentados en
+  `docs/baseline_fase0_v32.md` §2 con la realidad — si un test file/test se añade o
+  renombra, el guard falla y obliga a actualizar la baseline (anti-drift). Incluye
+  unit tests propios del parseo (ANSI, passed+skipped, no-parseable) y falla de forma
+  sonora si el subproceso de la suite termina en error (no enmascara suites rotas).
+- **Baseline actualizada:** 100 files / 4653 tests (4651 passed, 2 skipped), ESLint 0/0,
+  cobertura re-medida 58.99/48.75/57.62/61.02 (bajó por el denominador nuevo de fuentes
+  Fases 3/5, no por regresión).
+
+---
+
 ## [0.2.33] — 2026-08-09
 
 ### 📄 Verificación documental de Fase 7 — job CI `docs-verification`

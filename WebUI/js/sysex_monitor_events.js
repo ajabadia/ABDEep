@@ -5,7 +5,7 @@
  */
 
 /** @type {typeof console} */
-var Logger = globalThis.Logger || console;
+let Logger = globalThis.Logger || console;
 
 // Registrar eventos de Zoom, Copy, Export, Reset y selección del monitor en el DOM
 document.addEventListener('DOMContentLoaded', () => {

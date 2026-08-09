@@ -1,4 +1,4 @@
-var Logger = globalThis.Logger || console;
+let Logger = globalThis.Logger || console;
 
 // WebUI/js/calibration_store.js — Calibration Store factory (reduced)
 // Actions extracted to calibration_store_actions.js

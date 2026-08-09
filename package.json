@@ -11,8 +11,8 @@
     "test:watch": "vitest",
     "test:ci": "vitest run --reporter=verbose",
     "test:legacy": "echo All legacy tests have been migrated to Vitest — use \"npm test\" instead",
-    "lint": "eslint WebUI/js/ WebUI/scripts/ --ext .js",
-    "lint:ci": "eslint WebUI/js/ WebUI/scripts/ --ext .js --max-warnings 9000",
+    "lint": "eslint WebUI/js/ WebUI/scripts/ --ext .js --max-warnings 0",
+    "lint:ci": "eslint WebUI/js/ WebUI/scripts/ --ext .js --max-warnings 0",
     "calibration:export": "node WebUI/scripts/export-calibration-run.js",
     "calibration:export:ci": "node WebUI/scripts/export-calibration-run.js --ci"
   },

@@ -4,7 +4,7 @@
  * @classification Module/Effects/Presets/BankExtract
  */
 
-var Logger = globalThis.Logger || console;
+let Logger = globalThis.Logger || console;
 
 window.extractAndSaveNewPresetsFromBank = function (bankName, patches) {
   if (!Array.isArray(patches)) { return; }

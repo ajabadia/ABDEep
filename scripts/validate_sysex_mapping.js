@@ -40,7 +40,7 @@ function unpack7to8(packed) {
     for (let i = 0; i < packed.length && outIdx < UNPACKED_LEN; i += 8) {
         const msbByte = packed[i] & 0x7F;
         for (let j = 0; j < 7 && outIdx < UNPACKED_LEN; j++) {
-            if (i + 1 + j >= packed.length) break;
+            if (i + 1 + j >= packed.length) {break;}
             const low7 = packed[i + 1 + j] & 0x7F;
             const msb = (msbByte >> j) & 0x01;
             out[outIdx++] = low7 | (msb << 7);

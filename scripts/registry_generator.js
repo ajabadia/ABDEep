@@ -96,21 +96,21 @@ let bridge, byteMap, spec;
 try {
   const bridgeWin = loadJsGlobal(SRC.bridge);
   bridge = bridgeWin.BRIDGE_PARAM_MAPS;
-  if (!bridge) fail('SRC_BRIDGE_MISSING', 'bridge-param-maps.js no expuso window.BRIDGE_PARAM_MAPS');
+  if (!bridge) {fail('SRC_BRIDGE_MISSING', 'bridge-param-maps.js no expuso window.BRIDGE_PARAM_MAPS');}
 } catch (e) {
   fail('SRC_BRIDGE_LOAD', 'No se pudo cargar bridge-param-maps.js: ' + e.message);
 }
 try {
   const byteWin = loadJsGlobal(SRC.byteMap);
   byteMap = byteWin.BYTE_MAP;
-  if (!byteMap) fail('SRC_BYTEMAP_MISSING', 'byte_map_data.js no expuso window.BYTE_MAP');
+  if (!byteMap) {fail('SRC_BYTEMAP_MISSING', 'byte_map_data.js no expuso window.BYTE_MAP');}
 } catch (e) {
   fail('SRC_BYTEMAP_LOAD', 'No se pudo cargar byte_map_data.js: ' + e.message);
 }
 try {
   const raw = JSON.parse(fs.readFileSync(SRC.spec, 'utf8'));
   spec = raw && raw.parameters ? raw.parameters : raw;
-  if (!Array.isArray(spec)) fail('SRC_SPEC_SHAPE', 'parameters_spec.json no contiene un array en "parameters"');
+  if (!Array.isArray(spec)) {fail('SRC_SPEC_SHAPE', 'parameters_spec.json no contiene un array en "parameters"');}
 } catch (e) {
   fail('SRC_SPEC_LOAD', 'No se pudo cargar parameters_spec.json: ' + e.message);
 }
@@ -145,7 +145,7 @@ const enumBytes = bridge.ENUM_BYTES || {};
 const bipolarBytes = bridge.BIPOLAR_BYTES instanceof Set ? bridge.BIPOLAR_BYTES : new Set(Object.keys(bridge.BIPOLAR_BYTES || {}).map(Number));
 
 const specById = new Map();
-for (const p of spec) specById.set(p.id, p);
+for (const p of spec) {specById.set(p.id, p);}
 
 const entries = [];
 const byOffset = {}; // byteOffset → [ids]
@@ -184,8 +184,8 @@ const kReservedPhysicalRegions = [
 ];
 for (const [id, offsetRaw] of Object.entries(paramToOffset)) {
   const byteOffset = Number(offsetRaw);
-  if (!Number.isInteger(byteOffset) || byteOffset < 0) continue;
-  if (byteOffset > 241) continue; // solo aplica a bytes físicos 0-241
+  if (!Number.isInteger(byteOffset) || byteOffset < 0) {continue;}
+  if (byteOffset > 241) {continue;} // solo aplica a bytes físicos 0-241
   const region = kReservedPhysicalRegions.find((r) => byteOffset >= r.start && byteOffset <= r.end);
   if (region) {
     fail('RESERVED_BYTE_COLLISION', 'Param "' + id + '" (byteOffset=' + byteOffset +
@@ -303,7 +303,7 @@ const summary = {
 };
 
 // ── 5. Emitir si no hay errores fatales ───────────────────────────
-if (fatalErrors.length > 0) reportAndExit(1);
+if (fatalErrors.length > 0) {reportAndExit(1);}
 
 const registry = {
   schemaVersion: 1,
@@ -324,7 +324,7 @@ const payloads = [
   [OUT.h, renderCppHeader(registry)],
   [OUT.cpp, renderCppSource(registry)],
 ];
-for (const [file, content] of payloads) writeAtomic(file, content);
+for (const [file, content] of payloads) {writeAtomic(file, content);}
 
 // Post-emisión: re-validar la instancia emitida contra las invariantes clave
 // del esquema (sin dependencia externa; ajv llegará en el job CI de Fase 7).
@@ -336,12 +336,12 @@ console.log('[registry] OK — schemaVersion=1 · parámetros=' + summary.total 
   ' (físicos=' + summary.physical + ' · extendidos=' + summary.extended + ' · virtuales=' + summary.virtual + ')' +
   ' · byteMap=242 · aliasGroups=' + summary.aliasGroups +
   ' · enum=' + summary.enumCount + ' · bipolar=' + summary.bipolarCount + ' · cc=' + summary.ccCount);
-for (const w of warnings) console.log('[registry] WARN  ' + w.code + ': ' + w.message);
+for (const w of warnings) {console.log('[registry] WARN  ' + w.code + ': ' + w.message);}
 if (warnings.length > 0) {
   console.log('[registry] Warnings no fatales registrados en warnings[] (comparisonMode §6).');
 }
 console.log('[registry] Emitidos:');
-for (const f of Object.values(OUT)) console.log('  - ' + path.relative(ROOT, f));
+for (const f of Object.values(OUT)) {console.log('  - ' + path.relative(ROOT, f));}
 process.exit(0);
 
 // ── Implementaciones auxiliares ───────────────────────────────────
@@ -354,7 +354,7 @@ function writeAtomic(file, content) {
 // Valida la instancia emitida contra invariantes del esquema (espejo de lo que
 // validará el job CI schema-validation con ajv en Fase 7).
 function validateEmitted(d) {
-  if (d.schemaVersion !== 1) fail('SCHEMA_VERSION', 'data.json no tiene schemaVersion=1');
+  if (d.schemaVersion !== 1) {fail('SCHEMA_VERSION', 'data.json no tiene schemaVersion=1');}
   if (!Array.isArray(d.parameters) || d.parameters.length !== entries.length) {
     fail('EMITTED_PARAMETERS', 'data.json parámetros no coinciden con la generación');
   }
@@ -363,16 +363,16 @@ function validateEmitted(d) {
   }
   const cpp = new Set();
   for (const p of d.parameters) {
-    if (!/^[A-Z][A-Za-z0-9]*$/.test(p.cppName)) fail('EMITTED_CPPNAME', 'cppName inválido: ' + p.id);
-    if (cpp.has(p.cppName)) fail('EMITTED_CPPNAME_DUP', 'cppName duplicado: ' + p.cppName);
+    if (!/^[A-Z][A-Za-z0-9]*$/.test(p.cppName)) {fail('EMITTED_CPPNAME', 'cppName inválido: ' + p.id);}
+    if (cpp.has(p.cppName)) {fail('EMITTED_CPPNAME_DUP', 'cppName duplicado: ' + p.cppName);}
     cpp.add(p.cppName);
   }
-  if (fatalErrors.length > 0) reportAndExit(1);
+  if (fatalErrors.length > 0) {reportAndExit(1);}
 }
 
 function computeDefaultNormalized(specMeta) {
-  if (!specMeta) return null;
-  if (specMeta.type === 'bool') return specMeta.default === true ? 1 : (specMeta.default === false ? 0 : null);
+  if (!specMeta) {return null;}
+  if (specMeta.type === 'bool') {return specMeta.default === true ? 1 : (specMeta.default === false ? 0 : null);}
   if (typeof specMeta.default === 'number') {
     if (typeof specMeta.min === 'number' && typeof specMeta.max === 'number' && specMeta.max > specMeta.min) {
       const n = (specMeta.default - specMeta.min) / (specMeta.max - specMeta.min);
@@ -382,14 +382,14 @@ function computeDefaultNormalized(specMeta) {
   }
   if (specMeta.type === 'enum' && Array.isArray(specMeta.options) && typeof specMeta.default === 'string') {
     const idx = specMeta.options.indexOf(specMeta.default);
-    if (idx >= 0 && specMeta.options.length > 1) return idx / (specMeta.options.length - 1);
+    if (idx >= 0 && specMeta.options.length > 1) {return idx / (specMeta.options.length - 1);}
   }
   return null;
 }
 
 function reportAndExit(code) {
   console.error('[registry] ERRORES FATALES — no se emiten artefactos:');
-  for (const e of fatalErrors) console.error('  ✗ ' + e.code + ': ' + e.message);
+  for (const e of fatalErrors) {console.error('  ✗ ' + e.code + ': ' + e.message);}
   process.exit(code);
 }
 

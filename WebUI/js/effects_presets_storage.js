@@ -4,7 +4,7 @@
  * @classification Module/Effects/Presets/Storage
  */
 
-var Logger = globalThis.Logger || console;
+let Logger = globalThis.Logger || console;
 
 function _loadAllFxPresets() {
   let userPresets = [];

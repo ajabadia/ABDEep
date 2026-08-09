@@ -229,7 +229,7 @@ describe('registry.gen.js — byteMap canónico (242 bytes)', () => {
     }
     // Región reservada del preset (nombre del patch 223-238 + cola 239-241):
     // ningún byte puede tener id tras el fix de fx_feedback_gain/fx_send_level.
-    for (let i = 223; i <= 241; i++) expect(registry.byteMap[i].id).toBeNull();
+    for (let i = 223; i <= 241; i++) {expect(registry.byteMap[i].id).toBeNull();}
   });
 });
 
@@ -309,7 +309,7 @@ describe('registry.gen.js — consistencia con schemas/parameter-registry.data.j
 
 describe('registry_generator.js — regiones reservadas del preset', () => {
   it('el byteMap 223-241 queda sin id (nombre del patch + cola del payload)', () => {
-    for (let i = 223; i <= 241; i++) expect(registry.byteMap[i].id).toBeNull();
+    for (let i = 223; i <= 241; i++) {expect(registry.byteMap[i].id).toBeNull();}
   });
 
   it('el generador rechaza un parámetro físico en la región reservada (223-241)', () => {

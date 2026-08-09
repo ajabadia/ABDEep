@@ -27,23 +27,33 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 
 ## 2. Baseline WebUI (Vitest + ESLint)
 
-> **2026-08-09 — actualizado a los números vigentes** (96 files / 4605 tests).
+> **2026-08-09 — actualizado a los números vigentes** (100 files / 4653 tests,
+> ESLint 0 warnings). El count de test files/tests lo verifica en cada `npm test` el
+> **guard `WebUI/tests/baselineGuard.test.js`** (anti-drift: corre la suite en un
+> subproceso excluyéndose y reconcilia con esta sección).
 
 | Métrica | Valor |
 |---|---|
-| Test files | **96** (96 passed) |
-| Tests | **4605** (4605 passed, 0 failed) |
-| Duración | ~9.5 s |
-| ESLint | **0 errores, 27 warnings** (curly, sin `--fix` aplicado — no bloquean) |
+| Test files | **100** (100 passed) |
+| Tests | **4653** (4651 passed, 2 skipped, 0 failed) |
+| Duración | ~15 s |
+| ESLint | **0 errores, 0 warnings** (`curly` limpios con `--fix`; `npm run lint`
+  ahora es `--max-warnings 0` → CI falla ante cualquier warning) |
 
 ### Cobertura (`npx vitest run --coverage`)
 
 | Métrica | % |
 |---|---|
-| Statements | 62.53 |
-| Branches | 50.19 |
-| Functions | 58.21 |
-| Lines | 64.74 |
+| Statements | 58.99 |
+| Branches | 48.75 |
+| Functions | 57.62 |
+| Lines | 61.02 |
+
+> La cobertura bajó vs la medición previa (62.53/50.19/58.21/64.74) porque el
+> denominador creció con las fuentes nuevas de Fases 3/5 (`typed_errors.js`,
+> `patch_name.js`, `dom_sanitize.js`, `parameter_store.js`, `hardware_midi_service.js`,
+> `sys_ex_assembler.js`, `roundtrip_equality.js`, `model_capabilities.js`, etc.), no
+> por una regresión de cobertura.
 
 ---
 
@@ -252,7 +262,9 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   0 fallos**. Nota: **3 fallos FX preexistentes documentados** (refactor FX en curso:
   fidelidad delay + full-gain wet) — el paso usa `continue-on-error` (no bloquean CI).
 - ✅ **Job `vitest` + lint** en `.github/workflows/webui-ci.yml` (ubuntu-latest): suite
-  completa de WebUI (**96 files / 4605 tests, 0 fallos**) y ESLint 0 errores.
+  completa de WebUI (**100 files / 4653 tests, 0 fallos**) y ESLint **0 errores / 0
+  warnings** (`npm run lint` con `--max-warnings 0`). El guard `baselineGuard.test.js`
+  incluido en la suite verifica que los counts de esta sección no deriven.
   `package-lock.json` commiteado; `patchwork-deepmind` eliminado de `dependencies`
   (arrastra `node-midi`, bindings nativos que rompían `npm install` en ubuntu — se usa
   vía `npx -y` en `.agents/mcp.json`); el export de calibración se omite cuando no hay

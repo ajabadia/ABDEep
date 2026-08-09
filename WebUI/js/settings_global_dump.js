@@ -4,7 +4,7 @@
  */
 
 /** @type {typeof console} */
-var Logger = globalThis.Logger || console;
+let Logger = globalThis.Logger || console;
 
 /**
  * Request a Global Dump from the hardware and update the UI.

@@ -4,7 +4,7 @@
  */
 
 /** @type {typeof console} */
-var Logger = globalThis.Logger || console;
+let Logger = globalThis.Logger || console;
 
 /**
  * Renderiza los bytes en el monitor hexadecimal y resalta el byte modificado.
