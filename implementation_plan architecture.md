@@ -134,9 +134,19 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 - [ ] Registrar baseline exacta en CI: número de test suites, cobertura, hashes de presets A–H, percentiles temporales ($\text{p95}$, $\text{p99}$, $\text{p999}$) en $\mu\text{s}$ de `processBlock()` y audit de asignaciones.
 
 ### Fase 1: Esquema Declarativo, Generador y Pre-validación
-- [ ] Crear `schemas/parameter-registry.json` (`schemaVersion: 1`).
-- [ ] Desarrollar `scripts/validate_and_generate.ps1` (rechaza IDs duplicados, rangos incompatibles o NRPNs colisionados antes de emitir `.gen.js` y `.gen.cpp`).
-- [ ] Vincular con CMake (`add_custom_command`).
+- [x] Crear `schemas/parameter-registry.json` (`schemaVersion: 1`).
+- [x] Desarrollar `scripts/validate_and_generate.ps1` (rechaza IDs duplicados, rangos incompatibles o NRPNs colisionados antes de emitir `.gen.js` y `.gen.cpp`).
+- [x] Vincular con CMake (`add_custom_command`).
+
+> **2026-08-09 — Completado.** Esquema declarativo `schemaVersion: 1` + generador
+> `scripts/registry_generator.js` (puro, sin wrapper) + `scripts/validate_and_generate.ps1`
+> (rechaza IDs duplicados, rangos incompatibles, NRPNs colisionados y regiones reservadas
+> del preset 223-241 con `RESERVED_BYTE_COLLISION`). Emite 4 artefactos `.gen`
+> (`schemas/parameter-registry.data.json`, `WebUI/js/registry.gen.js`,
+> `Source/Core/ParameterRegistry.gen.{h,cpp}`; 235 parámetros: 226 físicos · 3 extendidos ·
+> 6 virtuales). Paridad verificada por `WebUI/tests/registryGen.test.js`; jobs CI dedicados
+> `schema-validation` y `registry-generation` (Fase 7). Ver `docs/fase1_registry.md`.
+> Vitest: 96 files / 4605 tests / 0 fallos.
 
 ### Fase 2: ParameterStore Transaccional, FSM MIDI y Feature Flags
 - [x] Implementar `ParameterStore` con `PendingTransaction` (TTL, revisiones, transactionId, rollback e inspección depurable de estado).

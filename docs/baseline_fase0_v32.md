@@ -341,9 +341,38 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
 
 ---
 
-## 8. Próximos pasos (secuencia sugerida)
+## 8. Estado y próximos pasos
 
-1. **Decidir** sobre el fix de las 66 allocs/bloque (sección 6) — ya o Fase 5.
-2. Fase 1: `schemas/parameter-registry.json` (schemaVersion 1) + `validate_and_generate.ps1`.
-3. Fase 2: `ParameterStore` transaccional + FSM `HardwareMidiService` + `SysExAssembler`.
-4. Fase 4: tests de 3 niveles (`rawCodecEqual`, `semanticEqual`, `hardwareCanonicalEqual`) + fuzzing acotado.
+> **2026-08-09 — actualizado:** Fases 1/2/4 completadas (verificadas con suites verdes y
+> jobs CI dedicados); el punto 1 quedó resuelto en la sección 6.
+
+### ✅ Completadas
+
+1. ~~Decidir sobre el fix de las 66 allocs/bloque~~ — **RESUELTO** (sección 6): 0 asignaciones
+   por bloque en audio thread en los 18 escenarios; la serialización XML vive ahora en
+   `getDiagnosticSnapshot()` (hilo de control).
+2. **Fase 1 — Esquema Declarativo, Generador y Pre-validación:** `schemas/parameter-registry.json`
+   (schemaVersion 1) + `scripts/registry_generator.js` + `scripts/validate_and_generate.ps1` →
+   artefactos `.gen` (`WebUI/js/registry.gen.js`, `Source/Core/ParameterRegistry.gen.{h,cpp}`,
+   `schemas/parameter-registry.data.json`, 235 parámetros). Jobs CI dedicados: `schema-validation`
+   y `registry-generation` (Fase 7). Ver `docs/fase1_registry.md`.
+3. **Fase 2 — ParameterStore Transaccional, FSM MIDI y Feature Flags:** `ParameterStore` con
+   `PendingTransaction` (TTL 300 ms, revisiones, rollback tipado), `HardwareMidiService` con FSM
+   de puerto, `SysExAssembler` independiente y `comparisonMode` con diff estructurado. Ver
+   `docs/fase2_parameter_store.md`.
+4. **Fase 4 — Tests de 3 niveles + fuzzing:** `roundtrip_equality.js` (`rawCodecEqual`,
+   `semanticEqual`, `hardwareCanonicalEqual`), fuzzing acotado (`fuzz_roundtrip.js`, 16 seeds × 500 =
+   8.000 casos) y corpus A–H (`roundtrip_corpus.js`, 1024 presets: 804 exact · 210 canonical · 10
+   semantic). Ver `docs/fase4_roundtrip_equality.md`.
+
+### ⏳ Pendientes
+
+- **Fase 3 (en curso):** auditoría DOM y migración a `textContent` avanzada (`dom_sanitize.js`,
+  `patch_name.js`, `security_scan.js` + job `security-scan`); falta consolidar `PatchNameValidator`/
+  `HardwareExporter` y errores tipados SysEx/MIDI/JSON.
+- **Fase 5:** sustituir búsquedas dinámicas en `WASMBridge.cpp` por `std::array` + `ParameterIndex`
+  e integrar `ModelCapabilities` (`dm12_hardware` vs `abyssmind_pro`).
+- **Fase 6:** retirada progresiva de compatibilidad legacy (`Logger.deprecation()`, aliases de
+  `window.dualMidiBridge`).
+- **Nivel 3b (Fase 4, §5):** hardware-in-the-loop con DM12 físico — procedimiento en
+  `docs/fase4_nivel3b_hardware_in_the_loop.md`.

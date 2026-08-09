@@ -4,6 +4,18 @@
 
 ---
 
+## [0.2.29] — 2026-08-09
+
+### 📋 Sección 8 de `docs/baseline_fase0_v32.md` — estado actualizado (Fases 1/2/4 completadas)
+
+- **Sección 8 reescrita**: Fases 1/2/4 marcadas como **completadas** con sus artefactos
+  reales (esquema + generador + `.gen`, ParameterStore/FSM/SysExAssembler/comparisonMode,
+  roundtrip_equality + fuzzing + corpus A–H) y el fix de allocs de la sección 6 como
+  resuelto. Pendientes reales listados: Fase 3 (en curso), Fases 5/6 y Nivel 3b
+  (hardware-in-the-loop).
+- **Plan (`implementation_plan architecture.md`)**: checkboxes de Fase 1 marcados `[x]` +
+  nota de cierre (el trabajo ya existía verificado; quedaba sin marcar).
+
 ## [0.2.28] — 2026-08-09
 
 ### 📊 Baseline Fase 0 — números vigentes en secciones 2-3 de `docs/baseline_fase0_v32.md`
