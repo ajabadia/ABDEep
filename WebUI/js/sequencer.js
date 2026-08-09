@@ -22,11 +22,11 @@ window.openSeqModal = function() {
     if (typeof window.syncSeqModalUIFromState === 'function') {
         window.syncSeqModalUIFromState();
     }
-    if (window.dualMidiBridge) {
-        const curStep = window.dualMidiBridge.parameterCache['seq_current_step'];
+    if (getBridge()) {
+        const curStep = getBridge().parameterCache['seq_current_step'];
         if (curStep !== undefined) {
             window._modalActiveStep = Math.round(curStep);
-            window._modalActiveSkip = (window.dualMidiBridge.parameterCache['seq_current_step_skip'] || 0) > 0.5;
+            window._modalActiveSkip = (getBridge().parameterCache['seq_current_step_skip'] || 0) > 0.5;
             if (typeof window.updateStepVisual === 'function') {window.updateStepVisual(window._modalActiveStep);}
         }
     }
@@ -82,21 +82,21 @@ function initSequencerModal() {
     if (seqBox) {
         seqBox.addEventListener('click', function() {
             const active = seqBox.classList.contains('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_enable', active ? 0.0 : 1.0);}
+            if (getBridge()) {getBridge().setParameter('seq_enable', active ? 0.0 : 1.0);}
         });
     }
 
     const selectClock = document.getElementById('modal-seq-clock-select');
     if (selectClock) {
         selectClock.addEventListener('change', function() {
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_clock', parseInt(selectClock.value) / 15.0);}
+            if (getBridge()) {getBridge().setParameter('seq_clock', parseInt(selectClock.value) / 15.0);}
         });
     }
 
     const selectLength = document.getElementById('modal-seq-length-select');
     if (selectLength) {
         selectLength.addEventListener('change', function() {
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_length', parseInt(selectLength.value) / 31.0);}
+            if (getBridge()) {getBridge().setParameter('seq_length', parseInt(selectLength.value) / 31.0);}
             for (let i = 0; i < 32; i++) {
                 if (typeof window.updateStepVisual === 'function') {window.updateStepVisual(i);}
             }
@@ -106,7 +106,7 @@ function initSequencerModal() {
     const selectKeyLoop = document.getElementById('modal-seq-keyloop-select');
     if (selectKeyLoop) {
         selectKeyLoop.addEventListener('change', function() {
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_key_loop', parseInt(selectKeyLoop.value) / 2.0);}
+            if (getBridge()) {getBridge().setParameter('seq_key_loop', parseInt(selectKeyLoop.value) / 2.0);}
         });
     }
 
@@ -126,7 +126,7 @@ function initSequencerModal() {
             y = Math.max(0, Math.min(limit, y));
             handle.style.top = y + 'px';
             const val = 1.0 - (y / limit);
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter(paramId, val);}
+            if (getBridge()) {getBridge().setParameter(paramId, val);}
         }
 
         function onSliderMove(e) {
@@ -161,7 +161,7 @@ function initSequencerModal() {
     const resetBtn = document.getElementById('modal-seq-reset-btn');
     if (resetBtn) {
         resetBtn.addEventListener('click', function() {
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             if (!bridge || !bridge._seqEngine) {return;}
             if (typeof window._renderSeqResetFeedback === 'function') {
                 window._renderSeqResetFeedback(resetBtn, bridge);
@@ -175,8 +175,8 @@ function initSequencerModal() {
     }
 
     // ── Real-time parameter changes ──
-    if (window.dualMidiBridge) {
-        window.dualMidiBridge.onParameterChanged(function(paramId, val) {
+    if (getBridge()) {
+        getBridge().onParameterChanged(function(paramId, val) {
             if (typeof window._handleSeqParamChange === 'function') {
                 window._handleSeqParamChange(paramId, val, backdrop);
             }

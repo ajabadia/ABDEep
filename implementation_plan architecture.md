@@ -208,7 +208,13 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > integrado en `wasm_bridge.js` (`getCapabilities()`).
 
 ### Fase 6: Retirada Progresiva de Compatibilidad Legacy
-- [ ] Registrar desusos con `Logger.deprecation()` fuera de audio y retirar aliases de `window.dualMidiBridge` tras confirmar estabilidad en producción.
+- [x] `Logger.deprecation(feature, info)` implementado (dedup por clave, gated por debug,
+  restringido a hilos de control/tests — invariante §3) + `logger.test.js` (6 tests).
+  `window.dualMidiBridge` pasa a ser **alias deprecado** (getter con `Logger.deprecation`
+  deduplicado); el acceso canónico es `getBridge()` (instancia privada). **93 fuentes
+  migradas** a `getBridge()` (0 refs residuales a `window.dualMidiBridge` en `WebUI/js/`),
+  setup de vitest con fallback `getBridge` para tests, `bridgeAliasDeprecation.test.js`
+  (5 tests) y baseline actualizada a 102 files / 4664 tests.
 
 ### Fase 7: Pipeline CI/CD Reproducible
 - [x] Job `schema-validation` (`.github/workflows/schema-validation.yml`): ejecuta `validate_and_generate.ps1` y falla si los `.gen` commiteados divergen de las fuentes.

@@ -12,21 +12,21 @@ let isHistoryAction = false;
 window.isHistoryAction = isHistoryAction;
 
 function captureParamSnapshot() {
-    if (!window.dualMidiBridge) {return null;}
-    return JSON.stringify(window.dualMidiBridge.parameterCache);
+    if (!getBridge()) {return null;}
+    return JSON.stringify(getBridge().parameterCache);
 }
 window.captureParamSnapshot = captureParamSnapshot;
 
 function restoreParamSnapshot(snapshotStr) {
-    if (!snapshotStr || !window.dualMidiBridge) {return;}
+    if (!snapshotStr || !getBridge()) {return;}
     window.isHistoryAction = true;
     isHistoryAction = true;
     
     const cache = JSON.parse(snapshotStr);
     Object.keys(cache).forEach(paramId => {
         const val = cache[paramId];
-        window.dualMidiBridge.setParameter(paramId, val);
-        window.dualMidiBridge.handleParameterChangeFromBackend(paramId, val);
+        getBridge().setParameter(paramId, val);
+        getBridge().handleParameterChangeFromBackend(paramId, val);
     });
 
     if (typeof window.updateLfoSlidersFromCurrentPreset === 'function') {window.updateLfoSlidersFromCurrentPreset();}
@@ -44,9 +44,9 @@ function restoreParamSnapshot(snapshotStr) {
 window.restoreParamSnapshot = restoreParamSnapshot;
 
 window.initEditHistory = function() {
-    if (window.dualMidiBridge) {
+    if (getBridge()) {
         let changeTimeout = null;
-        window.dualMidiBridge.onParameterChanged((_paramId, _val) => {
+        getBridge().onParameterChanged((_paramId, _val) => {
             if (window.isHistoryAction || isHistoryAction) {return;}
 
             clearTimeout(changeTimeout);

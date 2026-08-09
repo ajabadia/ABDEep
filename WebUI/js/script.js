@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── MIDI LEARN ──
     function initMidiLearn() {
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) {return;}
 
         if (typeof bridge._loadMidiLearnMappings === 'function') {
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── MIDI LEARN: param-click-to-learn ──
     function initMidiLearnParamClick() {
         document.addEventListener('click', function (e) {
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             if (!bridge || !bridge.midiLearnActive) {return;}
 
             const ctrlUnit = e.target.closest('[data-param]');
@@ -135,8 +135,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function (e) {
         if (e.target.closest('#menu-dump-midi')) {
             e.preventDefault();
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.requestMidiDump('edit');
+            if (getBridge()) {
+                getBridge().requestMidiDump('edit');
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
                     const html = '<span class="lcd-label">REQUESTING...</span><br><strong>MIDI DUMP</strong><br><span class="lcd-sub lcd-color-gold">EDIT BUFFER REQ</span>';

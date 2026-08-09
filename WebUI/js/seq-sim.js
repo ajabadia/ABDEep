@@ -17,7 +17,7 @@ var Logger = globalThis.Logger || console;
 (function() {
     // Esperar a que el bridge esté listo
     const checkInterval = setInterval(function() {
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge || !bridge._ready) {return;}
         clearInterval(checkInterval);
         

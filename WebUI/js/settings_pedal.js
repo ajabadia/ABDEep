@@ -8,8 +8,8 @@ function initPedalPolaritySetting() {
     sel.value = saved;
     sel.addEventListener('change', function() {
         localStorage.setItem('abd-eep-pedal-polarity', this.value);
-        if (window.dualMidiBridge) {
-            window.dualMidiBridge.setGlobalParameter('pedal_polarity', this.value === 'norm-closed' ? 1.0 : 0.0);
+        if (getBridge()) {
+            getBridge().setGlobalParameter('pedal_polarity', this.value === 'norm-closed' ? 1.0 : 0.0);
         }
     });
 }

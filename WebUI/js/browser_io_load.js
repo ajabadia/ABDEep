@@ -12,8 +12,8 @@
  * Then load user banks from localStorage and inject the Factory Dev Calib bank.
  */
 async function loadAllFactoryBanksNatively() {
-    if (window.dualMidiBridge && typeof window.dualMidiBridge.waitForReady === 'function') {
-        await window.dualMidiBridge.waitForReady(2000);
+    if (getBridge() && typeof getBridge().waitForReady === 'function') {
+        await getBridge().waitForReady(2000);
     }
     const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
@@ -22,9 +22,9 @@ async function loadAllFactoryBanksNatively() {
         window.loadedBanks[bankName] = window.createEmptyBank();
 
         let bytes = null;
-        if (window.dualMidiBridge && window.dualMidiBridge.isJuce) {
+        if (getBridge() && getBridge().isJuce) {
             try {
-                const hexStr = await window.dualMidiBridge.readFactoryBankFile(letter);
+                const hexStr = await getBridge().readFactoryBankFile(letter);
                 if (hexStr && typeof hexStr === 'string' && hexStr.length > 0) {
                     const cleanHex = hexStr.replace(/\s/g, '');
                     bytes = new Uint8Array(cleanHex.match(/.{1,2}/g).map(function(byte) { return parseInt(byte, 16); }));
@@ -156,8 +156,8 @@ let presetName;
     if (initialPatch) {
         const lcdText = document.getElementById('lcd-text');
         if (lcdText) { lcdText.innerText = initialPatch.name.toUpperCase(); }
-        if (window.dualMidiBridge && typeof window.dualMidiBridge.waitForReady === 'function') {
-            await window.dualMidiBridge.waitForReady(10000);
+        if (getBridge() && typeof getBridge().waitForReady === 'function') {
+            await getBridge().waitForReady(10000);
         }
         if (initialPatch.unpackedBytes) {
             setTimeout(function() {

@@ -614,6 +614,30 @@
 
 ---
 
+## [0.2.35] — 2026-08-09
+
+### 🔄 Fase 6 — Retirada progresiva de compatibilidad legacy
+
+- **`Logger.deprecation(feature, info)`** en `logger.js`: dedup por clave (Set de sesión),
+  gated por debug, restringido a hilos de control y tests (invariante §3 — prohibido en
+  audio). `logger.test.js` (6 tests: gating, estructura, dedup real, claves distintas,
+  sin feature, sin console.warn).
+- **`window.dualMidiBridge` → alias deprecado:** `bridge-dual.js` mantiene la instancia en
+  una const privada `_canonicalBridge` y expone el acceso canónico **`getBridge()`**
+  (window + globalThis). El alias legacy es un getter que reporta el desuso UNA vez con
+  `Logger.deprecation('window.dualMidiBridge', {replacementId: 'getBridge()', ...})`;
+  las escrituras al alias se ignoran (la instancia canónica es privada).
+- **93 fuentes migradas** a `getBridge()` (0 refs residuales a `window.dualMidiBridge` en
+  `WebUI/js/`): sed mecánico + verificación de que ningún consumidor carga antes de
+  `bridge-dual.js` ni usa el alias en load-time.
+- **Tests:** `WebUI/tests/setup.js` (setup de vitest: fallback `getBridge` →
+  `window._bridgeInstance || window.dualMidiBridge` para tests que stubbean el alias sin
+  evaluar bridge-dual.js) registrado en `vitest.config.js`; `bridgeAliasDeprecation.test.js`
+  (5 tests: acceso canónico, identidad alias, deprecation con replacementId, dedup, write
+  no-op). Suite completa: **102 files / 4664 tests** (guard baseline actualizado).
+
+---
+
 ## [0.2.14] — 2026-08-09
 
 ### 🧹 Consolidación de escapeHtml (4 fuentes → 1 canónica) — prep Fase 6

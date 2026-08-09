@@ -20,7 +20,7 @@ function initKeyPressureLoop() {
     function _updateKeyPressure() {
         _atFramePending = false;
 
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) {return;}
 
         let aftertouch = 0.0;
@@ -105,7 +105,7 @@ function initKeyPressureLoop() {
     _scheduleNextPressureFrame();
 
     // Patch bridge methods to capture voice state / waveform
-    const _bridgeRef = window.dualMidiBridge;
+    const _bridgeRef = getBridge();
     if (_bridgeRef) {
         _bridgeRef._lastVoiceStateRaw = null;
         if (typeof _bridgeRef.getVoiceState === 'function') {

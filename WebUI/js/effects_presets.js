@@ -17,7 +17,7 @@ window.saveFxPreset = function (presetName, slotNumber) {
   presetName = presetName.trim().replace(/[<>"'&]/g, '');
   if (!presetName) { return; }
   slotNumber = slotNumber || window._selectedFxSlot || 1;
-  const bridge = window.dualMidiBridge;
+  const bridge = getBridge();
   if (!bridge || !bridge.parameterCache) { return; }
 
   const preset = {
@@ -62,7 +62,7 @@ window.saveFxPreset = function (presetName, slotNumber) {
 
 /** @private Reads an FX param value from the bridge parameterCache */
 function _readFxParam(paramId, defaultOffset, fallback) {
-  const bridge = window.dualMidiBridge;
+  const bridge = getBridge();
   if (!bridge || !bridge.parameterCache) { return fallback; }
   const val = bridge.parameterCache[paramId];
   return (val !== undefined && val !== null) ? val : fallback;

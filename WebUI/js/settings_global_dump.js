@@ -11,7 +11,7 @@ let Logger = globalThis.Logger || console;
  * @param {string} [statusElId='settings-global-dump-status'] - Element ID for status feedback
  */
 function requestGlobalDumpAndUpdate(statusElId) {
-    if (!window.dualMidiBridge || !window.dualMidiBridge._connected) {return;}
+    if (!getBridge() || !getBridge()._connected) {return;}
     
     statusElId = statusElId || 'settings-global-dump-status';
     const statusEl = document.getElementById(statusElId);
@@ -25,10 +25,10 @@ function requestGlobalDumpAndUpdate(statusElId) {
         statusEl.classList.add('visible', 'spinner');
     }
     
-    window.dualMidiBridge.requestMidiDump('global', 3000, 1)
+    getBridge().requestMidiDump('global', 3000, 1)
         .then(function(globalResp) {
             if (globalResp && globalResp.length >= 30) {
-                window.dualMidiBridge._parseGlobalDump(globalResp);
+                getBridge()._parseGlobalDump(globalResp);
                 if (typeof window.updateSettingsHardwareInfo === 'function') {
                     window.updateSettingsHardwareInfo();
                 }

@@ -48,13 +48,13 @@ window._wireBrowserIOEvents = function() {
     const fetchHwBtn = document.getElementById('hw-fetch-from-synth');
     if (fetchHwBtn) {
         fetchHwBtn.addEventListener('click', async () => {
-            if (!window.dualMidiBridge || !window.dualMidiBridge.midiOutput) {
+            if (!getBridge() || !getBridge().midiOutput) {
                 alert('Conexi\u00F3n MIDI no disponible. Aseg\u00FArate de configurar los puertos en Settings.');
                 return;
             }
 
-            if (window.dualMidiBridge._bankDumpInProgress) {
-                window.dualMidiBridge.cancelBankDump();
+            if (getBridge()._bankDumpInProgress) {
+                getBridge().cancelBankDump();
                 fetchHwBtn.textContent = 'Fetch Bank';
                 fetchHwBtn.classList.remove('is-loading');
                 const lcd = document.getElementById('lcd-text');
@@ -68,7 +68,7 @@ window._wireBrowserIOEvents = function() {
             _fetchBankTotal = 128;
 
             try {
-                const count = await window.dualMidiBridge.requestBankDump(window.currentHwBankLetter, {
+                const count = await getBridge().requestBankDump(window.currentHwBankLetter, {
                     patchSpacingMs: 35,
                     timeoutMs: 45000,
                     onProgress: (received, total) => {
@@ -106,7 +106,7 @@ window._wireBrowserIOEvents = function() {
     const dumpHwBtn = document.getElementById('hw-dump-to-synth');
     if (dumpHwBtn) {
         dumpHwBtn.addEventListener('click', () => {
-            if (!window.dualMidiBridge || !window.dualMidiBridge.midiOutput) {
+            if (!getBridge() || !getBridge().midiOutput) {
                 alert('Conexi\u00F3n MIDI no disponible. Aseg\u00FArate de configurar los puertos en Settings.');
                 return;
             }

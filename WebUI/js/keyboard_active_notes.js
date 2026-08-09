@@ -42,8 +42,8 @@ window._handleEngineActiveNotes = function(notesJSON) {
             
             // Determinar color del LED para notas del motor
             let ledColor = 'var(--brand-accent)';
-            if (window.dualMidiBridge) {
-                const cache = window.dualMidiBridge.parameterCache;
+            if (getBridge()) {
+                const cache = getBridge().parameterCache;
                 const arpActive = cache && cache['arp_enable'] > 0.5;
                 const seqActive = cache && cache['seq_enable'] > 0.5;
                 const chordActive = cache && cache['chord_enable'] > 0.5;
@@ -149,10 +149,10 @@ window._handleEngineActiveNotes = function(notesJSON) {
     }
 
     let title = 'KEY PLAY';
-    if (window.dualMidiBridge) {
-        if ((window.dualMidiBridge.parameterCache['poly_chord_enable'] || 0) > 0.5) {
+    if (getBridge()) {
+        if ((getBridge().parameterCache['poly_chord_enable'] || 0) > 0.5) {
             title = 'POLY CHORD';
-        } else if ((window.dualMidiBridge.parameterCache['chord_enable'] || 0) > 0.5) {
+        } else if ((getBridge().parameterCache['chord_enable'] || 0) > 0.5) {
             title = 'CHORD PLAY';
         }
     }
@@ -204,7 +204,7 @@ window.initChordDisplayCanvas = function() {
     window._chordDisplayCanvasEl = canvas;
     canvas._chordDisplay = new window.ChordDisplayCanvas(canvas);
     canvas._chordDisplay.setCallbacks(function(midiNote) {
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) {return;}
         bridge.sendNoteOn(midiNote, 100);
         setTimeout(function() { bridge.sendNoteOff(midiNote); }, 50);

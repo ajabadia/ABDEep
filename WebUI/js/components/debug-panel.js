@@ -64,9 +64,9 @@
         try {
             const backdrop = this.querySelector('#debug-modal-backdrop');
             if (!backdrop || backdrop.style.display === 'none') { return; }
-            if (!window.dualMidiBridge) { return; }
+            if (!getBridge()) { return; }
 
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const cache = bridge.parameterCache || {};
             let raw = null;
 

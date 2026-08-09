@@ -126,12 +126,12 @@
         const updateWaveform = function() {
             if (bridge.analyser) {
                 bridge.analyser.getFloatTimeDomainData(sampleArray);
-                if (window.dualMidiBridge) {
-                    window.dualMidiBridge._lastAudioWaveform = Array.from(sampleArray);
+                if (getBridge()) {
+                    getBridge()._lastAudioWaveform = Array.from(sampleArray);
                 }
                 bridge.analyser.getByteFrequencyData(freqArray);
-                if (window.dualMidiBridge) {
-                    window.dualMidiBridge._lastAudioFrequencyData = Array.from(freqArray);
+                if (getBridge()) {
+                    getBridge()._lastAudioFrequencyData = Array.from(freqArray);
                 }
             }
             bridge._scopeLoopId = requestAnimationFrame(updateWaveform);

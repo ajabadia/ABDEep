@@ -71,12 +71,12 @@ function initPanelButtons(panel) {
         chordEditBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (window.dualMidiBridge) {
-                const active = window.dualMidiBridge.parameterCache['chord_enable'] > 0.5;
+            if (getBridge()) {
+                const active = getBridge().parameterCache['chord_enable'] > 0.5;
                 const nextVal = active ? 0.0 : 1.0;
-                window.dualMidiBridge.setParameter('chord_enable', nextVal);
+                getBridge().setParameter('chord_enable', nextVal);
                 if (nextVal > 0.5) {
-                    window.dualMidiBridge.setParameter('poly_chord_enable', 0.0);
+                    getBridge().setParameter('poly_chord_enable', 0.0);
                 }
             }
             state.currentPanelMode = 'CHORD';
@@ -89,12 +89,12 @@ function initPanelButtons(panel) {
         polychordEditBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (window.dualMidiBridge) {
-                const active = window.dualMidiBridge.parameterCache['poly_chord_enable'] > 0.5;
+            if (getBridge()) {
+                const active = getBridge().parameterCache['poly_chord_enable'] > 0.5;
                 const nextVal = active ? 0.0 : 1.0;
-                window.dualMidiBridge.setParameter('poly_chord_enable', nextVal);
+                getBridge().setParameter('poly_chord_enable', nextVal);
                 if (nextVal > 0.5) {
-                    window.dualMidiBridge.setParameter('chord_enable', 0.0);
+                    getBridge().setParameter('chord_enable', 0.0);
                 }
             }
             state.currentPanelMode = 'POLY_CHORD';

@@ -53,7 +53,7 @@ window._buildBankSysex = function(patches) {
  * @param {object} callbacks - { onComplete(), onError(err) }
  */
 window._dumpBankToHw = function(bankLetter, patches, callbacks) {
-    if (!window.dualMidiBridge || !window.dualMidiBridge.midiOutput) {
+    if (!getBridge() || !getBridge().midiOutput) {
         alert('Conexión MIDI no disponible. Asegúrate de configurar los puertos en Settings.');
         if (callbacks && callbacks.onError) {callbacks.onError('MIDI not available');}
         return;
@@ -89,7 +89,7 @@ window._dumpBankToHw = function(bankLetter, patches, callbacks) {
             const patch = patchesToSend[i];
             if (patch && patch.unpackedBytes) {
                 const sysex = window._buildPatchSysex(patch.unpackedBytes);
-                window.dualMidiBridge.midiOutput.send(sysex);
+                getBridge().midiOutput.send(sysex);
             }
             if (i === 127 && callbacks && callbacks.onComplete) {
                 callbacks.onComplete();

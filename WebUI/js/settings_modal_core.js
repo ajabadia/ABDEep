@@ -104,11 +104,11 @@ function initResyncButton() {
     const resyncBtn = document.getElementById('settings-midi-resync');
     if (resyncBtn) {
         resyncBtn.addEventListener('click', async () => {
-            if (!window.dualMidiBridge) {return;}
+            if (!getBridge()) {return;}
             resyncBtn.disabled = true;
             resyncBtn.textContent = 'Scanning...';
             resyncBtn.classList.add('btn-loading');
-            await window.dualMidiBridge.resetMidiConnection();
+            await getBridge().resetMidiConnection();
             if (typeof window.populateMidiPortsLists === 'function') {
                 window.populateMidiPortsLists();
             }
@@ -126,11 +126,11 @@ function initSynthInfoRefresh() {
     const synthInfoRefreshBtn = document.getElementById('settings-synth-info-refresh');
     if (synthInfoRefreshBtn) {
         synthInfoRefreshBtn.addEventListener('click', async () => {
-            if (!window.dualMidiBridge) {return;}
+            if (!getBridge()) {return;}
             synthInfoRefreshBtn.disabled = true;
             synthInfoRefreshBtn.textContent = '...';
             try {
-                await window.dualMidiBridge.isConnected();
+                await getBridge().isConnected();
                 if (typeof window.updateSettingsHardwareInfo === 'function') {
                     window.updateSettingsHardwareInfo();
                 }

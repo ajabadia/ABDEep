@@ -33,8 +33,8 @@ function initKnobs() {
             const rotation = (baseValue * 270) - 135;
             pointer.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
 
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter(paramId, baseValue);
+            if (getBridge()) {
+                getBridge().setParameter(paramId, baseValue);
 
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
@@ -51,8 +51,8 @@ function initKnobs() {
             isDragging = false;
         });
 
-        if (window.dualMidiBridge) {
-            window.dualMidiBridge.onParameterChanged((id, val) => {
+        if (getBridge()) {
+            getBridge().onParameterChanged((id, val) => {
                 if (id === paramId) {
                     baseValue = val;
                     const rotation = (val * 270) - 135;

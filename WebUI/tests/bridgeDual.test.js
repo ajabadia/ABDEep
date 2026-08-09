@@ -201,6 +201,10 @@ afterEach(() => {
   _currentBridge = null;
   _fakeMidiAccess = null;
   vi.restoreAllMocks();
+  // Fase 6: bridge-dual.js expone getBridge() en globalThis — limpiarlo para no
+  // contaminar otros test files que dependen del fallback de WebUI/tests/setup.js.
+  delete globalThis.getBridge;
+  delete globalThis.DualMidiBridge;
 });
 
 // ══════════════════════════════════════════════════════════════════

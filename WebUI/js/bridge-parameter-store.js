@@ -110,7 +110,7 @@
     if (store) {
         store.subscribe(function (evt) {
             if (evt.type === 'rollback' && evt.reason === 'parameter_edit') {
-                resendRestoredValue(window.dualMidiBridge, evt.parameterId, evt.restoredValue);
+                resendRestoredValue(getBridge(), evt.parameterId, evt.restoredValue);
                 Logger.warn('[ParameterStore] Rollback parameter_edit ' + evt.parameterId + ' → out_of_sync');
             } else if (evt.type === 'patch_load_rollback') {
                 Logger.warn('[ParameterStore] Rollback carga de patch: mantener patch previo + resync');

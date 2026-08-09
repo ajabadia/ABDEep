@@ -18,7 +18,7 @@ window._startModalPolling = function() {
             window._stopModalPolling();
             return;
         }
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) {return;}
 
         const currentStep = bridge.parameterCache['seq_current_step'];

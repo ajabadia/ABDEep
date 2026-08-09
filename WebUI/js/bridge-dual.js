@@ -184,5 +184,61 @@ class DualMidiBridge {
 // puedan encontrar DualMidiBridge incluso en entornos module-scoped (tests con eval/require)
 globalThis.DualMidiBridge = DualMidiBridge;
 
-// Instancia Global
-window.dualMidiBridge = new DualMidiBridge();
+// ══════════════════════════════════════════════════════════════════
+// Fase 6 (plan v3.2 §6): acceso canónico + retirada del alias legacy
+//
+// window.dualMidiBridge queda como ALIAS DEPRECADO (getter con aviso único
+// vía Logger.deprecation). El acceso canónico es getBridge(), que lee la
+// instancia privada directamente — sin deprecation y sin coste extra.
+// ══════════════════════════════════════════════════════════════════
+
+/** Instancia canónica privada (el alias legacy es un getter sobre esta). */
+const _canonicalBridge = new DualMidiBridge();
+
+/**
+ * Acceso canónico al bridge (Fase 6). Los módulos de UI deben usar getBridge()
+ * en lugar de window.dualMidiBridge. En entornos de test donde solo se stubbea
+ * window.dualMidiBridge o window._bridgeInstance, cae a ellos como compatibilidad.
+ * @returns {DualMidiBridge}
+ */
+function getBridge() {
+    // En producción _canonicalBridge SIEMPRE gana (el constructor asigna
+    // window._bridgeInstance en init(), pero getBridge() no lo lee). Los fallbacks
+    // solo se alcanzan en entornos donde este módulo no se evaluó (tests que
+    // stubbean el alias) — no asignar window._bridgeInstance manualmente esperando
+    // que getBridge() lo devuelva: _canonicalBridge tiene prioridad.
+    if (_canonicalBridge) { return _canonicalBridge; }
+    if (typeof window !== 'undefined') {
+        if (window._bridgeInstance) { return window._bridgeInstance; }
+        return window.dualMidiBridge;
+    }
+    return null;
+}
+
+// Exponer acceso canónico en window y globalThis (tests eval en global scope).
+if (typeof window !== 'undefined') {
+    window.getBridge = getBridge;
+}
+globalThis.getBridge = getBridge;
+
+// Alias legacy deprecado: getter que reporta el desuso UNA vez (Logger.deprecation).
+if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'dualMidiBridge', {
+        configurable: true,
+        enumerable: true,
+        get: function() {
+            const LoggerRef = (typeof globalThis !== 'undefined' && globalThis.Logger) || console;
+            if (LoggerRef && typeof LoggerRef.deprecation === 'function') {
+                LoggerRef.deprecation('window.dualMidiBridge', {
+                    replacementId: 'getBridge()',
+                    since: '0.2.35',
+                    note: 'Fase 6 — retirada progresiva de compatibilidad legacy'
+                });
+            }
+            return _canonicalBridge;
+        },
+        set: function() {
+            // Escrituras al alias legacy se ignoran: la instancia canónica es privada.
+        }
+    });
+}

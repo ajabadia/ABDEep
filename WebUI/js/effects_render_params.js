@@ -61,8 +61,8 @@ function renderActiveEffectParams() {
             handle.style.top = y + 'px';
 
             const val = 1.0 - (y / limit);
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter(`fx${selectedSlot}_param${idx+1}`, val);
+            if (getBridge()) {
+                getBridge().setParameter(`fx${selectedSlot}_param${idx+1}`, val);
             }
         };
 
@@ -104,8 +104,8 @@ function renderActiveEffectParams() {
                 pointer.style.transform = `translateX(-50%) rotate(${(val * 270) - 135}deg)`;
             }
 
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter(`fx${selectedSlot}_param${idx+1}`, val);
+            if (getBridge()) {
+                getBridge().setParameter(`fx${selectedSlot}_param${idx+1}`, val);
             }
         }
         function onKnobEnd(e) {

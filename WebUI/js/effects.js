@@ -38,8 +38,8 @@ function initEffectsModal() {
     }
 
     // Bridge parameter listener
-    if (window.dualMidiBridge && typeof window.dualMidiBridge.onParameterChanged === 'function') {
-        window.dualMidiBridge.onParameterChanged(function(paramId) {
+    if (getBridge() && typeof getBridge().onParameterChanged === 'function') {
+        getBridge().onParameterChanged(function(paramId) {
             if (backdrop.style.display === 'none') {return;}
             if (paramId.startsWith('fx')) {
                 if (paramId.endsWith('_type')) {

@@ -76,11 +76,11 @@ function initSettingsAndModals() {
 
 // ── Lazy init helper for settings that depend on dualMidiBridge ──
 function _initWithFallback(initFn, intervalMs) {
-    if (window.dualMidiBridge) {
+    if (getBridge()) {
         initFn();
     } else {
         const timer = setInterval(function() {
-            if (window.dualMidiBridge) {
+            if (getBridge()) {
                 clearInterval(timer);
                 initFn();
             }

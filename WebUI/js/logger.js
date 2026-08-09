@@ -29,6 +29,9 @@
 
     const enabled = _enabled();
 
+    /** Claves de desuso ya reportadas en esta sesión (dedup). */
+    const _deprecationsLogged = new Set();
+
     /**
      * @namespace Logger
      */
@@ -61,7 +64,27 @@
         log: enabled ? _debug : _noop,
         info: enabled ? _info : _noop,
         warn: enabled ? _warn : _noop,
-        error: enabled ? _error : _noop
+        error: enabled ? _error : _noop,
+
+        /**
+         * Registra un desuso de API legacy (plan v3.2 §6). Invocación restringida
+         * EXCLUSIVAMENTE a hilos de control y tests — estrictamente prohibido en el
+         * hilo de audio (invariante §3).
+         *
+         * Cada clave se reporta UNA sola vez por sesión (dedup): evita el spam de
+         * warnings cuando una ruta legacy se ejecuta en bucle (p.ej. cada bloque).
+         *
+         * @param {string} feature - Identificador legacy (p.ej. 'getBridge()')
+         * @param {object} [info] - Contexto estructurado {legacyId, replacementId, since}
+         */
+        deprecation: function(feature, info) {
+            if (!enabled || !feature) { return; }
+            if (!_deprecationsLogged.has(feature)) {
+                _deprecationsLogged.add(feature);
+                const suffix = info ? ' ' + JSON.stringify(info) : '';
+                _warn('[Deprecation] ' + feature + suffix);
+            }
+        }
     };
 
     if (typeof window !== 'undefined') {

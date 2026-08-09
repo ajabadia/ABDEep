@@ -31,7 +31,7 @@ if (!window.NOTE_NAMES_SHORT) {
 
 
 window._initPolyChordNotes = function() {
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (!bridge) {return;}
     
     if (!bridge.parameterCache['poly_chord_map']) {
@@ -52,7 +52,7 @@ window._initPolyChordNotes = function() {
 };
 
 window._playPolyChordMemory = function(rootNote, velocity) {
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (!bridge) {return false;}
     if (!bridge._isSimulatorMode()) {return false;} // controlador: el chord lo ejecuta el hardware
     
@@ -115,7 +115,7 @@ window._playPolyChordMemory = function(rootNote, velocity) {
 };
 
 window._stopPolyChordMemory = function(rootNote) {
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (!bridge || !bridge._chordActiveNotes) {return;}
     if (!bridge._isSimulatorMode()) {return;} // controlador: el chord lo ejecuta el hardware
     

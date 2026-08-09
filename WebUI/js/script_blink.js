@@ -27,11 +27,11 @@ function initBlinkLoop() {
         let isChordMemOn = false;
         let isPolyChordOn = false;
 
-        if (window.dualMidiBridge && window.dualMidiBridge.parameterCache) {
-            isArpOn = window.dualMidiBridge.parameterCache['arp_enable'] > 0.5;
-            isSeqOn = window.dualMidiBridge.parameterCache['seq_enable'] > 0.5;
-            isChordMemOn = window.dualMidiBridge.parameterCache['chord_enable'] > 0.5;
-            isPolyChordOn = window.dualMidiBridge.parameterCache['poly_chord_enable'] > 0.5;
+        if (getBridge() && getBridge().parameterCache) {
+            isArpOn = getBridge().parameterCache['arp_enable'] > 0.5;
+            isSeqOn = getBridge().parameterCache['seq_enable'] > 0.5;
+            isChordMemOn = getBridge().parameterCache['chord_enable'] > 0.5;
+            isPolyChordOn = getBridge().parameterCache['poly_chord_enable'] > 0.5;
         }
 
         if (!isArpOn && !isSeqOn && !isChordMemOn && !isPolyChordOn) {
@@ -44,8 +44,8 @@ function initBlinkLoop() {
         }
 
         let bpm = 120;
-        if (window.dualMidiBridge && window.dualMidiBridge.parameterCache) {
-            const arpRateVal = window.dualMidiBridge.parameterCache['arp_rate'];
+        if (getBridge() && getBridge().parameterCache) {
+            const arpRateVal = getBridge().parameterCache['arp_rate'];
             if (typeof arpRateVal !== 'undefined') {
                 bpm = 20 + arpRateVal * 220;
             }
@@ -66,8 +66,8 @@ function initBlinkLoop() {
         if (seqBtnEl) {
             if (isSeqOn) {
                 if (window._lastSeqStep === undefined) {window._lastSeqStep = -1;}
-                const currentSeqStep = window.dualMidiBridge && window.dualMidiBridge.parameterCache
-                    ? window.dualMidiBridge.parameterCache['seq_current_step']
+                const currentSeqStep = getBridge() && getBridge().parameterCache
+                    ? getBridge().parameterCache['seq_current_step']
                     : undefined;
                 const seqStepChanged = currentSeqStep !== undefined && currentSeqStep !== window._lastSeqStep;
                 if (seqStepChanged) {
@@ -77,8 +77,8 @@ function initBlinkLoop() {
 
                 const seqPulseAge = timestamp - (window._seqPulseTime || 0);
                 const seqStepPulseMs = 200;
-                const isEngRunning = window.dualMidiBridge && window.dualMidiBridge._seqEngine
-                    ? window.dualMidiBridge._seqEngine.running
+                const isEngRunning = getBridge() && getBridge()._seqEngine
+                    ? getBridge()._seqEngine.running
                     : false;
 
                 seqBtnEl.classList.remove('is-inactive');

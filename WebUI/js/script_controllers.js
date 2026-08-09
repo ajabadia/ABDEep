@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let _seqFadeActive = false;
 
     function _updateCtrlOverlay(_timestamp) {
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) {
             requestAnimationFrame(_updateCtrlOverlay);
             return;

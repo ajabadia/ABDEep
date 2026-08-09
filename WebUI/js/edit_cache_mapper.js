@@ -5,9 +5,9 @@
  */
 
 window.updateUnpackedBytesFromCache = function(unpackedBytes) {
-    if (!window.dualMidiBridge) { return; }
+    if (!getBridge()) { return; }
     if (!window.CACHE_MAP) { return; }
-    const cache = window.dualMidiBridge.parameterCache;
+    const cache = getBridge().parameterCache;
 
     const set = function(idx, val) {
         if (val !== undefined && val !== null && !isNaN(val)) {

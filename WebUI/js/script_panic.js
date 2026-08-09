@@ -59,7 +59,7 @@ function initPanicButton() {
             _pBtn_.classList.remove('is-flashing');
         }, 380);
 
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) {
             alert('Bridge not initialized.');
             return;
@@ -146,7 +146,7 @@ function initRequestHwButton() {
     if (!requestHwBtn) {return;}
 
     requestHwBtn.addEventListener('click', function () {
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) {
             alert('Bridge not initialized.');
             return;

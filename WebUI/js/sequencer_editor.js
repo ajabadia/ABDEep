@@ -55,8 +55,8 @@ window.initSequencerEditor = function() {
                         patch.unpackedBytes[123 + idx] = 128;
                     }
                 }
-                if (window.dualMidiBridge) {
-                    window.dualMidiBridge.setParameter('seq_step_' + (idx + 1), 0.5);
+                if (getBridge()) {
+                    getBridge().setParameter('seq_step_' + (idx + 1), 0.5);
                 }
                 window.updateStepVisual(idx);
                 e.preventDefault();
@@ -89,8 +89,8 @@ window.initSequencerEditor = function() {
             }
             
             const normalized = Math.max(0, Math.min(1, seqStepsRaw[i] / 255.0));
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter(`seq_step_${i + 1}`, normalized);
+            if (getBridge()) {
+                getBridge().setParameter(`seq_step_${i + 1}`, normalized);
             }
             
             window.updateStepVisual(i);
@@ -152,7 +152,7 @@ window.initSequencerCanvas = function() {
             window.seqStepsRaw[stepIdx] = rawVal;
             window.seqStepsValues[stepIdx] = rawVal === 0 ? 0 : rawVal - 128;
             if (typeof window.updateStepVisual === 'function') {window.updateStepVisual(stepIdx);}
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             if (bridge) {
                 const paramId = 'seq_step_' + (stepIdx + 1);
                 bridge.setParameter(paramId, rawVal / 255.0);

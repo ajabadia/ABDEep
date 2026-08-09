@@ -23,7 +23,7 @@ const CHORD_INTERVALS = {
 window.CHORD_INTERVALS = CHORD_INTERVALS;
 
 window._initChordMemory = function() {
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (!bridge) {return;}
     if (bridge.parameterCache['chord_notes'] === undefined) {
         bridge.parameterCache['chord_notes'] = [];
@@ -40,7 +40,7 @@ window._initChordMemory = function() {
 };
 
 window._captureChordMemory = function() {
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (!bridge) {return;}
     const keybed = document.getElementById('ivory-keys-bed');
     if (!keybed) {return;}
@@ -76,7 +76,7 @@ window._captureChordMemory = function() {
 };
 
 window._playChordMemory = function(rootNote, velocity) {
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (!bridge) {return false;}
     if (!bridge._isSimulatorMode()) {return false;} // controlador: el chord lo ejecuta el hardware
     
@@ -130,7 +130,7 @@ window._playChordMemory = function(rootNote, velocity) {
 };
 
 window._stopChordMemory = function(rootNote) {
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (!bridge || !bridge._chordActiveNotes) {return;}
     if (!bridge._isSimulatorMode()) {return;} // controlador: el chord lo ejecuta el hardware
     

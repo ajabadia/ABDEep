@@ -40,10 +40,10 @@ let Logger = globalThis.Logger || console;
     }
 
     function getBridgeMaps() {
-      return (typeof window !== 'undefined' && window.dualMidiBridge)
+      return (typeof window !== 'undefined' && getBridge())
         ? {
-            paramToByteOffset: window.dualMidiBridge.paramToByteOffset || {},
-            byteOffsetToParamIds: window.dualMidiBridge.byteOffsetToParamIds || {},
+            paramToByteOffset: getBridge().paramToByteOffset || {},
+            byteOffsetToParamIds: getBridge().byteOffsetToParamIds || {},
           }
         : { paramToByteOffset: {}, byteOffsetToParamIds: {} };
     }

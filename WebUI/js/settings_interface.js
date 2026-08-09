@@ -64,8 +64,8 @@ function initLcdContrastSetting() {
         localStorage.setItem('abd-eep-lcd-contrast', val);
         if (valEl) {valEl.textContent = val + '%';}
         window.updateLcdContrast(parseInt(val));
-        if (window.dualMidiBridge) {
-            window.dualMidiBridge.setGlobalParameter('lcd_contrast', parseInt(val) / 100.0);
+        if (getBridge()) {
+            getBridge().setGlobalParameter('lcd_contrast', parseInt(val) / 100.0);
         }
     });
 }

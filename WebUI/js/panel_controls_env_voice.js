@@ -20,7 +20,7 @@ window.bindPanelEnvControls = function(container, state, titleEl) {
             const paramId = row.getAttribute('data-param');
             container.querySelectorAll('.shape-led-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter(paramId, trigVal / 4.0);}
+            if (getBridge()) {getBridge().setParameter(paramId, trigVal / 4.0);}
         });
     });
 
@@ -30,7 +30,7 @@ window.bindPanelEnvControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
@@ -47,7 +47,7 @@ window.bindPanelEnvControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const nameEl = this.querySelector('.shape-name');
             const name = nameEl ? nameEl.textContent.trim() : pid;
@@ -67,7 +67,7 @@ window.bindPanelPolyControls = function(container, state, titleEl) {
     const selectPolyMode = document.getElementById('panel-poly-mode-select');
     if (selectPolyMode) {
         selectPolyMode.addEventListener('change', () => {
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('voice_mode', parseInt(selectPolyMode.value) / 12.0);}
+            if (getBridge()) {getBridge().setParameter('voice_mode', parseInt(selectPolyMode.value) / 12.0);}
         });
     }
 
@@ -77,7 +77,7 @@ window.bindPanelPolyControls = function(container, state, titleEl) {
             const paramId = row.getAttribute('data-param');
             container.querySelectorAll('.priority-led-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter(paramId, val / 2.0);}
+            if (getBridge()) {getBridge().setParameter(paramId, val / 2.0);}
         });
     });
 
@@ -87,7 +87,7 @@ window.bindPanelPolyControls = function(container, state, titleEl) {
             const paramId = row.getAttribute('data-param');
             container.querySelectorAll('.trigger-led-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter(paramId, val / 3.0);}
+            if (getBridge()) {getBridge().setParameter(paramId, val / 3.0);}
         });
     });
 
@@ -97,7 +97,7 @@ window.bindPanelPolyControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
@@ -113,7 +113,7 @@ window.bindPanelPolyControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const nameEl = this.querySelector('.shape-name');
             const name = nameEl ? nameEl.textContent.trim() : pid;
@@ -128,7 +128,7 @@ window.bindPanelPolyControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const opts = this.options;
             const idx = Math.round(v * (opts.length - 1));
@@ -150,7 +150,7 @@ window.bindPanelPortaControls = function(container, state, titleEl) {
             const val = parseInt(row.getAttribute('data-val'));
             container.querySelectorAll('.porta-mode-led-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('porta_mode', val / 9.0);}
+            if (getBridge()) {getBridge().setParameter('porta_mode', val / 9.0);}
         });
     });
 
@@ -159,7 +159,7 @@ window.bindPanelPortaControls = function(container, state, titleEl) {
             const val = parseInt(row.getAttribute('data-val'));
             container.querySelectorAll('.note-priority-led-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('note_priority', val / 2.0);}
+            if (getBridge()) {getBridge().setParameter('note_priority', val / 2.0);}
         });
     });
 
@@ -168,7 +168,7 @@ window.bindPanelPortaControls = function(container, state, titleEl) {
             const val = parseInt(row.getAttribute('data-val'));
             container.querySelectorAll('.trigger-mode-led-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('trigger_mode', val / 3.0);}
+            if (getBridge()) {getBridge().setParameter('trigger_mode', val / 3.0);}
         });
     });
 };

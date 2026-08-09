@@ -97,7 +97,7 @@ window._resolveKeyLedColor = function(bridge) {
     function _updateKeyPressureDisplay() {
         _atFramePending = false;
 
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) { _scheduleNext(); return; }
 
         let aftertouch = 0.0;

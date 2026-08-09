@@ -7,8 +7,8 @@
 (function() {
     // ── Full UI Sync from Parameter Cache or Bank Fallback ─────
     window.syncModMatrixUIFromState = function() {
-        if (!window.dualMidiBridge) {return;}
-        const cache = window.dualMidiBridge.parameterCache;
+        if (!getBridge()) {return;}
+        const cache = getBridge().parameterCache;
 
         const maxSlots = 32;
         for (let slot = 1; slot <= maxSlots; slot++) {
@@ -112,8 +112,8 @@
     };
 
     // ── Bridge onParameterChanged — Real-time updates ─────────
-    if (window.dualMidiBridge) {
-        window.dualMidiBridge.onParameterChanged(function(paramId, val) {
+    if (getBridge()) {
+        getBridge().onParameterChanged(function(paramId, val) {
             if (!paramId.startsWith('mod_matrix_slot')) {return;}
             const parts = paramId.split('_');
             const slot = parseInt(parts[2].replace('slot', ''));

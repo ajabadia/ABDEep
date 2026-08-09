@@ -9,11 +9,11 @@ function initVelocityCurveSetting() {
     sel.addEventListener('change', function() {
         localStorage.setItem('abd-eep-velocity-curve', this.value);
         drawVelocityCurvePreview();
-        if (window.dualMidiBridge) {
+        if (getBridge()) {
             const curveMap = { 'normal': 0, 'soft': 1, 'hard': 2, 'linear': 3, 'fixed': 4 };
             const idx = curveMap[this.value];
             if (idx !== undefined) {
-                window.dualMidiBridge.setGlobalParameter('velocity_curve', idx / 4.0);
+                getBridge().setGlobalParameter('velocity_curve', idx / 4.0);
             }
         }
     });

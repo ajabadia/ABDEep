@@ -18,21 +18,21 @@ window.bindPanelOscControls = function(container, state, titleEl) {
             box.addEventListener('click', () => {
                 const paramId = box.getAttribute('data-param');
                 const isCurrentlyActive = box.classList.toggle('active');
-                if (window.dualMidiBridge) {window.dualMidiBridge.setParameter(paramId, isCurrentlyActive ? 1.0 : 0.0);}
+                if (getBridge()) {getBridge().setParameter(paramId, isCurrentlyActive ? 1.0 : 0.0);}
             });
         });
 
         const selectPmod = document.getElementById('panel-osc1-pmod-src-select');
         if (selectPmod) {
             selectPmod.addEventListener('change', () => {
-                if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('osc1_pm_source', parseInt(selectPmod.value) / 6.0);}
+                if (getBridge()) {getBridge().setParameter('osc1_pm_source', parseInt(selectPmod.value) / 6.0);}
             });
         }
 
         const selectPwm = document.getElementById('panel-osc1-pwm-src-select');
         if (selectPwm) {
             selectPwm.addEventListener('change', () => {
-                if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('osc1_pwm_source', parseInt(selectPwm.value) / 5.0);}
+                if (getBridge()) {getBridge().setParameter('osc1_pwm_source', parseInt(selectPwm.value) / 5.0);}
             });
         }
 
@@ -41,7 +41,7 @@ window.bindPanelOscControls = function(container, state, titleEl) {
                 const val = parseInt(row.getAttribute('data-val'));
                 container.querySelectorAll('.osc1-range-led-row').forEach(r => r.classList.remove('active'));
                 row.classList.add('active');
-                if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('osc1_range', val / 2.0);}
+                if (getBridge()) {getBridge().setParameter('osc1_range', val / 2.0);}
             });
         });
 
@@ -50,7 +50,7 @@ window.bindPanelOscControls = function(container, state, titleEl) {
                 const val = parseInt(row.getAttribute('data-val'));
                 container.querySelectorAll('.osc1-pmode-led-row').forEach(r => r.classList.remove('active'));
                 row.classList.add('active');
-                if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('osc1_pm_mode', val / 1.0);}
+                if (getBridge()) {getBridge().setParameter('osc1_pm_mode', val / 1.0);}
             });
         });
 
@@ -61,21 +61,21 @@ window.bindPanelOscControls = function(container, state, titleEl) {
         if (btnSync) {
             btnSync.addEventListener('click', () => {
                 const active = btnSync.classList.toggle('active');
-                if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('osc_sync_enable', active ? 1.0 : 0.0);}
+                if (getBridge()) {getBridge().setParameter('osc_sync_enable', active ? 1.0 : 0.0);}
             });
         }
 
         const selectOsc2Pmod = document.getElementById('panel-osc2-pmod-src-select');
         if (selectOsc2Pmod) {
             selectOsc2Pmod.addEventListener('change', () => {
-                if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('osc2_pm_source', parseInt(selectOsc2Pmod.value) / 6.0);}
+                if (getBridge()) {getBridge().setParameter('osc2_pm_source', parseInt(selectOsc2Pmod.value) / 6.0);}
             });
         }
 
         const selectOsc2Tmod = document.getElementById('panel-osc2-tpm-src-select');
         if (selectOsc2Tmod) {
             selectOsc2Tmod.addEventListener('change', () => {
-                if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('osc2_tpm_source', parseInt(selectOsc2Tmod.value) / 5.0);}
+                if (getBridge()) {getBridge().setParameter('osc2_tpm_source', parseInt(selectOsc2Tmod.value) / 5.0);}
             });
         }
 
@@ -84,7 +84,7 @@ window.bindPanelOscControls = function(container, state, titleEl) {
                 const val = parseInt(row.getAttribute('data-val'));
                 container.querySelectorAll('.osc2-range-led-row').forEach(r => r.classList.remove('active'));
                 row.classList.add('active');
-                if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('osc2_range', val / 2.0);}
+                if (getBridge()) {getBridge().setParameter('osc2_range', val / 2.0);}
             });
         });
     }
@@ -95,7 +95,7 @@ window.bindPanelOscControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
@@ -111,7 +111,7 @@ window.bindPanelOscControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.toggle-label');
             const name = lbl ? lbl.textContent.trim() : pid;
@@ -126,7 +126,7 @@ window.bindPanelOscControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const nameEl = this.querySelector('.shape-name');
             const name = nameEl ? nameEl.textContent.trim() : pid;
@@ -141,7 +141,7 @@ window.bindPanelOscControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const opts = this.options;
             const idx = Math.round(v * (opts.length - 1));

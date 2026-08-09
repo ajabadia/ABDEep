@@ -111,7 +111,7 @@ window.initKeyboardShortcuts = function() {
         // MIDI Learn
         if (window.ShortcutConfig.matches(e, shortcuts['midi-learn'])) {
             e.preventDefault();
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             if (bridge && typeof bridge.toggleMidiLearn === 'function') {
                 bridge.toggleMidiLearn();
             }
@@ -121,7 +121,7 @@ window.initKeyboardShortcuts = function() {
         // SEQ Quick-Start
         if (window.ShortcutConfig.matches(e, shortcuts['seq-quickstart'])) {
             e.preventDefault();
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             if (!bridge) {return;}
             const seqBtn = document.getElementById('programmer-seq-btn');
             if (seqBtn) {seqBtn.click();}

@@ -24,7 +24,7 @@ window.drawRealScope = function(targetCanvasId) {
     const h = canvas.height;
     ctx.clearRect(0, 0, w, h);
 
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     const isJuce = bridge && bridge.isJuce;
     const colors = typeof window._getScopeColors === 'function' ? window._getScopeColors()
         : { grid: 'rgba(51,51,51,0.2)', center: 'rgba(102,102,102,0.3)', trigger: 'rgba(255,200,0,0.5)', waveform: '#00ffcc', text: 'rgba(200,200,200,0.7)' };

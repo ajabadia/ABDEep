@@ -512,7 +512,7 @@ CalibrationLabPage.prototype.bindRoundTripEvents = function () {
         if (sourceInfo) {sourceInfo.textContent = 'Load a patch first';}
         return;
       }
-      const bridge = window.dualMidiBridge;
+      const bridge = getBridge();
       let report;
       if (bridge && typeof bridge.runRoundTripValidator === 'function') {
         const raw = await bridge.runRoundTripValidator(JSON.stringify(this._roundTripBytes));

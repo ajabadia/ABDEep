@@ -68,7 +68,7 @@ window._updatePanelStepVisual = _updatePanelStepVisual;
  * Called after initialization and on external parameter changes.
  */
 function _syncPanelSeqFromCache() {
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (!bridge) {return;}
     for (let si = 0; si < 32; si++) {
         const paramId = 'seq_step_' + (si + 1);

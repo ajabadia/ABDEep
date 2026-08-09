@@ -6,7 +6,7 @@
 
 window.bindPanelSeqControls = function(container, state, titleEl) {
     let _panelSeqBadge = '';
-    const _bridge_ = window.dualMidiBridge;
+    const _bridge_ = getBridge();
     if (_bridge_) {
         const _klNorm_ = _bridge_.parameterCache['seq_key_loop'] || 0;
         const _klVal_ = Math.round(_klNorm_ * 2);
@@ -40,11 +40,11 @@ window.bindPanelSeqControls = function(container, state, titleEl) {
     // ── SEQ enable box ──
     const seqBox = document.getElementById('panel-seq-enable-box');
     if (seqBox) {
-        const enVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_enable'] : 0;
+        const enVal = getBridge() ? getBridge().parameterCache['seq_enable'] : 0;
         seqBox.classList.toggle('active', enVal > 0.5);
         seqBox.addEventListener('click', function() {
             const active = this.classList.contains('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_enable', active ? 0.0 : 1.0);}
+            if (getBridge()) {getBridge().setParameter('seq_enable', active ? 0.0 : 1.0);}
         });
     }
 
@@ -66,20 +66,20 @@ window.bindPanelSeqControls = function(container, state, titleEl) {
     // ── Clock select ──
     const clockSel = document.getElementById('panel-seq-clock-select');
     if (clockSel) {
-        const cv = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_clock'] || 0 : 0;
+        const cv = getBridge() ? getBridge().parameterCache['seq_clock'] || 0 : 0;
         clockSel.value = Math.round(cv * 15);
         clockSel.addEventListener('change', function() {
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_clock', parseInt(this.value) / 15.0);}
+            if (getBridge()) {getBridge().setParameter('seq_clock', parseInt(this.value) / 15.0);}
         });
     }
 
     // ── Length select ──
     const lenSel = document.getElementById('panel-seq-length-select');
     if (lenSel) {
-        const lv = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_length'] || 0 : 0;
+        const lv = getBridge() ? getBridge().parameterCache['seq_length'] || 0 : 0;
         lenSel.value = Math.round(lv * 31);
         lenSel.addEventListener('change', function() {
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_length', parseInt(this.value) / 31.0);}
+            if (getBridge()) {getBridge().setParameter('seq_length', parseInt(this.value) / 31.0);}
             for (let si2 = 0; si2 < 32; si2++) {
                 if (typeof window._updatePanelStepVisual === 'function') {
                     window._updatePanelStepVisual(si2);
@@ -91,11 +91,11 @@ window.bindPanelSeqControls = function(container, state, titleEl) {
     // ── Key Loop select (updates title badge) ──
     const klSel = document.getElementById('panel-seq-keyloop-select');
     if (klSel) {
-        const kv = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['seq_key_loop'] || 0 : 0;
+        const kv = getBridge() ? getBridge().parameterCache['seq_key_loop'] || 0 : 0;
         klSel.value = Math.round(kv * 2);
         klSel.addEventListener('change', function() {
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('seq_key_loop', parseInt(this.value) / 2.0);}
-            const _bridge2_ = window.dualMidiBridge;
+            if (getBridge()) {getBridge().setParameter('seq_key_loop', parseInt(this.value) / 2.0);}
+            const _bridge2_ = getBridge();
             if (_bridge2_ && titleEl) {
                 const _klv2_ = Math.round((_bridge2_.parameterCache['seq_key_loop'] || 0) * 2);
                 const _frc2_ = _bridge2_._seqEngine && _bridge2_._seqEngine._forcedFreeRunning;
@@ -124,14 +124,14 @@ window.bindPanelSeqControls = function(container, state, titleEl) {
             if (currentRaw === 0) {
                 window._panelSeqValues[idx] = 0;
                 window._panelSeqRaw[idx] = 128;
-                if (window.dualMidiBridge) {
-                    window.dualMidiBridge.setParameter('seq_step_' + (idx + 1), 0.5);
+                if (getBridge()) {
+                    getBridge().setParameter('seq_step_' + (idx + 1), 0.5);
                 }
             } else {
                 window._panelSeqValues[idx] = -128;
                 window._panelSeqRaw[idx] = 0;
-                if (window.dualMidiBridge) {
-                    window.dualMidiBridge.setParameter('seq_step_' + (idx + 1), 0.0);
+                if (getBridge()) {
+                    getBridge().setParameter('seq_step_' + (idx + 1), 0.0);
                 }
             }
             if (typeof window._updatePanelStepVisual === 'function') {

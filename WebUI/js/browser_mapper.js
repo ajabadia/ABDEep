@@ -18,25 +18,25 @@ function triggerMidiDump(patch) {
     }
     Logger.log('[triggerMidiDump] Loading preset:', patch.name);
     
-    if (window.dualMidiBridge) {
-        if (typeof window.dualMidiBridge._resetNrpnCache === 'function') {
-            window.dualMidiBridge._resetNrpnCache();
+    if (getBridge()) {
+        if (typeof getBridge()._resetNrpnCache === 'function') {
+            getBridge()._resetNrpnCache();
         } else {
-            window.dualMidiBridge._lastNrpnMsb = null;
-            window.dualMidiBridge._lastNrpnLsb = null;
-            window.dualMidiBridge._lastNrpnValue = null;
-            window.dualMidiBridge._lastNrpnByte = null;
-            window.dualMidiBridge._nrpnInMsb = null;
-            window.dualMidiBridge._nrpnInLsb = null;
-            window.dualMidiBridge._nrpnInDataMsb = 0;
-            window.dualMidiBridge._nrpnInTimestamp = 0;
+            getBridge()._lastNrpnMsb = null;
+            getBridge()._lastNrpnLsb = null;
+            getBridge()._lastNrpnValue = null;
+            getBridge()._lastNrpnByte = null;
+            getBridge()._nrpnInMsb = null;
+            getBridge()._nrpnInLsb = null;
+            getBridge()._nrpnInDataMsb = 0;
+            getBridge()._nrpnInTimestamp = 0;
         }
     }
     
     const lcdText = document.getElementById('lcd-text');
     if (lcdText) { lcdText.innerText = patch.name.toUpperCase(); }
 
-    if (window.dualMidiBridge && window.dualMidiBridge.midiOutput) {
+    if (getBridge() && getBridge().midiOutput) {
         try {
             const packedPayload = window.pack8to7(patch.unpackedBytes);
             const sysexMessage = new Uint8Array(291);
@@ -50,7 +50,7 @@ function triggerMidiDump(patch) {
             sysexMessage[7] = 0x07;
             sysexMessage.set(packedPayload, 8);
             sysexMessage[290] = 0xF7;
-            window.dualMidiBridge.midiOutput.send(sysexMessage);
+            getBridge().midiOutput.send(sysexMessage);
         } catch (e) {
             Logger.warn('[triggerMidiDump] Error sending MIDI SysEx to HW:', e);
         }
@@ -90,8 +90,8 @@ function triggerMidiDump(patch) {
     paramEntries.forEach(([paramId, rawVal]) => {
         try {
             const val = Math.max(0, Math.min(1, rawVal));
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.parameterCache[paramId] = val;
+            if (getBridge()) {
+                getBridge().parameterCache[paramId] = val;
             }
             if (window.wasmBridge && typeof window.wasmBridge.setParameter === 'function') {
                 window.wasmBridge.setParameter(paramId, val);
@@ -102,15 +102,15 @@ function triggerMidiDump(patch) {
     });
 
     // Notify C++ backend or bridge callbacks
-    if (window.dualMidiBridge) {
+    if (getBridge()) {
         paramEntries.forEach(([paramId, rawVal]) => {
             const val = Math.max(0, Math.min(1, rawVal));
-            if (window.dualMidiBridge.isJuce) {
+            if (getBridge().isJuce) {
                 try {
-                    window.dualMidiBridge.setParameter(paramId, val, true);
+                    getBridge().setParameter(paramId, val, true);
                 } catch (e) {}
             }
-            window.dualMidiBridge.onParameterChangedCallbacks.forEach(cb => {
+            getBridge().onParameterChangedCallbacks.forEach(cb => {
                 try { cb(paramId, val); } catch (e) {}
             });
         });
@@ -118,11 +118,11 @@ function triggerMidiDump(patch) {
 
     try {
         const savedVcaMode = localStorage.getItem('abd-eep-vca-mode');
-        if (savedVcaMode && window.dualMidiBridge) {
+        if (savedVcaMode && getBridge()) {
             const vcaVal = savedVcaMode === 'ballsy' ? 1.0 : 0.0;
-            window.dualMidiBridge.parameterCache['vca_mode'] = vcaVal;
-            if (window.dualMidiBridge.isJuce) {
-                window.dualMidiBridge.setParameter('vca_mode', vcaVal, true);
+            getBridge().parameterCache['vca_mode'] = vcaVal;
+            if (getBridge().isJuce) {
+                getBridge().setParameter('vca_mode', vcaVal, true);
             }
         }
     } catch(e) {}

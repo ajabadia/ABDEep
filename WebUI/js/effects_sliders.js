@@ -21,8 +21,8 @@ function initEffectsSliders() {
                 handle.style.top = y + 'px';
 
                 const val = 1.0 - (y / limit);
-                if (window.dualMidiBridge) {
-                    window.dualMidiBridge.setParameter('fx_send_level', val);
+                if (getBridge()) {
+                    getBridge().setParameter('fx_send_level', val);
                 }
             };
 
@@ -65,8 +65,8 @@ function initEffectsSliders() {
                 handle.style.top = y + 'px';
 
                 const val = 1.0 - (y / limit);
-                if (window.dualMidiBridge) {
-                    window.dualMidiBridge.setParameter(paramId, val);
+                if (getBridge()) {
+                    getBridge().setParameter(paramId, val);
                 }
             };
 

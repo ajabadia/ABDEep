@@ -15,11 +15,11 @@ function initCalibrationSettings() {
     }
 
     exportBtn.addEventListener('click', function() {
-        if (!window.dualMidiBridge || !window.dualMidiBridge.getCalibration) {
+        if (!getBridge() || !getBridge().getCalibration) {
             setStatus('Bridge not ready', 3000);
             return;
         }
-        window.dualMidiBridge.getCalibration(function(json) {
+        getBridge().getCalibration(function(json) {
             if (!json || typeof json !== 'string') {
                 setStatus('Failed to get calibration', 3000);
                 return;
@@ -55,11 +55,11 @@ function initCalibrationSettings() {
                 previewEl.textContent = 'Invalid JSON: ' + err.message;
                 previewEl.style.display = 'block';
             }
-            if (!window.dualMidiBridge || !window.dualMidiBridge.setCalibration) {
+            if (!getBridge() || !getBridge().setCalibration) {
                 setStatus('Bridge not ready', 3000);
                 return;
             }
-            window.dualMidiBridge.setCalibration(text, function(ok) {
+            getBridge().setCalibration(text, function(ok) {
                 setStatus(ok ? 'Imported' : 'Import failed', 3000);
                 if (ok) {previewEl.style.display = 'none';}
             });

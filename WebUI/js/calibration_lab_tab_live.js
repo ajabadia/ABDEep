@@ -97,7 +97,7 @@ CalibrationLabPage.prototype.bindLiveValidationEvents = function () {
     if (state.liveScanActive) {
       store.setLiveScanActive(false);
     } else {
-      const bridge = window.dualMidiBridge;
+      const bridge = getBridge();
       if (bridge && typeof bridge.getCalibrationSpec === 'function') {
         try {
           const spec = await bridge.getCalibrationSpec();

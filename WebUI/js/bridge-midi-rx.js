@@ -15,8 +15,8 @@
     const Logger = globalThis.Logger || console;
 
     DualMidiBridge.prototype._applyMidiLearnMapping = function(key, val, nrpnInfo) {
-        if (typeof window.dualMidiBridge._applyMidiLearnMappingInternal === 'function') {
-            return window.dualMidiBridge._applyMidiLearnMappingInternal(key, val, nrpnInfo);
+        if (typeof getBridge()._applyMidiLearnMappingInternal === 'function') {
+            return getBridge()._applyMidiLearnMappingInternal(key, val, nrpnInfo);
         }
         const paramId = this.midiLearnMappings ? this.midiLearnMappings[key] : null;
         if (!paramId) {return false;}
@@ -35,8 +35,8 @@
     };
 
     DualMidiBridge.prototype._captureMidiLearnMessage = function(ccNum, val, nrpnInfo) {
-        if (typeof window.dualMidiBridge._captureMidiLearnMessageInternal === 'function') {
-            window.dualMidiBridge._captureMidiLearnMessageInternal(ccNum, val, nrpnInfo);
+        if (typeof getBridge()._captureMidiLearnMessageInternal === 'function') {
+            getBridge()._captureMidiLearnMessageInternal(ccNum, val, nrpnInfo);
         }
     };
 

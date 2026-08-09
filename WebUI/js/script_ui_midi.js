@@ -21,8 +21,8 @@ function initMidiRouter() {
     window.setLcdParamDisplayTimer = _setLcdParamDisplayTimer;
 
     // MIDI PARAMETER CHANGES ROUTER
-    if (window.dualMidiBridge) {
-        window.dualMidiBridge.onParameterChanged(function (paramId, val) {
+    if (getBridge()) {
+        getBridge().onParameterChanged(function (paramId, val) {
             const sliderUnits = Array.from(document.querySelectorAll('[data-param="' + paramId + '"] .v-slider'));
 
             const activeAtkParam = document.getElementById('env-ctrl-attack') ? document.getElementById('env-ctrl-attack').getAttribute('data-param') : null;
@@ -144,8 +144,8 @@ function initMidiRouter() {
     }
 
     function _updateHexByteForParam(paramId, normalizedVal) {
-        if (!window.dualMidiBridge) {return;}
-        const byteOffset = window.dualMidiBridge.paramToByteOffset[paramId];
+        if (!getBridge()) {return;}
+        const byteOffset = getBridge().paramToByteOffset[paramId];
         if (byteOffset === undefined) {return;}
 
         if (!window._liveUnpackedBytes) {
@@ -156,7 +156,7 @@ function initMidiRouter() {
             }
         }
 
-        const rawVal = window.dualMidiBridge._normalizedToRaw(byteOffset, normalizedVal);
+        const rawVal = getBridge()._normalizedToRaw(byteOffset, normalizedVal);
         window._liveUnpackedBytes[byteOffset] = rawVal;
 
         if (window._lastUnpackedBytes && window._lastUnpackedBytes[byteOffset] !== undefined) {
@@ -182,12 +182,12 @@ function initMidiRouter() {
     const hpfBoostBtn = document.getElementById('hpf-boost-btn');
     if (hpfBoostBtn) {
         hpfBoostBtn.addEventListener('click', function () {
-            const cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['hpf_boost_enable'] : 0.0;
+            const cacheVal = getBridge() ? getBridge().parameterCache['hpf_boost_enable'] : 0.0;
             const active = cacheVal > 0.5;
             const nextVal = active ? 0.0 : 1.0;
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('hpf_boost_enable', nextVal);
-                window.dualMidiBridge.handleParameterChangeFromBackend('hpf_boost_enable', nextVal);
+            if (getBridge()) {
+                getBridge().setParameter('hpf_boost_enable', nextVal);
+                getBridge().handleParameterChangeFromBackend('hpf_boost_enable', nextVal);
             }
         });
     }
@@ -196,12 +196,12 @@ function initMidiRouter() {
     const vcaModeBtn = document.getElementById('vca-mode-btn');
     if (vcaModeBtn) {
         vcaModeBtn.addEventListener('click', function () {
-            const cacheVal = window.dualMidiBridge ? window.dualMidiBridge.parameterCache['vca_mode'] : 0.0;
+            const cacheVal = getBridge() ? getBridge().parameterCache['vca_mode'] : 0.0;
             const active = cacheVal > 0.5;
             const nextVal = active ? 0.0 : 1.0;
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vca_mode', nextVal);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vca_mode', nextVal);
+            if (getBridge()) {
+                getBridge().setParameter('vca_mode', nextVal);
+                getBridge().handleParameterChangeFromBackend('vca_mode', nextVal);
             }
         });
     }

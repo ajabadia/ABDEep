@@ -15,21 +15,21 @@ function populateMidiPortsLists() {
     inputsContainer.innerHTML = '';
     outputsContainer.innerHTML = '';
 
-    if (window.dualMidiBridge && window.dualMidiBridge.midiAccess) {
-        const inputs = Array.from(window.dualMidiBridge.midiAccess.inputs.values());
-        const outputs = Array.from(window.dualMidiBridge.midiAccess.outputs.values());
+    if (getBridge() && getBridge().midiAccess) {
+        const inputs = Array.from(getBridge().midiAccess.inputs.values());
+        const outputs = Array.from(getBridge().midiAccess.outputs.values());
 
         if (inputs.length === 0) {
             inputsContainer.innerHTML = '<div class="info-msg-empty">None</div>';
         } else {
             inputs.forEach(input => {
-                const isActive = window.dualMidiBridge.midiInput && window.dualMidiBridge.midiInput.id === input.id;
+                const isActive = getBridge().midiInput && getBridge().midiInput.id === input.id;
                 const el = document.createElement('div');
                 el.className = 'midi-dev-item' + (isActive ? ' active' : '');
                 el.innerText = input.name;
                 el.addEventListener('click', () => {
-                    window.dualMidiBridge.midiInput = input;
-                    input.onmidimessage = (msg) => window.dualMidiBridge.handleIncomingMidi(msg);
+                    getBridge().midiInput = input;
+                    input.onmidimessage = (msg) => getBridge().handleIncomingMidi(msg);
                     populateMidiPortsLists();
                 });
                 inputsContainer.appendChild(el);
@@ -40,12 +40,12 @@ function populateMidiPortsLists() {
             outputsContainer.innerHTML = '<div class="info-msg-empty">None</div>';
         } else {
             outputs.forEach(output => {
-                const isActive = window.dualMidiBridge.midiOutput && window.dualMidiBridge.midiOutput.id === output.id;
+                const isActive = getBridge().midiOutput && getBridge().midiOutput.id === output.id;
                 const el = document.createElement('div');
                 el.className = 'midi-dev-item' + (isActive ? ' active' : '');
                 el.innerText = output.name;
                 el.addEventListener('click', () => {
-                    window.dualMidiBridge.midiOutput = output;
+                    getBridge().midiOutput = output;
                     populateMidiPortsLists();
                 });
                 outputsContainer.appendChild(el);

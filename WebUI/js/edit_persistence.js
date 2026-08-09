@@ -22,7 +22,7 @@ window.initEditPersistence = function() {
             }
 
             const patch = activeBank[window.currentActivePatchIndex];
-            if (patch && window.dualMidiBridge) {
+            if (patch && getBridge()) {
                 if (typeof window.updateUnpackedBytesFromCache === 'function') {
                     window.updateUnpackedBytesFromCache(patch.unpackedBytes);
                 }

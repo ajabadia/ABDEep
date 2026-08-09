@@ -31,7 +31,7 @@ DualMidiBridge.prototype._isSimulatorMode = function() {
             Logger.warn('[Bridge] Engine init timeout — bridge not available after 10s');
             return;
         }
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (bridge && typeof bridge.startAutoReconnect === 'function') {
             clearInterval(checkBridge);
 

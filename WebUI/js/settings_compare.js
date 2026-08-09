@@ -16,10 +16,10 @@ let preComparePatchName = '';
  * @returns {number} - Count of differing parameters
  */
 function _computeCompareDiff(snapshotStr) {
-    if (!snapshotStr || !window.dualMidiBridge) {return 0;}
+    if (!snapshotStr || !getBridge()) {return 0;}
     try {
         const snap = JSON.parse(snapshotStr);
-        const cache = window.dualMidiBridge.parameterCache;
+        const cache = getBridge().parameterCache;
         let count = 0;
         for (const paramId in snap) {
             if (snap.hasOwnProperty(paramId)) {
@@ -45,14 +45,14 @@ function _exitCompareMode() {
     const lcdText = document.getElementById('lcd-text');
     const compareBtn = document.getElementById('programmer-compare-btn');
     
-    if (preCompareSnapshot && window.dualMidiBridge) {
+    if (preCompareSnapshot && getBridge()) {
         try {
             const cache = JSON.parse(preCompareSnapshot);
             const paramIds = Object.keys(cache);
             paramIds.forEach(function(paramId) {
                 const val = cache[paramId];
-                window.dualMidiBridge.parameterCache[paramId] = val;
-                window.dualMidiBridge.onParameterChangedCallbacks.forEach(function(cb) {
+                getBridge().parameterCache[paramId] = val;
+                getBridge().onParameterChangedCallbacks.forEach(function(cb) {
                     try { cb(paramId, val); } catch(e) {}
                 });
             });
@@ -91,7 +91,7 @@ function toggleCompareMode() {
     if (!lcdText) {return;}
 
     if (!compareActive) {
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) {return;}
         
         const activeBank = window.loadedBanks[window.currentActiveBank];
@@ -150,8 +150,8 @@ function initCompareMode() {
         compareBtn.addEventListener('click', toggleCompareMode);
     }
     
-    if (window.dualMidiBridge && typeof window.dualMidiBridge.onParameterChanged === 'function') {
-        window.dualMidiBridge.onParameterChanged(function(_paramId, _val) {
+    if (getBridge() && typeof getBridge().onParameterChanged === 'function') {
+        getBridge().onParameterChanged(function(_paramId, _val) {
             _updateCompareDiff();
         });
     }

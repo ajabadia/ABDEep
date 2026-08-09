@@ -7,21 +7,21 @@ window.bindPanelChordControls = function(container, state, titleEl) {
     titleEl.innerText = 'Chord Memory';
     container.innerHTML = window.PANEL_TEMPLATES.CHORD();
 
-    if (window.dualMidiBridge) {window.dualMidiBridge.requestMidiDump('chord');}
+    if (getBridge()) {getBridge().requestMidiDump('chord');}
 
     const chordBox = document.getElementById('panel-chord-enable-box');
     if (chordBox) {
-        const isEnabled = window.dualMidiBridge && window.dualMidiBridge.parameterCache['chord_enable'] > 0.5;
+        const isEnabled = getBridge() && getBridge().parameterCache['chord_enable'] > 0.5;
         chordBox.classList.toggle('active', isEnabled);
         chordBox.addEventListener('click', () => {
             const active = chordBox.classList.contains('active');
             const nextVal = active ? 0.0 : 1.0;
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('chord_enable', nextVal);
-                window.dualMidiBridge.handleParameterChangeFromBackend('chord_enable', nextVal);
+            if (getBridge()) {
+                getBridge().setParameter('chord_enable', nextVal);
+                getBridge().handleParameterChangeFromBackend('chord_enable', nextVal);
                 if (nextVal > 0.5) {
-                    window.dualMidiBridge.setParameter('poly_chord_enable', 0.0);
-                    window.dualMidiBridge.handleParameterChangeFromBackend('poly_chord_enable', 0.0);
+                    getBridge().setParameter('poly_chord_enable', 0.0);
+                    getBridge().handleParameterChangeFromBackend('poly_chord_enable', 0.0);
                 }
             }
         });
@@ -30,14 +30,14 @@ window.bindPanelChordControls = function(container, state, titleEl) {
     const btnLoad = document.getElementById('panel-chord-load-btn');
     if (btnLoad) {
         btnLoad.addEventListener('click', () => {
-            if (window.dualMidiBridge) {window.dualMidiBridge.requestMidiDump('chord');}
+            if (getBridge()) {getBridge().requestMidiDump('chord');}
         });
     }
 
     const btnSend = document.getElementById('panel-chord-send-btn');
     if (btnSend) {
         btnSend.addEventListener('click', () => {
-            if (window.dualMidiBridge) {window.dualMidiBridge.sendWebMidiParameter('chord_enable', window.dualMidiBridge.parameterCache['chord_enable'] || 0.0);}
+            if (getBridge()) {getBridge().sendWebMidiParameter('chord_enable', getBridge().parameterCache['chord_enable'] || 0.0);}
         });
     }
 
@@ -49,21 +49,21 @@ window.bindPanelPolyChordControls = function(container, state, titleEl) {
     container.innerHTML = window.PANEL_TEMPLATES.POLY_CHORD();
 
     if (typeof window._initPolyChordNotes === 'function') {window._initPolyChordNotes();}
-    if (window.dualMidiBridge) {window.dualMidiBridge.requestMidiDump('polychord');}
+    if (getBridge()) {getBridge().requestMidiDump('polychord');}
 
     const polyChordBox = document.getElementById('panel-poly-chord-enable-box');
     if (polyChordBox) {
-        const isEnabled = window.dualMidiBridge && window.dualMidiBridge.parameterCache['poly_chord_enable'] > 0.5;
+        const isEnabled = getBridge() && getBridge().parameterCache['poly_chord_enable'] > 0.5;
         polyChordBox.classList.toggle('active', isEnabled);
         polyChordBox.addEventListener('click', () => {
             const active = polyChordBox.classList.contains('active');
             const nextVal = active ? 0.0 : 1.0;
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('poly_chord_enable', nextVal);
-                window.dualMidiBridge.handleParameterChangeFromBackend('poly_chord_enable', nextVal);
+            if (getBridge()) {
+                getBridge().setParameter('poly_chord_enable', nextVal);
+                getBridge().handleParameterChangeFromBackend('poly_chord_enable', nextVal);
                 if (nextVal > 0.5) {
-                    window.dualMidiBridge.setParameter('chord_enable', 0.0);
-                    window.dualMidiBridge.handleParameterChangeFromBackend('chord_enable', 0.0);
+                    getBridge().setParameter('chord_enable', 0.0);
+                    getBridge().handleParameterChangeFromBackend('chord_enable', 0.0);
                 }
             }
         });
@@ -74,7 +74,7 @@ window.bindPanelPolyChordControls = function(container, state, titleEl) {
     const chordTypeNames = ['Memory','Major','Minor','Maj7','Min7','Dom7','Sus4','Pwr'];
 
     function _updatePolyAssignUI() {
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) {return;}
         const polyMap = bridge.parameterCache['poly_chord_map'];
         if (!polyMap) {return;}
@@ -119,7 +119,7 @@ window.bindPanelPolyChordControls = function(container, state, titleEl) {
     container.querySelectorAll('.poly-root-row').forEach(function(row) {
         row.addEventListener('click', function() {
             const val = parseInt(row.getAttribute('data-val'));
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             if (!bridge) {return;}
             const polyMap = bridge.parameterCache['poly_chord_map'];
             if (!polyMap) {return;}
@@ -132,7 +132,7 @@ window.bindPanelPolyChordControls = function(container, state, titleEl) {
     container.querySelectorAll('.poly-type-row').forEach(function(row) {
         row.addEventListener('click', function() {
             const val = parseInt(row.getAttribute('data-val'));
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             if (!bridge) {return;}
             const polyMap = bridge.parameterCache['poly_chord_map'];
             if (!polyMap) {return;}
@@ -145,7 +145,7 @@ window.bindPanelPolyChordControls = function(container, state, titleEl) {
     const resetBtn = document.getElementById('panel-polychord-defaults-btn');
     if (resetBtn) {
         resetBtn.addEventListener('click', function() {
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             if (!bridge) {return;}
             if (typeof window.POLY_CHORD_DEFAULTS !== 'undefined') {
                 bridge.parameterCache['poly_chord_map'] = window.POLY_CHORD_DEFAULTS.map(function(a) {
@@ -159,14 +159,14 @@ window.bindPanelPolyChordControls = function(container, state, titleEl) {
     const btnLoad = document.getElementById('panel-polychord-load-btn');
     if (btnLoad) {
         btnLoad.addEventListener('click', function() {
-            if (window.dualMidiBridge) {window.dualMidiBridge.requestMidiDump('polychord');}
+            if (getBridge()) {getBridge().requestMidiDump('polychord');}
         });
     }
 
     const btnSend = document.getElementById('panel-polychord-send-btn');
     if (btnSend) {
         btnSend.addEventListener('click', function() {
-            if (window.dualMidiBridge) {window.dualMidiBridge.sendWebMidiParameter('poly_chord_enable', window.dualMidiBridge.parameterCache['poly_chord_enable'] || 0.0);}
+            if (getBridge()) {getBridge().sendWebMidiParameter('poly_chord_enable', getBridge().parameterCache['poly_chord_enable'] || 0.0);}
         });
     }
 
@@ -175,15 +175,15 @@ window.bindPanelPolyChordControls = function(container, state, titleEl) {
 };
 
 window.bindPanelChordAndPolyCommon = function(container) {
-    if (window.dualMidiBridge) {
-        const keyVal = Math.round((window.dualMidiBridge.parameterCache['chord_key'] || 0.0) * 11.0);
+    if (getBridge()) {
+        const keyVal = Math.round((getBridge().parameterCache['chord_key'] || 0.0) * 11.0);
         const activeKeyRow = container.querySelector(`.chord-key-led-row[data-val="${keyVal}"]`);
         if (activeKeyRow) {
             container.querySelectorAll('.chord-key-led-row').forEach(r => r.classList.remove('active'));
             activeKeyRow.classList.add('active');
         }
 
-        const typeVal = Math.round((window.dualMidiBridge.parameterCache['chord_type'] || 0.0) * 11.0);
+        const typeVal = Math.round((getBridge().parameterCache['chord_type'] || 0.0) * 11.0);
         const activeTypeRow = container.querySelector(`.chord-type-led-row[data-val="${typeVal}"]`);
         if (activeTypeRow) {
             container.querySelectorAll('.chord-type-led-row').forEach(r => r.classList.remove('active'));
@@ -196,7 +196,7 @@ window.bindPanelChordAndPolyCommon = function(container) {
             const val = parseInt(row.getAttribute('data-val'));
             container.querySelectorAll('.chord-key-led-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('chord_key', val / 11.0);}
+            if (getBridge()) {getBridge().setParameter('chord_key', val / 11.0);}
         });
     });
 
@@ -205,7 +205,7 @@ window.bindPanelChordAndPolyCommon = function(container) {
             const val = parseInt(row.getAttribute('data-val'));
             container.querySelectorAll('.chord-type-led-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('chord_type', val / 11.0);}
+            if (getBridge()) {getBridge().setParameter('chord_type', val / 11.0);}
         });
     });
 };

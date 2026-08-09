@@ -28,6 +28,7 @@
     "beforeEach": "readonly",
     "afterEach": "readonly",
     "Logger": "readonly",
+    "getBridge": "readonly",
     "DualMidiBridge": "readonly",
     "FULL_MOD_DESTINATIONS": "readonly",
     "pack8to7": "readonly",

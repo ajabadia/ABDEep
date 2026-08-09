@@ -1,0 +1,14 @@
+feat(fase-6): Logger.deprecation() + retirada progresiva de window.dualMidiBridge
+
+- Logger.deprecation(feature, info) en logger.js: dedup por clave (Set de sesión),
+  gated por debug, restringido a hilos de control/tests (invariante §3). logger.test.js (6 tests).
+- bridge-dual.js: instancia canónica privada _canonicalBridge; acceso canónico
+  getBridge() (window + globalThis); window.dualMidiBridge pasa a ser alias deprecado
+  (getter con Logger.deprecation una vez por sesión, setter no-op).
+- 93 fuentes migradas de window.dualMidiBridge a getBridge() (0 refs residuales);
+  verificado que ningún consumidor carga antes de bridge-dual.js ni usa el alias en load-time.
+- WebUI/tests/setup.js (setup vitest): fallback global getBridge → window._bridgeInstance
+  || window.dualMidiBridge para tests que stubbean el alias sin evaluar bridge-dual.js;
+  registrado en vitest.config.js. bridgeAliasDeprecation.test.js (5 tests).
+- ESLint: getBridge añadido a globals. Baseline: 102 files / 4664 tests.
+  Plan Fase 6 [x], CHANGELOG 0.2.35.

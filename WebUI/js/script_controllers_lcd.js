@@ -76,7 +76,7 @@ window._buildVuLcdHtml = function(peakLevel) {
 window._buildPatchNameLcdHtml = function(seqDebugMode) {
     const activeBank = window.loadedBanks && window.loadedBanks[window.currentActiveBank];
     const activePatch = activeBank && activeBank[window.currentActivePatchIndex];
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     const basePatchName_ = activePatch ? activePatch.name
         : (bridge && bridge.parameterCache && bridge.parameterCache['patch_name']
             ? bridge.parameterCache['patch_name'] : 'INITIAL PATCH');

@@ -7,14 +7,14 @@
 
 window.updatePanelFromState = function(container) {
     if (!container) {container = document.getElementById('panel-dynamic-controls');}
-    if (!container || !window.dualMidiBridge) {return;}
+    if (!container || !getBridge()) {return;}
 
     container.querySelectorAll('.v-slider').forEach(slider => {
         const ctrlUnit = slider.closest('[data-param]');
         if (!ctrlUnit) {return;}
         const paramId = ctrlUnit.getAttribute('data-param');
         if (!paramId) {return;}
-        const val = window.dualMidiBridge.parameterCache[paramId];
+        const val = getBridge().parameterCache[paramId];
         if (val !== undefined) {
             const handle = slider.querySelector('.handle');
             if (handle) {
@@ -35,7 +35,7 @@ window.updatePanelFromState = function(container) {
 
     container.querySelectorAll('select[data-param]').forEach(sel => {
         const paramId = sel.getAttribute('data-param');
-        const val = window.dualMidiBridge.parameterCache[paramId];
+        const val = getBridge().parameterCache[paramId];
         if (val !== undefined) {
             const optionsCount = sel.options.length;
             sel.value = Math.round(val * (optionsCount - 1));
@@ -44,7 +44,7 @@ window.updatePanelFromState = function(container) {
 
     container.querySelectorAll('.toggle-box[data-param]').forEach(box => {
         const paramId = box.getAttribute('data-param');
-        const val = window.dualMidiBridge.parameterCache[paramId];
+        const val = getBridge().parameterCache[paramId];
         if (val !== undefined) {
             if (paramId === 'vca_mode') {
                 if (box.id === 'panel-vca-mode-transparent') {box.classList.toggle('active', val < 0.5);}
@@ -66,7 +66,7 @@ window.updatePanelFromState = function(container) {
         }
         if (!paramId) {return;}
 
-        const val = window.dualMidiBridge.parameterCache[paramId];
+        const val = getBridge().parameterCache[paramId];
         if (val !== undefined) {
             let maxVal = 6.0;
             if (row.hasAttribute('data-trig')) {maxVal = 4.0;}

@@ -44,7 +44,7 @@ function renderDspCalibration(dspCalibration) {
 }
 
 function updateSettingsHardwareInfo() {
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (!bridge) {return;}
     const info = bridge.getHardwareInfo();
     if (!info) {return;}

@@ -28,8 +28,8 @@ function initDetailPanel() {
     initPanelScope();
 
     // Escuchar cambios de parámetros en tiempo real (delegado a panel_param_handler.js)
-    if (window.dualMidiBridge) {
-        window.dualMidiBridge.onParameterChanged(window._handlePanelParamChange);
+    if (getBridge()) {
+        getBridge().onParameterChanged(window._handlePanelParamChange);
     }
 
     // Observer y animaciones (delegado a panel_animations.js)

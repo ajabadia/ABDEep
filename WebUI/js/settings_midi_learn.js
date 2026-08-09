@@ -11,7 +11,7 @@ function initMidiLearnEditor() {
         const container = document.getElementById('midi-learn-mappings-list');
         const countEl = document.getElementById('midi-learn-mapping-count');
         if (!container) {return;}
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge || !bridge.midiLearnMappings || Object.keys(bridge.midiLearnMappings).length === 0) {
             container.innerHTML = '<div class="midi-learn-empty">No mappings yet. Use MIDI LEARN on the main panel to create mappings.</div>';
             if (countEl) {countEl.textContent = '0 mappings';}
@@ -71,9 +71,9 @@ function initMidiLearnEditor() {
     const clearBtn = document.getElementById('midi-learn-clear-all');
     if (clearBtn) {
         clearBtn.addEventListener('click', function() {
-            if (!window.dualMidiBridge) {return;}
+            if (!getBridge()) {return;}
             if (confirm('Delete all MIDI Learn mappings?')) {
-                window.dualMidiBridge.clearMidiLearnMappings();
+                getBridge().clearMidiLearnMappings();
                 refreshMappingsList();
                 flashButton(clearBtn);
             }
@@ -89,7 +89,7 @@ function initMidiLearnEditor() {
     const exportBtn = document.getElementById('midi-learn-export');
     if (exportBtn) {
         exportBtn.addEventListener('click', function() {
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             if (!bridge || !bridge.midiLearnMappings) {return;}
             const json = JSON.stringify(bridge.midiLearnMappings, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
@@ -116,7 +116,7 @@ function initMidiLearnEditor() {
                 reader.onload = function(ev) {
                     try {
                         const parsed = JSON.parse(ev.target.result);
-                        const bridge = window.dualMidiBridge;
+                        const bridge = getBridge();
                         if (!bridge || typeof parsed !== 'object' || parsed === null) {throw new Error('Invalid payload');}
                         let addedCount = 0;
                         Object.keys(parsed).forEach(function(key) {

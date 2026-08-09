@@ -196,10 +196,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (window.dualMidiBridge) {
+            if (getBridge()) {
                 for (const paramId in musicalRanges) {
-                    window.dualMidiBridge.setParameter(paramId, musicalRanges[paramId]);
-                    window.dualMidiBridge.handleParameterChangeFromBackend(paramId, musicalRanges[paramId]);
+                    getBridge().setParameter(paramId, musicalRanges[paramId]);
+                    getBridge().handleParameterChangeFromBackend(paramId, musicalRanges[paramId]);
                 }
             }
         });

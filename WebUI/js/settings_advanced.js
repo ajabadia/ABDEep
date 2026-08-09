@@ -7,7 +7,7 @@ function initAdvancedSettings() {
     if (!oversampleSelect) {return;}
 
     function syncAdvancedUI() {
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge) {return;}
         const valOversample = bridge.parameterCache && bridge.parameterCache['vcf_oversample'];
         if (valOversample !== undefined) {
@@ -39,8 +39,8 @@ function initAdvancedSettings() {
     oversampleSelect.addEventListener('change', function() {
         const idx = parseInt(this.value) || 0;
         const normalized = idx / 2.0;
-        if (window.dualMidiBridge) {
-            window.dualMidiBridge.setParameter('vcf_oversample', normalized);
+        if (getBridge()) {
+            getBridge().setParameter('vcf_oversample', normalized);
         }
         localStorage.setItem('abd-eep-vcf-oversample', this.value);
     });
@@ -52,8 +52,8 @@ function initAdvancedSettings() {
                 return;
             }
             const val = parseInt(this.value) || 0;
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_voicing_mode', val);
+            if (getBridge()) {
+                getBridge().setParameter('vcf_voicing_mode', val);
             }
             localStorage.setItem('abd-eep-vcf-voicing', this.value);
         });

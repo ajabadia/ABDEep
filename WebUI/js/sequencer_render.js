@@ -92,10 +92,10 @@ window._handleSeqParamChange = function(paramId, val, backdrop) {
     if (paramId === 'seq_enable' && seqBox) {
         seqBox.classList.toggle('active', val > 0.5);
         if (val < 0.5) { window._clearModalActiveHighlight(); }
-        if (val > 0.5 && window.dualMidiBridge && window.dualMidiBridge._seqEngine) {
-            const _sNotes_ = window.dualMidiBridge._seqEngine.heldNotes.length;
-            const _sStep_ = window.dualMidiBridge._seqEngine.stepIndex;
-            const _sLen_ = Math.round((window.dualMidiBridge.parameterCache['seq_length'] || 0) * 31) + 2;
+        if (val > 0.5 && getBridge() && getBridge()._seqEngine) {
+            const _sNotes_ = getBridge()._seqEngine.heldNotes.length;
+            const _sStep_ = getBridge()._seqEngine.stepIndex;
+            const _sLen_ = Math.round((getBridge().parameterCache['seq_length'] || 0) * 31) + 2;
             window._seqLastResetTime = Date.now();
             window._seqResetCount++;
             const _sBar_ = window._genPosBar(Math.round((_sStep_ / Math.max(_sLen_ - 1, 1)) * 18), 18);

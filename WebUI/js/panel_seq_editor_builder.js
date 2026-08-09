@@ -47,8 +47,8 @@ function initPanelSeqEditor(stepsContainer) {
                 window._panelLastSeqStep = idx;
                 window._panelSeqValues[idx] = 0;
                 window._panelSeqRaw[idx] = 128;
-                if (window.dualMidiBridge) {
-                    window.dualMidiBridge.setParameter('seq_step_' + (idx + 1), 0.5);
+                if (getBridge()) {
+                    getBridge().setParameter('seq_step_' + (idx + 1), 0.5);
                 }
                 if (typeof window._updatePanelStepVisual === 'function') {
                     window._updatePanelStepVisual(idx);
@@ -77,8 +77,8 @@ function initPanelSeqEditor(stepsContainer) {
                     const rawByte = Math.max(0, Math.min(255, bipolar + 128));
                     window._panelSeqRaw[idx] = rawByte;
                     const normalized = Math.max(0, Math.min(1, rawByte / 255.0));
-                    if (window.dualMidiBridge) {
-                        window.dualMidiBridge.setParameter('seq_step_' + (idx + 1), normalized);
+                    if (getBridge()) {
+                        getBridge().setParameter('seq_step_' + (idx + 1), normalized);
                     }
                     if (typeof window._updatePanelStepVisual === 'function') {
                         window._updatePanelStepVisual(idx);
@@ -124,8 +124,8 @@ function initPanelSeqEditor(stepsContainer) {
                     const rawByte = Math.max(0, Math.min(255, bipolar + 128));
                     window._panelSeqRaw[idx] = rawByte;
                     const normalized = Math.max(0, Math.min(1, rawByte / 255.0));
-                    if (window.dualMidiBridge) {
-                        window.dualMidiBridge.setParameter('seq_step_' + (idx + 1), normalized);
+                    if (getBridge()) {
+                        getBridge().setParameter('seq_step_' + (idx + 1), normalized);
                     }
                     if (typeof window._updatePanelStepVisual === 'function') {
                         window._updatePanelStepVisual(idx);

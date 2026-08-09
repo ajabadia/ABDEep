@@ -29,7 +29,7 @@ window._startCanvasAnimation = function() {
             window.drawPanelGraphic();
         }
         // Highlight active sequencer step
-        if (state.currentPanelMode === 'SEQ' && window.dualMidiBridge && window.dualMidiBridge._seqEngine) {
+        if (state.currentPanelMode === 'SEQ' && getBridge() && getBridge()._seqEngine) {
             _highlightSeqStep();
         }
         _panelAnimFrameId = requestAnimationFrame(_loop);
@@ -41,7 +41,7 @@ window._startCanvasAnimation = function() {
 (function() {
     let progFrameId = null;
     function _progLoop() {
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (bridge && bridge.isJuce && typeof bridge.getAudioWaveform === 'function') {
             bridge.getAudioWaveform().catch(function() {});
         }
@@ -59,12 +59,12 @@ window._startCanvasAnimation = function() {
 })();
 
 function _highlightSeqStep() {
-    const seqEngine = window.dualMidiBridge._seqEngine;
+    const seqEngine = getBridge()._seqEngine;
     if (!seqEngine.running) {
         _clearSeqHighlights();
         return;
     }
-    const curStep = window.dualMidiBridge.parameterCache['seq_current_step'];
+    const curStep = getBridge().parameterCache['seq_current_step'];
     if (typeof curStep !== 'number') {return;}
 
     if (curStep !== window._lastHighlightedSeqStep) {
@@ -82,10 +82,10 @@ function _highlightSeqStep() {
 
     const ssStatus = document.getElementById('scope-seq-status');
     if (ssStatus) {
-        const ssVal = window.dualMidiBridge.parameterCache['seq_current_value'];
-        const ssStep = window.dualMidiBridge.parameterCache['seq_current_step'];
-        const ssSkip = (window.dualMidiBridge.parameterCache['seq_current_step_skip'] || 0) > 0.5;
-        const ssLen = Math.round((window.dualMidiBridge.parameterCache['seq_length'] || 0) * 31) + 2;
+        const ssVal = getBridge().parameterCache['seq_current_value'];
+        const ssStep = getBridge().parameterCache['seq_current_step'];
+        const ssSkip = (getBridge().parameterCache['seq_current_step_skip'] || 0) > 0.5;
+        const ssLen = Math.round((getBridge().parameterCache['seq_length'] || 0) * 31) + 2;
         if (typeof ssStep === 'number' && typeof ssVal === 'number') {
             const ssBipVal = Math.round((ssVal * 2.0 - 1.0) * 127);
             const ssRaw = Math.round(ssVal * 255);

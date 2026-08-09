@@ -84,8 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetBtn = document.getElementById('nrpn-reset-btn');
     if (resetBtn) {
         resetBtn.addEventListener('click', () => {
-            if (window.dualMidiBridge && window.dualMidiBridge._resetNrpnCounters) {
-                window.dualMidiBridge._resetNrpnCounters();
+            if (getBridge() && getBridge()._resetNrpnCounters) {
+                getBridge()._resetNrpnCounters();
             } else {
                 // Fallback: resetear manual
                 if (typeof window.updateNrpnTrafficCounters === 'function') {
@@ -96,9 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Registrar callback de tráfico NRPN
-    if (window.dualMidiBridge && window.dualMidiBridge._onNrpnTraffic) {
+    if (getBridge() && getBridge()._onNrpnTraffic) {
         if (typeof window.updateNrpnTrafficCounters === 'function') {
-            window.dualMidiBridge._onNrpnTraffic(window.updateNrpnTrafficCounters);
+            getBridge()._onNrpnTraffic(window.updateNrpnTrafficCounters);
         }
     }
 

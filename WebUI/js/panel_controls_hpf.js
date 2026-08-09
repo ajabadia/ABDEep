@@ -13,15 +13,15 @@ window.bindPanelHpfControls = function(container, state, titleEl) {
     
     if (btnBoostOff && btnBoostOn) {
         btnBoostOff.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('hpf_boost_enable', 0.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('hpf_boost_enable', 0.0);
+            if (getBridge()) {
+                getBridge().setParameter('hpf_boost_enable', 0.0);
+                getBridge().handleParameterChangeFromBackend('hpf_boost_enable', 0.0);
             }
         });
         btnBoostOn.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('hpf_boost_enable', 1.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('hpf_boost_enable', 1.0);
+            if (getBridge()) {
+                getBridge().setParameter('hpf_boost_enable', 1.0);
+                getBridge().handleParameterChangeFromBackend('hpf_boost_enable', 1.0);
             }
         });
     }
@@ -32,7 +32,7 @@ window.bindPanelHpfControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
@@ -48,7 +48,7 @@ window.bindPanelHpfControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.toggle-label');
             const name = lbl ? lbl.textContent.trim() : pid;

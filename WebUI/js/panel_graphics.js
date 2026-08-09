@@ -41,8 +41,8 @@ window.drawPanelGraphic = function() {
         window._drawGraphGrid(ctx, w, h, colors, currentPanelMode);
     }
 
-    if (!window.dualMidiBridge || !window.dualMidiBridge.parameterCache) {return;}
-    const cache = window.dualMidiBridge.parameterCache;
+    if (!getBridge() || !getBridge().parameterCache) {return;}
+    const cache = getBridge().parameterCache;
 
     // Delegar a los drawers específicos según el modo de panel activo
     if ((currentPanelMode === 'ENV' || currentPanelMode === 'VCA') && typeof window._drawEnvGraph === 'function') {

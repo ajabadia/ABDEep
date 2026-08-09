@@ -95,7 +95,7 @@ window._drawSpectrum = function(ctx, freqData, top, bot, w, colors) {
  * @param {number} graphW  Width of spectrum region (excl. padding)
  */
 window._drawFilterOverlay = function(ctx, padding, w, top, bot, graphH, graphW) {
-    const cache = window.dualMidiBridge ? window.dualMidiBridge.parameterCache : null;
+    const cache = getBridge() ? getBridge().parameterCache : null;
     if (!cache) {return;}
 
     const rawCutoff = cache['vcf_cutoff'];

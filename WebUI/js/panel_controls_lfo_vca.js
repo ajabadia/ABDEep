@@ -13,8 +13,8 @@ window.bindPanelLfoControls = function(container, state, titleEl) {
     const prefix = `lfo${state.panelActiveLfo}_`;
     container.innerHTML = window.PANEL_TEMPLATES.LFO(prefix);
 
-    if (window.dualMidiBridge) {
-        const arpSyncVal = window.dualMidiBridge.parameterCache[`${prefix}arp_sync`] || 0;
+    if (getBridge()) {
+        const arpSyncVal = getBridge().parameterCache[`${prefix}arp_sync`] || 0;
         const rateLabel = container.querySelector(`[data-param="${prefix}rate"] .label`);
         if (rateLabel) {
             rateLabel.innerText = arpSyncVal > 0.5 ? 'Clock Div' : 'Rate';
@@ -27,7 +27,7 @@ window.bindPanelLfoControls = function(container, state, titleEl) {
             const paramId = row.getAttribute('data-param');
             container.querySelectorAll('.shape-led-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter(paramId, shapeVal / 6.0);}
+            if (getBridge()) {getBridge().setParameter(paramId, shapeVal / 6.0);}
         });
     });
 
@@ -35,7 +35,7 @@ window.bindPanelLfoControls = function(container, state, titleEl) {
         box.addEventListener('click', () => {
             const paramId = box.getAttribute('data-param');
             const isCurrentlyActive = box.classList.toggle('active');
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter(paramId, isCurrentlyActive ? 1.0 : 0.0);}
+            if (getBridge()) {getBridge().setParameter(paramId, isCurrentlyActive ? 1.0 : 0.0);}
         });
     });
 
@@ -45,7 +45,7 @@ window.bindPanelLfoControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
@@ -61,7 +61,7 @@ window.bindPanelLfoControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.toggle-label');
             const name = lbl ? lbl.textContent.trim() : pid;
@@ -76,7 +76,7 @@ window.bindPanelLfoControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const nameEl = this.querySelector('.shape-name');
             const name = nameEl ? nameEl.textContent.trim() : pid;
@@ -97,15 +97,15 @@ window.bindPanelVcaControls = function(container, state, titleEl) {
     
     if (btnTransparent && btnBallsy) {
         btnTransparent.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vca_mode', 0.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vca_mode', 0.0);
+            if (getBridge()) {
+                getBridge().setParameter('vca_mode', 0.0);
+                getBridge().handleParameterChangeFromBackend('vca_mode', 0.0);
             }
         });
         btnBallsy.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vca_mode', 1.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vca_mode', 1.0);
+            if (getBridge()) {
+                getBridge().setParameter('vca_mode', 1.0);
+                getBridge().handleParameterChangeFromBackend('vca_mode', 1.0);
             }
         });
     }
@@ -116,7 +116,7 @@ window.bindPanelVcaControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
@@ -132,7 +132,7 @@ window.bindPanelVcaControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.toggle-label');
             const name = lbl ? lbl.textContent.trim() : pid;

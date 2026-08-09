@@ -13,8 +13,8 @@ function initLeds() {
         const paramId = parent.getAttribute('data-param');
         led.addEventListener('click', function () {
             const active = led.classList.toggle('active');
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter(paramId, active ? 1.0 : 0.0);
+            if (getBridge()) {
+                getBridge().setParameter(paramId, active ? 1.0 : 0.0);
             }
         });
     });

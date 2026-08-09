@@ -14,15 +14,15 @@ window.bindPanelVcfControls = function(container, state, titleEl) {
             const val = parseInt(row.getAttribute('data-val'));
             container.querySelectorAll('.vcf-model-led-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_model', val / 2.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_model', val / 2.0);
+            if (getBridge()) {
+                getBridge().setParameter('vcf_model', val / 2.0);
+                getBridge().handleParameterChangeFromBackend('vcf_model', val / 2.0);
             }
         });
     });
 
     // Initialize VCF subpanel visibility from cached model value
-    const currentModel = window.dualMidiBridge ? (window.dualMidiBridge.parameterCache['vcf_model'] || 0) : 0;
+    const currentModel = getBridge() ? (getBridge().parameterCache['vcf_model'] || 0) : 0;
     if (typeof window._updateVcfSubpanelVisibility === 'function') {
         window._updateVcfSubpanelVisibility(Math.round(currentModel * 2.0));
     }
@@ -31,15 +31,15 @@ window.bindPanelVcfControls = function(container, state, titleEl) {
     const btnPole4 = document.getElementById('panel-vcf-pole-4');
     if (btnPole2 && btnPole4) {
         btnPole2.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_pole_mode', 0.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_pole_mode', 0.0);
+            if (getBridge()) {
+                getBridge().setParameter('vcf_pole_mode', 0.0);
+                getBridge().handleParameterChangeFromBackend('vcf_pole_mode', 0.0);
             }
         });
         btnPole4.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_pole_mode', 1.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_pole_mode', 1.0);
+            if (getBridge()) {
+                getBridge().setParameter('vcf_pole_mode', 1.0);
+                getBridge().handleParameterChangeFromBackend('vcf_pole_mode', 1.0);
             }
         });
     }
@@ -48,15 +48,15 @@ window.bindPanelVcfControls = function(container, state, titleEl) {
     const btnPolInv = document.getElementById('panel-vcf-pol-inverted');
     if (btnPolNorm && btnPolInv) {
         btnPolNorm.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_env_polarity', 1.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_env_polarity', 1.0);
+            if (getBridge()) {
+                getBridge().setParameter('vcf_env_polarity', 1.0);
+                getBridge().handleParameterChangeFromBackend('vcf_env_polarity', 1.0);
             }
         });
         btnPolInv.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_env_polarity', 0.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_env_polarity', 0.0);
+            if (getBridge()) {
+                getBridge().setParameter('vcf_env_polarity', 0.0);
+                getBridge().handleParameterChangeFromBackend('vcf_env_polarity', 0.0);
             }
         });
     }
@@ -65,15 +65,15 @@ window.bindPanelVcfControls = function(container, state, titleEl) {
     const btnLfoSrc2 = document.getElementById('panel-vcf-lfosrc-2');
     if (btnLfoSrc1 && btnLfoSrc2) {
         btnLfoSrc1.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_lfo_select', 0.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_lfo_select', 0.0);
+            if (getBridge()) {
+                getBridge().setParameter('vcf_lfo_select', 0.0);
+                getBridge().handleParameterChangeFromBackend('vcf_lfo_select', 0.0);
             }
         });
         btnLfoSrc2.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_lfo_select', 1.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_lfo_select', 1.0);
+            if (getBridge()) {
+                getBridge().setParameter('vcf_lfo_select', 1.0);
+                getBridge().handleParameterChangeFromBackend('vcf_lfo_select', 1.0);
             }
         });
     }
@@ -82,9 +82,9 @@ window.bindPanelVcfControls = function(container, state, titleEl) {
     container.querySelectorAll('.vcf-moog-submode-led-row').forEach(function(row) {
         row.addEventListener('click', function() {
             const val = parseFloat(this.getAttribute('data-val'));
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_moog_submode', val / 2);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_moog_submode', val / 2);
+            if (getBridge()) {
+                getBridge().setParameter('vcf_moog_submode', val / 2);
+                getBridge().handleParameterChangeFromBackend('vcf_moog_submode', val / 2);
             }
         });
     });
@@ -93,9 +93,9 @@ window.bindPanelVcfControls = function(container, state, titleEl) {
     container.querySelectorAll('.vcf-korg-submode-led-row').forEach(function(row) {
         row.addEventListener('click', function() {
             const val = parseFloat(this.getAttribute('data-val'));
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_korg_submode', val);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_korg_submode', val);
+            if (getBridge()) {
+                getBridge().setParameter('vcf_korg_submode', val);
+                getBridge().handleParameterChangeFromBackend('vcf_korg_submode', val);
             }
         });
     });
@@ -106,7 +106,7 @@ window.bindPanelVcfControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
@@ -124,7 +124,7 @@ window.bindPanelVcfControls = function(container, state, titleEl) {
             const lcd = document.getElementById('lcd-text');
             if (!lcd) {return;}
             const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.toggle-label');
             const name = lbl ? lbl.textContent.trim() : pid;

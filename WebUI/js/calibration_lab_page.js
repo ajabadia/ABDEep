@@ -126,7 +126,7 @@ class CalibrationLabPage extends HTMLElement {
 
   initStore() {
     if (!window.calibrationStore && typeof window.createCalibrationStore === 'function') {
-      window.calibrationStore = window.createCalibrationStore(window.dualMidiBridge);
+      window.calibrationStore = window.createCalibrationStore(getBridge());
     }
 
     if (window.calibrationStore) {

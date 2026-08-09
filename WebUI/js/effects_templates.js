@@ -8,7 +8,7 @@
  */
 
 function _readFxParamValue(paramId, fallbackByte, defaultVal) {
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (bridge && bridge.parameterCache && bridge.parameterCache[paramId] !== undefined) {
         return bridge.parameterCache[paramId];
     }

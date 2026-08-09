@@ -95,13 +95,13 @@ function initKeyboardAndWheels() {
 
                 // Determine LED color via extracted function
                 const ledColor = typeof window._resolveKeyLedColor === 'function'
-                    ? window._resolveKeyLedColor(window.dualMidiBridge)
+                    ? window._resolveKeyLedColor(getBridge())
                     : 'var(--brand-accent)';
                 key.style.setProperty('--key-led-color', ledColor);
 
-                if (window.dualMidiBridge) {
-                    if (window.dualMidiBridge._seqEngine && (window.dualMidiBridge.parameterCache['seq_enable'] || 0) > 0.5) {
-                        window.dualMidiBridge._seqEngine.addHeldNote(shiftedMidiNote, velocity);
+                if (getBridge()) {
+                    if (getBridge()._seqEngine && (getBridge().parameterCache['seq_enable'] || 0) > 0.5) {
+                        getBridge()._seqEngine.addHeldNote(shiftedMidiNote, velocity);
                     }
 
                     if (typeof window._playPolyChordMemory === 'function') {
@@ -114,12 +114,12 @@ function initKeyboardAndWheels() {
                         if (handled) {return;}
                     }
 
-                    if (window.dualMidiBridge._arpEngine && (window.dualMidiBridge.parameterCache['arp_enable'] || 0) > 0.5) {
-                        window.dualMidiBridge._arpEngine.addHeldNote(shiftedMidiNote, velocity);
+                    if (getBridge()._arpEngine && (getBridge().parameterCache['arp_enable'] || 0) > 0.5) {
+                        getBridge()._arpEngine.addHeldNote(shiftedMidiNote, velocity);
                         return;
                     }
 
-                    window.dualMidiBridge.pianoNoteOn(shiftedMidiNote, velocity);
+                    getBridge().pianoNoteOn(shiftedMidiNote, velocity);
                 }
             };
 
@@ -128,9 +128,9 @@ function initKeyboardAndWheels() {
                 key.classList.remove('pushed');
                 key.style.removeProperty('--velocity');
                 const shiftedMidiNote = originalMidiNote + octaveShift;
-                if (window.dualMidiBridge) {
-                    if (window.dualMidiBridge._seqEngine && (window.dualMidiBridge.parameterCache['seq_enable'] || 0) > 0.5) {
-                        window.dualMidiBridge._seqEngine.removeHeldNote(shiftedMidiNote);
+                if (getBridge()) {
+                    if (getBridge()._seqEngine && (getBridge().parameterCache['seq_enable'] || 0) > 0.5) {
+                        getBridge()._seqEngine.removeHeldNote(shiftedMidiNote);
                     }
 
                     if (typeof window._stopPolyChordMemory === 'function') {
@@ -141,12 +141,12 @@ function initKeyboardAndWheels() {
                         window._stopChordMemory(shiftedMidiNote);
                     }
 
-                    if (window.dualMidiBridge._arpEngine && (window.dualMidiBridge.parameterCache['arp_enable'] || 0) > 0.5) {
-                        window.dualMidiBridge._arpEngine.removeHeldNote(shiftedMidiNote);
+                    if (getBridge()._arpEngine && (getBridge().parameterCache['arp_enable'] || 0) > 0.5) {
+                        getBridge()._arpEngine.removeHeldNote(shiftedMidiNote);
                         return;
                     }
 
-                    window.dualMidiBridge.pianoNoteOff(shiftedMidiNote);
+                    getBridge().pianoNoteOff(shiftedMidiNote);
                 }
 
                 if (key.classList.contains('pressured') || key.classList.contains('pitch-bent')) {
@@ -202,16 +202,16 @@ function initKeyboardAndWheels() {
             const pos = (1.0 - pct) * (rect.height - wheelHeight);
             wheel.style.bottom = (rect.height - wheelHeight - pos) + 'px';
 
-            if (window.dualMidiBridge && window.dualMidiBridge.midiOutput) {
-                const statusByte = (isPitch ? 0xE0 : 0xB0) | (window.dualMidiBridge.midiChannel - 1);
+            if (getBridge() && getBridge().midiOutput) {
+                const statusByte = (isPitch ? 0xE0 : 0xB0) | (getBridge().midiChannel - 1);
                 if (isPitch) {
                     const bendVal = Math.round(pct * 16383);
                     const lsb = bendVal & 0x7F;
                     const msb = (bendVal >> 7) & 0x7F;
-                    window.dualMidiBridge.midiOutput.send([statusByte, lsb, msb]);
+                    getBridge().midiOutput.send([statusByte, lsb, msb]);
                 } else {
                     const modVal = Math.round(pct * 127);
-                    window.dualMidiBridge.midiOutput.send([statusByte, 1, modVal]);
+                    getBridge().midiOutput.send([statusByte, 1, modVal]);
                 }
             }
         };
@@ -252,8 +252,8 @@ function initKeyboardAndWheels() {
  * Muestra la nota MIDI presionada en el LCD del Programmer.
  */
 function _showKeyboardNoteOnLcd(midiNote, velocity) {
-    if (window.dualMidiBridge && typeof window.dualMidiBridge._showNoteOnLcd === 'function') {
-        window.dualMidiBridge._showNoteOnLcd(midiNote, velocity);
+    if (getBridge() && typeof getBridge()._showNoteOnLcd === 'function') {
+        getBridge()._showNoteOnLcd(midiNote, velocity);
     }
 }
 

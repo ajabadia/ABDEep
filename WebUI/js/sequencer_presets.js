@@ -130,8 +130,8 @@ window.initSequencerPresets = function() {
             }
 
             const normalized = rawByte / 255.0;
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter(`seq_step_${i + 1}`, normalized);
+            if (getBridge()) {
+                getBridge().setParameter(`seq_step_${i + 1}`, normalized);
             }
             if (typeof window.updateStepVisual === 'function') {
                 window.updateStepVisual(i);

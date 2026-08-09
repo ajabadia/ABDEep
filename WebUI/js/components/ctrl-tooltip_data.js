@@ -8,7 +8,7 @@ window.buildTooltipParamMeta = function () {
     'use strict';
     const meta = {};
     const byteMap = window.BYTE_MAP || [];
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     const paramToOffset = bridge ? (bridge.paramToByteOffset || {}) : {};
 
     // Index byte-map entries by param id (the name in the map)

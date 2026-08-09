@@ -27,16 +27,16 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 
 ## 2. Baseline WebUI (Vitest + ESLint)
 
-> **2026-08-09 — actualizado a los números vigentes** (100 files / 4653 tests,
+> **2026-08-09 — actualizado a los números vigentes** (102 files / 4664 tests,
 > ESLint 0 warnings). El count de test files/tests lo verifica en cada `npm test` el
 > **guard `WebUI/tests/baselineGuard.test.js`** (anti-drift: corre la suite en un
 > subproceso excluyéndose y reconcilia con esta sección).
 
 | Métrica | Valor |
 |---|---|
-| Test files | **100** (100 passed) |
-| Tests | **4653** (4651 passed, 2 skipped, 0 failed) |
-| Duración | ~15 s |
+| Test files | **102** (102 passed) |
+| Tests | **4664** (4662 passed, 2 skipped, 0 failed) |
+| Duración | ~16 s |
 | ESLint | **0 errores, 0 warnings** (`curly` limpios con `--fix`; `npm run lint`
   ahora es `--max-warnings 0` → CI falla ante cualquier warning) |
 
@@ -262,7 +262,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   0 fallos**. Nota: **3 fallos FX preexistentes documentados** (refactor FX en curso:
   fidelidad delay + full-gain wet) — el paso usa `continue-on-error` (no bloquean CI).
 - ✅ **Job `vitest` + lint** en `.github/workflows/webui-ci.yml` (ubuntu-latest): suite
-  completa de WebUI (**100 files / 4653 tests, 0 fallos**) y ESLint **0 errores / 0
+  completa de WebUI (**102 files / 4664 tests, 0 fallos**) y ESLint **0 errores / 0
   warnings** (`npm run lint` con `--max-warnings 0`). El guard `baselineGuard.test.js`
   incluido en la suite verifica que los counts de esta sección no deriven.
   `package-lock.json` commiteado; `patchwork-deepmind` eliminado de `dependencies`
@@ -415,9 +415,18 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
    `ModelCapabilities` (`model_capabilities.js`, matriz §1.1 dm12_hardware/abyssmind_pro)
    integrado en `wasm_bridge.js` (`getCapabilities()`) y expuesto al bridge WASM.
 
+### ✅ Completadas (Fase 6)
+
+7. **Fase 6 — Retirada progresiva de compatibilidad legacy:** `Logger.deprecation()`
+   (dedup por clave, gated por debug, solo hilos de control/tests) + `logger.test.js`;
+   `window.dualMidiBridge` queda como **alias deprecado** (getter con aviso único vía
+   `Logger.deprecation`) y el acceso canónico pasa a **`getBridge()`** (instancia privada
+   en `bridge-dual.js`). 93 fuentes migradas mecánicamente (0 refs residuales a
+   `window.dualMidiBridge`), setup de vitest con fallback para tests que stubbean el
+   alias, y `bridgeAliasDeprecation.test.js` (acceso canónico + dedup del aviso).
+   Baseline WebUI actualizada a 102 files / 4664 tests.
+
 ### ⏳ Pendientes
 
-- **Fase 6:** retirada progresiva de compatibilidad legacy (`Logger.deprecation()`, aliases de
-  `window.dualMidiBridge`).
 - **Nivel 3b (Fase 4, §5):** hardware-in-the-loop con DM12 físico — procedimiento en
   `docs/fase4_nivel3b_hardware_in_the_loop.md`.

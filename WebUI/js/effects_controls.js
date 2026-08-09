@@ -56,8 +56,8 @@ function initEffectsControls() {
             const displayEl = document.getElementById(`fx${slot}-type-mini-display`);
             if (displayEl) {displayEl.innerText = window.FX_TYPE_NAMES[val];}
 
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter(`fx${slot}_type`, val / 56.0);
+            if (getBridge()) {
+                getBridge().setParameter(`fx${slot}_type`, val / 56.0);
             }
             if (parseInt(slot) === window._selectedFxSlot) {
                 if (typeof window.renderActiveEffectParams === 'function') {
@@ -75,8 +75,8 @@ function initEffectsControls() {
     const routingSelect = document.getElementById('fx-routing-select');
     if (routingSelect) {
         routingSelect.addEventListener('change', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('fx_routing', parseInt(routingSelect.value) / 9.0);
+            if (getBridge()) {
+                getBridge().setParameter('fx_routing', parseInt(routingSelect.value) / 9.0);
             }
         });
     }
@@ -119,19 +119,19 @@ function initEffectsControls() {
             modeIns.classList.add('active');
             [modeSend, modeByp].forEach(b => b.classList.remove('active'));
             setSendLevelVisibility(0);
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('fx_mode', 0.0);}
+            if (getBridge()) {getBridge().setParameter('fx_mode', 0.0);}
         });
         modeSend.addEventListener('click', () => {
             modeSend.classList.add('active');
             [modeIns, modeByp].forEach(b => b.classList.remove('active'));
             setSendLevelVisibility(1);
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('fx_mode', 0.5);}
+            if (getBridge()) {getBridge().setParameter('fx_mode', 0.5);}
         });
         modeByp.addEventListener('click', () => {
             modeByp.classList.add('active');
             [modeIns, modeSend].forEach(b => b.classList.remove('active'));
             setSendLevelVisibility(2);
-            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('fx_mode', 1.0);}
+            if (getBridge()) {getBridge().setParameter('fx_mode', 1.0);}
         });
     }
 }

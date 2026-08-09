@@ -28,8 +28,8 @@ function initSliders() {
             const paramId = _getParamId(slider);
             if (!paramId) {return;}
 
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter(paramId, pct);
+            if (getBridge()) {
+                getBridge().setParameter(paramId, pct);
 
                 const midiInfo = window.MIDI_NRPN_MAP && window.MIDI_NRPN_MAP[paramId]
                     ? window.MIDI_NRPN_MAP[paramId]
@@ -82,8 +82,8 @@ function updateSliderPosition(sliderUnit, val) {
 }
 
 window.updateEnvSlidersFromCurrentPreset = function () {
-    if (!window.dualMidiBridge) {return;}
-    const cache = window.dualMidiBridge.parameterCache;
+    if (!getBridge()) {return;}
+    const cache = getBridge().parameterCache;
     const ids = ['env-ctrl-attack', 'env-ctrl-decay', 'env-ctrl-sustain', 'env-ctrl-release'];
     ids.forEach(function (id) {
         const el = document.getElementById(id);
@@ -96,8 +96,8 @@ window.updateEnvSlidersFromCurrentPreset = function () {
 };
 
 window.updateLfoSlidersFromCurrentPreset = function () {
-    if (!window.dualMidiBridge) {return;}
-    const cache = window.dualMidiBridge.parameterCache;
+    if (!getBridge()) {return;}
+    const cache = getBridge().parameterCache;
     const ids = ['lfo-ctrl-rate', 'lfo-ctrl-delay'];
     ids.forEach(function (id) {
         const el = document.getElementById(id);
@@ -110,8 +110,8 @@ window.updateLfoSlidersFromCurrentPreset = function () {
 };
 
 window.updateOscSlidersFromCurrentPreset = function () {
-    if (!window.dualMidiBridge) {return;}
-    const cache = window.dualMidiBridge.parameterCache;
+    if (!getBridge()) {return;}
+    const cache = getBridge().parameterCache;
     const ids = ['osc-ctrl-pitchmod', 'osc-ctrl-pwm-tone', 'osc-ctrl-pitch', 'osc-ctrl-level'];
     ids.forEach(function (id) {
         const el = document.getElementById(id);

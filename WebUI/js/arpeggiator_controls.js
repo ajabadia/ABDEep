@@ -25,42 +25,42 @@ window.initArpControls = function(backdrop, stepEditor, callbacks) {
     if (arpBox) {
         arpBox.addEventListener('click', function() {
             const active = arpBox.classList.contains('active');
-            if (window.dualMidiBridge) { window.dualMidiBridge.setParameter('arp_enable', active ? 0.0 : 1.0); }
+            if (getBridge()) { getBridge().setParameter('arp_enable', active ? 0.0 : 1.0); }
         });
     }
 
     if (holdBox) {
         holdBox.addEventListener('click', function() {
             const active = holdBox.classList.contains('active');
-            if (window.dualMidiBridge) { window.dualMidiBridge.setParameter('arp_hold', active ? 0.0 : 1.0); }
+            if (getBridge()) { getBridge().setParameter('arp_hold', active ? 0.0 : 1.0); }
         });
     }
 
     if (keySyncBox) {
         keySyncBox.addEventListener('click', function() {
             const active = keySyncBox.classList.contains('active');
-            if (window.dualMidiBridge) { window.dualMidiBridge.setParameter('arp_key_sync', active ? 0.0 : 1.0); }
+            if (getBridge()) { getBridge().setParameter('arp_key_sync', active ? 0.0 : 1.0); }
         });
     }
 
     // ── Select / Dropdown Listeners ──────────────────────────────
     if (selectClock) {
         selectClock.addEventListener('change', function() {
-            if (window.dualMidiBridge) { window.dualMidiBridge.setParameter('arp_clock_divider', parseInt(selectClock.value) / 12.0); }
+            if (getBridge()) { getBridge().setParameter('arp_clock_divider', parseInt(selectClock.value) / 12.0); }
             window._showArpSelectLcd('arp_clock', selectClock, ['1/1','1/2','1/3','1/4','1/6','1/8','1/12','1/16','1/24','1/32','1/48','1/64','1/96'], 'yellow');
         });
     }
 
     if (selectVelGate) {
         selectVelGate.addEventListener('change', function() {
-            if (window.dualMidiBridge) { window.dualMidiBridge.setParameter('arp_velocity_gate', parseInt(selectVelGate.value) / 2.0); }
+            if (getBridge()) { getBridge().setParameter('arp_velocity_gate', parseInt(selectVelGate.value) / 2.0); }
             window._showArpSelectLcd('arp_velgate', selectVelGate, ['Gate','Velocity','Seq'], 'teal');
         });
     }
 
     if (selectMode) {
         selectMode.addEventListener('change', function() {
-            if (window.dualMidiBridge) { window.dualMidiBridge.setParameter('arp_mode', parseInt(selectMode.value) / 10.0); }
+            if (getBridge()) { getBridge().setParameter('arp_mode', parseInt(selectMode.value) / 10.0); }
             const modeNames = ['UP','DOWN','UP-DOWN','UP-INV','DOWN-INV','UP-DN-INV','UP-ALT','DOWN-ALT','RANDOM','AS-PLAYED'];
             const modeIdx = parseInt(selectMode.value);
             const lcd = document.getElementById('lcd-text');
@@ -73,7 +73,7 @@ window.initArpControls = function(backdrop, stepEditor, callbacks) {
 
     if (selectOctave) {
         selectOctave.addEventListener('change', function() {
-            if (window.dualMidiBridge) { window.dualMidiBridge.setParameter('arp_octave', parseInt(selectOctave.value) / 3.0); }
+            if (getBridge()) { getBridge().setParameter('arp_octave', parseInt(selectOctave.value) / 3.0); }
             const octVal = parseInt(selectOctave.value) + 1;
             window._showArpLcdMessage('ARPEGGIATOR', 'OCTAVE RANGE', octVal.toString(), 'cyan');
         });
@@ -97,8 +97,8 @@ window.initArpControls = function(backdrop, stepEditor, callbacks) {
             handle.style.top = y + 'px';
 
             const val = 1.0 - (y / limit);
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter(paramId, val);
+            if (getBridge()) {
+                getBridge().setParameter(paramId, val);
             }
         }
 
@@ -149,7 +149,7 @@ window.initArpControls = function(backdrop, stepEditor, callbacks) {
     // ── Reset Button ────────────────────────────────────────────
     if (resetBtn) {
         resetBtn.addEventListener('click', function() {
-            const bridge = window.dualMidiBridge;
+            const bridge = getBridge();
             if (!bridge || !bridge._arpEngine) { return; }
 
             window._arpResetCount = (window._arpResetCount || 0) + 1;
@@ -165,14 +165,14 @@ window.initArpControls = function(backdrop, stepEditor, callbacks) {
     }
 
     // ── Parameter Change Listener (bridge → UI sync) ───────────
-    if (window.dualMidiBridge) {
-        window.dualMidiBridge.onParameterChanged(function(paramId, val) {
+    if (getBridge()) {
+        getBridge().onParameterChanged(function(paramId, val) {
             if (backdrop.style.display === 'none') { return; }
 
             // Toggle boxes
             if (paramId === 'arp_enable' && arpBox) {
                 arpBox.classList.toggle('active', val > 0.5);
-                if (val > 0.5 && window.dualMidiBridge._arpEngine) {
+                if (val > 0.5 && getBridge()._arpEngine) {
                     window._showArpEnableFeedback();
                 }
             }

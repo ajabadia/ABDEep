@@ -2,7 +2,7 @@
 // Extracted from calibration_lab_utils.js
 
 function getByteMaps() {
-  const bridge = window.dualMidiBridge || {};
+  const bridge = getBridge() || {};
   return {
     paramToByteOffset: bridge.paramToByteOffset || window.PARAMTOBYTEOFFSET || {},
     byteOffsetToParamIds: bridge.byteOffsetToParamIds || window.BYTEOFFSETTOPARAMIDS || {},

@@ -21,7 +21,7 @@
         window._wasmNoteOff(bridge, note);
 
         try {
-            const cache = window.dualMidiBridge ? window.dualMidiBridge.parameterCache : {};
+            const cache = getBridge() ? getBridge().parameterCache : {};
             const p = function(id, def) { return cache[id] !== undefined ? cache[id] : def; };
             const now = bridge.audioCtx.currentTime;
 
@@ -188,7 +188,7 @@
 
         try {
             const now = bridge.audioCtx.currentTime;
-            const cache = window.dualMidiBridge ? window.dualMidiBridge.parameterCache : {};
+            const cache = getBridge() ? getBridge().parameterCache : {};
             const calcEnvTime = function(id, defVal) {
                 const v = cache[id] !== undefined ? cache[id] : defVal;
                 const norm = Math.max(0, Math.min(1, v));

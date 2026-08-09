@@ -113,8 +113,8 @@ window.syncDetailPanelControls = function() {
                 const ctrlUnit = slider.closest('[data-param]');
                 if (ctrlUnit) {
                     const paramId = ctrlUnit.getAttribute('data-param');
-                    if (paramId && window.dualMidiBridge) {
-                        window.dualMidiBridge.setParameter(paramId, val);
+                    if (paramId && getBridge()) {
+                        getBridge().setParameter(paramId, val);
                         if (typeof window.drawPanelGraphic === 'function') {
                             window.drawPanelGraphic();
                         }

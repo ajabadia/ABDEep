@@ -43,7 +43,7 @@ CalibrationLabPage.prototype.bindAudioABEvents = function () {
       const patchSnapshotJson = JSON.stringify(st.selectedPatchA || {});
 
       addLog('Iniciando Audio A/B Run: ' + config.runId);
-      const res = window.dualMidiBridge && (await window.dualMidiBridge.startAudioABRun(JSON.stringify(config), patchSnapshotJson));
+      const res = getBridge() && (await getBridge().startAudioABRun(JSON.stringify(config), patchSnapshotJson));
       if (res && res.ok) {
         self._audioStatus = 'running';
         self._comparisonResult = null;
@@ -58,7 +58,7 @@ CalibrationLabPage.prototype.bindAudioABEvents = function () {
   if (renderBtn) {
     renderBtn.onclick = async function () {
       addLog('Renderizando referencia software del SynthEngine...');
-      const res = window.dualMidiBridge && (await window.dualMidiBridge.renderAudioABSoftwareReference());
+      const res = getBridge() && (await getBridge().renderAudioABSoftwareReference());
       if (res && res.ok) {
         addLog('Referencia de software renderizada correctamente en buffer local.');
       } else {
@@ -70,7 +70,7 @@ CalibrationLabPage.prototype.bindAudioABEvents = function () {
   if (finishBtn) {
     finishBtn.onclick = async function () {
       addLog('Finalizando run y exportando archivos a disco...');
-      const res = window.dualMidiBridge && (await window.dualMidiBridge.finishAudioABRun());
+      const res = getBridge() && (await getBridge().finishAudioABRun());
       if (res && res.ok) {
         self._audioStatus = 'finished';
         self._hwWavPath = res.hwWavPath;
@@ -112,7 +112,7 @@ CalibrationLabPage.prototype.bindAudioABEvents = function () {
         presetName: patchName
       });
 
-      const res = window.dualMidiBridge && (await window.dualMidiBridge.compareAudioABRun(
+      const res = getBridge() && (await getBridge().compareAudioABRun(
         self._swWavPath || '',
         self._hwWavPath || '',
         configJson,
@@ -141,7 +141,7 @@ CalibrationLabPage.prototype.bindAudioABEvents = function () {
   if (abortBtn) {
     abortBtn.onclick = async function () {
       addLog('Abortando run actual...');
-      if (window.dualMidiBridge) { await window.dualMidiBridge.abortAudioABRun(); }
+      if (getBridge()) { await getBridge().abortAudioABRun(); }
       self._audioStatus = 'idle';
       self._comparisonResult = null;
       addLog('Run abortado.');

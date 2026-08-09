@@ -62,7 +62,7 @@ function initModMatrix() {
                 document.querySelector('.modmatrix-grid').style.display = 'none';
                 if (blockTabsContainer) { blockTabsContainer.style.display = 'none'; }
                 modCanvas.style.display = 'block';
-                if (modMatrixCanvas) { modMatrixCanvas.resize(); modMatrixCanvas.syncFromCache(window.dualMidiBridge ? window.dualMidiBridge.parameterCache : {}); }
+                if (modMatrixCanvas) { modMatrixCanvas.resize(); modMatrixCanvas.syncFromCache(getBridge() ? getBridge().parameterCache : {}); }
             } else {
                 document.querySelector('.modmatrix-grid').style.display = 'grid';
                 if (blockTabsContainer && window.appMode !== 'standard') { blockTabsContainer.style.display = 'flex'; }
@@ -147,7 +147,7 @@ function initModMatrix() {
     if (compactBtn) {
         compactBtn.addEventListener('click', () => {
             if (typeof window.compactModMatrix === 'function') {
-                const activeCount = window.compactModMatrix(window.deepmindState || (window.dualMidiBridge ? window.dualMidiBridge.parameterCache : {}));
+                const activeCount = window.compactModMatrix(window.deepmindState || (getBridge() ? getBridge().parameterCache : {}));
                 if (typeof window.syncModMatrixUIFromState === 'function') {
                     window.syncModMatrixUIFromState();
                 }
@@ -207,8 +207,8 @@ function initModMatrix() {
                     const paramId = isSource ? `mod_matrix_slot${slot}_src` : `mod_matrix_slot${slot}_dest`;
                     const maxVal = isSource ? 22.0 : 129.0;
 
-                    if (window.dualMidiBridge) {
-                        window.dualMidiBridge.setParameter(paramId, selectedIdx / maxVal);
+                    if (getBridge()) {
+                        getBridge().setParameter(paramId, selectedIdx / maxVal);
                     }
                 });
             });
@@ -237,8 +237,8 @@ function initModMatrix() {
             txtVal.innerText = scaledInt;
 
             const paramId = `mod_matrix_slot${slot}_depth`;
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter(paramId, pct);
+            if (getBridge()) {
+                getBridge().setParameter(paramId, pct);
             }
         };
 

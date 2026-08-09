@@ -112,7 +112,7 @@ window.syncSeqModalUI = function() {
 window._updateSeqModalModeBadge = function() {
     const badgeEl = document.getElementById('modal-seq-mode-badge');
     if (!badgeEl) {return;}
-    const bridge = window.dualMidiBridge;
+    const bridge = getBridge();
     if (!bridge) {return;}
     const keyLoopNorm = bridge.parameterCache['seq_key_loop'] || 0;
     const keyLoopVal = Math.round(keyLoopNorm * 2);

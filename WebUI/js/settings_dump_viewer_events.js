@@ -24,7 +24,7 @@ function initDumpView() {
   const requestGlobalBtn = document.getElementById('dump-request-global-btn');
   if (requestGlobalBtn) {
     requestGlobalBtn.addEventListener('click', async () => {
-      const bridge = window.dualMidiBridge;
+      const bridge = getBridge();
       if (!bridge) {
         alert('Bridge not initialized.');
         return;
@@ -58,7 +58,7 @@ function initDumpView() {
 
   if (requestHwBtn) {
     requestHwBtn.addEventListener('click', async () => {
-      const bridge = window.dualMidiBridge;
+      const bridge = getBridge();
       if (!bridge) {
         alert('Bridge not initialized.');
         return;

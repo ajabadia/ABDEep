@@ -39,7 +39,7 @@ window.updateRealScopeHeight = function() {
     const realScopeToggleBtn = document.getElementById('panel-real-scope-toggle');
     const noScopeModes = ['POLY', 'PORTA', 'CHORD', 'POLY_CHORD', 'ARP'];
     if (!realScopeScreenEl || !realScopeToggleBtn) {return;}
-    const isJuce = window.dualMidiBridge && window.dualMidiBridge.isJuce;
+    const isJuce = getBridge() && getBridge().isJuce;
     const hasWebAudio = window.wasmBridge && window.wasmBridge.isAudioStarted;
     const toolbar = document.getElementById('scope-toolbar');
     if (noScopeModes.includes(state.currentPanelMode)) {
@@ -82,7 +82,7 @@ let _audioWaveformTimer = null;
 function _startAudioWaveformPolling() {
     if (_audioWaveformTimer) {return;}
     _audioWaveformTimer = setInterval(function() {
-        const bridge = window.dualMidiBridge;
+        const bridge = getBridge();
         if (!bridge || !bridge.isJuce) {return;}
         bridge.getAudioWaveform().catch(function() {});
     }, 33);
@@ -96,7 +96,7 @@ function _stopAudioWaveformPolling() {
 }
 
 window._updateAudioWaveformPolling = function() {
-    const hasBridge = window.dualMidiBridge;
+    const hasBridge = getBridge();
     const isJuce = hasBridge && hasBridge.isJuce;
     const progToggle = window.programmerDisplayToggle;
     const isProgScopeActive = progToggle && progToggle.mode !== 'sysex';

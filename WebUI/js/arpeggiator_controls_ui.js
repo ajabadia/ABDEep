@@ -36,7 +36,7 @@ window._showArpLcdMessage = function(header, label, value, colorClass) {
 window._showArpEnableFeedback = function() {
     window._arpLastResetTime = Date.now();
     window._arpResetCount = (window._arpResetCount || 0) + 1;
-    const engine = window.dualMidiBridge._arpEngine;
+    const engine = getBridge()._arpEngine;
     if (!engine) {return;}
     const heldNotes = engine.heldNotes.length;
     const stepIdx = engine.stepIndex;

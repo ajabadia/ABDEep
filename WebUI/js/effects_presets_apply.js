@@ -5,7 +5,7 @@
 
 window.applyFxPreset = function (presetData, slotNumber) {
   slotNumber = slotNumber || window._selectedFxSlot || 1;
-  const bridge = window.dualMidiBridge;
+  const bridge = getBridge();
   if (!bridge) { return; }
 
   bridge.setParameter('fx' + slotNumber + '_type', presetData.type);

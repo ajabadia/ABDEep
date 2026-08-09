@@ -8,14 +8,14 @@ function initMasterTuneSetting() {
     if (saved) {sel.value = saved;}
     sel.addEventListener('change', function() {
         localStorage.setItem('abd-eep-master-tune', this.value);
-        if (window.dualMidiBridge) {
+        if (getBridge()) {
             const idx = parseInt(this.value.match(/[+-]?\d+/));
-            window.dualMidiBridge.setGlobalParameter('global_tune', (idx + 128) / 255.0);
+            getBridge().setGlobalParameter('global_tune', (idx + 128) / 255.0);
         }
     });
-    if (saved && window.dualMidiBridge) {
+    if (saved && getBridge()) {
         const idx = parseInt(saved.match(/[+-]?\d+/));
-        window.dualMidiBridge.setGlobalParameter('global_tune', (idx + 128) / 255.0);
+        getBridge().setGlobalParameter('global_tune', (idx + 128) / 255.0);
     }
 }
 
@@ -26,14 +26,14 @@ function initTransposeSetting() {
     if (saved) {sel.value = saved;}
     sel.addEventListener('change', function() {
         localStorage.setItem('abd-eep-transpose', this.value);
-        if (window.dualMidiBridge) {
+        if (getBridge()) {
             const semitones = parseInt(this.value);
-            window.dualMidiBridge.setGlobalParameter('transpose', (semitones + 48) / 96.0);
+            getBridge().setGlobalParameter('transpose', (semitones + 48) / 96.0);
         }
     });
-    if (saved && window.dualMidiBridge) {
+    if (saved && getBridge()) {
         const semitones = parseInt(saved);
-        window.dualMidiBridge.setGlobalParameter('transpose', (semitones + 48) / 96.0);
+        getBridge().setGlobalParameter('transpose', (semitones + 48) / 96.0);
     }
 }
 

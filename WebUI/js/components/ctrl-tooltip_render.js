@@ -122,7 +122,7 @@
         // Look up current value from parameter cache
         let currentIdx = 0;
         try {
-            const cache = window.dualMidiBridge && window.dualMidiBridge.parameterCache;
+            const cache = getBridge() && getBridge().parameterCache;
             if (cache && typeof cache[paramId] === 'number') {
                 currentIdx = Math.round(cache[paramId] * (info.enumLabels.length - 1));
                 currentIdx = Math.max(0, Math.min(currentIdx, info.enumLabels.length - 1));
