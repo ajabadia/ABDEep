@@ -72,8 +72,20 @@ jobs:
           mkdir -p "${CALIBRATION_INPUT_DIR}"
           mkdir -p "${CALIBRATION_OUTPUT_DIR}"
 
-      - name: Export Calibration Lab reports
+      - name: Check for calibration inputs
+        id: check_cal_inputs
         if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.export_calibration == 'true')
+        run: |
+          if [ -d "${CALIBRATION_INPUT_DIR}" ] && [ -n "$(ls -A ${CALIBRATION_INPUT_DIR} 2>/dev/null)" ]; then
+            echo "has_inputs=true" >> "$GITHUB_OUTPUT"
+            echo "Calibration inputs detected: $(ls -A ${CALIBRATION_INPUT_DIR} | wc -l) files"
+          else
+            echo "has_inputs=false" >> "$GITHUB_OUTPUT"
+            echo "No calibration inputs on CI (esperado en checkout limpio) — export omitido"
+          fi
+
+      - name: Export Calibration Lab reports
+        if: steps.check_cal_inputs.outputs.has_inputs == 'true'
         run: >
           npm run calibration:export:ci --
           --input-dir "${CALIBRATION_INPUT_DIR}"
@@ -81,14 +93,14 @@ jobs:
           --run-id "${CALIBRATION_RUN_ID}"
 
       - name: Verify calibration artifact contents
-        if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.export_calibration == 'true')
+        if: steps.check_cal_inputs.outputs.has_inputs == 'true'
         run: |
           test -d "${CALIBRATION_OUTPUT_DIR}"
           find "${CALIBRATION_OUTPUT_DIR}" -maxdepth 2 -type f | sort
           test -f "${CALIBRATION_OUTPUT_DIR}/manifest.json"
 
       - name: Upload calibration artifact bundle
-        if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.export_calibration == 'true')
+        if: steps.check_cal_inputs.outputs.has_inputs == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: calibration-runs-${{ github.run_id }}
