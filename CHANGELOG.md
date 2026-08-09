@@ -4,6 +4,44 @@
 
 ---
 
+## [0.2.20] — 2026-08-09
+
+### 🔬 Fase 7 — Job CI `property-fuzzing` (workflow `property-fuzzing.yml`) + fuzzing multi-seed
+
+- **Nuevo `scripts/fuzz_roundtrip.js`**: property-based testing / fuzzing acotado
+  (§5) ejecutable en CI — corre `fuzzRoundTrip` (`roundtrip_equality.js`) con
+  **8 seeds deterministas** por defecto (0xC0FFEE..0x2468A) × 200 casos y el
+  registro canónico real (`registry.gen.js`):
+  - **Clasificación de violaciones**: `codec_invariance`, `codec_payload_bound`,
+    `codec_throws` y `decode_encode_stability` son **fatales** (deterministas —
+    fallan el job); `timeout` (dependiente del reloj de pared, preempción del
+    runner) se reporta como **warning** y no rompe CI (los invariantes se
+    verifican con `--budget-ms` amplio cuando se quiere auditar el presupuesto
+    temporal sin ruido).
+  - CLI: `--seeds` (decimal **o hex** `0xBEEF`), `--iterations`, `--budget-ms`,
+    `--json`, `--out`. Exit codes **0/1/2** (OK / violaciones fatales / error de
+    uso) con `::error::fuzz-roundtrip` — mismo contrato que `security_scan.js`.
+  - **Resultado local**: 1600 casos / 8 seeds → **0 violaciones, 0 timeouts**
+    (máximo 4ms/caso con presupuesto de 100ms del plan).
+- **Nuevo `.github/workflows/property-fuzzing.yml`** (job `property-fuzzing`,
+  ubuntu-latest, Node 20): ejecuta el script con `--json` usando el patrón
+  establecido `if ! node …` (los `::error::` del script se imprimen antes del
+  `exit 1`); triggers en el script, `roundtrip_equality.js`, `browser_packer.js`,
+  `registry.gen.js`, `schemas/**` y los tests.
+- **`WebUI/tests/fuzzRoundtripScript.test.js` (6 tests)**: subproceso real — exit 0
+  con presupuesto amplio, reporte `--json` estructurado (runs por seed, totals,
+  `planLimits` 500B/100ms, `fatal:false`), `--seeds` concreto (1 seed · N casos),
+  presupuesto por defecto del plan (100ms/caso) sin violaciones, `--seeds` vacío
+  → exit 2 y `--iterations` inválido → exit 2 con `::error::`.
+- **Post-reviewer (2 ajustes)**: `planLimits.maxTimeoutMs` leído de la constante
+  del módulo (`RTE.FUZZ_MAX_TIMEOUT_MS`, fuente de verdad única) y guard de
+  `--iterations`/`--budget-ms` inválidos → exit 2.
+- **Verificación**: Vitest **92 files / 4572 tests / 0 fallos** (+5); ESLint 0;
+  YAML válido; `node --check` OK. Checkbox de Fase 7 actualizado — quedan
+  pendientes `pluginval` y `wasm-build`.
+
+---
+
 ## [0.2.19] — 2026-08-09
 
 ### 🧪 Fase 4 — Batería round-trip sobre el corpus completo A–H (1024 presets) + job CI `fase4-corpus`
