@@ -67,7 +67,11 @@ function extractNameFromRawSysex(rawSysex, baseOffset) {
     return nameChars.join('').trim();
 }
 
-function buildSingleSysex(patch) {
+// Construye el mensaje SysEx canónico de 291 bytes (cabecera 10 + payload 278 + cola 00 00 F7)
+// desde un patch desempaquetado de 242 bytes. Mismo orden de parámetros y mismas máscaras
+// que MidiTranslationEngine::createProgramDumpSysex (C++) para garantizar paridad byte a byte.
+// Defaults (deviceId 0x7F broadcast, bank 0, program 0) preservan el comportamiento histórico.
+function buildSingleSysex(patch, bank, program, deviceId) {
     const packed = pack8to7(patch.unpackedBytes);
     const syxMsg = new Uint8Array(291);
     syxMsg[0] = 0xF0;
@@ -75,11 +79,11 @@ function buildSingleSysex(patch) {
     syxMsg[2] = 0x20;
     syxMsg[3] = 0x32;
     syxMsg[4] = 0x20;
-    syxMsg[5] = 0x7F;
-    syxMsg[6] = 0x02;
-    syxMsg[7] = 0x07; // Banco por defecto
-    syxMsg[8] = 0x00; // Banco por defecto (0 = A)
-    syxMsg[9] = 0x00; // Programa por defecto (0-127)
+    syxMsg[5] = (deviceId === undefined ? 0x7F : deviceId) & 0x7F; // dispositivo (0x7F = broadcast, como los dumps de fábrica)
+    syxMsg[6] = 0x02; // Program Dump Response
+    syxMsg[7] = 0x07; // Comms Protocol Version (0x07 en factory banks V1.1.2)
+    syxMsg[8] = (bank === undefined ? 0x00 : bank) & 0x07;     // banco (0-7 = A-H)
+    syxMsg[9] = (program === undefined ? 0x00 : program) & 0x7F; // programa (0-127)
     syxMsg.set(packed, 10); // Insertar payload a partir del byte 10
     syxMsg[290] = 0xF7;
     return syxMsg;

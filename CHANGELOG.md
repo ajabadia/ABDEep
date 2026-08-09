@@ -4,6 +4,31 @@
 
 ---
 
+## [0.2.11] — 2026-08-09
+
+### 🔁 Test de paridad C++ ↔ JS del Program Dump de 291 bytes
+
+- **`buildSingleSysex` (browser_packer.js) parametrizado**: ahora acepta
+  `(patch, bank, program, deviceId)` opcionales con máscaras idénticas a las de
+  `MidiTranslationEngine::createProgramDumpSysex` (C++). Defaults preservan el
+  comportamiento histórico (`deviceId=0x7F` broadcast, `bank=0`, `program=0`);
+  se corrigieron además los comentarios de cabecera ([7] = Comms Protocol, no banco).
+- **Fixture de paridad `schemas/parity_program_dump_291.json`** (generado por el nuevo
+  `scripts/generate_parity_fixture.js`): golden de 291 bytes emitido por
+  `buildSingleSysex` real para un patch determinista `patch[i]=(i*37+11)&0xFF` con
+  cabecera `deviceId=0x7F, bank=2, program=10`.
+- **Tests de paridad en ambos lados**:
+  - C++ (`SynthEngineUnitTests_CalSpec.cpp`): `createProgramDumpSysex` con la MISMA
+    fórmula de patch y cabecera → comparación **byte a byte** contra el golden embebido.
+  - JS (`WebUI/tests/parityProgramDump.test.js`, 5 tests): el `buildSingleSysex` real
+    debe emitir exactamente los bytes del fixture (staleness check); cabecera explícita,
+    defaults históricos y round-trip estructural.
+- **Verificación**: Vitest **88 files / 4469 tests / 0 fallos** (+5); C++ UnitTests
+  **3.689.168 assertions / 0 fallos** (+3). `node scripts/generate_parity_fixture.js --check`
+  permite detectar fixtures stale en CI.
+
+---
+
 ## [0.2.10] — 2026-08-09
 
 ### 🏭 Fase 7 — Job CI dedicado `registry-generation` (workflow `registry-generation.yml`)

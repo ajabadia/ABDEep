@@ -267,6 +267,62 @@ public:
 
             logMessage("MidiTranslationEngine createProgramDumpSysex canonical 291-byte format: OK");
         }
+
+        //==============================================================================
+        beginTest("MidiTranslationEngine - createProgramDumpSysex PARITY with buildSingleSysex.js (291B golden)");
+        {
+            // Patch determinista: patch[i] = (i*37 + 11) & 0xFF — MISMA fórmula que
+            // scripts/generate_parity_fixture.js y WebUI/tests/parityProgramDump.test.js.
+            std::array<uint8_t, 242> patchBytes{};
+            for (int i = 0; i < 242; ++i)
+                patchBytes[i] = static_cast<uint8_t>((i * 37 + 11) & 0xFF);
+
+            // Golden de 291 bytes emitido por buildSingleSysex (JS, browser_packer.js)
+            // con deviceId=0x7F, bank=2, program=10. Fuente autoritativa:
+            //   schemas/parity_program_dump_291.json (node scripts/generate_parity_fixture.js)
+            // Si este test falla: EJECUTAR el generador y re-embeber el nuevo golden.
+            const char* goldenHex =
+                "f0002032207f0207020a700b30557a1f4469700e33587d22476c7811365b00254a6f7814395e03284d7278173c61062b5075781a3f64092e5378781d42670c31567b7820456a0f34597e3823486d12375c0138264b70153a5f0438294e73183d6207382c51761b40650a382f54791e43680d3832577c21466b1038355a7f24496e133c385d02274c71163c3b60052a4f74193c3e63082d52771c3c41660b30557a1f3c44690e33587d221c476c11365b00251c4a6f14395e03281c4d72173c61062b1c50751a3f64092e1c53781d42670c311c567b20456a0f341c597e23486d12371e5c01264b70153a1e5f04294e73183d1e62072c51761b401e650a2f54791e431e680d32577c21461e6b10355a7f24490e6e13385d02274c0e71163b60000000f7";
+
+            // Convertir hex → bytes
+            std::vector<uint8_t> golden;
+            const int hexLen = static_cast<int> (std::strlen (goldenHex));
+            expect (hexLen == 582, "Parity: el golden embebido debe tener 582 chars hex (291 bytes) — era " + juce::String (hexLen));
+            auto nib = [](char c) -> int
+            {
+                if (c >= '0' && c <= '9') return c - '0';
+                return (c | 32) - 'a' + 10;
+            };
+            for (int i = 0; i + 1 < hexLen; i += 2)
+                golden.push_back (static_cast<uint8_t> ((nib (goldenHex[i]) << 4) | nib (goldenHex[i + 1])));
+
+            auto msg = MidiTranslationEngine::createProgramDumpSysex (patchBytes, 2, 10, 0x7F);
+
+            // 1) Tamaño exacto
+            expect (msg.size () == golden.size (),
+                "Parity: createProgramDumpSysex debe emitir 291 bytes (era " + juce::String ((int) msg.size ()) + ")");
+
+            // 2) Byte a byte contra el golden de buildSingleSysex (JS)
+            int firstDiff = -1;
+            const int cmpLen = static_cast<int> (juce::jmin (msg.size (), golden.size ()));
+            for (int i = 0; i < cmpLen; ++i)
+            {
+                if (msg[i] != golden[i]) { firstDiff = i; break; }
+            }
+            if (firstDiff >= 0)
+            {
+                juce::String dbg;
+                for (int i = juce::jmax (0, firstDiff - 4); i <= juce::jmin (290, firstDiff + 4); ++i)
+                    dbg << juce::String::toHexString (&msg[i], 1, 0) << (msg[i] == golden[i] ? "=" : "!") << juce::String::toHexString (&golden[i], 1, 0) << " ";
+                expect (false, "Parity: byte " + juce::String (firstDiff) + " difiere (C++ vs JS golden). Contexto: " + dbg);
+            }
+            else
+            {
+                expect (true, "Parity: los 291 bytes coinciden byte a byte con buildSingleSysex (JS)");
+            }
+
+            logMessage ("MidiTranslationEngine createProgramDumpSysex parity with buildSingleSysex.js: OK");
+        }
     }
 };
 
