@@ -4,6 +4,35 @@
 
 ---
 
+## [0.2.31] — 2026-08-09
+
+### 🔒 Fase 3 COMPLETADA — errores tipados SysEx/MIDI/JSON (§4.3)
+
+- **Nuevo `WebUI/js/typed_errors.js`** (UMD): jerarquía de errores tipados del
+  proyecto — `ABDError` (base: code/category/context/timestamp, toJSON/toString
+  serializables), `SysExError` (category 'sysex'), `MidiError` ('midi'),
+  `PatchImportError` ('import'), `ERROR_CODES` congelado y `asTypedError`
+  (envuelve errores planos sin perder el mensaje; idempotente para ABDError).
+- **Integración**: bridge-sysex.js lanza `SysExError` (SYSEX_NO_PORT /
+  SYSEX_TIMEOUT con context de duración / SYSEX_UNKNOWN_DUMP_TYPE);
+  bridge_connection_midi.js lanza `MidiError` (MIDI_NO_ACCESS);
+  browser_io_parse_import.js devuelve `errorCode` tipado (IMPORT_INVALID_JSON /
+  IMPORT_REJECTED / IMPORT_UNSUPPORTED_FORMAT). Cargado en index.html antes de
+  los módulos bridge/parse.
+- **Tests `typedErrors.test.js` (17)**: jerarquía, serialización, asTypedError e
+  integración en los 3 flujos + orden de carga en index.html.
+- **Cierre de Fase 3**: checkboxes del plan marcados (los §4.1/§4.2 ya estaban
+  implementados; §4.3 era el pendiente) + nota de cierre; sección 8 de la doc
+  actualizada (Fase 3 → completadas). Vitest: 97 files / 4624 tests / 0 fallos;
+  ESLint 0.
+- **Post-reviewer**: añadida factory `createTypedError(category, code, message,
+  context)` (fallback a Error plano que CONSERVA el message — `|| Error` lo
+  descartaba); revertido el `throw` del tipo de dump desconocido a warn+null
+  (contrato original: `panel_controls_chord.js` llama `requestMidiDump('chord'/
+  'polychord')` esperando null) y revertido el re-throw de `initWebMidi` (se
+  loguea el `MidiError` en `_lastMidiError` sin relanzar — `init()` no tiene
+  try/catch y el catch envuelve todo el bloque).
+
 ## [0.2.30] — 2026-08-09
 
 ### 📋 Sección 7 de `docs/baseline_fase0_v32.md` — Fase 7 documentada al completo

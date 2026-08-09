@@ -48,7 +48,16 @@ var Logger = globalThis.Logger || console;
 
             this.midiAccess.onstatechange = () => this.scanMidiDevices();
         } catch (err) {
-            Logger.error('[WebMIDI] Error al acceder a los dispositivos MIDI:', err);
+            // Fase 3 (§4.3): se LOGUEA el error tipado MIDI pero NO se relanza —
+            // initWebMidi() se llama desde init() sin try/catch, y el catch envuelve
+            // todo el bloque (requestMIDIAccess + scanMidiDevices + setTimeout), así
+            // que un re-throw aquí causaría un unhandled rejection. El error tipado
+            // queda disponible para diagnóstico vía this._lastMidiError.
+            const typed = (typeof globalThis.createTypedError === 'function')
+                ? globalThis.createTypedError('midi', 'MIDI_NO_ACCESS', 'Error al acceder a los dispositivos MIDI: ' + (err && err.message ? err.message : err))
+                : null;
+            if (typed) { typed.cause = err; this._lastMidiError = typed; }
+            Logger.error('[WebMIDI] Error al acceder a los dispositivos MIDI:', typed || err);
         }
     };
 

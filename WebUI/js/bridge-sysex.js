@@ -38,6 +38,9 @@
             requestBytes = [0xF0, 0x00, 0x20, 0x32, 0x20, devId & 0x0F, 0x05, 0xF7];
             dumpCommand = 0x06;
         } else {
+            // Contrato preservado (Fase 3 §4.3): los tipos de dump NO soportados (p.ej.
+            // 'chord'/'polychord' que usan panel_controls_chord.js) devuelven null con warn,
+            // NO lanzan — evitaría unhandled rejections en callers sin try/catch.
             Logger.warn('[SysEx] Unknown dump type: ' + type);
             return null;
         }
@@ -72,7 +75,12 @@
 
     DualMidiBridge.prototype.requestSysEx = async function(requestBytes, timeoutMs = 3000, predicate = null) {
         if (!this.midiOutput || !this.midiInput) {
-            throw new Error('[SysEx] No MIDI port available');
+            // Fase 3 (§4.3): error tipado SysEx en vez de Error genérico. El fallback
+            // createTypedError conserva el message incluso sin el módulo cargado.
+            const sysErr = (typeof globalThis.createTypedError === 'function')
+                ? globalThis.createTypedError('sysex', 'SYSEX_NO_PORT', 'No MIDI port available')
+                : new Error('No MIDI port available');
+            throw sysErr;
         }
 
         return new Promise((resolve, reject) => {
@@ -98,7 +106,11 @@
 
             timer = setTimeout(() => {
                 const elapsed = Date.now() - start;
-                done(new Error('[SysEx] Timeout after ' + elapsed + 'ms waiting for response'), null);
+                // Fase 3 (§4.3): error tipado SysEx en vez de Error genérico.
+                const sysErr = (typeof globalThis.createTypedError === 'function')
+                    ? globalThis.createTypedError('sysex', 'SYSEX_TIMEOUT', 'Timeout after ' + elapsed + 'ms waiting for response', { timeoutMs, elapsed })
+                    : new Error('Timeout after ' + elapsed + 'ms waiting for response');
+                done(sysErr, null);
             }, timeoutMs);
 
             entry.timer = timer;

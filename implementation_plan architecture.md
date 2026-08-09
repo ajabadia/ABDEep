@@ -160,9 +160,22 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > Vitest: 87 files / 4455 tests / 0 fallos.
 
 ### Fase 3: Sanitización DOM, ASCII y Manejo de Errores Tipados
-- [ ] Auditar sinks dinámicos HTML no escapados y migrar a `textContent` en `MIDI Learn`, monitores SysEx y visores de parches.
-- [ ] Implementar `PatchNameValidator` y `HardwareExporter`.
-- [ ] Implementar errores tipados para SysEx, MIDI e importación JSON.
+- [x] Auditar sinks dinámicos HTML no escapados y migrar a `textContent` en `MIDI Learn`, monitores SysEx y visores de parches.
+- [x] Implementar `PatchNameValidator` y `HardwareExporter`.
+- [x] Implementar errores tipados para SysEx, MIDI e importación JSON.
+
+> **2026-08-09 — Completado.** §4.1 (XSS DOM): escaper canónico `dom_sanitize.js`
+> (única implementación; `browser_modals_templates`, `effects_presets_data` y
+> `calibration_lab_format` delegan) + job CI `security-scan` sobre TODO `WebUI/js`
+> (0 violaciones). §4.2 (ASCII hardware): `patch_name.js` con `PatchNameValidator`
+> (16 chars ASCII imprimibles, bytes 223-238), `PatchNameRenderer` (textContent) y
+> `HardwareExporter` (copia sin mutar el modelo), integrados en bridge-sysex,
+> browser_modals y browser_io_parse_export. §4.3 (errores tipados):
+> `typed_errors.js` (ABDError/SysExError/MidiError/PatchImportError + ERROR_CODES +
+> asTypedError), integrado en bridge-sysex (SYSEX_NO_PORT/SYSEX_TIMEOUT/
+> SYSEX_UNKNOWN_DUMP_TYPE), bridge_connection_midi (MIDI_NO_ACCESS) y
+> browser_io_parse_import (IMPORT_INVALID_JSON/IMPORT_REJECTED/
+> IMPORT_UNSUPPORTED_FORMAT). Vitest: 96 files / 4605 tests / 0 fallos.
 
 ### Fase 4: Batería de Tests de 3 Niveles y Property-Based Testing (Fuzzing)
 - [x] Implementar `rawCodecEqual`, `semanticEqual` y `hardwareCanonicalEqual`.

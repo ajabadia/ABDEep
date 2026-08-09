@@ -167,7 +167,8 @@ function parseImportedBankFile(fileContent, fileName) {
                         : true;
 
                     if (!confirmConvert) {
-                        return { error: 'Bank import rejected in standard mode', patches: [] };
+                        // Fase 3 (§4.3): error tipado de importación.
+                        return { error: 'Bank import rejected in standard mode', errorCode: 'IMPORT_REJECTED', patches: [] };
                     }
                     const convertedPatches = convertBankToClassicDM12(data.bankName || fileName, data.patches);
                     return { bankName: (data.bankName || fileName) + ' (Classic)', patches: convertedPatches, isProBank: false };
@@ -190,7 +191,8 @@ function parseImportedBankFile(fileContent, fileName) {
                         : true;
 
                     if (!confirmConvert) {
-                        return { error: 'Patch import rejected in standard mode', patches: [] };
+                        // Fase 3 (§4.3): error tipado de importación.
+                        return { error: 'Patch import rejected in standard mode', errorCode: 'IMPORT_REJECTED', patches: [] };
                     }
                     const converted = convertPatchToClassicDM12(data);
                     return { patches: [converted], isSinglePatch: true, isProBank: false };
@@ -199,6 +201,8 @@ function parseImportedBankFile(fileContent, fileName) {
             }
         } catch (err) {
             Logger.error('[BrowserParse] Error parseando JSON:', err);
+            // Fase 3 (§4.3): error tipado de importación (JSON malformado).
+            return { error: 'JSON inválido: ' + (err && err.message ? err.message : err), errorCode: 'IMPORT_INVALID_JSON', patches: [] };
         }
     }
 
@@ -208,7 +212,7 @@ function parseImportedBankFile(fileContent, fileName) {
         return parseSyxFile(bytes);
     }
 
-    return { error: 'Formato de archivo no soportado', patches: [] };
+    return { error: 'Formato de archivo no soportado', errorCode: 'IMPORT_UNSUPPORTED_FORMAT', patches: [] };
 }
 
 // ── Exportar a globalThis para compatibilidad cross-file ──

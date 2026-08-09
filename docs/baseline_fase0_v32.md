@@ -383,11 +383,16 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
    8.000 casos) y corpus A–H (`roundtrip_corpus.js`, 1024 presets: 804 exact · 210 canonical · 10
    semantic). Ver `docs/fase4_roundtrip_equality.md`.
 
+### ✅ Completadas (adicional)
+
+5. **Fase 3 — Sanitización DOM, ASCII y errores tipados:** §4.1 XSS DOM (`dom_sanitize.js`
+   canónico + job `security-scan`, 0 violaciones), §4.2 ASCII hardware (`patch_name.js`:
+   `PatchNameValidator`/`PatchNameRenderer`/`HardwareExporter`, integrados en bridge-sysex y
+   modales) y §4.3 errores tipados (`typed_errors.js`: `SysExError`/`MidiError`/
+   `PatchImportError`, integrados en los flujos SysEx/MIDI/importación JSON).
+
 ### ⏳ Pendientes
 
-- **Fase 3 (en curso):** auditoría DOM y migración a `textContent` avanzada (`dom_sanitize.js`,
-  `patch_name.js`, `security_scan.js` + job `security-scan`); falta consolidar `PatchNameValidator`/
-  `HardwareExporter` y errores tipados SysEx/MIDI/JSON.
 - **Fase 5:** sustituir búsquedas dinámicas en `WASMBridge.cpp` por `std::array` + `ParameterIndex`
   e integrar `ModelCapabilities` (`dm12_hardware` vs `abyssmind_pro`).
 - **Fase 6:** retirada progresiva de compatibilidad legacy (`Logger.deprecation()`, aliases de
