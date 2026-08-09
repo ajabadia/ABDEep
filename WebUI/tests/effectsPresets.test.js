@@ -191,7 +191,8 @@ function findMatchingFxPresetName(type, gain, params, storage, factoryPresets) {
 }
 
 function escapeHtml(str) {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
+    // Espejo del canónico consolidado (dom_sanitize.js): null/undefined → ''
+    return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 function extractAndSaveNewPresetsFromBank(bankName, patches, storage, factoryFxPresets, factorySeqPresets, _loadUserSeqPresetsFn, _saveUserSeqPresetsFn) {

@@ -151,11 +151,63 @@ describe('Audit estático Fase 3 — sinks de parches/visores sin escape', () =>
     expect(src).not.toMatch(/\$\{.*name/);
   });
 
-  it('browser_modals_templates.js mantiene su escaper propio para menús contextuales', () => {
+  it('browser_modals_templates.js delega su _escapeHtml en el canónico (consolidación Fase 6)', () => {
     const src = fs.readFileSync(path.join(JS_DIR, 'browser_modals_templates.js'), 'utf8');
     expect(src).toContain('function _escapeHtml');
     expect(src).toContain('_escapeHtml(patchName)');
     expect(src).toContain('_escapeHtml(text)');
+    // Consolidado: ya no reimplementa — delega en window/globalThis.escapeHtml
+    expect(src).toMatch(/window\.escapeHtml|globalThis\.escapeHtml/);
+  });
+
+  it('las 4 fuentes de escapeHtml producen salida idéntica (consolidación Fase 6)', () => {
+    const canonical = escapeHtml; // de dom_sanitize.js
+    const inputs = ['<b>hi</b>', 'a&b', "it's", '"q"', null, undefined, 42, '', 'plain'];
+
+    // effects_presets_data.js — su escapeHtml exportado (module.exports) DEBE delegar en el canónico
+    const effectsData = require(path.join(JS_DIR, 'effects_presets_data.js'));
+    expect(typeof effectsData.escapeHtml).toBe('function');
+    for (const input of inputs) {
+      expect(effectsData.escapeHtml(input)).toBe(canonical(input));
+    }
+
+    // calibration_lab_format.js — sin exports; se valida que al cargarlo el global
+    // escapeHtml SIGUE siendo el canónico (no lo re-clobberea con comportamiento divergente)
+    const calSrc = fs.readFileSync(path.join(JS_DIR, 'calibration_lab_format.js'), 'utf8');
+    // La asignación al global es CONDICIONAL: no clobberea el canónico si ya está definido
+    expect(calSrc).toMatch(/typeof globalThis\.escapeHtml !== 'function'/);
+    const calSandbox = { window: {} };
+    new Function('window', calSrc + '\n;return window;')(calSandbox.window);
+    // tras cargarlo, el global escapeHtml sigue comportándose como el canónico
+    for (const input of inputs) {
+      expect(globalThis.escapeHtml(input)).toBe(canonical(input));
+    }
+
+    // browser_modals_templates.js — _escapeHtml se usa internamente en los templates
+    const modalsSrc = fs.readFileSync(path.join(JS_DIR, 'browser_modals_templates.js'), 'utf8');
+    const modalsWin = new Function('window', modalsSrc + '\n;return window;')({ window: {} });
+    for (const input of inputs) {
+      const item = modalsWin._buildCtxMenuItemHtml(String(input == null ? '' : input));
+      expect(item).toContain(canonical(input));
+    }
+  });
+
+  it('los `const` top-level de los delegados no colisionan (classic-script shared global scope)', () => {
+    // Los <script> clásicos de index.html comparten el global lexical scope: dos
+    // `const` con el mismo nombre en módulos distintos romperían la app con
+    // SyntaxError. Se simula evaluando ambas fuentes contra el MISMO objeto global.
+    const fxSrc = fs.readFileSync(path.join(JS_DIR, 'effects_presets_data.js'), 'utf8');
+    const calSrc = fs.readFileSync(path.join(JS_DIR, 'calibration_lab_format.js'), 'utf8');
+    const sharedGlobal = { window: {} };
+    const evalBoth = () => {
+      // eslint-disable-next-line no-new-func
+      const fn1 = new Function('window', fxSrc + '\n;return window;');
+      fn1(sharedGlobal.window);
+      // eslint-disable-next-line no-new-func
+      const fn2 = new Function('window', calSrc + '\n;return window;');
+      fn2(sharedGlobal.window);
+    };
+    expect(evalBoth).not.toThrow(); // colisión → SyntaxError
   });
 
   it('dom_sanitize.js está registrado en index.html antes que los módulos de render', () => {

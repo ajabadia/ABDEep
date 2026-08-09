@@ -4,6 +4,45 @@
 
 ---
 
+## [0.2.14] — 2026-08-09
+
+### 🧹 Consolidación de escapeHtml (4 fuentes → 1 canónica) — prep Fase 6
+
+- **Única implementación en `WebUI/js/dom_sanitize.js`** (`escapeHtml`: 5 chars HTML,
+  null/undefined → `''`). Los otros 3 módulos ahora DELEGAN en él y ya no reimplementan:
+  - `browser_modals_templates._escapeHtml`: delega en `window.escapeHtml`
+    (fallback solo standalone), conserva la `function` declaration exigida por el audit.
+  - `effects_presets_data.escapeHtml` y `calibration_lab_format.escapeHtml`: capturan el
+    canónico en `_canonicalEscapeHtml` y delegan; la asignación a `globalThis.escapeHtml`
+    es CONDICIONAL (`typeof !== 'function'`) — en el navegador `dom_sanitize.js` carga
+    primero (línea 20) y no se clobberea; en entornos Node/standalone se provee el fallback
+    con el MISMO comportamiento (corrige la divergencia previa `null → 'null'`).
+- **Comportamiento unificado**: todas las fuentes producen salida idéntica para
+  `<b>hi</b>`, `a&b`, comillas simples/dobles, null, undefined, números, vacío.
+- **`WebUI/tests/domSanitize.test.js`**: el test de `browser_modals_templates` ahora
+  verifica delegación al canónico; nuevo test de **paridad de las 4 fuentes**
+  (module.exports de effects, carga standalone de calibration, templates de modals).
+  Espejos de `effects.test.js`/`effectsPresets.test.js` actualizados a la semántica
+  canónica (null → `''`).
+- **Post-reviewer (2 hallazgos críticos corregidos)**:
+  1. **Colisión de `const` top-level en classic scripts**: `effects_presets_data.js` y
+     `calibration_lab_format.js` declaraban ambos `const _canonicalEscapeHtml`; los
+     `<script>` clásicos de `index.html` comparten el global lexical scope → el segundo
+     en cargar lanzaba `SyntaxError: Identifier has already been declared` y rompía TODA
+     la app. Renombrados a prefijos únicos (`_canonicalEscapeHtmlFx` / `_canonicalEscapeHtmlCal`).
+     Nuevo test de regresión que evalúa ambas fuentes contra el MISMO objeto global
+     (simula el classic-script shared scope que Node no detecta).
+  2. **Paridad de fallback `&#39;` vs `&#039;`** en `browser_modals_templates.js`: el
+     fallback standalone emitía `&#39;` (divergente del canónico `&#039;`); alineado a
+     `&#039;` para salida idéntica en cualquier entorno.
+- **Verificación final**: Vitest **90 files / 4512 tests / 0 fallos** (+1 test de
+  colisión); ESLint 0 errores; `node --check` OK en los 4 módulos.
+  Detectado y resuelto en iteración: `audioABControls.test.js` dependía de que
+  `calibration_lab_format.js` definiera el global en Node standalone → asignación
+  condicional (compat segura).
+
+---
+
 ## [0.2.13] — 2026-08-09
 
 ### 🏷️ Fase 3 §4.2 — PatchNameValidator + PatchNameRenderer + HardwareExporter

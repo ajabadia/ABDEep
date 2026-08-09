@@ -87,7 +87,8 @@ function _createFakeEl(tag, attrs) {
 // ══════════════════════════════════════════════════════════════════
 
 function escapeHtml(str) {
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
+  // Espejo del canónico consolidado (dom_sanitize.js): null/undefined → ''
+  return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 function _readFxParamValue(paramId, fallbackByte, defaultVal, bridge, currentActivePatchIndex, loadedBanks, currentActiveBank) {
@@ -290,10 +291,10 @@ describe('escapeHtml', () => {
       .toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
   });
 
-  it('converts non-string input to string first', () => {
+  it('converts non-string input to string first (null/undefined → empty, canónico consolidado)', () => {
     expect(escapeHtml(42)).toBe('42');
-    expect(escapeHtml(null)).toBe('null');
-    expect(escapeHtml(undefined)).toBe('undefined');
+    expect(escapeHtml(null)).toBe('');
+    expect(escapeHtml(undefined)).toBe('');
   });
 });
 

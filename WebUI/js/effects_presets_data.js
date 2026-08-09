@@ -116,13 +116,29 @@ const DEFAULT_FX_PRESETS = [
     { name: 'Treemonster Drift',    slot: 1, type: 56 / 56.0, gain: 0.75, params: [0.10, 0.50, 0.60, 0.30, 0.50, 0.55, 0.50, 0.70, 0.50, 0.50, 0.50, 0.50], created: 1720000000210 }
 ];
 
+// Consolidación (prep Fase 6): el escaper canónico vive en dom_sanitize.js (cargado primero
+// en index.html). Este módulo DELEGA en él; el fallback solo cubre la carga standalone
+// (tests/Node) sin dom_sanitize.js. Comportamiento unificado: null/undefined → ''.
+// NOTA: prefijo único (_Fx) — los <script> clásicos comparten el global lexical scope,
+// así que un `const` top-level con nombre genérico colisionaría con otros módulos.
+const _canonicalEscapeHtmlFx = (typeof globalThis !== 'undefined' && typeof globalThis.escapeHtml === 'function')
+    ? globalThis.escapeHtml
+    : null;
+
 function escapeHtml(str) {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
+    if (_canonicalEscapeHtmlFx) {return _canonicalEscapeHtmlFx(str);}
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 // Export to globalThis for cross-file access
 globalThis.DEFAULT_FX_PRESETS = DEFAULT_FX_PRESETS;
-globalThis.escapeHtml = escapeHtml;
+// Exponer escapeHtml SOLO si el canónico (dom_sanitize.js) aún no lo definió:
+// en el navegador dom_sanitize carga primero y esta línea no lo clobberea.
+if (typeof globalThis !== 'undefined' && typeof globalThis.escapeHtml !== 'function') {
+    globalThis.escapeHtml = escapeHtml;
+}
 
 // Node.js exports for tests
 if (typeof module !== 'undefined' && module.exports) {

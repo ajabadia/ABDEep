@@ -4,10 +4,19 @@
  * @purpose_en HTML template functions for browser context menus and modals.
  */
 
-/** Escapa HTML para prevenir XSS en nombres de patches */
+/** Escapa HTML para prevenir XSS en nombres de patches.
+ * Consolidación (prep Fase 6): delega en el canónico de dom_sanitize.js (cargado primero
+ * en index.html). El fallback solo cubre la carga standalone sin dom_sanitize.js.
+ */
 function _escapeHtml(str) {
+    const canonical = (typeof window !== 'undefined' && typeof window.escapeHtml === 'function')
+        ? window.escapeHtml
+        : (typeof globalThis !== 'undefined' && typeof globalThis.escapeHtml === 'function' ? globalThis.escapeHtml : null);
+    if (canonical) {return canonical(str);}
     if (typeof str !== 'string') {return '';}
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    // Fallback con paridad EXACTA con el canónico (&#039;, no &#39;) para que la
+    // salida standalone sea idéntica a la del navegador.
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 /**

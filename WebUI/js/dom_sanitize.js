@@ -10,8 +10,10 @@
  *
  * Este módulo es la implementación canónica del escaper; cargar ANTES que los
  * módulos que renderizan parches (browser_render.js, script_controllers_lcd.js…).
- * Otras fuentes (browser_modals_templates._escapeHtml, effects_presets_data.escapeHtml)
- * quedan como compat alias; este es el helper de referencia.
+ *
+ * Consolidación (prep Fase 6): browser_modals_templates._escapeHtml,
+ * effects_presets_data.escapeHtml y calibration_lab_format.escapeHtml DELEGAN en
+ * este helper (y ya no lo reimplementan). Este módulo es la ÚNICA implementación.
  */
 
 /** Escapa una cadena para inserción segura en HTML (atributos incluidos). */

@@ -1,7 +1,17 @@
 // WebUI/js/calibration_lab_format.js — Formatting utilities for Calibration Lab
 // Extracted from calibration_lab_utils.js
 
+// Consolidación (prep Fase 6): el escaper canónico vive en dom_sanitize.js (cargado primero
+// en index.html). Este módulo DELEGA en él; el fallback solo cubre la carga standalone
+// (tests/Node) sin dom_sanitize.js. Comportamiento unificado: null/undefined → ''.
+// NOTA: prefijo único (_Cal) — los <script> clásicos comparten el global lexical scope,
+// así que un `const` top-level con nombre genérico colisionaría con otros módulos.
+const _canonicalEscapeHtmlCal = (typeof globalThis !== 'undefined' && typeof globalThis.escapeHtml === 'function')
+    ? globalThis.escapeHtml
+    : null;
+
 function escapeHtml(value) {
+  if (_canonicalEscapeHtmlCal) {return _canonicalEscapeHtmlCal(value);}
   return String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -21,5 +31,10 @@ function fmt(value, digits) {
   return String(value);
 }
 
-globalThis.escapeHtml = escapeHtml;
+// Exponer escapeHtml SOLO si el canónico (dom_sanitize.js) aún no lo definió:
+// en el navegador dom_sanitize carga primero y esta línea no lo clobberea; en
+// entornos Node/standalone sin dom_sanitize provee el fallback con mismo comportamiento.
+if (typeof globalThis !== 'undefined' && typeof globalThis.escapeHtml !== 'function') {
+    globalThis.escapeHtml = escapeHtml;
+}
 globalThis.fmt = fmt;
