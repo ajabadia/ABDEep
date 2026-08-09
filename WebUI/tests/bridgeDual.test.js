@@ -432,6 +432,9 @@ describe('DualMidiBridge – handleIncomingMidi()', () => {
     _currentBridge.midiLearnActive = false;
     _currentBridge.midiLearnMappings = {};
     _currentBridge._pendingSysExRequests = [];
+    // Isolate bank-dump state (set by requestBankDump; may leak from prior tests)
+    _currentBridge._bankDumpInProgress = false;
+    _currentBridge._bankDumpCallback = null;
   });
 
   describe('NRPN handling', () => {
@@ -617,6 +620,111 @@ describe('DualMidiBridge – handleIncomingMidi()', () => {
 
     expect(resolver).not.toHaveBeenCalled();
   });
+  });
+
+  describe('Program dump bank/prog parsing (data[8]/data[9])', () => {
+    // Construye un Program Dump Response de 291 bytes (cmd 0x02):
+    //   F0 00 20 32 20 <dev> 02 <proto> <bank> <prog> + 278 payload + F7
+    function _buildProgramDump(bank, prog, cmd = 0x02) {
+      const msg = new Uint8Array(291);
+      msg[0] = 0xF0;
+      msg[1] = 0x00;
+      msg[2] = 0x20;
+      msg[3] = 0x32;
+      msg[4] = 0x20;
+      msg[5] = 0x00; // device
+      msg[6] = cmd;
+      msg[7] = 0x00; // protocol
+      msg[8] = bank;
+      msg[9] = prog;
+      msg[290] = 0xF7;
+      return msg;
+    }
+
+    it('parses bank/prog from data[8]/data[9] and reports them via bankDumpCallback', () => {
+      _currentBridge._bankDumpInProgress = true;
+      _currentBridge._bankDumpCallback = vi.fn();
+      window.hardwareBanks = { A: [], B: [], C: [], D: [], E: [], F: [], G: [], H: [] };
+
+      _currentBridge.handleIncomingMidi({ data: _buildProgramDump(1, 5) });
+
+      expect(_currentBridge._bankDumpCallback).toHaveBeenCalledTimes(1);
+      const payload = _currentBridge._bankDumpCallback.mock.calls[0][0];
+      expect(payload.bankIndex).toBe(1);
+      expect(payload.bankLetter).toBe('B');
+      expect(payload.progIndex).toBe(5);
+    });
+
+    it('masks bank index to 3 bits (data[8] & 0x07)', () => {
+      _currentBridge._bankDumpInProgress = true;
+      _currentBridge._bankDumpCallback = vi.fn();
+
+      // data[8] = 0x0A (10) → & 0x07 = 2 → letter C
+      _currentBridge.handleIncomingMidi({ data: _buildProgramDump(0x0A, 0) });
+
+      const payload = _currentBridge._bankDumpCallback.mock.calls[0][0];
+      expect(payload.bankIndex).toBe(2);
+      expect(payload.bankLetter).toBe('C');
+    });
+
+    it('masks program index to 7 bits (data[9] & 0x7F)', () => {
+      _currentBridge._bankDumpInProgress = true;
+      _currentBridge._bankDumpCallback = vi.fn();
+
+      // data[9] = 0x85 (133) → & 0x7F = 5
+      _currentBridge.handleIncomingMidi({ data: _buildProgramDump(0, 0x85) });
+
+      const payload = _currentBridge._bankDumpCallback.mock.calls[0][0];
+      expect(payload.progIndex).toBe(5);
+    });
+
+    it('stores incoming patch in hardwareBanks[bankLetter][progIndex]', () => {
+      _currentBridge._bankDumpInProgress = true;
+      _currentBridge._bankDumpCallback = vi.fn();
+      window.hardwareBanks = { A: [], B: [], C: [], D: [], E: [], F: [], G: [], H: [] };
+
+      _currentBridge.handleIncomingMidi({ data: _buildProgramDump(2, 10) });
+
+      expect(window.hardwareBanks.C[10]).toBeDefined();
+      expect(window.hardwareBanks.C[10].index).toBe(10);
+      expect(window.hardwareBanks.C[10].name).toBe('Hw Patch');
+    });
+
+    it('ignores dumps shorter than header+payload (data.length < 289 for cmd 0x02)', () => {
+      _currentBridge._bankDumpInProgress = true;
+      _currentBridge._bankDumpCallback = vi.fn();
+
+      _currentBridge.handleIncomingMidi({ data: _buildProgramDump(1, 5).slice(0, 288) });
+
+      expect(_currentBridge._bankDumpCallback).not.toHaveBeenCalled();
+    });
+
+    it('cmd 0x04 (edit buffer) uses headerLen 8 and leaves bank/prog at defaults', () => {
+      _currentBridge._bankDumpInProgress = true;
+      _currentBridge._bankDumpCallback = vi.fn();
+      window.hardwareBanks = { A: [], B: [], C: [], D: [], E: [], F: [], G: [], H: [] };
+
+      _currentBridge.handleIncomingMidi({ data: _buildProgramDump(0, 0, 0x04) });
+
+      const payload = _currentBridge._bankDumpCallback.mock.calls[0][0];
+      expect(payload.bankIndex).toBe(0);
+      expect(payload.bankLetter).toBe('A');
+      expect(payload.progIndex).toBe(0);
+    });
+
+    it('routes spontaneous (non-bank-dump) program dumps to triggerMidiDump', () => {
+      _currentBridge._bankDumpInProgress = false;
+      window.triggerMidiDump = vi.fn();
+      window.hardwareBanks = { A: [], B: [], C: [], D: [], E: [], F: [], G: [], H: [] };
+
+      _currentBridge.handleIncomingMidi({ data: _buildProgramDump(3, 7) });
+
+      expect(window.triggerMidiDump).toHaveBeenCalledTimes(1);
+      const arg = window.triggerMidiDump.mock.calls[0][0];
+      expect(arg.name).toBe('Hw Patch');
+      expect(arg.unpackedBytes).toBeDefined();
+      delete window.triggerMidiDump;
+    });
   });
 
   describe('MIDI Learn intercept', () => {

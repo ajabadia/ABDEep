@@ -4,6 +4,28 @@
 
 ---
 
+## [0.2.7] — 2026-08-09
+
+### 🧪 Tests de regresión: parsing bank/prog (data[8]/data[9]) + header check SysEx
+
+- **`WebUI/tests/bridgeDual.test.js`** (+7 tests): nueva suite "Program dump bank/prog parsing"
+  sobre el handler **real** `bridge-midi-rx.js` (vía eval): banco/programa leídos de
+  `data[8]`/`data[9]` con mascaras `& 0x07` / `& 0x7F`, letra de banco A-H, almacenamiento
+  en `hardwareBanks[letter][prog]`, dumps cortos (< 289 B) ignorados, cmd 0x04 (edit buffer)
+  con cabecera de 8 B y bank/prog por defecto, y ruta espontánea → `triggerMidiDump`.
+- **`Source/Tools/UnitTests/SynthEngineUnitTests_CalSpec.cpp`** (+9 casos): nuevo `beginTest`
+  de regresión para `RoundTripValidator::validateSinglePatchSysexRoundTrip`: dump válido de
+  291 B pasa (`transportValid` + `patchDataValid`), tamaño estricto != 291 falla (incl. 290 B
+  con F7 en [289]), magic corrupto en `[0]`/`[1]`, `cmd != 0x02`, footer != F7, **bytes 8/9
+  (banco/programa) NO se validan como constantes** (banco H/prog 127 pasa) y payload con
+  MSB set que no round-trip falla el transporte.
+- **Aislamiento**: `handleIncomingMidi` beforeEach ahora resetea `_bankDumpInProgress`/
+  `_bankDumpCallback` (estado que filtraba entre tests).
+- **Verificación**: Vitest **87 files / 4464 tests / 0 fallos** (+7); C++ UnitTests
+  **3.689.151 assertions / 0 fallos** (+19); ESLint 0 errores.
+
+---
+
 ## [0.2.3] — 2026-08-09
 
 ### 🔒 Fase 1 — Fix de colisión con la región de nombre del preset (RESERVED_BYTE_COLLISION)
