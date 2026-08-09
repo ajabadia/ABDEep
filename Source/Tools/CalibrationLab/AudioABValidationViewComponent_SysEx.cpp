@@ -97,36 +97,9 @@ void AudioABValidationViewComponent::generateTestSysEx()
     for (int i = 0; i < 16; ++i)
         rawBytes[223 + i] = (i < nameStr.length()) ? static_cast<uint8_t>(nameStr[i]) : ' ';
 
-    // Pack 242 raw bytes to 7-bit SysEx payload
-    auto packBlock = [](const uint8_t* src, int count, std::vector<uint8_t>& dest)
-    {
-        uint8_t msbByte = 0;
-        std::vector<uint8_t> low7Bytes;
-        for (int j = 0; j < count; ++j)
-        {
-            uint8_t b = src[j];
-            msbByte |= ((b >> 7) & 0x01) << j;
-            low7Bytes.push_back(b & 0x7F);
-        }
-        dest.push_back(msbByte & 0x7F);
-        dest.insert(dest.end(), low7Bytes.begin(), low7Bytes.end());
-    };
-
-    std::vector<uint8_t> packedPayload;
-    for (size_t i = 0; i < 238; i += 7)
-        packBlock(rawBytes.data() + i, 7, packedPayload);
-    packBlock(rawBytes.data() + 238, 4, packedPayload);
-
-    // Build full SysEx with DeepMind header
-    std::vector<uint8_t> syxData;
-    syxData.push_back(0xF0); // Start of SysEx
-    syxData.push_back(0x00); syxData.push_back(0x20); syxData.push_back(0x32); // Behringer
-    syxData.push_back(0x20); // DeepMind model
-    syxData.push_back(0x00); // Device ID
-    syxData.push_back(0x02); // Edit Buffer Dump
-    syxData.push_back(0x00); // Subtype
-    syxData.insert(syxData.end(), packedPayload.begin(), packedPayload.end());
-    syxData.push_back(0xF7);
+    // Mensaje SysEx canónico de 291 bytes (cabecera 10 + payload 278 + cola 00 00 F7),
+    // idéntico al formato emitido por buildSingleSysex.js / validado por el corpus.
+    auto syxData = MidiTranslationEngine::createProgramDumpSysex(rawBytes);
 
     // Save dialog
     fileChooser = std::make_unique<juce::FileChooser>(

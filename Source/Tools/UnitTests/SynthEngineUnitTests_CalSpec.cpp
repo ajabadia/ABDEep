@@ -7,6 +7,7 @@
 #include <JuceHeader.h>
 #include "SynthEngine.h"
 #include "Core/CalibrationSpec.h"
+#include "Core/MidiTranslationEngine.h"
 #include "Core/PatchDiffTypes.h"
 #include "Core/RoundTripValidator.h"
 
@@ -215,6 +216,71 @@ public:
             }
 
             logMessage("Round-Trip Validator SysEx header check (regression): OK");
+        }
+
+        //==============================================================================
+        beginTest("MidiTranslationEngine - createProgramDumpSysex canonical 291-byte format (REGRESSION)");
+        {
+            // Patch mínimo de 242 bytes con nombre conocido
+            std::array<uint8_t, 242> patchBytes{};
+            patchBytes.fill(0);
+            patchBytes[0] = 1;   // DCO1 Saw
+            patchBytes[8] = 255; // VCF Cutoff
+            const char* name = "CALIB_TEST_RAW";
+            for (int i = 0; i < 16; ++i)
+                patchBytes[223 + i] = (i < 16) ? static_cast<uint8_t>(name[i]) : ' ';
+
+            auto msg = MidiTranslationEngine::createProgramDumpSysex(patchBytes, 2, 10);
+
+            // 1) Tamaño canónico: 291 bytes (cabecera 10 + payload 278 + cola 00 00 F7)
+            expect(msg.size() == 291, "createProgramDumpSysex debe emitir exactamente 291 bytes (era " + juce::String((int) msg.size()) + ")");
+
+            // 2) Cabecera canónica de 10 bytes: F0 00 20 32 20 <dev> 02 <proto> <bank> <prog>
+            expect(msg[0] == 0xF0, "byte 0 = F0");
+            expect(msg[1] == 0x00 && msg[2] == 0x20 && msg[3] == 0x32, "bytes 1-3 = fabricante Behringer");
+            expect(msg[4] == 0x20, "byte 4 = modelo DeepMind");
+            expect(msg[6] == 0x02, "byte 6 = cmd 0x02 (Program Dump Response)");
+            expect(msg[8] == 2, "byte 8 = banco (0-7 = A-H) — era " + juce::String(msg[8]));
+            expect(msg[9] == 10, "byte 9 = programa (0-127) — era " + juce::String(msg[9]));
+
+            // 3) Cola canónica: 288-289 = 00 00, 290 = F7
+            expect(msg[288] == 0x00 && msg[289] == 0x00 && msg[290] == 0xF7,
+                "cola debe ser 00 00 F7 (era " + juce::String::toHexString(&msg[288], 3, 0) + ")");
+
+            // 4) El payload empaquetado (10-287 = 278 bytes) debe desempaquetarse a los
+            //    242 bytes originales (round-trip 7<->8 exacto)
+            auto unpacked = MidiTranslationEngine::unpackDeepMindSysEx(msg.data() + 10, 278);
+            expect(unpacked.getSize() >= 242, "unpack del payload debe producir >= 242 bytes");
+            if (unpacked.getSize() >= 242)
+            {
+                bool identical = std::memcmp(unpacked.getData(), patchBytes.data(), 242) == 0;
+                if (! identical)
+                {
+                    int firstDiff = -1;
+                    for (int i = 0; i < 242; ++i)
+                    {
+                        if (static_cast<const uint8_t*>(unpacked.getData())[i] != patchBytes[(size_t) i])
+                        {
+                            firstDiff = i;
+                            break;
+                        }
+                    }
+                    logMessage("DEBUG round-trip diverge en byte " + juce::String(firstDiff)
+                        + " (orig 0x" + juce::String::toHexString(&patchBytes[(size_t) firstDiff], 1)
+                        + " unpack 0x" + juce::String::toHexString(static_cast<const uint8_t*>(unpacked.getData()) + firstDiff, 1)
+                        + "), unpacked size=" + juce::String((int) unpacked.getSize()));
+                }
+                expect(identical, "round-trip unpack(createProgramDumpSysex) debe reconstruir los 242 bytes originales");
+            }
+
+            // 5) El mensaje completo debe pasar el validador de round-trip (transporte + patch)
+            RoundTripReport report;
+            bool ok = RoundTripValidator::validateSinglePatchSysexRoundTrip(msg, report);
+            expect(ok, "El mensaje canónico de 291 bytes debe pasar validateSinglePatchSysexRoundTrip");
+            expect(report.transportValid, "transportValid debe ser true");
+            expect(report.patchDataValid, "patchDataValid debe ser true");
+
+            logMessage("MidiTranslationEngine createProgramDumpSysex canonical 291-byte format: OK");
         }
     }
 };

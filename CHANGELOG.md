@@ -4,6 +4,55 @@
 
 ---
 
+## [0.2.9] — 2026-08-09
+
+### 📊 Baseline Fase 0 + Plan Fase 7 — `roundtrip-corpus` en 0 errores con cabecera corregida
+
+- **`docs/baseline_fase0_v32.md` §4 y §7**: el job `roundtrip-corpus` deja de estar
+  "pendiente" — documentado como completado: `scripts/validate_sysex_mapping.js
+  --check-hashes` valida los 8 factory banks A-H (1024 presets) contra el byte map con
+  la **cabecera corregida de 10 bytes** (0.2.4) → **0 errores / 0 warnings** (antes: 146
+  errores FX falsos por la desalineación de 8→10 bytes). Los 8 hashes SHA-256 coinciden
+  con `schemas/corpus-hashes.json` (corpus INMUTABLE).
+- **`implementation_plan architecture.md` Fase 7**: checkboxes marcados para los jobs ya
+  configurados — `schema-validation`, `vitest`, `cpp-unit-tests`, `roundtrip-corpus`,
+  `allocation-audit`/`benchmark`; quedan pendientes `registry-generation` (dedicado),
+  `pluginval`, `wasm-build`, `security-scan` y `property-fuzzing`.
+- **`.github/workflows/roundtrip-corpus.yml`**: triggers ampliados — el formato canónico
+  de 291 B lo definen también `docs/sysex_format.md` y `WebUI/js/browser_packer.js`
+  (`buildSingleSysex`/`pack8to7`), así que un cambio en ellos re-ejecuta el job.
+- **Verificación**: validador local `--check-hashes` → 8 bancos / 1024 presets /
+  **0 errores** / hashes A-H intactos; YAML del workflow válido (job `roundtrip-corpus`,
+  3 steps); suite Vitest 87 files / 4464 tests / 0 fallos.
+
+---
+
+## [0.2.8] — 2026-08-09
+
+### 🐛 Fix `generateTestSysEx` (Calibration Lab) — mensaje canónico de 291 bytes + bug latente en `unpackDeepMindSysEx`
+
+- **`generateTestSysEx`** (`AudioABValidationViewComponent_SysEx.cpp`): emitía un mensaje
+  **no estándar** de 8+277+F7 (286 B) en vez del canónico de **291 bytes** (cabecera 10
+  `F0 00 20 32 20 <dev> 02 <proto> <bank> <prog>` + payload 278 + cola `00 00 F7`).
+  Refactorizado para usar el nuevo helper `MidiTranslationEngine::createProgramDumpSysex`
+  (eliminado el packBlock inline, reutiliza `RoundTripValidator::pack8to7`).
+- **Bug latente corregido en `MidiTranslationEngine::unpackDeepMindSysEx`**: usaba
+  `ensureSize(243)` + `append` — en JUCE `append` escribe DESPUÉS del tamaño actual, así
+  que devolvía un buffer de 486 bytes con los datos desplazados 243 y basura en
+  `[0..242)`; todos los consumidores (`chooseSysExFile`, `pullSysExFromHardware`,
+  `sendSysExToHardware`, `startAutomatedTest`) copiaban los primeros 242 bytes → **leían
+  basura**. Ahora escribe con índice directo hasta 242 bytes (patrón de
+  `RoundTripValidator::unpack7to8`). Detectado por el nuevo test de round-trip.
+- **Test de regresión** (`SynthEngineUnitTests_CalSpec.cpp`, +13 assertions): valida que
+  `createProgramDumpSysex` emite exactamente 291 B, cabecera canónica (incl. banco/prog en
+  [8]/[9]), cola `00 00 F7`, round-trip unpack → 242 bytes idénticos y
+  `validateSinglePatchSysexRoundTrip` pasa.
+- **`docs/sysex_format.md`**: implementación de referencia C++ actualizada (índice directo).
+- **Verificación**: C++ UnitTests **3.689.164 assertions / 0 fallos**; build Release del
+  target `ABDEepCalibrationLab` OK (exe generado); Vitest 87 files / 4464 tests / 0 fallos.
+
+---
+
 ## [0.2.7] — 2026-08-09
 
 ### 🧪 Tests de regresión: parsing bank/prog (data[8]/data[9]) + header check SysEx

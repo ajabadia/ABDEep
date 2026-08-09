@@ -85,16 +85,20 @@ Para cada grupo de 8 bytes empaquetados:
 **Implementación de referencia (C++):**
 ```cpp
 static juce::MemoryBlock unpackDeepMindSysEx(const uint8_t* packedData, size_t packedLength) {
+    // NOTA: se escribe con índice directo (no append) — append añade DESPUÉS del
+    // tamaño actual del MemoryBlock y desplazaría los datos (bug 0.2.7: los
+    // consumidores leían basura en [0..242)).
     juce::MemoryBlock out;
-    out.ensureSize((packedLength * 7) / 8, false);
-    for (size_t i = 0; i < packedLength; i += 8) {
+    out.ensureSize((packedLength * 7) / 8 + 1, true);
+    uint8_t* unpacked = static_cast<uint8_t*>(out.getData());
+    size_t outIdx = 0;
+    for (size_t i = 0; i < packedLength && outIdx < 242; i += 8) {
         uint8_t msbByte = packedData[i] & 0x7F;
-        for (int j = 0; j < 7; ++j) {
+        for (int j = 0; j < 7 && outIdx < 242; ++j) {
             if (i + 1 + j >= packedLength) break; // último grupo parcial (packed 272-277)
             uint8_t low7 = packedData[i + 1 + j] & 0x7F;
             uint8_t msb = (msbByte >> j) & 0x01;
-            uint8_t originalByte = low7 | (msb << 7);
-            out.append(&originalByte, 1);
+            unpacked[outIdx++] = low7 | (msb << 7);
         }
     }
     return out;
@@ -700,6 +704,7 @@ Son el remanente de datos del payload empaquetado después del campo de nombre (
 | 2026-07 | Nueva región `Firmware` en byte-map.js y settings.js para byte 223 (acero azulado) |
 | 2026-08 | **Corrección del nombre**: byte 223 = char[0], región 223–238 (16 chars) verificada en dumps; eliminada la etiqueta falsa "(firmware metadata)", el check "byte 225 = 0" y la afirmación de nombres corruptos en unpacked |
 | 2026-08 | **Cabecera verificada en dumps**: 10 bytes (`F0 00 20 32 20 <dev> 02 <proto> <bank> <prog>`), payload en 10–287, cola `00 00 F7` en 288–290; `validate_sysex_mapping.js` corregido (146 errores FX eran artefactos de desalineación de 2 bytes → 0 errores en los 8 bancos) |
+| 2026-08 | **Fix `unpackDeepMindSysEx` (bug 0.2.7)**: `append` tras `ensureSize` desplazaba los datos 243 bytes (los consumidores leían basura); ahora se escribe con índice directo hasta 242 bytes. Añadido `MidiTranslationEngine::createProgramDumpSysex` (helper canónico de 291 B: cabecera 10 + payload 278 + cola `00 00 F7`) y `generateTestSysEx` refactorizado para usarlo |
 
 ---
 

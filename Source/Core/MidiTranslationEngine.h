@@ -1,7 +1,10 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <array>
+#include <algorithm>
 #include "ParametersSpec.h"
+#include "RoundTripValidator.h"
 
 class MidiTranslationEngine
 {
@@ -143,25 +146,57 @@ public:
         return juce::MidiMessage (data, sizeof (data));
     }
 
+    // Crea un mensaje SysEx canónico de Program Dump Response de 291 bytes desde un
+    // patch desempaquetado de 242 bytes. Formato canónico (verificado en los factory
+    // banks A-H y alineado con buildSingleSysex.js / validate_sysex_mapping.js):
+    //   F0 00 20 32 20 <dev> 02 <proto> <bank> <prog> + payload 278 + cola 00 00 F7
+    static std::vector<uint8_t> createProgramDumpSysex (const std::array<uint8_t, 242>& unpackedBytes,
+                                                        int bank = 0, int program = 0, int deviceId = 0)
+    {
+        std::vector<uint8_t> msg (291, 0x00);
+        msg[0] = 0xF0;
+        msg[1] = 0x00;
+        msg[2] = 0x20;
+        msg[3] = 0x32;
+        msg[4] = 0x20;
+        msg[5] = static_cast<uint8_t> (deviceId & 0x7F);
+        msg[6] = 0x02; // Program Dump Response
+        msg[7] = 0x00; // protocolo
+        msg[8] = static_cast<uint8_t> (bank & 0x07);    // banco (0-7 = A-H)
+        msg[9] = static_cast<uint8_t> (program & 0x7F); // programa (0-127)
+
+        // Payload empaquetado de 278 bytes (byte 277 = padding 0, igual que pack8to7)
+        auto packed = RoundTripValidator::pack8to7 (unpackedBytes.data(), unpackedBytes.size());
+        std::copy (packed.begin(), packed.end(), msg.begin() + 10);
+
+        // Cola canónica: bytes 288-289 = 00 00, byte 290 = F7
+        msg[290] = 0xF7;
+        return msg;
+    }
+
     // Desempaqueta bloques SysEx de 7 bits empaquetados ("Packed MS bit") a bytes de 8 bits
     static juce::MemoryBlock unpackDeepMindSysEx (const uint8_t* packedData, size_t packedLength)
     {
+        // NOTA: se escribe con índice directo (no append) — append añade DESPUÉS del
+        // tamaño actual del MemoryBlock y corrompería el offset (bug 0.2.7: los datos
+        // quedaban desplazados 243 bytes y los consumidores leían basura en [0..242)).
         juce::MemoryBlock out;
-        out.ensureSize ((packedLength * 7) / 8, false);
+        out.ensureSize ((packedLength * 7) / 8 + 1, true);
+        uint8_t* unpacked = static_cast<uint8_t*> (out.getData());
+        size_t outIdx = 0;
 
         // Decodifica también el último grupo parcial (1 byte de flags + hasta 5 bytes de
         // datos, packed 272-277) → unpacked 238-242. Sin esto se perderían unpacked
         // 238-241 (char 15 del nombre del preset + región Tail).
-        for (size_t i = 0; i < packedLength; i += 8)
+        for (size_t i = 0; i < packedLength && outIdx < 242; i += 8)
         {
             uint8_t msbByte = packedData[i] & 0x7F;
-            for (int j = 0; j < 7; ++j)
+            for (int j = 0; j < 7 && outIdx < 242; ++j)
             {
                 if (i + 1 + j >= packedLength) break;
                 uint8_t low7 = packedData[i + 1 + j] & 0x7F;
                 uint8_t msb = (msbByte >> j) & 0x01;
-                uint8_t originalByte = low7 | (msb << 7);
-                out.append (&originalByte, 1);
+                unpacked[outIdx++] = static_cast<uint8_t> (low7 | (msb << 7));
             }
         }
         return out;
