@@ -2,3 +2,10 @@
 # finales de línea (los hashes SHA-256 de schemas/corpus-hashes.json se
 # verifican en CI y deben ser deterministas).
 resources/banks/*.syx binary
+
+# Artefactos .gen y data.json: forzar LF en checkout para diffs deterministas
+# en CI (schema-validation compara el regenerado contra lo commiteado).
+schemas/parameter-registry.data.json text eol=lf
+WebUI/js/registry.gen.js text eol=lf
+Source/Core/ParameterRegistry.gen.h text eol=lf
+Source/Core/ParameterRegistry.gen.cpp text eol=lf

@@ -1,0 +1,103 @@
+name: Schema & Registry Validation CI
+
+# schema-validation (Fase 7 del plan v3.2).
+# Ejecuta scripts/validate_and_generate.ps1 (valida el esquema + regenera los 4
+# artefactos .gen desde las 3 fuentes de verdad) y FALLA si los artefactos .gen
+# COMMITEADOS no coinciden con las fuentes (registro stale). Los .gen son
+# build-artifacts: nunca se editan a mano.
+#
+# Nota: registry_generator.js emite `generatedAt` (timestamp por corrida) tanto en
+# data.json como en registry.gen.js — el diff ignora esa línea (--ignore-matching-lines)
+# para que el job solo falle por divergencias de CONTENIDO reales.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "schemas/**"
+      - "scripts/registry_generator.js"
+      - "scripts/validate_and_generate.ps1"
+      - "WebUI/js/bridge-param-maps.js"
+      - "WebUI/js/byte_map_data.js"
+      - "resources/parameters_spec.json"
+      - "WebUI/js/registry.gen.js"
+      - "Source/Core/ParameterRegistry.gen.h"
+      - "Source/Core/ParameterRegistry.gen.cpp"
+      - ".github/workflows/schema-validation.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "schemas/**"
+      - "scripts/registry_generator.js"
+      - "scripts/validate_and_generate.ps1"
+      - "WebUI/js/bridge-param-maps.js"
+      - "WebUI/js/byte_map_data.js"
+      - "resources/parameters_spec.json"
+      - "WebUI/js/registry.gen.js"
+      - "Source/Core/ParameterRegistry.gen.h"
+      - "Source/Core/ParameterRegistry.gen.cpp"
+      - ".github/workflows/schema-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: schema-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schema-validation:
+    name: Validate schema + regenerate .gen and check committed artifacts
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (requerido por registry_generator.js)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run validate_and_generate.ps1 (validate schema + regenerate artifacts)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & powershell -ExecutionPolicy Bypass -File scripts/validate_and_generate.ps1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::validate_and_generate.ps1 falló (exit $LASTEXITCODE) — esquema inválido o artefactos faltantes."
+            exit $LASTEXITCODE
+          }
+
+      - name: Fail if committed .gen artifacts diverge from sources
+        shell: pwsh
+        run: |
+          $artifacts = @(
+            'schemas/parameter-registry.data.json',
+            'WebUI/js/registry.gen.js',
+            'Source/Core/ParameterRegistry.gen.h',
+            'Source/Core/ParameterRegistry.gen.cpp'
+          )
+          # Guardia: --ignore-matching-lines ignora LÍNEAS completas; si data.json
+          # se emitiera en una sola línea (JSON sin indentar), el ignore enmascararía
+          # TODO el archivo y el job pasaría en falso con artefactos stale.
+          if ((Get-Content 'schemas/parameter-registry.data.json').Count -lt 2) {
+            Write-Host '::error::schemas/parameter-registry.data.json es de una sola línea — el diff por líneas no es fiable. Regenera con indentación (JSON.stringify(..., 2)).'
+            exit 1
+          }
+          # generatedAt cambia en cada corrida: se ignora. Cualquier otra
+          # diferencia = los artefactos commiteados están stale.
+          git diff --exit-code --ignore-matching-lines='generatedAt' -- $artifacts
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::Los artefactos .gen COMMITEADOS no coinciden con las fuentes. Ejecuta localmente: powershell -ExecutionPolicy Bypass -File scripts/validate_and_generate.ps1 y haz commit de los 4 artefactos regenerados."
+            Write-Host "::group::Diff de artefactos .gen vs fuentes"
+            git diff --ignore-matching-lines='generatedAt' -- $artifacts
+            Write-Host "::endgroup::"
+            exit 1
+          }
+          Write-Host "OK — los artefactos .gen commiteados coinciden con las fuentes (schemaVersion 1)."

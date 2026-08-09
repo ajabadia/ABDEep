@@ -30,6 +30,29 @@
 
 ---
 
+## [0.2.5] — 2026-08-09
+
+### 🧪 Fase 7 — Job CI `schema-validation` (workflow `schema-validation.yml`)
+
+- **Nuevo workflow dedicado** que ejecuta `scripts/validate_and_generate.ps1`
+  (valida el esquema `schemaVersion: 1` + regenera los 4 artefactos `.gen`) y
+  **falla si los artefactos `.gen` commiteados no coinciden con las fuentes**
+  (`schemas/parameter-registry.data.json`, `WebUI/js/registry.gen.js`,
+  `Source/Core/ParameterRegistry.gen.{h,cpp}` vs `bridge-param-maps.js`,
+  `byte_map_data.js`, `parameters_spec.json`).
+- **Diff ignora `generatedAt`** (`--ignore-matching-lines`) — el generador emite
+  timestamp por corrida tanto en `data.json` como en `registry.gen.js`; el job solo
+  falla por divergencias de CONTENIDO reales (registro stale o edición manual de `.gen`).
+  Guardia anti-regresión: si `data.json` se emitiera en una sola línea (JSON sin
+  indentar), el ignore enmascararía todo el archivo → el job falla con `::error::`.
+- **`.gitattributes`**: los 4 artefactos (`.gen.*` y `data.json`) forzados a
+  `text eol=lf` para diffs deterministas en runners Windows.
+- **Triggers precisos**: esquemas, generador, orquestador, fuentes, artefactos `.gen`
+  y el propio workflow. Verificado localmente: regeneración → exit 0 y 0 diffs de
+  contenido (solo timestamp).
+
+---
+
 ## [0.2.4] — 2026-08-09
 
 ### 🏷️ Corrección del nombre del preset (byte 223-238) + alineación real de cabecera SysEx
