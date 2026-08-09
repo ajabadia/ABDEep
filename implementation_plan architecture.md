@@ -168,7 +168,7 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 ### Fase 7: Pipeline CI/CD Reproducible
 - [x] Job `schema-validation` (`.github/workflows/schema-validation.yml`): ejecuta `validate_and_generate.ps1` y falla si los `.gen` commiteados divergen de las fuentes.
 - [x] Job `vitest` + lint (`.github/workflows/webui-ci.yml`): suite completa de WebUI (4464 tests) y ESLint 0 errores.
-- [x] Job `cpp-unit-tests` (`.github/workflows/dsp-ci.yml`): build Release + `ABDEep_UnitTests.exe` (3.689.151 assertions, 0 fallos).
+- [x] Job `cpp-unit-tests` (`.github/workflows/dsp-ci.yml`): build Release + `ABDEep_UnitTests.exe` (3.689.164 assertions, 0 fallos).
 - [x] Job `roundtrip-corpus` (`.github/workflows/roundtrip-corpus.yml`): valida los 8 factory banks A-H (1024 presets) contra el byte map + hashes SHA-256 (`--check-hashes`) — **0 errores** con la cabecera corregida de 10 bytes.
 - [x] Job `allocation-audit` + `benchmark` (`.github/workflows/dsp-ci.yml`): invariante §3.1 en CI (0 allocs en idle/poly12/max_all) y presupuesto p95/p99/p999 definitivo en runner dedicado (sección 5.3 de `docs/baseline_fase0_v32.md`).
 - [ ] Jobs pendientes: `registry-generation` (job dedicado), `pluginval`, `wasm-build`, `security-scan` y `property-fuzzing`.

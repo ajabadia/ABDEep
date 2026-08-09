@@ -226,9 +226,9 @@ public:
             patchBytes.fill(0);
             patchBytes[0] = 1;   // DCO1 Saw
             patchBytes[8] = 255; // VCF Cutoff
-            const char* name = "CALIB_TEST_RAW";
+            juce::String name = "CALIB_TEST_RAW";
             for (int i = 0; i < 16; ++i)
-                patchBytes[223 + i] = (i < 16) ? static_cast<uint8_t>(name[i]) : ' ';
+                patchBytes[223 + i] = (i < name.length()) ? static_cast<uint8_t>(name[i]) : ' ';
 
             auto msg = MidiTranslationEngine::createProgramDumpSysex(patchBytes, 2, 10);
 
@@ -240,6 +240,7 @@ public:
             expect(msg[1] == 0x00 && msg[2] == 0x20 && msg[3] == 0x32, "bytes 1-3 = fabricante Behringer");
             expect(msg[4] == 0x20, "byte 4 = modelo DeepMind");
             expect(msg[6] == 0x02, "byte 6 = cmd 0x02 (Program Dump Response)");
+            expect(msg[7] == 0x07, "byte 7 = proto 0x07 (Comms Protocol V1.1.2 del corpus) — era " + juce::String(msg[7]));
             expect(msg[8] == 2, "byte 8 = banco (0-7 = A-H) — era " + juce::String(msg[8]));
             expect(msg[9] == 10, "byte 9 = programa (0-127) — era " + juce::String(msg[9]));
 
@@ -254,22 +255,6 @@ public:
             if (unpacked.getSize() >= 242)
             {
                 bool identical = std::memcmp(unpacked.getData(), patchBytes.data(), 242) == 0;
-                if (! identical)
-                {
-                    int firstDiff = -1;
-                    for (int i = 0; i < 242; ++i)
-                    {
-                        if (static_cast<const uint8_t*>(unpacked.getData())[i] != patchBytes[(size_t) i])
-                        {
-                            firstDiff = i;
-                            break;
-                        }
-                    }
-                    logMessage("DEBUG round-trip diverge en byte " + juce::String(firstDiff)
-                        + " (orig 0x" + juce::String::toHexString(&patchBytes[(size_t) firstDiff], 1)
-                        + " unpack 0x" + juce::String::toHexString(static_cast<const uint8_t*>(unpacked.getData()) + firstDiff, 1)
-                        + "), unpacked size=" + juce::String((int) unpacked.getSize()));
-                }
                 expect(identical, "round-trip unpack(createProgramDumpSysex) debe reconstruir los 242 bytes originales");
             }
 

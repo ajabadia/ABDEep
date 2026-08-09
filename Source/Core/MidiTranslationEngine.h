@@ -150,6 +150,8 @@ public:
     // patch desempaquetado de 242 bytes. Formato canónico (verificado en los factory
     // banks A-H y alineado con buildSingleSysex.js / validate_sysex_mapping.js):
     //   F0 00 20 32 20 <dev> 02 <proto> <bank> <prog> + payload 278 + cola 00 00 F7
+    // Nota: <dev> se parametriza (0 = dispositivo específico; 0x7F = broadcast, como
+    // en los dumps de fábrica exportados). <proto> = 0x07 (versión V1.1.2 del corpus).
     static std::vector<uint8_t> createProgramDumpSysex (const std::array<uint8_t, 242>& unpackedBytes,
                                                         int bank = 0, int program = 0, int deviceId = 0)
     {
@@ -161,7 +163,7 @@ public:
         msg[4] = 0x20;
         msg[5] = static_cast<uint8_t> (deviceId & 0x7F);
         msg[6] = 0x02; // Program Dump Response
-        msg[7] = 0x00; // protocolo
+        msg[7] = 0x07; // Comms Protocol Version (0x07 en factory banks V1.1.2)
         msg[8] = static_cast<uint8_t> (bank & 0x07);    // banco (0-7 = A-H)
         msg[9] = static_cast<uint8_t> (program & 0x7F); // programa (0-127)
 
