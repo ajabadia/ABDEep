@@ -9,8 +9,8 @@
 ### 🎯 Presupuesto temporal DEFINITIVO p95/p99/p999 — runner dedicado windows-2022
 
 - **Job `benchmark` en `.github/workflows/dsp-ci.yml`**: 18 escenarios de carga máxima ×
-  3 repeticiones (mejor p95) en runner dedicado windows-2022; publica resultados en la
-  rama `benchmark-results` (permiso `workflows: write` para el push del GITHUB_TOKEN).
+  3 repeticiones (mejor p95) en runner dedicado windows-2022; publica resultados como
+  artefacto de Actions (`benchmark-results-<run_id>`, 90 días).
 - **Job `allocation-audit` ampliado** a `idle` + `poly12` (+`poly12_fx4`) + `max_all`:
   verificado en CI con **0 allocs en todos los escenarios auditados** (invariante §3.1).
 - **Fix de builds C++ en CI**: fetch de JUCE 8.0.12 (no había submódulo) + SDK WebView2

@@ -221,9 +221,9 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   **idle + poly12 (+poly12_fx4) + max_all** (3 repeticiones cada uno, con el filtro
   `--scenario` del exe) → verificado en CI: **0 allocs en todos los escenarios auditados**.
 - ✅ **Job `benchmark`**: 18 escenarios × 3 repeticiones en windows-2022 dedicado y
-  publica `bench_results.txt` en la rama `benchmark-results` (permiso
-  `workflows: write` necesario: el push incluye `.github/workflows/*` del árbol).
-  Presupuesto definitivo en la sección 5.3.
+  publica `bench_results.txt` + `bench_full.log` como **artefacto de Actions**
+  (`benchmark-results-<run_id>`, 90 días) — se descarga vía API o UI. Presupuesto
+  definitivo en la sección 5.3.
 - ✅ **Fix de builds C++ en CI**: fetch de JUCE 8.0.12 (no hay submódulo) y SDK
   WebView2 vía paquete NuGet (`JUCE_WEBVIEW2_PACKAGE_LOCATION`) — sin esto,
   `juce_add_plugin(NEEDS_WEBVIEW2)` falla el configure en runners limpios.

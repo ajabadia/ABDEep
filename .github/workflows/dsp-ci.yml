@@ -18,8 +18,7 @@ on:
       - ".github/workflows/dsp-ci.yml"
 
 permissions:
-  contents: write
-  workflows: write
+  contents: read
 
 concurrency:
   group: dsp-ci-${{ github.ref }}
@@ -160,6 +159,8 @@ jobs:
     name: Benchmark — definitive p95/p99/p999 (18 scenarios)
     runs-on: windows-2022
     timeout-minutes: 90
+    permissions:
+      contents: read
 
     env:
       CI: true
@@ -221,16 +222,16 @@ jobs:
           echo "::endgroup::"
           cat bench_results.txt >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Publish results to benchmark-results branch
-        shell: bash
-        run: |
-          set -e
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B benchmark-results
-          git add bench_meta.txt bench_results.txt bench_full.log
-          git commit -m "benchmark results (CI windows-2022) $(git rev-parse --short HEAD)" --allow-empty
-          git push origin benchmark-results --force
-          echo "Published: https://github.com/ajabadia/ABDEep/tree/benchmark-results"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Publica los resultados como artefacto de Actions (usa el token runtime
+      # del runner — sin permisos extra; el push de una rama con .github/workflows/*
+      # exigiria workflows:write, que GitHub rechaza en este repo).
+      - name: Publish benchmark results (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_id }}
+          path: |
+            bench_meta.txt
+            bench_results.txt
+            bench_full.log
+          if-no-files-found: error
+          retention-days: 90
