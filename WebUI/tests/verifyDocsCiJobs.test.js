@@ -1,0 +1,253 @@
+/**
+ * verifyDocsCiJobs.test.js — verificación documental de Fase 7 (plan v3.2 §7).
+ *
+ * Cubre scripts/verify_docs_ci_jobs.js (job CI docs-verification):
+ *   - Contrato canónico: EXPECTED_JOBS (12 jobs) y JOB_WORKFLOWS (1:1 de existencia).
+ *   - Extracción: extractSection / extractJobNames / setEquals sobre contenido sintético.
+ *   - Integración positiva: el script real sobre los docs COMMITEADOS → exit 0.
+ *   - Integración negativa (con --overrides): job faltante / extra en baseline o plan,
+ *     workflow ausente → exit 1 con `::error::docs-verification`.
+ */
+
+import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, '..', '..');
+const SCRIPT = path.join(ROOT, 'scripts', 'verify_docs_ci_jobs.js');
+const REAL_WORKFLOWS = path.join(ROOT, '.github', 'workflows');
+
+const require = createRequire(import.meta.url);
+const { EXPECTED_JOBS, JOB_WORKFLOWS, PLAN_JOB_RE, BASELINE_JOB_RE, extractSection, extractJobNames, setEquals } = require(SCRIPT);
+
+// ────────────────────────────────────────────────────────────────────────────
+// Helpers: docs sintéticos mínimos con las secciones que el script parsea.
+// ────────────────────────────────────────────────────────────────────────────
+
+function buildPlan(jobs) {
+  const bullets = jobs.map((j) => `- [x] Job \`${j}\` (workflow): bullet de prueba`).join('\n');
+  return '### Fase 7: Pipeline CI/CD Reproducible\n' + bullets + '\n\n## 🧪 8. Criterios de Aceptación Definitivos\n';
+}
+
+function buildBaseline(jobs) {
+  const bullets = jobs.map((j) => `- ✅ **Job \`${j}\`** en workflow: bullet de prueba`).join('\n');
+  return '## 7. CI — estado de Fase 7\n' + bullets + '\n\n## 8. Estado y próximos pasos\n';
+}
+
+function writeTemp({ plan, baseline, workflows }) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docsci-'));
+  const planFile = path.join(dir, 'plan.md');
+  const baselineFile = path.join(dir, 'baseline.md');
+  const workflowsDir = path.join(dir, 'workflows');
+  fs.writeFileSync(planFile, plan);
+  fs.writeFileSync(baselineFile, baseline);
+  if (workflows) {
+    fs.mkdirSync(workflowsDir, { recursive: true });
+    for (const wf of workflows) { fs.writeFileSync(path.join(workflowsDir, wf), 'name: test\n'); }
+  }
+  return { dir, planFile, baselineFile, workflowsDir };
+}
+
+function runScript(args) {
+  let stdout = '';
+  let stderr = '';
+  let status = 0;
+  try {
+    stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
+      cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (e) {
+    status = e.status ?? 1;
+    stdout = String(e.stdout || '');
+    stderr = String(e.stderr || '');
+  }
+  return { status, stdout, stderr };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Contrato canónico
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('verify_docs_ci_jobs.js — contrato de Fase 7', () => {
+  it('EXPECTED_JOBS son exactamente los 12 jobs de Fase 7 (ordenados)', () => {
+    expect(EXPECTED_JOBS).toHaveLength(12);
+    expect(EXPECTED_JOBS).toEqual([...EXPECTED_JOBS].sort());
+    expect(EXPECTED_JOBS).toEqual([
+      'allocation-audit', 'benchmark', 'cpp-unit-tests', 'fase4-corpus', 'pluginval',
+      'property-fuzzing', 'registry-generation', 'roundtrip-corpus', 'schema-validation',
+      'security-scan', 'vitest', 'wasm-build',
+    ]);
+  });
+
+  it('JOB_WORKFLOWS cubre exactamente EXPECTED_JOBS (claves 1:1)', () => {
+    expect(Object.keys(JOB_WORKFLOWS).sort()).toEqual([...EXPECTED_JOBS].sort());
+  });
+
+  it('cada workflow del contrato existe en .github/workflows/', () => {
+    for (const wf of Object.values(JOB_WORKFLOWS)) {
+      expect(fs.existsSync(path.join(REAL_WORKFLOWS, wf)), 'falta ' + wf).toBe(true);
+    }
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Extracción (unit)
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('verify_docs_ci_jobs.js — extracción de secciones', () => {
+  it('extractSection aísla la sección Fase 7 del plan (hasta el siguiente ##)', () => {
+    const plan = buildPlan(['vitest', 'wasm-build']);
+    const section = extractSection(plan, /### Fase 7: Pipeline CI\/CD Reproducible/, /^## /m);
+    expect(section).not.toBeNull();
+    expect(section).toContain('Job `vitest`');
+    expect(section).not.toContain('Criterios de Aceptación');
+  });
+
+  it('extractJobNames (baseline) devuelve el conjunto de bullets Job', () => {
+    const section = buildBaseline(['wasm-build', 'vitest', 'wasm-build']);
+    expect(extractJobNames(section, BASELINE_JOB_RE)).toEqual(new Set(['wasm-build', 'vitest']));
+  });
+
+  it('extractJobNames (plan) ignora menciones narrativas fuera de bullets', () => {
+    const section = 'texto suelto: el Job `pluginval` corre en CI\n- [x] Job `vitest` (workflow): bullet\n- [x] Job `wasm-build` (workflow): bullet\n';
+    expect(extractJobNames(section, PLAN_JOB_RE)).toEqual(new Set(['vitest', 'wasm-build']));
+  });
+
+  it('extractJobNames (baseline) ignora "job" en minúsculas y no-bullets', () => {
+    const section = 'job `docs-verification` y (`docs-verification.yml`)\n- ✅ **Job `pluginval`** en workflow\n';
+    expect(extractJobNames(section, BASELINE_JOB_RE)).toEqual(new Set(['pluginval']));
+  });
+
+  it('setEquals compara conjuntos por contenido', () => {
+    expect(setEquals(new Set(['a', 'b']), new Set(['b', 'a']))).toBe(true);
+    expect(setEquals(new Set(['a']), new Set(['a', 'b']))).toBe(false);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Integración: script real sobre los docs commiteados (contrato vigente)
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('verify_docs_ci_jobs.js — docs commiteados', () => {
+  it('exit 0: los 12 jobs del plan coinciden con baseline §7 y tienen workflow', () => {
+    const { status, stdout } = runScript([]);
+    expect(status, stdout).toBe(0);
+    expect(stdout).toContain('✅ OK');
+  });
+
+  it('--json: reporte con planJobs == baselineJobs == expectedJobs', () => {
+    const { status, stdout } = runScript(['--json']);
+    expect(status).toBe(0);
+    const r = extractJson(stdout);
+    expect(r).not.toBeNull();
+    expect(r.tool).toBe('verify_docs_ci_jobs');
+    expect(r.ok).toBe(true);
+    expect(r.planJobs).toEqual(r.baselineJobs);
+    expect(r.planJobs).toEqual(r.expectedJobs);
+    expect(r.missingWorkflows).toEqual([]);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Integración negativa (overrides): divergencias deben fallar
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('verify_docs_ci_jobs.js — divergencias plan ↔ baseline', () => {
+  it('job faltante en baseline §7 falla con ::error:: y lista el missing', () => {
+    const jobs = [...EXPECTED_JOBS].filter((j) => j !== 'pluginval');
+    const tmp = writeTemp({
+      plan: buildPlan(EXPECTED_JOBS),
+      baseline: buildBaseline(jobs),
+      workflows: Object.values(JOB_WORKFLOWS),
+    });
+    try {
+      const { status, stderr, stdout } = runScript([
+        '--plan-file', tmp.planFile, '--baseline-file', tmp.baselineFile,
+        '--workflows-dir', tmp.workflowsDir, '--json',
+      ]);
+      expect(status).toBe(1);
+      expect(stderr).toContain('::error::docs-verification');
+      expect(stderr).toContain('pluginval');
+      expect(extractJson(stdout).missingInBaseline).toContain('pluginval');
+    } finally {
+      fs.rmSync(tmp.dir, { recursive: true, force: true });
+    }
+  });
+
+  it('job extra en el plan (fuera del contrato) falla', () => {
+    const planJobs = [...EXPECTED_JOBS, 'job-fantasma'];
+    const tmp = writeTemp({
+      plan: buildPlan(planJobs),
+      baseline: buildBaseline(EXPECTED_JOBS),
+      workflows: Object.values(JOB_WORKFLOWS),
+    });
+    try {
+      const { status, stderr, stdout } = runScript([
+        '--plan-file', tmp.planFile, '--baseline-file', tmp.baselineFile,
+        '--workflows-dir', tmp.workflowsDir, '--json',
+      ]);
+      expect(status).toBe(1);
+      expect(stderr).toContain('::error::docs-verification');
+      expect(stderr).toContain('job-fantasma');
+      expect(extractJson(stdout).extraInPlan).toContain('job-fantasma');
+    } finally {
+      fs.rmSync(tmp.dir, { recursive: true, force: true });
+    }
+  });
+
+  it('workflow real ausente para un job del contrato falla', () => {
+    const tmp = writeTemp({
+      plan: buildPlan(EXPECTED_JOBS),
+      baseline: buildBaseline(EXPECTED_JOBS),
+      workflows: Object.values(JOB_WORKFLOWS).filter((w) => w !== 'pluginval.yml'),
+    });
+    try {
+      const { status, stderr, stdout } = runScript([
+        '--plan-file', tmp.planFile, '--baseline-file', tmp.baselineFile,
+        '--workflows-dir', tmp.workflowsDir, '--json',
+      ]);
+      expect(status).toBe(1);
+      expect(stderr).toContain('::error::docs-verification');
+      expect(stderr).toContain('pluginval.yml');
+      expect(extractJson(stdout).missingWorkflows[0]).toContain('pluginval.yml');
+    } finally {
+      fs.rmSync(tmp.dir, { recursive: true, force: true });
+    }
+  });
+
+  it('sección faltante en un documento falla', () => {
+    const tmp = writeTemp({
+      plan: 'no hay sección Fase 7 aquí',
+      baseline: buildBaseline(EXPECTED_JOBS),
+      workflows: Object.values(JOB_WORKFLOWS),
+    });
+    try {
+      const { status, stderr, stdout } = runScript([
+        '--plan-file', tmp.planFile, '--baseline-file', tmp.baselineFile,
+        '--workflows-dir', tmp.workflowsDir, '--json',
+      ]);
+      expect(status).toBe(1);
+      expect(stderr).toContain('::error::docs-verification');
+      expect(stderr).toContain('Fase 7');
+      expect(extractJson(stdout).planSectionFound).toBe(false);
+    } finally {
+      fs.rmSync(tmp.dir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ────────────────────────────────────────────────────────────────────────────
+
+function extractJson(stdout) {
+  const marker = '---JSON---';
+  const idx = stdout.indexOf(marker);
+  if (idx === -1) { return null; }
+  return JSON.parse(stdout.slice(idx + marker.length).trim());
+}

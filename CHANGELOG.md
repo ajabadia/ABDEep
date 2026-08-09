@@ -4,6 +4,30 @@
 
 ---
 
+## [0.2.33] — 2026-08-09
+
+### 📄 Verificación documental de Fase 7 — job CI `docs-verification`
+
+- **Nuevo `scripts/verify_docs_ci_jobs.js`:** comprueba que los **12 jobs de Fase 7**
+  listados en el plan (`implementation_plan architecture.md`, sección «Fase 7») coinciden
+  con los de `docs/baseline_fase0_v32.md` §7 y que cada job tiene su workflow real en
+  `.github/workflows/`. Contrato canónico `EXPECTED_JOBS` (12) + `JOB_WORKFLOWS`; igualdad
+  de conjuntos BIDIRECCIONAL (job faltante O extra en cualquiera de los dos docs falla el
+  check con `::error::docs-verification`) + verificación de existencia del workflow.
+  Exporta constantes con guard `require.main === module` (los tests los importan sin
+  ejecutar el script); overrides `--plan-file`/`--baseline-file`/`--workflows-dir` para
+  tests negativos.
+- **Nuevo `.github/workflows/docs-verification.yml`** (ubuntu-latest, paths sobre plan/doc/
+  script/workflow): ejecuta el verificador y falla si el plan y la baseline divergen.
+- **Plan normalizado a 12 bullets `Job` explícitos** (antes 10 bullets combinados):
+  `allocation-audit` y `benchmark` separados, y bullet dedicado para `fase4-corpus`
+  (estaba embebido en `property-fuzzing`) — ahora el contrato es 12 == 12 == 12.
+- **Tests `verifyDocsCiJobs.test.js` (13):** contrato, extracción (unit), integración
+  positiva sobre los docs commiteados (exit 0) y 4 negativos con overrides (missing/extra
+  en baseline o plan, workflow ausente, sección faltante).
+
+---
+
 ## [0.2.32] — 2026-08-09
 
 ### ⚡ Fase 5 COMPLETADA — Tiempo real, capabilities y bridge WASM (§3.2/§1.1)

@@ -1,0 +1,63 @@
+name: Docs Verification CI
+
+# docs-verification — verificación documental de Fase 7 (plan v3.2 §7).
+# Comprueba que los 12 jobs CI listados en el plan (`implementation_plan
+# architecture.md`, sección "### Fase 7: Pipeline CI/CD Reproducible") COINCIDEN
+# con los documentados en `docs/baseline_fase0_v32.md` §7 ("## 7. CI — estado de
+# Fase 7") y que cada job tiene su workflow real en .github/workflows/.
+#
+# Contrato (scripts/verify_docs_ci_jobs.js): un job NUEVO debe añadirse a
+# EXPECTED_JOBS + como bullet `- [x] Job \`<nombre>\`` en el plan + como bullet
+# `- ✅ **Job \`<nombre>\`**` en §7, o este job falla (anti-drift plan ↔ doc).
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "implementation_plan architecture.md"
+      - "docs/baseline_fase0_v32.md"
+      - "scripts/verify_docs_ci_jobs.js"
+      - ".github/workflows/docs-verification.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "implementation_plan architecture.md"
+      - "docs/baseline_fase0_v32.md"
+      - "scripts/verify_docs_ci_jobs.js"
+      - ".github/workflows/docs-verification.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs-verification:
+    name: Verify Fase 7 CI jobs (plan vs baseline §7)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify the 12 Fase 7 jobs in the plan match baseline §7
+        run: |
+          # `if ! cmd` no dispara set -e (los comandos en condiciones están
+          # exentos), así que el ::error:: sí se imprime antes del exit 1.
+          if ! node scripts/verify_docs_ci_jobs.js; then
+            echo "::error::Los 12 jobs de Fase 7 del plan no coinciden con baseline_fase0_v32.md §7 (o falta un workflow real). Revisa scripts/verify_docs_ci_jobs.js --json para el detalle."
+            exit 1
+          fi
+          echo "OK — los 12 jobs de Fase 7 del plan coinciden con baseline_fase0_v32.md §7 y tienen workflow real."

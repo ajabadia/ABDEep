@@ -354,6 +354,11 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
     **ALL TESTS PASSED**, publicando `pluginval.log` como artefacto diagnóstico.
   - **Nota `vst3val`**: no existe como repo público (404) — pluginval sigue siendo
     la herramienta canónica de validación VST3 en CI.
+- 🔎 **Verificación documental** (`.github/workflows/docs-verification.yml`, job
+  `docs-verification`): comprueba que los 12 jobs de Fase 7 del plan
+  (`implementation_plan architecture.md`, sección «Fase 7») coinciden con esta
+  sección y que cada job tiene su workflow real (`scripts/verify_docs_ci_jobs.js`)
+  — falla con `::error::docs-verification` ante cualquier divergencia plan ↔ doc.
 - Local: el benchmark requiere `cmake` del VS (el del PATH mezcla versiones 4.2/4.4 y
   rompe la re-configuración) — usar `build.bat` o el cmake de VS explícitamente.
 
