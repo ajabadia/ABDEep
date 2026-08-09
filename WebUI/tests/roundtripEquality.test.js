@@ -237,6 +237,23 @@ describe.skipIf(!hasCorpus)('hardwareCanonicalEqual — Nivel 3a (corpus A–H)'
     expect(r.bestMatch.bank).toBe('A');
   });
 
+  it('la forma de objeto acepta banco en letra ("A"-"H") igual que la cabecera sysex', () => {
+    const entry = CORPUS_A[0];
+    const exact = RTE.hardwareCanonicalEqual(
+      { unpacked: entry.unpacked, bank: 'A', prog: 0 },
+      CORPUS_A,
+      { registry }
+    );
+    expect(exact.best).toBe(RTE.EXACT);
+    const canonical = RTE.hardwareCanonicalEqual(
+      { unpacked: entry.unpacked, bank: 'C', prog: 7 },
+      CORPUS_A,
+      { registry }
+    );
+    expect(canonical.best).toBe(RTE.CANONICAL);
+    expect(canonical.bestMatch.prog).toBe(0); // sigue encontrando el corpus A0
+  });
+
   it('un patch con solo la región del nombre alterada → semantic_match', () => {
     const entry = CORPUS_A[0];
     const tweaked = entry.unpacked.slice();

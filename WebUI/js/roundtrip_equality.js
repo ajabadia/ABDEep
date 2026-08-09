@@ -368,11 +368,18 @@
 
     // Forma de objeto {unpacked, bank, prog}: la posición declarada se extrae
     // igual que de una cabecera sysex (bytes idénticos + misma posición → exact).
+    // El banco se acepta como número (0-7) o letra ('A'-'H').
     let t;
     if (targetInput && targetInput.unpacked) {
       t = { unpacked: toBytes(targetInput.unpacked) };
       if (targetInput.bank !== undefined && targetInput.prog !== undefined) {
-        let bankNum = Number(targetInput.bank) & 0x07;
+        let bankRef = targetInput.bank;
+        let bankNum;
+        if (typeof bankRef === 'string' && bankRef.length > 0) {
+          bankNum = (bankRef.toUpperCase().charCodeAt(0) - 65) & 0x07;
+        } else {
+          bankNum = Number(bankRef) & 0x07;
+        }
         t.header = {
           bank: bankNum,
           bankLetter: String.fromCharCode(65 + bankNum),

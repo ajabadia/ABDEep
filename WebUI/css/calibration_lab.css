@@ -839,6 +839,56 @@
 .cal-rt-classification { font-weight: normal; }
 .cal-rt-classification.mismatch { font-weight: bold; }
 
+/* RoundTrip A/B Compare (Fase 4) — mode toggle + classification banner */
+.cal-rt-mode {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-deepest, #0d0d0d);
+  border: 1px solid var(--border-dim, #2c2c2c);
+  border-radius: 8px;
+}
+.cal-rt-mode-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim, #888);
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.cal-rt-mode-btn:hover { color: var(--text-primary, #ddd); }
+.cal-rt-mode-btn.active {
+  background: color-mix(in srgb, var(--brand-accent, #ff9900) 20%, transparent);
+  color: var(--brand-accent, #ff9900);
+}
+.cal-rt-ab-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-dim, #2c2c2c);
+  background: var(--bg-header, #1a1a1a);
+}
+.cal-rt-ab-class { font-weight: bold; font-size: 13px; letter-spacing: 0.04em; color: var(--cal-rt-ab-color, inherit); }
+.cal-rt-ab-reason { font-size: 10.5px; color: var(--text-dim, #999); }
+.cal-rt-ab-exact     { border-color: var(--accent-green, #65d36e); }
+.cal-rt-ab-canonical { border-color: var(--accent-teal, #1abc9c); }
+.cal-rt-ab-semantic  { border-color: var(--accent-blue, #6ec7ff); }
+.cal-rt-ab-exception { border-color: var(--accent-yellow, #f1c40f); }
+.cal-rt-ab-nomatch   { border-color: var(--accent-red, #e74c3c); }
+.cal-rt-ab-note {
+  padding: 10px 12px;
+  font-size: 11px;
+  color: var(--text-dim, #999);
+  background: var(--bg-header, #171717);
+  border: 1px dashed var(--border-dim, #333);
+  border-radius: 8px;
+}
+
 /* Dynamic color helpers: values are injected via inline CSS custom properties */
 .cal-audio-verdict-badge { background: var(--cal-badge-bg, var(--bg-header, #1a1a1a)); }
 .cal-rt-status { color: var(--cal-rt-status-color, inherit); }

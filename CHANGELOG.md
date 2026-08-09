@@ -4,6 +4,55 @@
 
 ---
 
+## [0.2.17] — 2026-08-09
+
+### 🔀 Calibration Lab — A/B Compare en la pestaña Round-Trip con clasificación Fase 4
+
+- **Modo "A/B Compare" en `calibration_lab_tab_roundtrip.js`**: la pestaña Round-Trip
+  gana un toggle segmented (Single Patch / A/B Compare). El modo single conserva el
+  flujo histórico (round-trip 3 capas de un patch); el modo ab clasifica **Patch A vs
+  Patch B** con la batería de Fase 4 (`roundtrip_equality.js`):
+  - `runABCompareReport(patchA, patchB)` (globalThis): corre `rawCodecEqual`
+    (invariante + diffs byte a byte), `semanticEqual` (parámetros, región reservada
+    ignorada) y `hardwareCanonicalEqual` con un corpus de 1 entry desde Patch B
+    (posición de `patch.bankName` 'A'-'H' / `patchIndex`).
+  - **Banner de clasificación**: `exact_match` (mismos bytes + misma posición),
+    `canonical_match` (mismos bytes, posición distinta), `semantic_match` (solo la
+    región reservada difiere), `known_exception`, `no_match` — con color, razón y
+    posición coincidente del corpus.
+  - **Fila de hechos**: raw idéntico (n/242), igualdad semántica, estabilidad de
+    re-encode y estado del registro (`ParameterRegistry` cargado o degradado a
+    estructural).
+  - **Tabla de diferencias**: cuando `semanticEqual` reporta mismatches, se lista
+    offset / Param IDs / Raw A / Raw B / Norm A / Norm B.
+- **`coerceBytes` (fix de integración real)**: `deepClone` del store es JSON-based y
+  convierte los `Uint8Array` de `unpackedBytes` en objetos `{0:.., 1:..}` sin `.length`
+  — el A/B Compare fallaba con `invalid_patch_bytes` al leer los patches vía
+  `store.getState()`. El normalizador reconstruye un `Uint8Array` cuando el objeto
+  tiene 242+ claves numéricas contiguas (cubre la ruta picker → store → compare).
+- **`index.html`**: se cargan `js/registry.gen.js` + `js/roundtrip_equality.js` tras
+  `browser_packer.js` (antes de los scripts del Calibration Lab) — el registro
+  canónico y la batería Fase 4 quedan disponibles en la app real.
+- **`roundtrip_equality.js`**: la forma de objeto `{unpacked, bank, prog}` acepta
+  ahora banco en letra ('A'-'H') además de numérico (los patches del lab usan
+  `bankName` en letra) — +1 test en `roundtripEquality.test.js`.
+- **CSS** (`calibration_lab.css`): `.cal-rt-mode` (toggle segmented con estado
+  active) y `.cal-rt-ab-banner/.cal-rt-ab-class/.cal-rt-ab-{exact,canonical,semantic,
+  exception,nomatch}` usando tokens del tema.
+- **`WebUI/tests/calibrationRoundtripAB.test.js` (18 tests)**: clasificación pura
+  (exact/canonical/semantic/no_match, errores de módulo y de bytes, sin registro),
+  render del banner/factos/tabla y eventos (cambio de modo, Compare con patches del
+  store — cubre la ruta `deepClone` → `coerceBytes` — y sin patches válidos).
+- **Post-reviewer (3 fixes)**: modo leído en tiempo de llamada (`currentMode()` en
+  vez de capturado en bind), `matchPos` solo cuando `bank`/`prog` no son null
+  (evita "Bank null · Prog null"), y `modeSwitchHtml` compartido entre ambos
+  renders (sin duplicación). Verificado: `scripts/security_scan.js` → 0 violaciones
+  sobre todo `WebUI/js` (incluye el archivo nuevo).
+- **Verificación**: Vitest **92 files / 4560 tests / 0 fallos** (+19); ESLint 0 en
+  los archivos tocados; `node --check` OK.
+
+---
+
 ## [0.2.16] — 2026-08-09
 
 ### 🧪 Fase 4 — Batería de igualdad de round-trip en 3 niveles + fuzzing acotado (Plan v3.2 §5)
