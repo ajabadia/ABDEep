@@ -11,8 +11,11 @@ on:
   pull_request:
     paths:
       - "scripts/validate_sysex_mapping.js"
+      - "scripts/roundtrip_corpus.js"
       - "WebUI/js/byte_map_data.js"
       - "WebUI/js/browser_packer.js"
+      - "WebUI/js/roundtrip_equality.js"
+      - "WebUI/js/registry.gen.js"
       - "docs/sysex_format.md"
       - "schemas/corpus-hashes.json"
       - "schemas/parameter-registry.data.json"
@@ -23,8 +26,11 @@ on:
       - main
     paths:
       - "scripts/validate_sysex_mapping.js"
+      - "scripts/roundtrip_corpus.js"
       - "WebUI/js/byte_map_data.js"
       - "WebUI/js/browser_packer.js"
+      - "WebUI/js/roundtrip_equality.js"
+      - "WebUI/js/registry.gen.js"
       - "docs/sysex_format.md"
       - "schemas/corpus-hashes.json"
       - "schemas/parameter-registry.data.json"
@@ -59,3 +65,24 @@ jobs:
       - name: Validate byte map against factory banks (1024 presets) + check SHA-256 hashes
         run: |
           node scripts/validate_sysex_mapping.js --check-hashes
+
+  fase4-corpus:
+    name: Fase 4 battery — raw/semantic/canonical over 1024 presets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Fase 4 roundtrip equality battery (rawCodecEqual + semanticEqual + hardwareCanonicalEqual)
+        run: |
+          node scripts/roundtrip_corpus.js --json

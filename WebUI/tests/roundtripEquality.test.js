@@ -269,6 +269,17 @@ describe.skipIf(!hasCorpus)('hardwareCanonicalEqual — Nivel 3a (corpus A–H)'
     expect(r.bestMatch).toBeNull();
   });
 
+  it('skipSemantic desactiva el nivel semántico (scan O(n²) de corpus sin costo semanticEqual)', () => {
+    const entry = CORPUS_A[0];
+    const tweaked = entry.unpacked.slice();
+    for (let i = 223; i <= 238; i++) {tweaked[i] = (tweaked[i] + 1) & 0xFF;} // solo nombre
+    const normal = RTE.hardwareCanonicalEqual(tweaked, CORPUS_A, { registry });
+    expect(normal.best).toBe(RTE.SEMANTIC);
+    const fast = RTE.hardwareCanonicalEqual(tweaked, CORPUS_A, { registry, skipSemantic: true });
+    expect(fast.best).toBe(RTE.NO_MATCH);
+    expect(fast.bestMatch).toBeNull();
+  });
+
   it('una excepción registrada (known_exception) tiene prioridad sobre exact_match', () => {
     const target = CORPUS_A[0].unpacked;
     const known = [{ bank: 'A', prog: 0, reason: 'regresión conocida del preset 0' }];

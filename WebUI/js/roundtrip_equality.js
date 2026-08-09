@@ -320,7 +320,8 @@
    *                       declarada (bank/prog de la cabecera del target)
    *   canonical_match   → bytes desempaquetados idénticos pero posición distinta
    *                       o desconocida (payload igual, cabecera de posición difiere)
-   *   semantic_match    → semanticEqual sin violaciones de parámetros
+   *   semantic_match    → semanticEqual sin violaciones de parámetros (opcional,
+   *                       desactivable con opts.skipSemantic para scans O(n²))
    *   known_exception   → entry listado en opts.knownExceptions (bank/prog)
    *   no_match          → ninguno de los anteriores
    */
@@ -347,9 +348,11 @@
       return { classification: CANONICAL, reason: 'byte-identical unpacked patch (position header differs or absent)' };
     }
 
-    let sem = semanticEqual(targetUnpacked, entry.unpacked, opts);
-    if (sem.equal) {
-      return { classification: SEMANTIC, reason: 'semantically equal (parameters match within tolerance)' };
+    if (!opts.skipSemantic) {
+      let sem = semanticEqual(targetUnpacked, entry.unpacked, opts);
+      if (sem.equal) {
+        return { classification: SEMANTIC, reason: 'semantically equal (parameters match within tolerance)' };
+      }
     }
 
     return { classification: NO_MATCH, reason: 'no correspondence in corpus' };
@@ -401,6 +404,7 @@
         registry: registry,
         knownExceptions: opts.knownExceptions,
         tolerance: opts.tolerance,
+        skipSemantic: !!opts.skipSemantic,
         targetHeader: t.header || null,
       });
       m.bank = entry.bank;

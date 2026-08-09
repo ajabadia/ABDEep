@@ -4,6 +4,46 @@
 
 ---
 
+## [0.2.19] — 2026-08-09
+
+### 🧪 Fase 4 — Batería round-trip sobre el corpus completo A–H (1024 presets) + job CI `fase4-corpus`
+
+- **Nuevo `scripts/roundtrip_corpus.js`**: batería de los 3 niveles de Fase 4 sobre
+  los 8 factory banks A–H (1024 presets) usando `roundtrip_equality.js`:
+  - **Nivel 1 (rawCodecEqual)**: invariante de codec por preset — `unpack7to8(pack8to7(x)) === x`
+    Y el lado empaquetado `pack8to7(unpack7to8(packed)) === packed`.
+  - **Nivel 2 (semanticEqual)**: estabilidad de re-encode Patch→Parámetros→Patch (±1 raw,
+    rango válido de enums) + detección de **hermanos semánticos** vía hash O(n)
+    (solo bytes con parámetro mapeado, excluye reservados 223-241 y padding — los
+    pares byte-idénticos se reportan como duplicados de Nivel 3a).
+  - **Nivel 3a (hardwareCanonicalEqual)**: self-match de cada preset contra el corpus
+    COMPLETO con `skipSemantic: true` (debe hallarse con `exact_match` en su posición
+    de cabecera) + check de layout de cabecera (`msg[9]` == índice secuencial del
+    archivo de banco).
+  - CLI (`--banks`, `--json`, `--out`), exit 0/1 con `::error::roundtrip-corpus` para CI.
+- **`roundtrip_equality.js`**: nueva opción `skipSemantic` en `hardwareCanonicalEqual`
+  (salta el fallback `semanticEqual` en scans O(n²) — self-match se resuelve por bytes
+  idénticos) + fix de `report.ok` en la ruta de corpus incompleto (el JSON `--json`
+  siempre lleva `ok`).
+- **`.github/workflows/roundtrip-corpus.yml`**: nuevo job `fase4-corpus` (ubuntu-latest,
+  Node 20) que ejecuta la batería con `--json` y **falla si algún preset rompe un
+  invariante o no se self-matchea**; triggers ampliados a los scripts/module de la
+  batería (`roundtrip_corpus.js`, `roundtrip_equality.js`, `registry.gen.js`,
+  `browser_packer.js`).
+- **`WebUI/tests/roundtripCorpusScript.test.js` (6 tests)**: subproceso real del script
+  (exit 0 + 3 niveles verdes sobre 1024, reporte `--json` estructurado con `ok:true`,
+  invariante selfMatched===scanned, duplicados listados + sin `header_layout` errors,
+  banco inexistente → exit 1 con `::error::`, `--banks A,B` → 256 presets) con
+  `skipIf` sin corpus local.
+- **Resultado local**: 1024/1024 en los 3 niveles, **0 errores**; hallazgos reales del
+  corpus: **105 pares duplicados** byte-idénticos en posiciones distintas (p.ej. A/0 ≙ B/71)
+  y **5 hermanos semánticos** (mismos parámetros, difieren solo en región reservada).
+  Tiempo total 8 bancos ≈ 0.7s (viable en CI).
+- **Verificación**: Vitest **92 files / 4567 tests / 0 fallos** (+8); ESLint 0 en los
+  archivos tocados; `node --check` OK; YAML del workflow válido (2 jobs).
+
+---
+
 ## [0.2.18] — 2026-08-09
 
 ### 📄 Documentación Fase 4 — `docs/fase4_roundtrip_equality.md`
