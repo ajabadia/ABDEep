@@ -4,6 +4,33 @@
 
 ---
 
+## [0.2.2] — 2026-08-09
+
+### 🎯 Presupuesto temporal DEFINITIVO p95/p99/p999 — runner dedicado windows-2022
+
+- **Job `benchmark` en `.github/workflows/dsp-ci.yml`**: 18 escenarios de carga máxima ×
+  3 repeticiones (mejor p95) en runner dedicado windows-2022; publica resultados en la
+  rama `benchmark-results` (permiso `workflows: write` para el push del GITHUB_TOKEN).
+- **Job `allocation-audit` ampliado** a `idle` + `poly12` (+`poly12_fx4`) + `max_all`:
+  verificado en CI con **0 allocs en todos los escenarios auditados** (invariante §3.1).
+- **Fix de builds C++ en CI**: fetch de JUCE 8.0.12 (no había submódulo) + SDK WebView2
+  vía NuGet (`JUCE_WEBVIEW2_PACKAGE_LOCATION`) — el configure fallaba en runners limpios
+  por `find_package(WebView2 REQUIRED)` de `juce_add_plugin(NEEDS_WEBVIEW2)`.
+- **Fix de WebUI CI**: `package-lock.json` commiteado; `patchwork-deepmind` fuera de
+  `dependencies` (arrastraba `node-midi` — bindings nativos que rompían `npm install`
+  en ubuntu; se sigue usando via `npx -y`); export de calibración omitido sin inputs.
+- **Fix `FXAutoPan.h`**: miembros LFO `lfoPhaseL/R` y `lfoInc` declarados (el rebuild
+  completo exponía error C2065). Defines de WebView2 movidos de globales a solo los
+  targets GUI (los de consola no usan WebView2).
+- **Resultado definitivo** (commit `95c4153`, cpus=4, Windows X64):
+  `max_all` p95=**3211.5** µs (30% del presupuesto de 10.667 µs), p99=**3384.7** µs,
+  p999=**3474.2** µs; peor-caso de los 18 escenarios: p95=4029.5 / p99=4100.3 /
+  p999=4392.2 µs (modmatrix32, 41%); **0 overruns y 0 allocs en los 18 escenarios**.
+- **Docs**: `docs/baseline_fase0_v32.md` §5.3 (tabla definitiva + envuelta peor-caso) y
+  §7 (estado de CI).
+
+---
+
 ## [0.2.1] — 2026-08-09
 
 ### 🧩 Fase 1 — Esquema Declarativo, Generador y Pre-validación (Plan v3.2 §1)

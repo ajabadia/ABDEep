@@ -161,6 +161,10 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: write
+      # El push de la rama benchmark-results contiene .github/workflows/* (el
+      # árbol completo); GitHub exige el permiso workflows para que el token
+      # pueda crear/actualizar la rama con esos ficheros.
+      workflows: write
 
     env:
       CI: true
