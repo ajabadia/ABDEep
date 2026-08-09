@@ -155,8 +155,19 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 - [ ] Implementar errores tipados para SysEx, MIDI e importación JSON.
 
 ### Fase 4: Batería de Tests de 3 Niveles y Property-Based Testing (Fuzzing)
-- [ ] Implementar `rawCodecEqual`, `semanticEqual` y `hardwareCanonicalEqual`.
-- [ ] Desarrollar suite de fuzzing/property-based testing con límites acotados de memoria y tiempo.
+- [x] Implementar `rawCodecEqual`, `semanticEqual` y `hardwareCanonicalEqual`.
+- [x] Desarrollar suite de fuzzing/property-based testing con límites acotados de memoria y tiempo.
+
+> **2026-08-09 — Completado (Niveles 1/2/3a + fuzzing).** Módulo UMD `WebUI/js/roundtrip_equality.js`
+> (`window.RoundTripEquality`): Nivel 1 `rawCodecEqual` (invariante de codec Bytes→Pack→Unpack→Bytes),
+> Nivel 2 `semanticEqual` (Patch→Parámetros→Patch descartando región reservada 223-241 y padding,
+> tolerancia configurable, estabilidad de re-encode ±1 raw con rango válido de enums), Nivel 3a
+> `hardwareCanonicalEqual` (corpus A–H con `exact_match`/`canonical_match`/`semantic_match`/
+> `known_exception`), `fuzzRoundTrip` acotado (Max Payload 500B, Max Timeout 100ms/caso, PRNG
+> determinista mulberry32). Integrado en el Calibration Lab (pestaña Round-Trip → A/B Compare con
+> `runABCompareReport`, banco en letra 'A'-'H', `coerceBytes` para patches clonados por deepClone).
+> Queda pendiente el Nivel 3b (hardware-in-the-loop, §5 — requiere hardware físico). Ver `docs/fase4_roundtrip_equality.md`.
+> Vitest: 92 files / 4560 tests / 0 fallos.
 
 ### Fase 5: Rendimiento Tiempo Real, Capabilities y Bridge WASM
 - [ ] Sustituir búsquedas dinámicas en `WASMBridge.cpp` por `std::array` e índices `ParameterIndex`.
@@ -172,7 +183,8 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 - [x] Job `cpp-unit-tests` (`.github/workflows/dsp-ci.yml`): build Release + `ABDEep_UnitTests.exe` (3.689.164 assertions, 0 fallos).
 - [x] Job `roundtrip-corpus` (`.github/workflows/roundtrip-corpus.yml`): valida los 8 factory banks A-H (1024 presets) contra el byte map + hashes SHA-256 (`--check-hashes`) — **0 errores** con la cabecera corregida de 10 bytes.
 - [x] Job `allocation-audit` + `benchmark` (`.github/workflows/dsp-ci.yml`): invariante §3.1 en CI (0 allocs en idle/poly12/max_all) y presupuesto p95/p99/p999 definitivo en runner dedicado (sección 5.3 de `docs/baseline_fase0_v32.md`).
-- [ ] Jobs pendientes: `pluginval`, `wasm-build`, `security-scan` y `property-fuzzing`.
+- [x] Job `security-scan` (`.github/workflows/security-scan.yml`): audit XSS estático sobre TODO `WebUI/js` (236 archivos) vía `scripts/security_scan.js` — falla si hay violaciones.
+- [ ] Jobs pendientes: `pluginval`, `wasm-build` y `property-fuzzing`.
 
 > **2026-08-09 — registry-generation completado.** Verificación local end-to-end de los pasos
 > exactos del job: `node scripts/registry_generator.js` → exit 0, 4 artefactos regenerados,

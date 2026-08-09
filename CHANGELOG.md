@@ -4,9 +4,20 @@
 
 ---
 
-## [0.2.17] — 2026-08-09
+## [0.2.18] — 2026-08-09
 
-### 🔀 Calibration Lab — A/B Compare en la pestaña Round-Trip con clasificación Fase 4
+### 📄 Documentación Fase 4 — `docs/fase4_roundtrip_equality.md`
+
+- **Nueva doc técnica** de la batería de igualdad round-trip: arquitectura del módulo
+  (`roundtrip_equality.js` + dependencias), contrato de cada función con firmas y shapes
+  de retorno (Nivel 1 `rawCodecEqual`, Nivel 2 `semanticEqual` con la política de enums,
+  Nivel 3a `hardwareCanonicalEqual` con la jerarquía exact/canonical/semantic/
+  known_exception/no_match), fuzzing acotado (500B / 100ms / seed determinista) y la
+  integración A/B Compare del Calibration Lab (`runABCompareReport` + `coerceBytes`).
+- **`implementation_plan architecture.md`**: checkboxes de Fase 4 marcados con nota de
+  completado enlazando la doc; pendiente solo el Nivel 3b (hardware-in-the-loop).
+  Corregida también la lista de jobs Fase 7 (el job `security-scan` ya estaba completado).
+
 
 - **Modo "A/B Compare" en `calibration_lab_tab_roundtrip.js`**: la pestaña Round-Trip
   gana un toggle segmented (Single Patch / A/B Compare). El modo single conserva el
