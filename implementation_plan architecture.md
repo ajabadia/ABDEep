@@ -198,6 +198,15 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > (solo cambia el timestamp). Guardia de una sola línea en `data.json` incluida (mismo
 > criterio que `schema-validation`).
 
+> **2026-08-09 — Cierre documental de Fase 7 (3 jobs completados).** Los jobs
+> `property-fuzzing` (16 seeds × 500 = 8.000 casos), `fase4-corpus` (batería round-trip
+> A–H, 1024 presets, 3 niveles) y `registry-generation` (generador puro, 0 diffs de
+> contenido) quedan documentados con detalle (workflow, runner, verificación y
+> resultados) en `docs/baseline_fase0_v32.md` §7 «CI — estado de Fase 7». Todos
+> verificados en local: property-fuzzing 8.000 casos → 0 violaciones/timeouts;
+> fase4-corpus 1024/1024 en los 3 niveles (804 exact · 210 canonical · 10 semantic);
+> registry-generation exit 0 con 0 diffs de contenido. Pendiente único: `pluginval`.
+
 > **2026-08-09 — roundtrip-corpus completado.** Con la corrección de cabecera de 10 bytes
 > (0.2.4) el validador queda en **0 errores / 0 warnings en los 1024 presets** (antes: 146
 > errores FX falsos por la desalineación de 8→10 bytes) y los hashes SHA-256 del corpus

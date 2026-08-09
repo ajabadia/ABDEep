@@ -4,6 +4,35 @@
 
 ---
 
+## [0.2.26] — 2026-08-09
+
+### 📄 Fase 7 — Documentación de los jobs CI completados (property-fuzzing, fase4-corpus, registry-generation)
+
+- **`docs/baseline_fase0_v32.md` §7 «CI — estado de Fase 7»**: documentados con detalle
+  los 3 jobs CI de Fase 7 completados (cambio 100% documental):
+  - **`fase4-corpus`** (segundo job de `roundtrip-corpus.yml`): batería round-trip de
+    Fase 4 sobre el corpus A–H completo (1024 presets) vía `scripts/roundtrip_corpus.js
+    --json` — Nivel 1 (invariante de codec por preset), Nivel 2 (re-encode estable +
+    hermanos semánticos), Nivel 3a (self-match exact + layout de cabecera). Resultado
+    verificado: 1024/1024 en los 3 niveles, 0 errores; clasificación 804 exact · 210
+    canonical (105 pares) · 10 semantic (5 hermanos); ~0.7s los 8 bancos.
+  - **`property-fuzzing`** (`property-fuzzing.yml`): fuzzing acotado multi-seed — 16
+    seeds deterministas × 500 casos = **8.000 casos** (incluye seeds de casos límite:
+    mínimos, máscaras de byte/16-bit, bits alternados, máximo uint32); violaciones
+    fatales (codec_invariance/codec_payload_bound/codec_throws/decode_encode_stability)
+    vs timeouts como warning; límites del plan 500 B / 100 ms por caso. Resultado:
+    8.000 casos → 0 violaciones / 0 timeouts.
+  - **`registry-generation`** (`registry-generation.yml`): generador puro
+    `registry_generator.js` con verificación de los 4 artefactos `.gen` sin diffs de
+    contenido (ignorando `generatedAt`), guardia anti-minificación, valor multiplataforma
+    vs `schema-validation`.
+- **`implementation_plan architecture.md`**: nota de cierre de Fase 7 (3 jobs
+  completados, verificados en local) con referencia a la doc; pendiente único `pluginval`.
+- **Verificación**: cambio 100% documental — sin código ni tests tocados; suite Vitest
+  intacta (95 files / 4597 tests / 0 fallos).
+
+---
+
 ## [0.2.25] — 2026-08-09
 
 ### 🧩 Fase 7 — Job CI `wasm-build` (workflow `wasm-build.yml`) + verificación de la reserva fija

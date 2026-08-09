@@ -260,6 +260,50 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   hashes coinciden con la referencia**. Se dispara ante cambios en el validador, el byte
   map, los esquemas, el formato documentado (`docs/sysex_format.md`), el constructor
   canónico (`browser_packer.js`) o los bancos.
+- ✅ **Job `fase4-corpus`** (segundo job del mismo `.github/workflows/roundtrip-corpus.yml`,
+  ubuntu-latest, timeout 10 min): ejecuta `node scripts/roundtrip_corpus.js --json` — la
+  **batería round-trip de Fase 4 (plan §5)** sobre el corpus completo A–H (1024 presets)
+  reutilizando `roundtrip_equality.js` + `registry.gen.js`:
+  - **Nivel 1** (`rawCodecEqual` por preset): invariante de codec
+    `unpack7to8(pack8to7(x)) === x` **y** el lado empaquetado
+    `pack8to7(unpack7to8(packed)) === packed`.
+  - **Nivel 2** (`semanticEqual` por preset): re-encode Patch→Parámetros→Patch estable
+    (±1 raw, rango válido de enums) + detección de hermanos semánticos (hash O(n)).
+  - **Nivel 3a** (`hardwareCanonicalEqual`): self-match de cada preset contra el corpus
+    COMPLETO con `skipSemantic` — debe hallarse `exact_match` en su posición de cabecera
+    + check de layout (`msg[9]` == índice secuencial del archivo).
+  - **Resultado verificado**: 1024/1024 en los 3 niveles, 0 errores; clasificación real
+    del corpus 804 exact · 210 canonical (105 pares) · 10 semantic (5 hermanos); ~0.7s
+    los 8 bancos. Falla con `::error::roundtrip-corpus` si algún invariante se rompe.
+- ✅ **Job `property-fuzzing`** en `.github/workflows/property-fuzzing.yml` (ubuntu-latest,
+  timeout 10 min): property-based testing / fuzzing acotado (§5) vía
+  `node scripts/fuzz_roundtrip.js --json` con el registro canónico real:
+  - **Batería por defecto**: 16 seeds deterministas × 500 casos = **8.000 casos** (5× la
+    batería original de 8×200=1.600). Los seeds incluyen los 8 originales más 8 de casos
+    límite que ejercitan el PRNG `mulberry32` y el codec 7/8: mínimo (`0x1`), máscaras de
+    byte (`0x7F`/`0xFF`), máscaras de 16 bits (`0x7FFF`/`0xFFFF`), bits alternados
+    (`0x55555555`/`0xAAAAAAAA`) y máximo uint32 (`0xFFFFFFFF`). Coste medido <1s total.
+  - **Clasificación de violaciones**: `codec_invariance`, `codec_payload_bound`,
+    `codec_throws` y `decode_encode_stability` son **fatales** (deterministas — fallan el
+    job, exit 1 con `::error::fuzz-roundtrip`); `timeout` (dependiente del reloj de
+    pared, preempción del runner) se reporta como **warning** y no rompe CI.
+  - **Límites del plan (§5)**: Max Payload 500 B / Max Timeout 100 ms por caso — leídos de
+    `RTE.FUZZ_MAX_PAYLOAD`/`FUZZ_MAX_TIMEOUT_MS` (fuente única). Exit codes 0/1/2.
+  - **Resultado verificado**: 8.000 casos → 0 violaciones / 0 timeouts (máx 1ms/caso).
+- ✅ **Job `registry-generation`** en `.github/workflows/registry-generation.yml`
+  (ubuntu-latest, timeout 10 min, job DEDICADO complementario de `schema-validation`):
+  - Ejecuta el generador **puro** `node scripts/registry_generator.js` y **falla si los 4
+    artefactos `.gen` commiteados no se regeneran sin diffs de contenido**
+    (`schemas/parameter-registry.data.json`, `WebUI/js/registry.gen.js`,
+    `Source/Core/ParameterRegistry.gen.{h,cpp}` vs `bridge-param-maps.js`,
+    `byte_map_data.js`, `parameters_spec.json`).
+  - El diff ignora `generatedAt` (`--ignore-matching-lines`) — el job solo falla por
+    divergencias de CONTENIDO reales (registro stale o edición manual de `.gen`). Guardia
+    anti-minificación de una sola línea en `data.json` y `registry.gen.js`.
+  - **Valor añadido vs `schema-validation`**: verificación **multiplataforma** del
+    generador (Linux en vez de Windows) y cobertura del generador sin el wrapper PS1.
+  - **Verificado**: regeneración → exit 0, 0 diffs de contenido (solo timestamp).
+    Registro: 235 parámetros (226 físicos · 3 extendidos · 6 virtuales).
 - Local: el benchmark requiere `cmake` del VS (el del PATH mezcla versiones 4.2/4.4 y
   rompe la re-configuración) — usar `build.bat` o el cmake de VS explícitamente.
 
