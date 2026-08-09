@@ -196,6 +196,12 @@ var Logger = globalThis.Logger || console;
 
         const byteOffset = this.paramToByteOffset[paramId];
         if (byteOffset !== undefined) {
+            // Parámetros virtuales del emulador (>=300, p.ej. fx_feedback_gain=304,
+            // fx_send_level=305) NO tienen byte físico en el preset DM12 ni NRPN
+            // legítimo; emitirlos aquí enviaría un NRPN corrupto a un parámetro
+            // real del hardware (lsb=byteOffset-128 colisiona). Solo se aplican
+            // en modo JUCE/WASM vía APVTS por paramId.
+            if (byteOffset >= 300) { return; }
             const rawValue = this._normalizedToRaw(byteOffset, normalizedValue);
             this.sendNRPN(byteOffset, rawValue);
             return;

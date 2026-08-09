@@ -21,8 +21,10 @@
  *
  *   Política de validación:
  *     - Errores FATALES (exit 1, no emite nada): ids duplicados, rangos incompatibles
- *       (min>=max), offsets fuera de 0..303, byte map no contiguo, colisiones de
- *       identificador C++ (cppName), ids sin byte offset en el mapa bridge.
+ *       (min>=max), offsets fuera de 0..399, byte map no contiguo, colisiones de
+ *       identificador C++ (cppName), ids sin byte offset en el mapa bridge, y
+ *       parámetros físicos en regiones reservadas del preset (223-238 nombre del
+ *       patch, 239-241 cola del payload) — RESERVED_BYTE_COLLISION.
  *     - Advertencias (exit 0, se registran en warnings[]): divergencias CC legacy vs
  *       canónico (comparisonMode, §6 del plan) y parámetros spec-only.
  *
@@ -150,7 +152,7 @@ const byOffset = {}; // byteOffset → [ids]
 
 for (const [id, offsetRaw] of Object.entries(paramToOffset)) {
   const byteOffset = Number(offsetRaw);
-  if (!Number.isInteger(byteOffset) || byteOffset < 0 || byteOffset > 303) {
+  if (!Number.isInteger(byteOffset) || byteOffset < 0 || byteOffset > 399) {
     fail('OFFSET_RANGE', 'Param "' + id + '" tiene byteOffset inválido: ' + offsetRaw);
     continue;
   }
@@ -164,6 +166,30 @@ const kKnownAliasOffsets = new Set([32, 88, 160]);
 for (const [off, ids] of Object.entries(byOffset)) {
   if (ids.length > 1 && !kKnownAliasOffsets.has(Number(off))) {
     fail('NRPN_COLLISION', 'Offset ' + off + ' compartido sin alias declarado: ' + ids.join(', '));
+  }
+}
+
+// ── 3b. Regiones reservadas del preset (NO admite parámetros) ─────
+// El preset físico DM12 no tiene bytes editables más allá de 222:
+//   - 223-238  → nombre del patch (15-16 chars ASCII; verificado en dumps reales:
+//                banco A preset 0 = "Blue Dolphin BC " empieza en el byte 223)
+//   - 239-241  → cola del payload empaquetado
+// Cualquier parámetro físico que aterrice aquí es un error FATAL (usurparía
+// bytes del nombre del patch); los parámetros del emulador sin byte físico
+// deben declararse en la región virtual (>=300), p.ej. fx_feedback_gain=300,
+// fx_send_level=301.
+const kReservedPhysicalRegions = [
+  { start: 223, end: 238, label: 'patch name (223-238)' },
+  { start: 239, end: 241, label: 'payload tail (239-241)' },
+];
+for (const [id, offsetRaw] of Object.entries(paramToOffset)) {
+  const byteOffset = Number(offsetRaw);
+  if (!Number.isInteger(byteOffset) || byteOffset < 0) continue;
+  if (byteOffset > 241) continue; // solo aplica a bytes físicos 0-241
+  const region = kReservedPhysicalRegions.find((r) => byteOffset >= r.start && byteOffset <= r.end);
+  if (region) {
+    fail('RESERVED_BYTE_COLLISION', 'Param "' + id + '" (byteOffset=' + byteOffset +
+      ') cae en la región reservada ' + region.label + ' — sin byte físico legítimo; mover a virtual (>=300)');
   }
 }
 

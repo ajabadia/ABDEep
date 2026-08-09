@@ -71,11 +71,14 @@ std::vector<ParametersSpec::ParamInfo> ParametersSpec::getFxSpecs()
 
         { "fx_mode", "FX Mode", "effects", "enum", 0.0f, 2.0f, 0.0f, -1, 222, { "Insert", "Send", "Bypass" } },
 
-        // FX Feedback Gain for Routing Mode 9 (no NRPN en hardware real)
-        { "fx_feedback_gain", "FX Feedback Gain", "effects", "float", 0.0f, 1.0f, 0.3f, -1, 223, {} },
+        // FX Feedback Gain for Routing Mode 9 — parámetro del emulador SIN byte
+        // físico en el preset DM12 (región 223-238 = nombre del patch real). Se
+        // aloja en la región virtual (>=300) del registro canónico.
+        { "fx_feedback_gain", "FX Feedback Gain", "effects", "float", 0.0f, 1.0f, 0.3f, -1, 304, {} },
 
-        // FX Send Level for Send mode
-        { "fx_send_level", "FX Send Level", "effects", "float", 0.0f, 1.0f, 0.5f, -1, 225, {} },
+        // FX Send Level for Send mode — parámetro del emulador SIN byte físico
+        // en el preset DM12 (región 223-238 = nombre del patch real). Virtual 305.
+        { "fx_send_level", "FX Send Level", "effects", "float", 0.0f, 1.0f, 0.5f, -1, 305, {} },
 
         // FX mix params (kept for UI compatibility)
         { "fx1_mix", "FX1 Mix", "effects", "float", 0.0f, 1.0f, 1.0f, -1, -1, {} },

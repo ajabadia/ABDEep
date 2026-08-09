@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-09T07:06:36.427Z",
+  "generatedAt": "2026-08-09T08:32:55.843Z",
   "sourceHashes": {
     "parametersSpec": "0f1bbce5fa10c8f6840c6de519222031dc530077a024e708f85ef353bc094378",
-    "bridgeParamMaps": "4adc4b211ac5ead28f1c11519502c4f799bcae9f15a63f56b796576736a700cf",
+    "bridgeParamMaps": "781091b5bce1b77ecdac4dc1d952584b9d2fc084a38e13530f4ba041cd177186",
     "byteMapData": "0af89fdecfaad0cdfb1acd5ee69a02e0f9d43b554caf6103a4e1b105dd0681ff"
   },
   "parameters": [
@@ -4571,18 +4571,18 @@
     },
     {
       "id": "fx_feedback_gain",
-      "byteOffset": 223,
-      "category": "physical",
-      "region": "Firmware",
+      "byteOffset": 304,
+      "category": "virtual",
+      "region": "Virtual",
       "codecType": "value",
-      "byteMapType": "value",
+      "byteMapType": null,
       "enumMax": null,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
       "ccConflict": false,
-      "name": "(firmware metadata)",
-      "desc": "Firmware internal metadata. 116 unique values. Not CRC16/checksum. No DSP impact.",
+      "name": null,
+      "desc": null,
       "defaultValue": null,
       "aliases": [],
       "cppName": "FxFeedbackGain",
@@ -4590,18 +4590,18 @@
     },
     {
       "id": "fx_send_level",
-      "byteOffset": 225,
-      "category": "physical",
-      "region": "Name",
+      "byteOffset": 305,
+      "category": "virtual",
+      "region": "Virtual",
       "codecType": "value",
-      "byteMapType": "ascii",
+      "byteMapType": null,
       "enumMax": null,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
       "ccConflict": false,
-      "name": "Program Name char[1]",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "name": null,
+      "desc": null,
       "defaultValue": null,
       "aliases": [],
       "cppName": "FxSendLevel",
@@ -6852,7 +6852,7 @@
       "type": "value",
       "desc": "Firmware internal metadata. 116 unique values. Not CRC16/checksum. No DSP impact.",
       "enumLabels": null,
-      "id": "fx_feedback_gain"
+      "id": null
     },
     {
       "idx": 224,
@@ -6870,7 +6870,7 @@
       "type": "ascii",
       "desc": "ASCII character of patch name (15 chars in SysEx format)",
       "enumLabels": null,
-      "id": "fx_send_level"
+      "id": null
     },
     {
       "idx": 226,
@@ -7077,9 +7077,9 @@
   ],
   "summary": {
     "total": 235,
-    "physical": 228,
+    "physical": 226,
     "extended": 3,
-    "virtual": 4,
+    "virtual": 6,
     "aliasGroups": 3,
     "enumCount": 49,
     "bipolarCount": 43,

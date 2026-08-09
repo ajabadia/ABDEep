@@ -94,8 +94,11 @@ window.BRIDGE_PARAM_MAPS = (function() {
         'fx4_param8': 213, 'fx4_param9': 214, 'fx4_param10': 215, 'fx4_param11': 216, 'fx4_param12': 217,
         'fx1_gain': 218, 'fx2_gain': 219, 'fx3_gain': 220, 'fx4_gain': 221,
         'fx_mode': 222,
-        'fx_feedback_gain': 223,
-        'fx_send_level': 225,
+        // Params del emulador sin byte físico en el preset DM12 (región 223-238
+        // = nombre del patch real; 223-241 reservado). Se alojan en la región
+        // virtual (>=300) del registro canónico — ver schemas/parameter-registry.json.
+        'fx_feedback_gain': 304,
+        'fx_send_level': 305,
         'vcf_model': 245,
         'vcf_moog_submode': 246,
         'vcf_korg_submode': 247

@@ -4,6 +4,33 @@
 
 ---
 
+## [0.2.3] — 2026-08-09
+
+### 🔒 Fase 1 — Fix de colisión con la región de nombre del preset (RESERVED_BYTE_COLLISION)
+
+- **Bug corregido**: `fx_feedback_gain` (byte 223) y `fx_send_level` (byte 225) se alojaban en
+  la región **reservada** del preset DM12 — verificada con dumps reales: el nombre del patch
+  ocupa 223-238 ("Blue Dolphin BC " empieza en el byte 223; la etiqueta heredada
+  "firmware metadata" de `byte_map_data.js` era falsa). Un parámetro ahí usurparía bytes
+  del nombre.
+- **Migración a la región virtual**: `fx_feedback_gain → 304` y `fx_send_level → 305` en
+  `bridge-param-maps.js` y `ParametersSpec_FX.cpp` (ambos son params del emulador, sin
+  byte físico ni NRPN legítimo en el hardware). `schemas/parameter-registry.json` amplía el
+  rango de `byteOffset` a 0-399 (virtual 300-399).
+- **Validación nueva en `registry_generator.js`**: `RESERVED_BYTE_COLLISION` — error FATAL si
+  un parámetro físico aterriza en 223-241 (nombre 223-238 + cola 239-241). Evita la
+  regresión de esta clase de bug en futuras generaciones.
+- **Guard NRPN en `bridge_connection_midi.js`**: `sendWebMidiParameter` ignora parámetros
+  con `byteOffset >= 300` — antes, offset 305 habría emitido NRPN (MSB=1, LSB=177) que
+  colisiona con un parámetro real del hardware (FX1 Param 12).
+- **Regenerados** los 4 artefactos `.gen` (226 físicos · 3 extendidos · 6 virtuales); byteMap
+  223-241 limpio (id null). Tests: Vitest 4383/4383 ✓ · C++ UnitTests 3.689.132 assertions ✓.
+- *Pendiente conocido*: `byte_map_data.js` aún etiqueta el byte 223 como "(firmware
+  metadata)" y el fix de `validate_sysex_mapping.js` (nombre 223-238) queda para la fase
+  de round-trip.
+
+---
+
 ## [0.2.2] — 2026-08-09
 
 ### 🎯 Presupuesto temporal DEFINITIVO p95/p99/p999 — runner dedicado windows-2022

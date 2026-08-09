@@ -93,8 +93,8 @@
         "byteOffset": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 303,
-          "description": "Offset de byte en el preset: 0-241 físico, 242-299 extendido (AbyssMind Pro), 300+ virtual (chords)."
+          "maximum": 399,
+          "description": "Offset de byte en el preset: 0-241 físico, 242-299 extendido (AbyssMind Pro), 300-399 virtual (chords, fx_feedback_gain=304, fx_send_level=305, ...)."
         },
         "category": {
           "type": "string",

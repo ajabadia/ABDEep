@@ -85,7 +85,7 @@ describe('registry.gen.js — estructura (schemaVersion 1)', () => {
       expect(ids.has(p.id)).toBe(false);
       ids.add(p.id);
       expect(p.byteOffset).toBeGreaterThanOrEqual(0);
-      expect(p.byteOffset).toBeLessThanOrEqual(303);
+      expect(p.byteOffset).toBeLessThanOrEqual(399);
     }
   });
 
@@ -144,14 +144,16 @@ describe('registry.gen.js — paridad byteOffset', () => {
     }
   });
 
-  it('categorías: 228 físicos · 3 extendidos (245-247) · 4 virtuales (300-303)', () => {
+  it('categorías: 226 físicos · 3 extendidos (245-247) · 6 virtuales (300-305)', () => {
     const ext = registry.parameters.filter((p) => p.category === 'extended');
     const virt = registry.parameters.filter((p) => p.category === 'virtual');
     expect(ext.map((p) => p.id).sort()).toEqual(['vcf_korg_submode', 'vcf_model', 'vcf_moog_submode']);
     expect(ext.map((p) => p.byteOffset).sort()).toEqual([245, 246, 247]);
-    expect(virt.map((p) => p.id).sort()).toEqual(['chord_enable', 'chord_key', 'chord_type', 'poly_chord_enable']);
-    expect(virt.map((p) => p.byteOffset).sort()).toEqual([300, 301, 302, 303]);
-    expect(registry.summary.physical).toBe(228);
+    expect(virt.map((p) => p.id).sort()).toEqual([
+      'chord_enable', 'chord_key', 'chord_type', 'fx_feedback_gain', 'fx_send_level', 'poly_chord_enable',
+    ]);
+    expect(virt.map((p) => p.byteOffset).sort()).toEqual([300, 301, 302, 303, 304, 305]);
+    expect(registry.summary.physical).toBe(226);
   });
 });
 
@@ -225,9 +227,9 @@ describe('registry.gen.js — byteMap canónico (242 bytes)', () => {
         expect(b.id).toBeNull();
       }
     }
-    // gaps conocidos sin parámetro: 224 y 226..241
-    expect(registry.byteMap[224].id).toBeNull();
-    for (let i = 226; i <= 241; i++) expect(registry.byteMap[i].id).toBeNull();
+    // Región reservada del preset (nombre del patch 223-238 + cola 239-241):
+    // ningún byte puede tener id tras el fix de fx_feedback_gain/fx_send_level.
+    for (let i = 223; i <= 241; i++) expect(registry.byteMap[i].id).toBeNull();
   });
 });
 
@@ -298,6 +300,77 @@ describe('registry.gen.js — consistencia con schemas/parameter-registry.data.j
       expect(registry.byteMap[i].id).toBe(DATA.byteMap[i].id);
       expect(registry.byteMap[i].region).toBe(DATA.byteMap[i].region);
     }
+  });
+});
+
+// ════════════════════════════════════════════════════════════════
+// 5c. Validación de regiones reservadas (RESERVED_BYTE_COLLISION)
+// ════════════════════════════════════════════════════════════════
+
+describe('registry_generator.js — regiones reservadas del preset', () => {
+  it('el byteMap 223-241 queda sin id (nombre del patch + cola del payload)', () => {
+    for (let i = 223; i <= 241; i++) expect(registry.byteMap[i].id).toBeNull();
+  });
+
+  it('el generador rechaza un parámetro físico en la región reservada (223-241)', () => {
+    const { execFileSync } = require('node:child_process');
+    const { tmpdir } = require('node:os');
+    const fsMod = require('node:fs');
+
+    // Copia temporal del bridge con un parámetro que usurpa el byte 223
+    const srcBridge = path.join(ROOT, 'WebUI', 'js', 'bridge-param-maps.js');
+    const tmpBridge = path.join(tmpdir(), 'bridge-param-maps-reserved-test.js');
+    let code = fsMod.readFileSync(srcBridge, 'utf8');
+    expect(code).toContain("'fx_feedback_gain': 304"); // guardia: el replace debe tener efecto
+    code = code.replace("'fx_feedback_gain': 304", "'fx_feedback_gain': 223");
+    fsMod.writeFileSync(tmpBridge, code);
+
+    // Ejecuta el generador con REGISTRY_BRIDGE sobreescrito y artefactos de salida
+    // APUNTANDO A UN DIR TEMPORAL (nunca toca los .gen commiteados aunque la
+    // validación regresara y la generación llegara a completarse).
+    const tmpOutDir = path.join(tmpdir(), 'registry-reserved-test-out');
+    fsMod.mkdirSync(tmpOutDir, { recursive: true });
+    const genSrc = fsMod.readFileSync(path.join(ROOT, 'scripts', 'registry_generator.js'), 'utf8');
+    const tmpGen = path.join(tmpdir(), 'registry_generator-reserved-test.js');
+    fsMod.writeFileSync(tmpGen, genSrc
+      .replace('const ROOT = path.resolve(__dirname, \'..\');', 'const ROOT = ' + JSON.stringify(ROOT) + ';')
+      .replace(
+        "path.join(ROOT, 'WebUI', 'js', 'bridge-param-maps.js')",
+        JSON.stringify(tmpBridge)
+      )
+      .replace(
+        "path.join(ROOT, 'schemas', 'parameter-registry.data.json')",
+        JSON.stringify(path.join(tmpOutDir, 'data.json'))
+      )
+      .replace(
+        "path.join(ROOT, 'WebUI', 'js', 'registry.gen.js')",
+        JSON.stringify(path.join(tmpOutDir, 'registry.gen.js'))
+      )
+      .replace(
+        "path.join(ROOT, 'Source', 'Core', 'ParameterRegistry.gen.h')",
+        JSON.stringify(path.join(tmpOutDir, 'ParameterRegistry.gen.h'))
+      )
+      .replace(
+        "path.join(ROOT, 'Source', 'Core', 'ParameterRegistry.gen.cpp')",
+        JSON.stringify(path.join(tmpOutDir, 'ParameterRegistry.gen.cpp'))
+      ));
+
+    let output = '';
+    let exitCode = 0;
+    try {
+      execFileSync(process.execPath, [tmpGen], { cwd: ROOT, encoding: 'utf8' });
+    } catch (e) {
+      exitCode = e.status ?? 1;
+      output = String(e.stdout || '') + String(e.stderr || '');
+    }
+    expect(exitCode).toBe(1);
+    expect(output).toContain('RESERVED_BYTE_COLLISION');
+    expect(output).toContain('fx_feedback_gain');
+
+    // Limpieza
+    fsMod.rmSync(tmpBridge, { force: true });
+    fsMod.rmSync(tmpGen, { force: true });
+    fsMod.rmSync(tmpOutDir, { recursive: true, force: true });
   });
 });
 

@@ -92,7 +92,7 @@ function syncFxModalUI() {
         }
         setSendLevelVisibility(modeVal);
 
-        const sendLevel = window._readFxParamValue('fx_send_level', 225, 0.5);
+        const sendLevel = window._readFxParamValue('fx_send_level', 305, 0.5);
         const sendLevelSliderEl = document.getElementById('fx-send-level-slider');
         if (sendLevelSliderEl) {
             const handle = sendLevelSliderEl.querySelector('.handle');
