@@ -73,11 +73,12 @@ jobs:
 
   # ────────────────────────────────────────────────────────────────────────────
   # Allocation audit — Invariante de tiempo real §3.1 del plan v3.2:
-  # processBlock() debe ejecutarse con CERO asignaciones dinámicas.
-  # Ejecuta ABDEep_Benchmarks.exe en el escenario idle y falla si allocs > 0.
+  # processBlock() debe ejecutarse con CERO asignaciones dinámicas en TODA la
+  # configuración. Blindaje: idle (ruta mínima), poly12 (12 voces) y max_all
+  # (Uni12 + modmatrix 32 + Moog 4x + 4 FX r.9). Falla si allocs > 0 en cualquiera.
   # ────────────────────────────────────────────────────────────────────────────
   allocation-audit:
-    name: Allocation audit — 0 allocs in idle processBlock
+    name: Allocation audit — 0 allocs in idle/poly12/max_all
     runs-on: windows-2022
     timeout-minutes: 40
 
@@ -117,23 +118,35 @@ jobs:
         run: |
           cmake --build build --config Release --target ABDEep_Benchmarks
 
-      - name: Run allocation audit (idle scenario, 3 repeats)
+      - name: Run allocation audit (idle, poly12, max_all — 3 repeats each)
         shell: bash
         run: |
           set -o pipefail
-          ./build/ABDEep_Benchmarks_artefacts/Release/ABDEep_Benchmarks.exe --scenario idle > bench.log 2>&1
-          cat bench.log
-          ALLOCS=$(sed -n 's/.*BEST[[:space:]]\+idle.*allocs=\([0-9]*\).*/\1/p' bench.log | head -1)
-          echo "idle allocs per block = ${ALLOCS:-<not found>}"
-          if [ -z "${ALLOCS}" ]; then
-            echo "::error::No se pudo parsear el contador de allocs (falta la linea BEST idle)"
+          FAIL=0
+          for s in idle poly12 max_all; do
+            ./build/ABDEep_Benchmarks_artefacts/Release/ABDEep_Benchmarks.exe --scenario "$s" > "bench_${s}.log" 2>&1
+            grep -q '^BENCH_DONE' "bench_${s}.log" || {
+              echo "::error::benchmark ${s} incompleto (sin BENCH_DONE)"
+              FAIL=1
+              continue
+            }
+            echo "[audit] BEST lines de ${s}:"
+            grep '^BEST' "bench_${s}.log"
+            while IFS= read -r line; do
+              sc=$(printf '%s' "$line" | sed -n 's/^BEST[[:space:]]\+\([^ ]*\).*/\1/p')
+              al=$(printf '%s' "$line" | sed -n 's/.*allocs=\([0-9]*\).*/\1/p')
+              if [ -n "${al}" ] && [ "${al}" -gt 0 ]; then
+                echo "::error::Allocation audit FAILED: ${sc} con ${al} asignaciones por bloque (invariante 3.1: debe ser 0)"
+                FAIL=1
+              fi
+            done < <(grep '^BEST' "bench_${s}.log")
+          done
+          if [ "${FAIL}" -eq 0 ]; then
+            echo "Allocation audit passed: 0 asignaciones en idle, poly12, poly12_fx4 y max_all"
+          else
+            echo "::error::Allocation audit fallo en uno o mas escenarios"
             exit 1
           fi
-          if [ "${ALLOCS}" -gt 0 ]; then
-            echo "::error::Allocation audit FAILED: ${ALLOCS} asignaciones detectadas en idle processBlock (invariante 3.1: debe ser 0)"
-            exit 1
-          fi
-          echo "Allocation audit passed: 0 asignaciones en idle processBlock"
 
   # ────────────────────────────────────────────────────────────────────────────
   # Benchmark — presupuesto temporal definitivo p95/p99/p999 (§3.3 plan v3.2).

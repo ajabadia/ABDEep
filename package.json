@@ -29,8 +29,7 @@
   },
   "homepage": "https://github.com/ajabadia/ABDEep#readme",
   "dependencies": {
-    "jspdf": "^4.2.1",
-    "patchwork-deepmind": "^0.3.0"
+    "jspdf": "^4.2.1"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.10",
