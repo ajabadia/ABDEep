@@ -18,7 +18,8 @@ on:
       - ".github/workflows/dsp-ci.yml"
 
 permissions:
-  contents: read
+  contents: write
+  workflows: write
 
 concurrency:
   group: dsp-ci-${{ github.ref }}
@@ -159,9 +160,6 @@ jobs:
     name: Benchmark — definitive p95/p99/p999 (18 scenarios)
     runs-on: windows-2022
     timeout-minutes: 90
-    permissions:
-      contents: write
-      workflows: write
 
     env:
       CI: true
