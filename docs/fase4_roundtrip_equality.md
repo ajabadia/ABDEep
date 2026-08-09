@@ -247,6 +247,8 @@ node scripts/roundtrip_corpus.js [--banks A,B] [--json] [--classify] [--out f.js
 - [x] Property-Based Testing / Fuzzing acotado: invariantes + límites `500 B` / `100 ms`.
 - [ ] **Nivel 3b — Hardware-in-the-loop**: dumps reales en hardware físico (obligatorio previo
   a cualquier release que modifique el protocolo SysEx o NRPN — §5). Requiere hardware DM12.
+  Procedimiento completo (4 fases) + checklist pre-release en
+  `docs/fase4_nivel3b_hardware_in_the_loop.md`.
 
 Pendiente de Fases posteriores: WASM/capabilities (Fase 5) y retirada legacy +
 `Logger.deprecation` (Fase 6). Jobs CI de Fase 7 relacionados: `roundtrip-corpus`

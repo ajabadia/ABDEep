@@ -4,6 +4,32 @@
 
 ---
 
+## [0.2.22] — 2026-08-09
+
+### 🧪 Nivel 3b (Hardware-in-the-Loop) — procedimiento documentado + checklist pre-release
+
+- **Nueva `docs/fase4_nivel3b_hardware_in_the_loop.md`** (plan v3.2 §5 — obligatorio
+  previo a cualquier release que modifique el protocolo SysEx o NRPN):
+  - **Herramientas del proyecto** para la validación (tabla): Web MIDI `sysex: true`,
+    `requestBankDump`, `buildSingleSysex`/`createProgramDumpSysex` (paridad C++/JS),
+    `bridge-midi-rx.js` (banco/prog de `data[8]`/`data[9]`), `validateSinglePatchSysexRoundTrip`,
+    `ParameterStore` + eco NRPN (CC38, TTL 300ms, `isEcho`), FSM `HardwareMidiService`,
+    `HardwareExporter` (nombre 16 chars ASCII), hashes `schemas/corpus-hashes.json`.
+  - **Procedimiento en 4 fases**: 3.0 preparación (Local Control OFF, Rx/Tx SysEx ON,
+    permiso Web MIDI, FSM `ready`); 3.1 **Baseline** (dumps A–H, comparación con el
+    corpus y `--classify`); 3.2 **Round-trip de programa** (envío → dump →
+    `validateSinglePatchSysexRoundTrip` + Niveles 1/2); 3.3 **Ciclo NRPN** (transacción,
+    eco de confirmación, rollback, virtuales ≥300 sin NRPN); 3.4 **Región de nombre**
+    (223–238, saneado, cola 239–241 intacta).
+  - **Checklist pre-release A–E** (baseline/protocolo, round-trip, NRPN, nombre,
+    cierre): TODO verde si el release toca SysEx/NRPN/byte-map; Fase A basta como smoke
+    para releases solo-UI/DSP. Cierre: dumps commiteados como referencia + reporte
+    `docs/reports/nivel3b-<YYYYMMDD>.json` + CHANGELOG.
+- **Docs enlazadas**: `docs/fase4_roundtrip_equality.md` §8 y nota de Fase 4 del plan
+  apuntan al nuevo procedimiento. Cambio 100% documental (sin código ni tests tocados).
+
+---
+
 ## [0.2.21] — 2026-08-09
 
 ### 🏷️ `roundtrip_corpus.js` — registro explícito de clasificación por preset (`--classify`)

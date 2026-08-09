@@ -168,7 +168,9 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > `runABCompareReport`, banco en letra 'A'-'H', `coerceBytes` para patches clonados por deepClone).
 > `scripts/roundtrip_corpus.js` corre la batería sobre los 8 bancos A-H (1024 presets) con
 > `--classify` (tabla por preset exact/canonical/semantic → 804/210/10 en el corpus de fábrica).
-> Queda pendiente el Nivel 3b (hardware-in-the-loop, §5 — requiere hardware físico). Ver `docs/fase4_roundtrip_equality.md`.
+> Queda pendiente el Nivel 3b (hardware-in-the-loop, §5 — requiere hardware físico);
+> procedimiento (4 fases) + checklist pre-release en `docs/fase4_nivel3b_hardware_in_the_loop.md`.
+> Ver `docs/fase4_roundtrip_equality.md`.
 > Vitest: 92 files / 4576 tests / 0 fallos.
 
 ### Fase 5: Rendimiento Tiempo Real, Capabilities y Bridge WASM
