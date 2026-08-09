@@ -135,17 +135,33 @@ function showRenameModal(patch, onSave) {
     const closeModal = () => { backdrop.style.display = 'none'; };
     closeBtn.onclick = closeModal;
     cancelBtn.onclick = closeModal;
-    saveBtn.onclick = () => {
-        const val = input.value.trim();
-        if (val) { onSave(val); }
+
+    // Fase 3 (§4.2): el nombre entra al modelo ya validado contra el protocolo SysEx
+    // (máx 16 chars ASCII imprimibles). Si el usuario escribió caracteres no válidos
+    // (unicode, control) o excedió la longitud, se normaliza y se avisa.
+    const commitName = () => {
+        const raw = input.value;
+        const validator = (typeof window.PatchNameValidator === 'object' && window.PatchNameValidator)
+            ? window.PatchNameValidator
+            : null;
+        let finalName;
+        if (validator) {
+            const result = validator.validate(raw);
+            finalName = result.sanitized;
+            if (!result.valid && result.errors.length) {
+                alert('⚠️ ' + result.errors[0] + '\n\nSe usará: "' + (finalName || '…') + '"');
+            }
+        } else {
+            finalName = raw.trim();
+        }
+        if (finalName) { onSave(finalName); }
         closeModal();
     };
 
+    saveBtn.onclick = commitName;
     input.onkeydown = (e) => {
         if (e.key === 'Enter') {
-            const val = input.value.trim();
-            if (val) { onSave(val); }
-            closeModal();
+            commitName();
         } else if (e.key === 'Escape') {
             closeModal();
         }

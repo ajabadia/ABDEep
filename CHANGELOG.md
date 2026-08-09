@@ -4,6 +4,40 @@
 
 ---
 
+## [0.2.13] — 2026-08-09
+
+### 🏷️ Fase 3 §4.2 — PatchNameValidator + PatchNameRenderer + HardwareExporter
+
+- **Nuevo `WebUI/js/patch_name.js`** (UMD, cargado tras `dom_sanitize.js`):
+  - **`PatchNameValidator`**: valida nombres contra el protocolo SysEx — máx **16 chars**
+    (campo 223–238, límite verificado en dumps reales; se documentó la divergencia con
+    el "15 chars" del plan v3.2 §4.2 y se resolvió con el protocolo verificado),
+    solo ASCII imprimible 0x20–0x7E, con `sanitize()` (recorta/descarta no-ASCII/trunca),
+    `writeIntoUnpacked()` (relleno 0x20) y `readFromUnpacked()`.
+  - **`PatchNameRenderer`**: inserción segura en UI **solo vía `textContent`** (nunca
+    innerHTML) — cumple la política XSS del §4.1 para nombres.
+  - **`HardwareExporter`**: `prepareForSysEx(patch)` devuelve una **copia** del patch con
+    el nombre limitado a 16 chars ASCII imprimibles en los bytes 223–238 **sin mutar el
+    modelo original** (`patch.name`/`patch.unpackedBytes` intactos); `inspect()` expone
+    el detalle estructurado de validación.
+- **Integración en los 2 puntos de salida a hardware**: `exportSinglePatch`
+  (`browser_io_parse_export.js`) y `sendPatchToHardware` (`bridge-sysex.js`) pasan por
+  `HardwareExporter.prepareForSysEx` antes de `buildSingleSysex` — el SysEx emitido lleva
+  siempre el nombre saneado sin corromper el preset en memoria.
+- **`WebUI/tests/patchNameValidator.test.js` (16 tests)**: validación (16 chars, ASCII,
+  vacío), sanitize, write/read bytes 223–238, renderer textContent (payload XSS como
+  texto plano), no-mutación del modelo, truncado + descarte de unicode, `inspect` y
+  **integración end-to-end** con `buildSingleSysex` real (el nombre truncado aparece en
+  unpacked 223–238 del SysEx de 291 bytes y round-trip con `extractNameFromRawSysex`).
+- **Post-reviewer**: `prepareForSysEx` conserva el nombre embebido en los bytes cuando
+  el modelo no tiene `.name` (parches `{unpackedBytes}` sin regresión vs comportamiento
+  histórico de `buildSingleSysex`); `showRenameModal` (`browser_modals.js`) valida con
+  `PatchNameValidator` ANTES de escribir el nombre en el modelo (unicode/largo →
+  normalizado + alerta), evitando que nombres inválidos entren a localStorage.
+- **Verificación**: Vitest **90 files / 4510 tests / 0 fallos** (+18); ESLint 0 errores.
+
+---
+
 ## [0.2.12] — 2026-08-09
 
 ### 🛡️ Fase 3 — Auditoría de sinks DOM y sanitización de nombres de patch (Plan v3.2 §4)

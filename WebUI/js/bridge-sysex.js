@@ -126,7 +126,13 @@
             }
         }
         if (this.midiOutput && patch.unpackedBytes) {
-            const syxMsg = window.buildSingleSysex ? window.buildSingleSysex(patch) : patch.unpackedBytes;
+            // Fase 3 (§4.2): el nombre transmitido al hardware se limita a 16 chars
+            // ASCII imprimibles SIN mutar el patch original (se envía una copia saneada).
+            const exportPrep = (typeof window.HardwareExporter === 'object' && window.HardwareExporter)
+                ? window.HardwareExporter.prepareForSysEx(patch)
+                : null;
+            const txPatch = (exportPrep && exportPrep.patch) ? exportPrep.patch : patch;
+            const syxMsg = window.buildSingleSysex ? window.buildSingleSysex(txPatch) : txPatch.unpackedBytes;
             this.midiOutput.send(syxMsg);
             return true;
         }

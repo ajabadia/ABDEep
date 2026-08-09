@@ -85,7 +85,14 @@ function exportSinglePatch(patch, fileName, forceJson) {
         return exportSinglePatchJson(patch, fileName);
     }
 
-    const syxMsg = window.buildSingleSysex ? window.buildSingleSysex(patch) : patch.unpackedBytes;
+    // Fase 3 (§4.2): el nombre exportado a hardware se limita a 16 chars ASCII
+    // imprimibles SIN alterar el modelo original (se exporta una copia saneada).
+    const exportPrep = (typeof window.HardwareExporter === 'object' && window.HardwareExporter)
+        ? window.HardwareExporter.prepareForSysEx(patch)
+        : null;
+    const exportPatch = (exportPrep && exportPrep.patch) ? exportPrep.patch : patch;
+
+    const syxMsg = window.buildSingleSysex ? window.buildSingleSysex(exportPatch) : exportPatch.unpackedBytes;
     const blob = new Blob([syxMsg], { type: 'application/octet-stream' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
