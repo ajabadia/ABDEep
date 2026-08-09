@@ -378,11 +378,20 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
 
 ## 8. Estado y próximos pasos
 
-> **2026-08-09 — actualizado:** Fases 1/2/3/4/5 completadas (verificadas con suites verdes y
-> jobs CI dedicados); el punto 1 quedó resuelto en la sección 6.
+> **2026-08-10 — actualizado:** Fase 0 cerrada documentalmente; Fases 1/2/3/4/5 completadas
+> (verificadas con suites verdes y jobs CI dedicados); el punto 1 quedó resuelto en la sección 6.
 
 ### ✅ Completadas
 
+0. **Fase 0 — Inventario, Baseline y Perfilado (Pre-requisito):** este documento es la
+   baseline exacta exigida por el plan — suites (102 files / 4681 tests WebUI + 126 suites /
+   3.689.164 assertions C++), cobertura (§2), hashes A–H (§4 + `schemas/corpus-hashes.json`,
+   verificados por el job `roundtrip-corpus` con `--check-hashes`), percentiles
+   p95/p99/p999 de `processBlock()` en µs (§5.3, presupuesto DEFINITIVO desde runner
+   dedicado windows-2022: `p95 = 4029.5 µs` · `p99 = 4100.3 µs` · `p999 = 4392.2 µs`) y
+   audit de asignaciones (§5.1/6: 0 allocs/bloque en los 18 escenarios, blindado por el job
+   `allocation-audit`). El guard `baselineGuard.test.js` y el job `benchmark` custodian que
+   los números no deriven.
 1. ~~Decidir sobre el fix de las 66 allocs/bloque~~ — **RESUELTO** (sección 6): 0 asignaciones
    por bloque en audio thread en los 18 escenarios; la serialización XML vive ahora en
    `getDiagnosticSnapshot()` (hilo de control).

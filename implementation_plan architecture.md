@@ -131,7 +131,22 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 ## 📅 7. Plan de Fases de Ejecución
 
 ### Fase 0: Inventario, Baseline y Perfilado (Pre-requisito)
-- [ ] Registrar baseline exacta en CI: número de test suites, cobertura, hashes de presets A–H, percentiles temporales ($\text{p95}$, $\text{p99}$, $\text{p999}$) en $\mu\text{s}$ de `processBlock()` y audit de asignaciones.
+- [x] Registrar baseline exacta en CI: número de test suites, cobertura, hashes de presets A–H, percentiles temporales ($\text{p95}$, $\text{p99}$, $\text{p999}$) en $\mu\text{s}$ de `processBlock()` y audit de asignaciones.
+
+> **2026-08-10 — Completado.** Baseline exacta registrada y custodiada en
+> `docs/baseline_fase0_v32.md` (referencia de Fase 0):
+> - **Suites:** WebUI 102 files / 4681 tests (0 fallos, 2 skipped) + guard
+>   `baselineGuard.test.js` anti-drift; C++ 126 suites / 3.689.164 assertions.
+> - **Cobertura:** sección 2 (`npx vitest run --coverage`).
+> - **Hashes A–H:** sección 4 + `schemas/corpus-hashes.json` — verificados en CI por el
+>   job `roundtrip-corpus` (`--check-hashes`, corpus INMUTABLE).
+> - **Percentiles p95/p99/p999 de `processBlock()`:** sección 5.3 — presupuesto
+>   DEFINITIVO desde runner dedicado windows-2022 (job `benchmark`): `p95 = 4029.5 µs`,
+>   `p99 = 4100.3 µs`, `p999 = 4392.2 µs` (envuelta de los 18 escenarios), 0 overruns.
+> - **Audit de asignaciones:** sección 5.1/6 — 0 allocs/bloque en los 18 escenarios
+>   (fix de las 66 allocs de `updateVoiceSnapshot`), blindado por el job
+>   `allocation-audit` (idle/poly12/max_all).
+> Todos los números tienen job CI dedicado (Fase 7) que los hace fallar si derivan.
 
 ### Fase 1: Esquema Declarativo, Generador y Pre-validación
 - [x] Crear `schemas/parameter-registry.json` (`schemaVersion: 1`).

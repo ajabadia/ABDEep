@@ -4,6 +4,24 @@
 
 ---
 
+## [0.2.38] — 2026-08-10
+
+### 🏁 Fase 0 COMPLETADA — Cierre documental del pre-requisito (baseline, perfilado, audit)
+
+- **`implementation_plan architecture.md`**: checkbox de Fase 0 marcado `[x]` con nota de
+  cierre — la baseline exacta exigida (suites, cobertura, hashes A–H, percentiles
+  p95/p99/p999 de `processBlock()` y audit de asignaciones) está registrada y
+  custodiada en `docs/baseline_fase0_v32.md` con job CI dedicado por cada número
+  (`benchmark`, `allocation-audit`, `roundtrip-corpus --check-hashes`, guard
+  `baselineGuard.test.js`).
+- **`docs/baseline_fase0_v32.md` §8**: Fase 0 añadida como item 0 de completadas
+  (resumen de los números vigentes y sus jobs custodios) + nota del header actualizada
+  a 2026-08-10. Con esto el plan queda con **todas las fases 0-7 completadas**; único
+  pendiente: Nivel 3b (hardware-in-the-loop con DM12 físico).
+- Cambio 100% documental — sin código ni tests tocados.
+
+---
+
 ## [0.2.37] — 2026-08-10
 
 ### 🔎 docs-verification — validación de la mención del workflow en los bullets de plan y baseline
