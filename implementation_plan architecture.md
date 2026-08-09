@@ -190,7 +190,7 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 - [x] Job `security-scan` (`.github/workflows/security-scan.yml`): audit XSS estático sobre TODO `WebUI/js` (236 archivos) vía `scripts/security_scan.js` — falla si hay violaciones.
 - [x] Job `property-fuzzing` (`.github/workflows/property-fuzzing.yml`): fuzzing acotado multi-seed vía `scripts/fuzz_roundtrip.js` (16 seeds deterministas × 500 casos = 8.000 casos — incluye seeds de casos límite: mínimos, máscaras de byte/16-bit, bits alternados y máximo uint32 —, registro real `registry.gen.js`, Max Payload 500B / Max Timeout 100ms/caso del plan) — **falla ante violaciones de propiedad** (codec_invariance / codec_payload_bound / codec_throws / decode_encode_stability); los timeouts (dependientes del reloj de pared) se reportan como warning y no rompen CI. También añadido el job `fase4-corpus` (batería round-trip A-H completa en `roundtrip-corpus.yml`).
 - [x] Job `wasm-build` (`.github/workflows/wasm-build.yml`): compila el DSP a WebAssembly (emcmake + cmake --build wasm/build en ubuntu-latest con Emscripten; shim `juce_core` gitignored copiado desde JUCE 8.0.12 + patch `ThreadPriorities` como `wasm/build_wasm.bat`) y verifica con `scripts/check_wasm_build.js`: artefactos `abdeep_dsp.{js,wasm}` no vacíos con EXPORT_NAME `ABDEepDSP` y las 9 funciones de `EXPORTED_FUNCTIONS` en el glue, **≥ 9 exports de función en el .wasm** (con `-O3 --strip-all` Emscripten minifica los nombres de export del binario — el conteo es la invariante), **sección Memory con `initial >= 512` páginas (32 MiB)** = reserva fija §3.4 de `wasminitengine()` y **invariante fuente**: `WasmBridge.cpp` preasigna `gAudioBuffer` en init y no reasigna por bloque si la capacidad alcanza (`getNumSamples() < numSamples`). Falla con `::error::wasm-build` si cualquier invariante se rompe.
-- [ ] Jobs pendientes: `pluginval`.
+- [x] Job `pluginval` (`.github/workflows/pluginval.yml`): valida el plugin VST3 en windows-2022 con **Tracktion/pluginval pinneda a v1.0.4** (asset `pluginval_Windows.zip`, determinismo como JUCE 8.0.12 y Emscripten 3.1.64): build del target `ABDEep_Standalone_VST3` (FORMATS Standalone VST3, bundle-directorio `*_artefacts/Release/VST3/*.vst3` con moduleinfo.json + DLL x86_64-win) y validación con la invocación canónica de `scripts/verify_release.ps1` — `--strictness-level 5 --seed 42 --validate "<vst3>"`. Falla con `::error::pluginval` si la validación no pasa (ALL TESTS PASSED esperado, mismo estándar que el checklist §17 de `plugin_quality_checklist.md`). **Con esto Fase 7 queda 100% completada.**
 
 > **2026-08-09 — registry-generation completado.** Verificación local end-to-end de los pasos
 > exactos del job: `node scripts/registry_generator.js` → exit 0, 4 artefactos regenerados,
@@ -205,7 +205,17 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > resultados) en `docs/baseline_fase0_v32.md` §7 «CI — estado de Fase 7». Todos
 > verificados en local: property-fuzzing 8.000 casos → 0 violaciones/timeouts;
 > fase4-corpus 1024/1024 en los 3 niveles (804 exact · 210 canonical · 10 semantic);
-> registry-generation exit 0 con 0 diffs de contenido. Pendiente único: `pluginval`.
+> registry-generation exit 0 con 0 diffs de contenido.
+
+> **2026-08-09 — Fase 7 COMPLETADA (último job: pluginval).** Nuevo
+> `.github/workflows/pluginval.yml` (windows-2022): build del target
+> `ABDEep_Standalone_VST3` + validación con pluginval v1.0.4 pinneda,
+> `--strictness-level 5 --seed 42 --validate` (invocación canónica de
+> `scripts/verify_release.ps1`). Verificado localmente: artefacto VST3 bundle
+> presente en `build/ABDEep_Standalone_artefacts/Release/VST3/ABD Eep.vst3`
+> (DLL x86_64-win 10.9 MB) y descarga del asset `pluginval_Windows.zip` v1.0.4
+> (HTTP 200, 2.4 MB). `vst3val` no existe como repo público (404) — pluginval
+> sigue siendo la herramienta canónica. Todos los checkboxes de Fase 7 marcados.
 
 > **2026-08-09 — roundtrip-corpus completado.** Con la corrección de cabecera de 10 bytes
 > (0.2.4) el validador queda en **0 errores / 0 warnings en los 1024 presets** (antes: 146

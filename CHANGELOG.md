@@ -4,6 +4,31 @@
 
 ---
 
+## [0.2.27] — 2026-08-09
+
+### 🏁 Fase 7 COMPLETADA — Job CI `pluginval` (último pendiente)
+
+- **`.github/workflows/pluginval.yml`** (windows-2022, timeout 45 min): valida el
+  plugin VST3 con **Tracktion/pluginval pinneda a v1.0.4** (asset
+  `pluginval_Windows.zip` — determinismo CI, como JUCE 8.0.12 y Emscripten 3.1.64):
+  - Build del target `ABDEep_Standalone_VST3` (FORMATS Standalone VST3); el VST3 es
+    un bundle-directorio `*_artefacts/Release/VST3/ABD Eep.vst3/` con
+    `moduleinfo.json` + DLL x86_64-win, localizado con el glob canónico de
+    `scripts/verify_release.ps1`.
+  - Validación con la invocación canónica del repo: `pluginval --strictness-level 5
+    --seed 42 --validate "<vst3>"` (estándar de la industria, checklist §17) —
+    falla con `::error::pluginval` si no hay ALL TESTS PASSED, publicando el log
+    como artefacto diagnóstico en fallo.
+  - Verificado local: artefacto VST3 presente (10.9 MB) y descarga del asset
+    `pluginval_Windows.zip` v1.0.4 (HTTP 200). `vst3val` no existe como repo
+    público (404) — pluginval sigue siendo la herramienta canónica.
+- **Test guard `WebUI/tests/pluginvalWorkflow.test.js`** (8 tests): pin v1.0.4,
+  strictness 5 + seed 42, glob VST3, target de build, validación en pwsh,
+  `::error::pluginval` y patrón Fase 7 (concurrency/permissions).
+- **Cierre**: `implementation_plan architecture.md` Fase 7 100% marcada (checkbox
+  `pluginval` ✅ + nota de cierre); `docs/baseline_fase0_v32.md` §7 con los bullets
+  `wasm-build` y `pluginval` (lista completa de Fase 7).
+
 ## [0.2.26] — 2026-08-09
 
 ### 📄 Fase 7 — Documentación de los jobs CI completados (property-fuzzing, fase4-corpus, registry-generation)

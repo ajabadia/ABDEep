@@ -304,6 +304,32 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
     generador (Linux en vez de Windows) y cobertura del generador sin el wrapper PS1.
   - **Verificado**: regeneración → exit 0, 0 diffs de contenido (solo timestamp).
     Registro: 235 parámetros (226 físicos · 3 extendidos · 6 virtuales).
+- ✅ **Job `wasm-build`** en `.github/workflows/wasm-build.yml` (ubuntu-latest,
+  Emscripten **pinneda a 3.1.64**): compila el DSP a WebAssembly
+  (`emcmake cmake -S wasm -B wasm/build` con shim `juce_core` gitignored copiado
+  desde JUCE 8.0.12 + patch `ThreadPriorities`, como `wasm/build_wasm.bat`) y
+  verifica con `scripts/check_wasm_build.js` que **`wasminitengine`/preasignación
+  se mantienen** (plan §3.4): artefactos `abdeep_dsp.{js,wasm}` no vacíos con las 9
+  funciones de `EXPORTED_FUNCTIONS` en el glue, **≥ 9 exports de función en el
+  .wasm** (con `-O3 --strip-all` Emscripten minifica los nombres de export del
+  binario — el conteo es la invariante, los nombres viven en el glue) y **sección
+  Memory con `initial >= 512` páginas (32 MiB)** = reserva fija preasignada en
+  `wasminitengine()`. Verificado local: 13 exports, Memory 512 páginas, exit 0.
+- ✅ **Job `pluginval`** en `.github/workflows/pluginval.yml` (windows-2022,
+  timeout 45 min) — **último job de Fase 7**: valida el plugin VST3 con
+  **Tracktion/pluginval pinneda a v1.0.4** (asset `pluginval_Windows.zip`, 2.4 MB,
+  determinismo CI como JUCE 8.0.12 y Emscripten 3.1.64):
+  - **Build**: `cmake --build build --config Release --target ABDEep_Standalone_VST3`
+    (FORMATS Standalone VST3 del `juce_add_plugin`); el VST3 es un **bundle-directorio**
+    `build/ABDEep_Standalone_artefacts/Release/VST3/ABD Eep.vst3/` con
+    `moduleinfo.json` + DLL `Contents/x86_64-win` (10.9 MB) — se localiza con el glob
+    `*_artefacts/Release/VST3/*.vst3` (mismo que `scripts/verify_release.ps1`).
+  - **Validación**: invocación canónica del repo — `pluginval --strictness-level 5
+    --seed 42 --validate "<vst3>"` (estándar de la industria, checklist §17 de
+    `plugin_quality_checklist.md`); falla con `::error::pluginval` si no hay
+    **ALL TESTS PASSED**, publicando `pluginval.log` como artefacto diagnóstico.
+  - **Nota `vst3val`**: no existe como repo público (404) — pluginval sigue siendo
+    la herramienta canónica de validación VST3 en CI.
 - Local: el benchmark requiere `cmake` del VS (el del PATH mezcla versiones 4.2/4.4 y
   rompe la re-configuración) — usar `build.bat` o el cmake de VS explícitamente.
 

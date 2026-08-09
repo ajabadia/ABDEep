@@ -1,0 +1,123 @@
+name: Pluginval CI
+
+# pluginval (Fase 7 del plan v3.2 §7) — validación del plugin VST3 con la
+# herramienta de facto de la industria (Tracktion/pluginval). Último job pendiente
+# de Fase 7. Reproduce la invocación canónica de scripts/verify_release.ps1:
+#   pluginval --strictness-level 5 --seed 42 --validate "<vst3>"
+# - El binario se PINNEA a v1.0.4 (determinismo, como JUCE 8.0.12 y Emscripten
+#   3.1.64): https://github.com/Tracktion/pluginval/releases/download/v1.0.4/...
+# - El VST3 se construye con el target `ABDEep_Standalone_VST3` (FORMATS
+#   Standalone VST3) y se localiza con el glob `*_artefacts/Release/VST3/*.vst3`
+#   (bundle-directorio JUCE con moduleinfo.json + DLL x86_64-win).
+# - pluginval es headless-friendly en runners windows-2022 (test de facto de la
+#   mayoría de plugins JUCE en CI); el runtime WebView2 ya viene preinstalado.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "Source/**"
+      - "CMakeLists.txt"
+      - "build.bat"
+      - ".github/workflows/pluginval.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "Source/**"
+      - "CMakeLists.txt"
+      - "build.bat"
+      - ".github/workflows/pluginval.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pluginval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pluginval:
+    name: Pluginval — VST3 strictness 5 (seed 42)
+    runs-on: windows-2022
+    timeout-minutes: 45
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Fetch JUCE 8.0.12 (no submodule; CMake falls back to ./JUCE)
+        shell: bash
+        run: |
+          if [ ! -d JUCE ]; then
+            git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+          fi
+          echo "JUCE at: $PWD/JUCE"
+
+      - name: Fetch WebView2 SDK (juce_add_plugin exige find_package(WebView2) al configurar)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP/wv2/Microsoft.Web.WebView2.1.0.3800.47" | Out-Null
+          Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.3800.47" -OutFile "$env:RUNNER_TEMP/wv2/pkg.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP/wv2/pkg.zip" -DestinationPath "$env:RUNNER_TEMP/wv2/Microsoft.Web.WebView2.1.0.3800.47" -Force
+          Write-Host "WebView2 SDK listo en $env:RUNNER_TEMP/wv2"
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Configure CMake (model 2 — Enhanced)
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2 -DJUCE_WEBVIEW2_PACKAGE_LOCATION="${{ runner.temp }}/wv2"
+
+      - name: Build VST3 target (ABDEep_Standalone_VST3)
+        run: |
+          cmake --build build --config Release --target ABDEep_Standalone_VST3
+
+      - name: Download pluginval v1.0.4 (pinned)
+        shell: pwsh
+        run: |
+          $pvZip = "$env:RUNNER_TEMP\pluginval_Windows.zip"
+          Invoke-WebRequest -Uri "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_Windows.zip" -OutFile $pvZip
+          Expand-Archive -Path $pvZip -DestinationPath "$env:RUNNER_TEMP\pluginval" -Force
+          Get-ChildItem "$env:RUNNER_TEMP\pluginval" -Recurse -Filter "pluginval.exe" | Select-Object -First 1 -ExpandProperty FullName
+
+      - name: Run pluginval validation (strictness 5, seed 42)
+        # Todo el paso en pwsh (mismo shell que la descarga y que
+        # scripts/verify_release.ps1) — evita la fragilidad de mezclar $RUNNER_TEMP
+        # Windows con separadores de ruta en bash/Git Bash.
+        shell: pwsh
+        run: |
+          $vst3 = Get-ChildItem "build\*_artefacts\Release\VST3\*.vst3" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $vst3) {
+            Write-Host "::error::pluginval — no se encontro VST3 en build/*_artefacts/Release/VST3/"
+            exit 1
+          }
+          $pv = Get-ChildItem "$env:RUNNER_TEMP\pluginval" -Recurse -Filter "pluginval.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $pv) {
+            Write-Host "::error::pluginval — no se encontro pluginval.exe en RUNNER_TEMP\pluginval"
+            exit 1
+          }
+          Write-Host "Validando: $($vst3.FullName)"
+          Write-Host "pluginval: $($pv.FullName)"
+          & $pv.FullName --strictness-level 5 --seed 42 --validate $vst3.FullName *> pluginval.log
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::pluginval — validacion fallida (strictness 5, seed 42). Ver pluginval.log"
+            Get-Content pluginval.log
+            exit $LASTEXITCODE
+          }
+          Write-Host "pluginval: ALL TESTS PASSED (strictness 5, seed 42)"
+          Get-Content pluginval.log | Select-String -Pattern "ALL TESTS PASSED|PASSED" | Select-Object -First 3
+
+      - name: Publish pluginval log (on failure diagnostics)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pluginval-log-${{ github.run_id }}
+          path: pluginval.log
+          if-no-files-found: ignore
+          retention-days: 30
