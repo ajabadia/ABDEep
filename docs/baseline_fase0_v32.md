@@ -437,5 +437,9 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
 
 ### ⏳ Pendientes
 
-- **Nivel 3b (Fase 4, §5):** hardware-in-the-loop con DM12 físico — procedimiento en
+- **Nivel 3b (Fase 4, §5):** primera corrida hardware-in-the-loop ejecutada el
+  2026-08-10 (Fases A–D ✅ con DM12 real, `exact_match` en baseline; reporte en
+  `docs/reports/nivel3b-20260810.json`). Falta el cierre ✅ del Nivel 3b: dumps
+  completos de los 8 bancos + SHA-256 vs `schemas/corpus-hashes.json` y validación
+  vía la WebUI real (HardwareExporter/ParameterStore). Procedimiento en
   `docs/fase4_nivel3b_hardware_in_the_loop.md`.

@@ -1,0 +1,107 @@
+{
+  "schema": "nivel3b-report",
+  "schemaVersion": 1,
+  "corrida": "2026-08-10",
+  "hardware": {
+    "modelo": "Behringer DeepMind 12",
+    "firmware": "no capturado (el cliente MCP no expone versión de firmware)",
+    "deviceId": "no capturado (snapshot por edit-buffer, sin dump de cabecera)",
+    "interfaz": "Web MIDI (SysEx) via MCP deepmind12"
+  },
+  "resumen": {
+    "estado": "ejecutado_parcialmente",
+    "fases_completadas": ["A", "B", "C", "D"],
+    "checklist_release": "A-D parcialmente verde; 3b NO se marca completo en el plan hasta checklist A-E 100%",
+    "hallazgos": []
+  },
+  "fases": {
+    "A": {
+      "titulo": "Baseline del hardware (edit buffer vs corpus de fábrica)",
+      "descripcion": "Snapshot MCP del edit buffer real comparado byte a byte contra el preset A/0 del corpus Factory Banks V1.1.2 (vía loadCorpusFromBanks).",
+      "resultado": "exact_match",
+      "detalle": {
+        "patchHardware": "Blue Dolphin BC ",
+        "patchCorpus": "Blue Dolphin BC ",
+        "bytesIdenticos": 242,
+        "bytesDiferentes": 0,
+        "regionNombre": "223-238 OK (byte-map confirmado con datos reales)",
+        "nota": "Valida de forma independiente: unpack 7->8 del payload, parseo del edit buffer y la región de nombre 223-238"
+      }
+    },
+    "B": {
+      "titulo": "Round-trip de programa (escritura NRPN -> lectura)",
+      "descripcion": "NRPN 39 (filter.cutoff) enviado a raw 100; snapshot posterior del edit buffer leído de vuelta.",
+      "resultado": "ok",
+      "detalle": {
+        "parametro": "filter.cutoff",
+        "byte": 39,
+        "valorEnviado": 100,
+        "valorLeido": 100,
+        "delta": 0,
+        "nota": "El eco real del hardware confirma el round-trip escritura->lectura del byte-map"
+      }
+    },
+    "C": {
+      "titulo": "Ciclo NRPN y parámetros virtuales",
+      "descripcion": "Intento de setear fx_feedback_gain (byteOffset 304, virtual, sin NRPN físico).",
+      "resultado": "ok",
+      "detalle": {
+        "parametro": "fx_feedback_gain",
+        "byteOffset": 304,
+        "comportamiento": "rechazado por el cliente MCP sin emitir mensaje al hardware",
+        "snapshotPosterior": "edit buffer idéntico al anterior (solo el cambio intencional de cutoff=100), sin bytes corruptos",
+        "nota": "Los parámetros virtuales (>=300) no tocan el hardware"
+      }
+    },
+    "D": {
+      "titulo": "Región de nombre (223-238) con caracteres límite",
+      "descripcion": "Escritura directa de 16 bytes con caracteres especiales en 223-238 vía patch_edit_buffer; lectura de vuelta.",
+      "resultado": "ok",
+      "detalle": {
+        "nombreEscrito": "Hi<>&\"'ABCDEFGHI",
+        "longitud": 16,
+        "nombreLeido": "Hi<>&\"'ABCDEFGHI",
+        "roundTrip": "idéntico byte a byte (sin truncado ni corrupción con <>&\"')",
+        "nota": "El hardware acepta y devuelve la región de nombre sin alteraciones"
+      }
+    }
+  },
+  "restauracion": {
+    "descripcion": "Preset A/0 original restaurado en el hardware al finalizar (nombre 'Blue Dolphin BC ' + cutoff=42) y verificado con snapshot final.",
+    "estado": "verificado_byte_a_byte",
+    "detalle": {
+      "filter.cutoff": 42,
+      "nombre": "Blue Dolphin BC ",
+      "coincideConBaseline": true
+    }
+  },
+  "checklistRelease": {
+    "A_baseline": {
+      "estado": "parcial",
+      "verificado": ["edit buffer == corpus A/0 exacto (exact_match)", "región nombre 223-238 byte-map"],
+      "pendiente": ["requestBankDump(0..7) de los 8 bancos completos", "hashes SHA-256 vs schemas/corpus-hashes.json", "roundtrip_corpus.js --classify sobre dumps completos"]
+    },
+    "B_roundtrip": {
+      "estado": "parcial",
+      "verificado": ["escritura NRPN -> lectura de vuelta (delta 0)"],
+      "pendiente": ["sendPatchToHardware completo via HardwareExporter + validateSinglePatchSysexRoundTrip en UI"]
+    },
+    "C_nrpn": {
+      "estado": "verificado",
+      "verificado": ["virtuales >=300 no emiten NRPN", "sin bytes corruptos tras intento"],
+      "pendiente": ["eco CC38 con ParameterStore TTL 300ms en la UI real (isEcho, sin re-escritura del slider)"]
+    },
+    "D_nombre": {
+      "estado": "parcial",
+      "verificado": ["16 chars con <>&\"' round-trip idéntico"],
+      "pendiente": ["nombres no-ASCII saneados via HardwareExporter en UI", "cola 239-241 tras re-nombrar via UI"]
+    },
+    "E_cierre": {
+      "estado": "pendiente",
+      "verificado": [],
+      "pendiente": ["dumps completos como referencia de regresión en resources/hardware_dumps/", "desviaciones documentadas", "CHANGELOG (hecho: 0.2.39)"]
+    }
+  },
+  "herramientasUsadas": ["deepmind12__snapshot_state", "deepmind12__set_param", "deepmind12__patch_edit_buffer"],
+  "notaPrecondicion": "Según docs/fase4_nivel3b_hardware_in_the_loop.md §5, el Nivel 3b NO se marca completado en el plan hasta que el checklist A-E esté 100% verde. Esta corrida verifica el byte-map/protocolo a nivel de edit buffer; faltan los dumps completos de banco y la validación vía la WebUI real (HardwareExporter/ParameterStore)."
+}

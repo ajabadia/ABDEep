@@ -6,7 +6,9 @@
 > > *Dumps reales en hardware físico — **obligatorio previo a cualquier release que
 > > modifique el protocolo SysEx o NRPN**.*
 >
-> Estado: **pendiente de ejecución** (requiere hardware DM12 físico) · Fecha doc: 2026-08-09
+> Estado: **ejecutado parcialmente** — Fases A–D verificadas con DM12 real (2026-08-10),
+> checklist A–E de release aún no 100% (faltan dumps completos de banco + validación vía
+> WebUI) · Fecha doc: 2026-08-09 · Reporte: `docs/reports/nivel3b-20260810.json`
 > · Doc de la batería de Fase 4: `docs/fase4_roundtrip_equality.md`
 
 ---
@@ -169,3 +171,32 @@ marca el Nivel 3b como completado en `docs/fase4_roundtrip_equality.md` §8 y en
 
 **Precondición para marcar 3b ✅ en el plan**: checklist A–E 100 % verde en una corrida
 con hardware físico (no simulada).
+
+---
+
+## 6. Registro de ejecución — 2026-08-10 (DM12 físico vía MCP Web MIDI)
+
+Corrida en hardware real (interfaz Web MIDI SysEx, cliente MCP `deepmind12`).
+Reporte completo: `docs/reports/nivel3b-20260810.json`. Resultado por fase:
+
+| Fase | Prueba | Resultado | Evidencia |
+|------|--------|-----------|-----------|
+| **A** | Baseline: snapshot del edit buffer vs corpus A/0 | ✅ `exact_match` | **242/242 bytes idénticos**, 0 diffs — nombre "Blue Dolphin BC " en 223–238 confirmado en ambos |
+| **B** | Round-trip NRPN: `filter.cutoff` (byte 39) → 100 | ✅ ok | Snapshot de vuelta: raw **100** (delta 0) — eco real del hardware |
+| **C** | Virtuales: `fx_feedback_gain` (byteOffset 304) | ✅ ok | Rechazado por el cliente sin emitir MIDI; snapshot posterior **sin bytes corruptos** |
+| **D** | Nombre límite: `Hi<>&"'ABCDEFGHI` (16 chars) en 223–238 | ✅ ok | Round-trip **idéntico byte a byte** (sin truncado ni corrupción) |
+
+**Restauración**: preset A/0 original devuelto al hardware (nombre "Blue Dolphin BC " +
+`filter.cutoff`=42) y verificado con snapshot final byte a byte.
+
+### Checklist tras la corrida (estado 2026-08-10)
+
+- **A–D**: verificados los ítems de byte-map/protocolo a nivel de **edit buffer** (MCP).
+- **Pendiente para el cierre ✅ del Nivel 3b** (checklist A–E 100 %):
+  1. `requestBankDump(0..7)` de los **8 bancos completos** y comparación SHA-256 vs
+     `schemas/corpus-hashes.json` + `roundtrip_corpus.js --classify` sobre los dumps.
+  2. Validación vía la **WebUI real** (`sendPatchToHardware` → `HardwareExporter` →
+     `validateSinglePatchSysexRoundTrip`, eco CC38 con `ParameterStore` TTL 300 ms,
+     `isEcho` sin re-escritura del slider).
+  3. Nombres **no-ASCII** saneados vía `HardwareExporter` y cola 239–241 intacta.
+  4. Dumps completos commiteados como referencia de regresión en `resources/hardware_dumps/`.

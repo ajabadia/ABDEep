@@ -4,6 +4,27 @@
 
 ---
 
+## [0.2.39] — 2026-08-10
+
+### 🎛️ Nivel 3b — primera corrida hardware-in-the-loop con DM12 físico (Fases A–D)
+
+Primera ejecución del Nivel 3b (§5 del plan v3.2) con hardware real vía Web MIDI:
+
+- **Fase A (Baseline):** snapshot del edit buffer == preset A/0 del corpus de fábrica,
+  **242/242 bytes idénticos** (`exact_match`); byte-map y región de nombre 223–238
+  confirmados con datos reales.
+- **Fase B (Round-trip NRPN):** `filter.cutoff` (byte 39) → raw 100; snapshot de vuelta
+  raw 100 (delta 0) — eco real del hardware.
+- **Fase C (Virtuales):** `fx_feedback_gain` (byteOffset 304, sin NRPN) rechazado por el
+  cliente sin emitir MIDI; edit buffer posterior intacto.
+- **Fase D (Nombre límite):** 16 chars `Hi<>&"'ABCDEFGHI` en 223–238 hacen round-trip
+  idéntico byte a byte (sin truncado ni corrupción).
+- **Restauración verificada:** preset A/0 original devuelto (nombre "Blue Dolphin BC " +
+  cutoff 42), confirmado con snapshot final.
+- Reporte estructurado: `docs/reports/nivel3b-20260810.json`; checklist A–E del doc
+  actualizado (A–D a nivel de edit buffer; pendientes: dumps completos de banco + SHA-256
+  + validación vía WebUI real).
+
 ## [0.2.38] — 2026-08-10
 
 ### 🏁 Fase 0 COMPLETADA — Cierre documental del pre-requisito (baseline, perfilado, audit)
