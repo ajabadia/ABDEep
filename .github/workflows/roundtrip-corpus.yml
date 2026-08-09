@@ -1,0 +1,57 @@
+name: Round-trip Corpus CI
+
+# Round-trip del corpus de fábrica (§5 Nivel 3a del plan v3.2).
+# Valida los 8 factory banks A-H (1024 presets) contra el byte map
+# (scripts/validate_sysex_mapping.js) y verifica los hashes SHA-256 de
+# referencia (schemas/corpus-hashes.json). Falla si un preset viola el
+# mapeo o si un banco .syx fue alterado (corpus INMUTABLE).
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/validate_sysex_mapping.js"
+      - "WebUI/js/byte_map_data.js"
+      - "schemas/corpus-hashes.json"
+      - "schemas/parameter-registry.data.json"
+      - "resources/banks/**"
+      - ".github/workflows/roundtrip-corpus.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/validate_sysex_mapping.js"
+      - "WebUI/js/byte_map_data.js"
+      - "schemas/corpus-hashes.json"
+      - "schemas/parameter-registry.data.json"
+      - "resources/banks/**"
+      - ".github/workflows/roundtrip-corpus.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: roundtrip-corpus-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  roundtrip-corpus:
+    name: Validate 8 banks A-H vs byte map + SHA-256 hashes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate byte map against factory banks (1024 presets) + check SHA-256 hashes
+        run: |
+          node scripts/validate_sysex_mapping.js --check-hashes

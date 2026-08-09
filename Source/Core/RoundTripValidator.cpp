@@ -130,7 +130,7 @@ bool RoundTripValidator::runPatch3LayerRoundTrip (const std::array<uint8_t, 242>
         {
             allowedDelta = 0; // Enums deben ser exactos
         }
-        else if (i >= 224 && i <= 238)
+        else if (i >= 223 && i <= 238)
         {
             allowedDelta = 0; // Nombre del preset exacto
         }
@@ -140,7 +140,7 @@ bool RoundTripValidator::runPatch3LayerRoundTrip (const std::array<uint8_t, 242>
         }
 
         // Clasificación
-        if (i >= 224 && i <= 238)
+        if (i >= 223 && i <= 238)
         {
             entry.classification = "name-byte";
             report.nameBytesCount++;
@@ -193,13 +193,15 @@ bool RoundTripValidator::validateSinglePatchSysexRoundTrip (const std::vector<ui
         return false;
     }
 
-    // Cabecera esperada: F0 00 20 32 20 7F 02 07 (F0 00 20 32 20 como fabricante, etc.)
+    // Cabecera esperada (cmd 0x02, Program Dump Response):
+    //   F0 00 20 32 20 <dev> 02 <proto> <bank> <prog> ... F7
+    // Nota: syxMessage[9] es el número de programa (0-127) — NO es una constante.
     bool headerValid = (syxMessage[0] == 0xF0 &&
                         syxMessage[1] == 0x00 &&
                         syxMessage[2] == 0x20 &&
                         syxMessage[3] == 0x32 &&
                         syxMessage[4] == 0x20 &&
-                        syxMessage[9] == 0x00 && // Reservado
+                        syxMessage[6] == 0x02 &&
                         syxMessage[290] == 0xF7); // Footer
 
     if (!headerValid)

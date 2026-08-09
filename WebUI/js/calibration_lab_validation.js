@@ -30,7 +30,7 @@ function runRoundTripValidation(bytes) {
     const paramIds = maps.byteOffsetToParamIds[i] || [];
 
     let classification;
-    if (i >= 224 && i <= 238) {
+    if (i >= 223 && i <= 238) {
       classification = 'name-byte';
       nameBytesCount++;
     } else if (i >= 239 && i <= 241) {

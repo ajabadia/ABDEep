@@ -67,10 +67,14 @@ function pack8to7(unpackedBytes) {
 
 function extractNameFromRawSysex(rawSysex, baseOffset) {
   baseOffset = baseOffset || 0;
-  const rawOffsets = [];
-  for (let j = 265; j <= 271; j++) {rawOffsets.push(j);}
-  for (let j = 273; j <= 279; j++) {rawOffsets.push(j);}
-  rawOffsets.push(281);
+  // Nombre = unpacked 223-238 (16 chars). Cabecera de 10 bytes (base-10, idéntico a
+  // browser_packer.js): 265 (unpacked 223), 267-273 (unpacked 224-230),
+  // 275-281 (unpacked 231-237), 283 (unpacked 238). Para mensajes con cabecera de
+  // 8 bytes (cmd 0x04) se pasa baseOffset -2.
+  const rawOffsets = [265];
+  for (let j = 267; j <= 273; j++) {rawOffsets.push(j);}
+  for (let j = 275; j <= 281; j++) {rawOffsets.push(j);}
+  rawOffsets.push(283);
 
   const nameChars = [];
   for (let idx = 0; idx < rawOffsets.length; idx++) {
@@ -98,8 +102,8 @@ function createEmptyBank() {
   for (let i = 0; i < 128; i++) {
     const defaultUnpacked = new Uint8Array(242);
     const nameStr = 'INIT PATCH ' + (i + 1);
-    for (let k = 0; k < 15; k++) {
-      defaultUnpacked[224 + k] = k < nameStr.length ? nameStr.charCodeAt(k) : 0x20;
+    for (let k = 0; k < 16; k++) {
+      defaultUnpacked[223 + k] = k < nameStr.length ? nameStr.charCodeAt(k) : 0x20;
     }
     defaultUnpacked[39] = 255;
     defaultUnpacked[80] = 0;
@@ -148,8 +152,10 @@ function buildSingleSysex(patch) {
   syxMsg[4] = 0x20;
   syxMsg[5] = 0x7F;
   syxMsg[6] = 0x02;
-  syxMsg[7] = 0x07;
-  syxMsg.set(packed, 8);
+  syxMsg[7] = 0x07; // Banco por defecto (0 = A)
+  syxMsg[8] = 0x00; // Programa por defecto (0-127)
+  syxMsg[9] = 0x00; // Reservado (protocolo)
+  syxMsg.set(packed, 10);
   syxMsg[290] = 0xF7;
   return syxMsg;
 }
@@ -162,7 +168,7 @@ function parseSyxFile(bytes) {
   const patches = [];
   for (let i = 0; i < Math.min(128, num); i++) {
     const offset = i * patchSize;
-    const packedPayload = bytes.slice(offset + 8, offset + 286);
+    const packedPayload = bytes.slice(offset + 10, offset + 288);
     const unpackedBytes = unpack7to8(packedPayload);
     const patchName = extractNameFromRawSysex(bytes, offset) || 'Patch ' + (i + 1);
     patches.push({
@@ -301,13 +307,14 @@ describe('SysEx packing — unpack7to8 / pack8to7', () => {
 describe('extractNameFromRawSysex', () => {
   function makeRawSysexWithName(name, offset) {
     offset = offset || 0;
-    const raw = new Uint8Array(offset + 282); // 265-271 + 273-279 + 281
-    // Offsets: 265-271 (7), skip 272, 273-279 (7), skip 280, 281 (1)
-    const nameOffsets = [];
-    for (let j = 265; j <= 271; j++) {nameOffsets.push(j);}
-    for (let j = 273; j <= 279; j++) {nameOffsets.push(j);}
-    nameOffsets.push(281);
-    for (let k = 0; k < Math.min(name.length, 15); k++) {
+    const raw = new Uint8Array(offset + 284);
+    // Offsets (cabecera 10 bytes): 265 (1), skip 266, 267-273 (7), skip 274,
+    // 275-281 (7), skip 282, 283 (1) = 16 total
+    const nameOffsets = [265];
+    for (let j = 267; j <= 273; j++) {nameOffsets.push(j);}
+    for (let j = 275; j <= 281; j++) {nameOffsets.push(j);}
+    nameOffsets.push(283);
+    for (let k = 0; k < Math.min(name.length, 16); k++) {
       raw[offset + nameOffsets[k]] = name.charCodeAt(k);
     }
     return raw;
@@ -333,7 +340,7 @@ describe('extractNameFromRawSysex', () => {
 
   it('skips SOH character (1) and continues until null', () => {
     const raw = makeRawSysexWithName('SYNTH');
-    raw[269] = 1; // replace 'H' with SOH (1)
+    raw[270] = 1; // replace 'H' (nameOffsets[4] = 270) with SOH (1)
     const name = extractNameFromRawSysex(raw);
     expect(name).toBe('SYNT');
   });
@@ -341,12 +348,12 @@ describe('extractNameFromRawSysex', () => {
   it('handles baseOffset correctly for bank concatenation', () => {
     const raw1 = makeRawSysexWithName('PATCH A', 0);
     const raw2 = makeRawSysexWithName('PATCH B', 0);
-    const combinedSize = 282 * 2;
+    const combinedSize = 284 * 2;
     const combined = new Uint8Array(combinedSize);
     combined.set(raw1);
-    combined.set(raw2, 282);
+    combined.set(raw2, 284);
     const name1 = extractNameFromRawSysex(combined, 0);
-    const name2 = extractNameFromRawSysex(combined, 282);
+    const name2 = extractNameFromRawSysex(combined, 284);
     expect(name1).toBe('PATCH A');
     expect(name2).toBe('PATCH B');
   });
@@ -366,15 +373,15 @@ describe('extractNameFromRawSysex', () => {
   it('returns partial name when null byte in middle', () => {
     const raw = makeRawSysexWithName('KEYS');
     // Set null byte after position 2 within the name
-    // nameOffsets[2] = 267
-    raw[267] = 0;
+    // nameOffsets[2] = 268
+    raw[268] = 0;
     const name = extractNameFromRawSysex(raw);
     expect(name).toBe('KE'); // stops at null after 2 chars
   });
 
   it('filters 0x7F (DEL) characters', () => {
     const raw = makeRawSysexWithName('PAD');
-    raw[267] = 0x7F; // DEL character
+    raw[268] = 0x7F; // DEL character (nameOffsets[2] = 268)
     const name = extractNameFromRawSysex(raw);
     // 0x7F is not < 127, so it passes the check? No, function checks: c >= 32 && c < 127
     // 0x7F = 127 is NOT < 127, so it's filtered out
@@ -430,11 +437,11 @@ describe('createEmptyBank', () => {
     expect(bank[1].unpackedBytes[0]).not.toBe(99);
   });
 
-  it('patch names are written into unpackedBytes at offset 224-238', () => {
+  it('patch names are written into unpackedBytes at offset 223-238', () => {
     const bank = createEmptyBank();
     const nameBytes = [];
-    for (let k = 0; k < 15; k++) {
-      nameBytes.push(bank[0].unpackedBytes[224 + k]);
+    for (let k = 0; k < 16; k++) {
+      nameBytes.push(bank[0].unpackedBytes[223 + k]);
     }
     const nameFromBytes = String.fromCharCode.apply(null, nameBytes).replace(/\x20+$/, '').trim();
     expect(nameFromBytes).toBe('INIT PATCH 1');
@@ -641,7 +648,7 @@ describe('buildSingleSysex', () => {
     expect(syx.length).toBe(291);
   });
 
-  it('starts with SysEx header F0 00 20 32 20 7F 02 07', () => {
+  it('starts with SysEx header F0 00 20 32 20 7F 02 07 00 00', () => {
     const bank = createEmptyBank();
     const syx = buildSingleSysex(bank[0]);
     expect(syx[0]).toBe(0xF0);
@@ -652,6 +659,8 @@ describe('buildSingleSysex', () => {
     expect(syx[5]).toBe(0x7F);
     expect(syx[6]).toBe(0x02);
     expect(syx[7]).toBe(0x07);
+    expect(syx[8]).toBe(0x00);
+    expect(syx[9]).toBe(0x00);
   });
 
   it('ends with 0xF7 (SysEx end)', () => {
@@ -660,32 +669,31 @@ describe('buildSingleSysex', () => {
     expect(syx[290]).toBe(0xF7);
   });
 
-  it('contains packed payload at bytes 8-285 (278 bytes)', () => {
+  it('contains packed payload at bytes 10-287 (278 bytes)', () => {
     const bank = createEmptyBank();
     const patch = bank[0];
     const expectedPacked = pack8to7(patch.unpackedBytes);
     const syx = buildSingleSysex(patch);
     for (let i = 0; i < 278; i++) {
-      expect(syx[8 + i]).toBe(expectedPacked[i]);
+      expect(syx[10 + i]).toBe(expectedPacked[i]);
     }
   });
 
-  it('bytes 286-289 are correctly zero (padding after payload)', () => {
+  it('bytes 288-289 are correctly zero (padding after payload)', () => {
     const bank = createEmptyBank();
     const syx = buildSingleSysex(bank[0]);
-    // payload is 278 bytes (8..285), then 286-289 padding, then 290 = 0xF7
-    expect(syx[286]).toBe(0);
-    expect(syx[287]).toBe(0);
+    // payload is 278 bytes (10..287), then 288-289 padding, then 290 = 0xF7
     expect(syx[288]).toBe(0);
     expect(syx[289]).toBe(0);
+    expect(syx[290]).toBe(0xF7);
   });
 
   it('can round-trip through parseSyxFile (single patch)', () => {
     const bank = createEmptyBank();
-    // Update both name AND unpackedBytes[224..238]
+    // Update both name AND unpackedBytes[223..238]
     bank[0].name = 'TEST PATCH';
-    for (let k = 0; k < 15; k++) {
-      bank[0].unpackedBytes[224 + k] = k < bank[0].name.length ? bank[0].name.charCodeAt(k) : 0x20;
+    for (let k = 0; k < 16; k++) {
+      bank[0].unpackedBytes[223 + k] = k < bank[0].name.length ? bank[0].name.charCodeAt(k) : 0x20;
     }
     const syx = buildSingleSysex(bank[0]);
     const parsed = parseSyxFile(syx);
@@ -765,11 +773,11 @@ describe('parseSyxFile', () => {
   it('extracts name from each patch in a multi-patch bank', () => {
     const bytes = new Uint8Array(2 * 291);
     const bank = createEmptyBank();
-    // Update both names AND unpackedBytes[224..238]
+    // Update both names AND unpackedBytes[223..238]
     ['PATCH ONE', 'PATCH TWO'].forEach(function(name, i) {
       bank[i].name = name;
-      for (let k = 0; k < 15; k++) {
-        bank[i].unpackedBytes[224 + k] = k < name.length ? name.charCodeAt(k) : 0x20;
+      for (let k = 0; k < 16; k++) {
+        bank[i].unpackedBytes[223 + k] = k < name.length ? name.charCodeAt(k) : 0x20;
       }
     });
     const syx0 = buildSingleSysex(bank[0]);

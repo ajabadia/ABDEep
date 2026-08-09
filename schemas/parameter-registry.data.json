@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-09T08:32:55.843Z",
+  "generatedAt": "2026-08-09T08:53:08.021Z",
   "sourceHashes": {
     "parametersSpec": "0f1bbce5fa10c8f6840c6de519222031dc530077a024e708f85ef353bc094378",
     "bridgeParamMaps": "781091b5bce1b77ecdac4dc1d952584b9d2fc084a38e13530f4ba041cd177186",
-    "byteMapData": "0af89fdecfaad0cdfb1acd5ee69a02e0f9d43b554caf6103a4e1b105dd0681ff"
+    "byteMapData": "fc9acdcbd69efd5bdfef2985d03efe1e8c13a14fd29fa4bc6cd6fb93bf388d78"
   },
   "parameters": [
     {
@@ -6847,145 +6847,145 @@
     },
     {
       "idx": 223,
-      "param": "(firmware metadata)",
-      "region": "Firmware",
-      "type": "value",
-      "desc": "Firmware internal metadata. 116 unique values. Not CRC16/checksum. No DSP impact.",
+      "param": "Program Name char[0]",
+      "region": "Name",
+      "type": "ascii",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 224,
-      "param": "Program Name char[0]",
+      "param": "Program Name char[1]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 225,
-      "param": "Program Name char[1]",
+      "param": "Program Name char[2]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 226,
-      "param": "Program Name char[2]",
+      "param": "Program Name char[3]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 227,
-      "param": "Program Name char[3]",
+      "param": "Program Name char[4]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 228,
-      "param": "Program Name char[4]",
+      "param": "Program Name char[5]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 229,
-      "param": "Program Name char[5]",
+      "param": "Program Name char[6]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 230,
-      "param": "Program Name char[6]",
+      "param": "Program Name char[7]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 231,
-      "param": "Program Name char[7]",
+      "param": "Program Name char[8]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 232,
-      "param": "Program Name char[8]",
+      "param": "Program Name char[9]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 233,
-      "param": "Program Name char[9]",
+      "param": "Program Name char[10]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 234,
-      "param": "Program Name char[10]",
+      "param": "Program Name char[11]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 235,
-      "param": "Program Name char[11]",
+      "param": "Program Name char[12]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 236,
-      "param": "Program Name char[12]",
+      "param": "Program Name char[13]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 237,
-      "param": "Program Name char[13]",
+      "param": "Program Name char[14]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },
     {
       "idx": 238,
-      "param": "Program Name char[14]",
+      "param": "Program Name char[15]",
       "region": "Name",
       "type": "ascii",
-      "desc": "ASCII character of patch name (15 chars in SysEx format)",
+      "desc": "ASCII character of patch name (16 chars in SysEx format)",
       "enumLabels": null,
       "id": null
     },

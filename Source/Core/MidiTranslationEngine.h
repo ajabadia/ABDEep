@@ -149,11 +149,15 @@ public:
         juce::MemoryBlock out;
         out.ensureSize ((packedLength * 7) / 8, false);
 
-        for (size_t i = 0; i + 7 < packedLength; i += 8)
+        // Decodifica también el último grupo parcial (1 byte de flags + hasta 5 bytes de
+        // datos, packed 272-277) → unpacked 238-242. Sin esto se perderían unpacked
+        // 238-241 (char 15 del nombre del preset + región Tail).
+        for (size_t i = 0; i < packedLength; i += 8)
         {
             uint8_t msbByte = packedData[i] & 0x7F;
             for (int j = 0; j < 7; ++j)
             {
+                if (i + 1 + j >= packedLength) break;
                 uint8_t low7 = packedData[i + 1 + j] & 0x7F;
                 uint8_t msb = (msbByte >> j) & 0x01;
                 uint8_t originalByte = low7 | (msb << 7);

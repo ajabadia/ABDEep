@@ -42,7 +42,11 @@ void AudioABValidationViewComponent::chooseSysExFile()
                 return;
             }
 
-            auto unpacked = MidiTranslationEngine::unpackDeepMindSysEx(rawData + 8, size - 8);
+            // Cabecera real: 10 bytes para cmd 0x02 (Program Dump Response) y 8 para
+            // cmd 0x04 (Edit Buffer Dump Response).
+            //   F0 00 20 32 20 <dev> 02 <proto> <bank> <prog>
+            const int headerLen = (size > 7 && rawData[6] == 0x02) ? 10 : 8;
+            auto unpacked = MidiTranslationEngine::unpackDeepMindSysEx(rawData + headerLen, size - headerLen);
             if (unpacked.getSize() < 242)
             {
                 testPatchLabel.setText("ERROR: Invalid or corrupt SysEx file.", juce::dontSendNotification);
@@ -56,7 +60,7 @@ void AudioABValidationViewComponent::chooseSysExFile()
             testPatchLoaded = true;
 
             char nameBuf[17];
-            std::memcpy(nameBuf, testPatchBytes.data() + 224, 16);
+            std::memcpy(nameBuf, testPatchBytes.data() + 223, 16);
             nameBuf[16] = '\0';
             juce::String patchName(nameBuf);
             patchName = patchName.trim();
@@ -91,7 +95,7 @@ void AudioABValidationViewComponent::generateTestSysEx()
 
     juce::String nameStr = "CALIB_TEST_RAW";
     for (int i = 0; i < 16; ++i)
-        rawBytes[224 + i] = (i < nameStr.length()) ? static_cast<uint8_t>(nameStr[i]) : ' ';
+        rawBytes[223 + i] = (i < nameStr.length()) ? static_cast<uint8_t>(nameStr[i]) : ' ';
 
     // Pack 242 raw bytes to 7-bit SysEx payload
     auto packBlock = [](const uint8_t* src, int count, std::vector<uint8_t>& dest)
@@ -199,7 +203,7 @@ void AudioABValidationViewComponent::pullSysExFromHardware()
                 testPatchLoaded = true;
 
                 char nameBuf[17];
-                std::memcpy(nameBuf, testPatchBytes.data() + 224, 16);
+                std::memcpy(nameBuf, testPatchBytes.data() + 223, 16);
                 nameBuf[16] = '\0';
                 juce::String patchName(nameBuf);
                 patchName = patchName.trim();
@@ -252,7 +256,7 @@ void AudioABValidationViewComponent::sendSysExToHardware(const std::vector<uint8
             if (unpacked.getSize() >= 242)
             {
                 char nameBuf[17];
-                std::memcpy(nameBuf, static_cast<const uint8_t*>(unpacked.getData()) + 224, 16);
+                std::memcpy(nameBuf, static_cast<const uint8_t*>(unpacked.getData()) + 223, 16);
                 nameBuf[16] = '\0';
                 currentHardwarePatchName = juce::String(nameBuf).trim();
                 break;

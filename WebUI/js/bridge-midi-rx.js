@@ -86,8 +86,13 @@
                     let bankLetter = 'A';
                     
                     if (cmd === 0x02) {
-                        bankIndex = data[7] & 0x07;  // Leer banco desde el byte 7 del encabezado
-                        progIndex = data[8] & 0x7F;  // Leer programa desde el byte 8 del encabezado
+                        // Cabecera cmd 0x02 (Program Dump Response):
+                        //   F0 00 20 32 20 <dev> 02 <proto> <bank> <prog>
+                        // (banco/programa en [8]/[9] según el decoder de referencia
+                        // patchwork-deepmind; los archivos de fábrica confirman [9]=prog,
+                        // con [8]=0 en los dumps exportados).
+                        bankIndex = data[8] & 0x07;  // Byte 8 = banco (0-7 = A-H)
+                        progIndex = data[9] & 0x7F;  // Byte 9 = programa (0-127)
                         bankLetter = String.fromCharCode(65 + bankIndex);
                     }
 

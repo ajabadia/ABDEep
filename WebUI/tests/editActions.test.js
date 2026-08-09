@@ -71,8 +71,8 @@ function runEditActions(options) {
             patch.unpackedBytes = new Uint8Array(globalClipboardBytes);
             patch.name = globalClipboardName;
 
-            for (let k = 0; k < 15; k++) {
-                patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
+            for (let k = 0; k < 16; k++) {
+                patch.unpackedBytes[223 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
             }
 
             triggerMidiDump(patch);
@@ -229,16 +229,16 @@ describe('editActions — Paste preset', function() {
         expect(saveCalled).toBe(true);
     });
 
-    it('writes patch name bytes into unpackedBytes[224..238]', function() {
+    it('writes patch name bytes into unpackedBytes[223..238]', function() {
         actions.doPaste();
         const bytes = bank['User Bank'][0].unpackedBytes;
-        // 'My Synth' → char codes at offset 224+
-        expect(bytes[224]).toBe('M'.charCodeAt(0));
-        expect(bytes[225]).toBe('y'.charCodeAt(0));
-        expect(bytes[230]).toBe('t'.charCodeAt(0));
-        expect(bytes[231]).toBe('h'.charCodeAt(0));
+        // 'My Synth' (8 chars) → char codes at offset 223+
+        expect(bytes[223]).toBe('M'.charCodeAt(0));
+        expect(bytes[224]).toBe('y'.charCodeAt(0));
+        expect(bytes[229]).toBe('t'.charCodeAt(0));
+        expect(bytes[230]).toBe('h'.charCodeAt(0));
         // After name, fill with spaces (0x20)
-        expect(bytes[232]).toBe(0x20);
+        expect(bytes[231]).toBe(0x20);
         expect(bytes[238]).toBe(0x20);
     });
 

@@ -65,7 +65,7 @@ function parseSysexBytes(bytes) {
     // Caso 1: Buffer desempaquetado exacto de 242 bytes
     if (bytes.length === 242) {
         let patchName = '';
-        for (let i = 223; i <= 237; i++) {
+        for (let i = 223; i <= 238; i++) {
             const c = bytes[i];
             if (c >= 32 && c < 127) {
                 patchName += String.fromCharCode(c);
@@ -89,8 +89,10 @@ function parseSysexBytes(bytes) {
                 return parsed.patches[0];
             }
         } else if (bytes.length >= 40) {
-            // SysEx empaquetado genérico DeepMind
-            const packedPayload = bytes.slice(10, Math.min(bytes.length - 1, 288));
+            // SysEx empaquetado genérico DeepMind. Cabecera: 10 bytes para cmd 0x02
+            // (Program Dump Response), 8 para cmd 0x04 (Edit Buffer Dump Response).
+            const headerLen = (bytes[6] === 0x02) ? 10 : 8;
+            const packedPayload = bytes.slice(headerLen, Math.min(bytes.length - 1, headerLen + 278));
             const unpackedBytes = window.unpack7to8 ? window.unpack7to8(packedPayload) : new Uint8Array(242);
             const patchName = window.extractNameFromRawSysex ? window.extractNameFromRawSysex(bytes, 0) : 'Pasted Patch';
             return {
@@ -105,7 +107,7 @@ function parseSysexBytes(bytes) {
     const padded242 = new Uint8Array(242);
     padded242.set(bytes.slice(0, Math.min(bytes.length, 242)));
     let patchName = '';
-    for (let i = 223; i <= 237; i++) {
+    for (let i = 223; i <= 238; i++) {
         const c = padded242[i];
         if (c >= 32 && c < 127) {
             patchName += String.fromCharCode(c);

@@ -47,7 +47,7 @@ void PatchDiffViewComponent::loadPatchFromFile (bool isA)
                         if (unpacked.getSize() >= 242)
                         {
                             char nameBuf[17];
-                            std::memcpy (nameBuf, (const char*)unpacked.getData() + 224, 16);
+                            std::memcpy (nameBuf, (const char*)unpacked.getData() + 223, 16);
                             nameBuf[16] = '\0';
                             juce::String patchName (nameBuf);
                             patchName = patchName.trim();

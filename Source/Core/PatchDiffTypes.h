@@ -40,7 +40,7 @@ public:
         if (offset == 40)                     return "HPF";
         if (offset >= 88 && offset <= 90)     return "Drift";
         if (offset >= 165 && offset <= 219)    return "FX";
-        if (offset >= 224 && offset <= 238)    return "Program Name";
+        if (offset >= 223 && offset <= 238)    return "Program Name";
         return "Global/Other";
     }
 

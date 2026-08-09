@@ -73,8 +73,8 @@ function createEmptyBank() {
     for (let i = 0; i < 128; i++) {
         const defaultUnpacked = new Uint8Array(242);
         const nameStr = `INIT PATCH ${i+1}`;
-        for (let k = 0; k < 15; k++) {
-            defaultUnpacked[224 + k] = k < nameStr.length ? nameStr.charCodeAt(k) : 0x20;
+        for (let k = 0; k < 16; k++) {
+            defaultUnpacked[223 + k] = k < nameStr.length ? nameStr.charCodeAt(k) : 0x20;
         }
         defaultUnpacked[39] = 255;
         defaultUnpacked[80] = 0;

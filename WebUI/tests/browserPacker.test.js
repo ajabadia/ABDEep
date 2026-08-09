@@ -67,10 +67,14 @@ function pack8to7(unpackedBytes) {
 
 function extractNameFromRawSysex(rawSysex, baseOffset) {
     baseOffset = baseOffset || 0;
-    const rawOffsets = [];
-    for (let j = 265; j <= 271; j++) {rawOffsets.push(j);}
-    for (let j = 273; j <= 279; j++) {rawOffsets.push(j);}
-    rawOffsets.push(281);
+    // Nombre = unpacked 223-238 (16 chars). Cabecera de 10 bytes (base-10, idéntico a
+    // browser_packer.js): 265 (unpacked 223), 267-273 (unpacked 224-230),
+    // 275-281 (unpacked 231-237), 283 (unpacked 238). Para mensajes con cabecera de
+    // 8 bytes (cmd 0x04) se pasa baseOffset -2.
+    const rawOffsets = [265];
+    for (let j = 267; j <= 273; j++) {rawOffsets.push(j);}
+    for (let j = 275; j <= 281; j++) {rawOffsets.push(j);}
+    rawOffsets.push(283);
 
     const nameChars = [];
     for (let idx = 0; idx < rawOffsets.length; idx++) {
@@ -94,8 +98,10 @@ function buildSingleSysex(patch) {
     syxMsg[4] = 0x20;
     syxMsg[5] = 0x7F;
     syxMsg[6] = 0x02;
-    syxMsg[7] = 0x07;
-    syxMsg.set(packed, 8);
+    syxMsg[7] = 0x07; // Banco por defecto (0 = A)
+    syxMsg[8] = 0x00; // Programa por defecto (0-127)
+    syxMsg[9] = 0x00; // Reservado (protocolo)
+    syxMsg.set(packed, 10);
     syxMsg[290] = 0xF7;
     return syxMsg;
 }
@@ -106,12 +112,14 @@ function buildSingleSysex(patch) {
 
 function makeRawSysexWithName(name, offset) {
     offset = offset || 0;
-    const raw = new Uint8Array(offset + 282);
-    const nameOffsets = [];
-    for (let j = 265; j <= 271; j++) {nameOffsets.push(j);}
-    for (let j = 273; j <= 279; j++) {nameOffsets.push(j);}
-    nameOffsets.push(281);
-    for (let k = 0; k < Math.min(name.length, 15); k++) {
+    const raw = new Uint8Array(offset + 284);
+    // Offsets (cabecera 10 bytes): 265 (1), skip 266, 267-273 (7), skip 274,
+    // 275-281 (7), skip 282, 283 (1) = 16 total
+    const nameOffsets = [265];
+    for (let j = 267; j <= 273; j++) {nameOffsets.push(j);}
+    for (let j = 275; j <= 281; j++) {nameOffsets.push(j);}
+    nameOffsets.push(283);
+    for (let k = 0; k < Math.min(name.length, 16); k++) {
         raw[offset + nameOffsets[k]] = name.charCodeAt(k);
     }
     return raw;
@@ -120,8 +128,8 @@ function makeRawSysexWithName(name, offset) {
 function createDefaultPatch() {
     const unpacked = new Uint8Array(242);
     const nameStr = 'INIT PATCH';
-    for (let k = 0; k < 15; k++) {
-        unpacked[224 + k] = k < nameStr.length ? nameStr.charCodeAt(k) : 0x20;
+    for (let k = 0; k < 16; k++) {
+        unpacked[223 + k] = k < nameStr.length ? nameStr.charCodeAt(k) : 0x20;
     }
     return { name: nameStr, unpackedBytes: unpacked };
 }
@@ -447,29 +455,24 @@ describe('extractNameFromRawSysex', () => {
 
     it('skips control characters (< 32) by filtering them out', () => {
         const raw = makeRawSysexWithName('SYNTH');
-        raw[269] = 1; // SOH (Start of Heading) — below 32
-        // 'T' (84) offsets[2]=267, 'H' (72) at offsets[3]=268 becomes SOH
-        // Original "SYNTH": S=266,Y=267,N=268,T=269=1,H=270
-        // 'T' at offset 269 is now 1 (filtered), 'H' at 270 is kept
-        // But wait: offsets are [265]=S, [266]=Y, [267]=N, [268]=T, [269]=H → now SOH
-        // After filtering: chars collected = S,Y,N,T(1 filtered)... wait, let me re-check
-        // Actually nameOffsets for "SYNTH":
+        raw[270] = 1; // SOH (Start of Heading) — below 32
+        // nameOffsets for "SYNTH" (16-char name, unpacked 223-238):
         // nameOffsets[0]=265: S(83) ✓
-        // nameOffsets[1]=266: Y(89) ✓  
-        // nameOffsets[2]=267: N(78) ✓
-        // nameOffsets[3]=268: T(84) ✓
-        // nameOffsets[4]=269: was H(72), now set to 1 → < 32 → filtered
+        // nameOffsets[1]=267: Y(89) ✓
+        // nameOffsets[2]=268: N(78) ✓
+        // nameOffsets[3]=269: T(84) ✓
+        // nameOffsets[4]=270: was H(72), now set to 1 → < 32 → filtered
         expect(extractNameFromRawSysex(raw)).toBe('SYNT');
     });
 
     it('handles baseOffset for concatenated bank parsing', () => {
         const raw1 = makeRawSysexWithName('PATCH A', 0);
         const raw2 = makeRawSysexWithName('PATCH B', 0);
-        const combined = new Uint8Array(282 * 2);
+        const combined = new Uint8Array(284 * 2);
         combined.set(raw1);
-        combined.set(raw2, 282);
+        combined.set(raw2, 284);
         expect(extractNameFromRawSysex(combined, 0)).toBe('PATCH A');
-        expect(extractNameFromRawSysex(combined, 282)).toBe('PATCH B');
+        expect(extractNameFromRawSysex(combined, 284)).toBe('PATCH B');
     });
 
     it('returns empty string for all-zero name bytes', () => {
@@ -484,17 +487,17 @@ describe('extractNameFromRawSysex', () => {
 
     it('stops at null byte mid-name and returns partial', () => {
         const raw = makeRawSysexWithName('KEYS');
-        raw[267] = 0; // nameOffsets[2] = 267
+        raw[268] = 0; // nameOffsets[2] = 268
         expect(extractNameFromRawSysex(raw)).toBe('KE');
     });
 
     it('filters 0x7F (DEL) character (not < 127)', () => {
         const raw = makeRawSysexWithName('PAD');
-        raw[267] = 0x7F; // DEL = 127, not < 127, filtered out
+        raw[268] = 0x7F; // DEL = 127, not < 127, filtered out
         expect(extractNameFromRawSysex(raw)).toBe('PA');
     });
 
-    it('returns empty string for short buffer (< 282 bytes)', () => {
+    it('returns empty string for short buffer (< 284 bytes)', () => {
         // If buffer is shorter than the name offsets, lookups return undefined
         const short = new Uint8Array(100);
         expect(extractNameFromRawSysex(short)).toBe('');
@@ -505,22 +508,23 @@ describe('extractNameFromRawSysex', () => {
         expect(extractNameFromRawSysex(raw)).toBe('A-Z a-z0-9');
     });
 
-    it('uses correct offset sequence: 265-271, 273-279, 281', () => {
-        // Name offsets: 265..271 (7), skip 272, 273..279 (7), skip 280, 281 (1) = 15 total
+    it('uses correct offset sequence: 265, 267-273, 275-281, 283', () => {
+        // Name offsets: 265 (1), skip 266, 267..273 (7), skip 274, 275..281 (7), skip 282, 283 (1) = 16 total
         // Write a character to each valid offset to verify
-        const raw = new Uint8Array(282);
-        const offsets = [];
-        for (let j = 265; j <= 271; j++) {offsets.push(j);}
-        for (let j = 273; j <= 279; j++) {offsets.push(j);}
-        offsets.push(281);
-        const name = 'ABCDEFGHIJKLMNO'; // 15 unique chars
+        const raw = new Uint8Array(284);
+        const offsets = [265];
+        for (let j = 267; j <= 273; j++) {offsets.push(j);}
+        for (let j = 275; j <= 281; j++) {offsets.push(j);}
+        offsets.push(283);
+        const name = 'ABCDEFGHIJKLMNOP'; // 16 unique chars
         offsets.forEach(function(off, idx) {
             if (idx < name.length) {raw[off] = name.charCodeAt(idx);}
         });
-        // Also set the skipped offsets to something that shouldn't appear
-        raw[272] = 0x58; // 'X' — should be skipped
-        raw[280] = 0x59; // 'Y' — should be skipped
-        expect(extractNameFromRawSysex(raw)).toBe('ABCDEFGHIJKLMNO');
+        // Also set the skipped offsets (flag bytes de los grupos 32-34) to junk
+        raw[266] = 0x58; // 'X' — should be skipped
+        raw[274] = 0x59; // 'Y' — should be skipped
+        raw[282] = 0x5A; // 'Z' — should be skipped
+        expect(extractNameFromRawSysex(raw)).toBe('ABCDEFGHIJKLMNOP');
     });
 
     it('returns name when no baseOffset (defaults to 0)', () => {
@@ -537,7 +541,7 @@ describe('buildSingleSysex — SysEx message construction', () => {
         expect(syx.length).toBe(291);
     });
 
-    it('has correct SysEx header: F0 00 20 32 20 7F 02 07', () => {
+    it('has correct SysEx header: F0 00 20 32 20 7F 02 07 00 00', () => {
         const syx = buildSingleSysex(createDefaultPatch());
         expect(syx[0]).toBe(0xF0);
         expect(syx[1]).toBe(0x00);
@@ -547,6 +551,8 @@ describe('buildSingleSysex — SysEx message construction', () => {
         expect(syx[5]).toBe(0x7F);
         expect(syx[6]).toBe(0x02);
         expect(syx[7]).toBe(0x07);
+        expect(syx[8]).toBe(0x00);
+        expect(syx[9]).toBe(0x00);
     });
 
     it('ends with 0xF7 (SysEx end byte)', () => {
@@ -554,34 +560,32 @@ describe('buildSingleSysex — SysEx message construction', () => {
         expect(syx[290]).toBe(0xF7);
     });
 
-    it('contains packed data at bytes 8 through 285 (278 bytes)', () => {
+    it('contains packed data at bytes 10 through 287 (278 bytes)', () => {
         const patch = createDefaultPatch();
         const expectedPacked = pack8to7(patch.unpackedBytes);
         const syx = buildSingleSysex(patch);
         for (let i = 0; i < 278; i++) {
-            expect(syx[8 + i]).toBe(expectedPacked[i]);
+            expect(syx[10 + i]).toBe(expectedPacked[i]);
         }
     });
 
-    it('bytes 286-289 are padding (zeros)', () => {
+    it('bytes 288-289 are padding (zeros)', () => {
         const syx = buildSingleSysex(createDefaultPatch());
-        expect(syx[286]).toBe(0);
-        expect(syx[287]).toBe(0);
         expect(syx[288]).toBe(0);
         expect(syx[289]).toBe(0);
     });
 
-    it('packed data is 278 bytes = header 8 + payload 278 + padding 4 + footer 1 = 291', () => {
+    it('packed data is 278 bytes = header 10 + payload 278 + padding 2 + footer 1 = 291', () => {
         const syx = buildSingleSysex(createDefaultPatch());
         // Verify structural layout
-        // Bytes 0-7: header (8 bytes)
-        // Bytes 8-285: payload (278 bytes)
-        // Bytes 286-289: padding (4 bytes)
+        // Bytes 0-9: header (10 bytes)
+        // Bytes 10-287: payload (278 bytes)
+        // Bytes 288-289: padding (2 bytes)
         // Byte 290: end byte (1 byte)
         expect(syx[0]).toBe(0xF0);
-        expect(syx[8]).toBeDefined();
-        expect(syx[285]).toBeDefined();
-        expect(syx[286]).toBe(0);
+        expect(syx[10]).toBeDefined();
+        expect(syx[287]).toBeDefined();
+        expect(syx[288]).toBe(0);
         expect(syx[289]).toBe(0);
         expect(syx[290]).toBe(0xF7);
     });
@@ -593,7 +597,7 @@ describe('buildSingleSysex — SysEx message construction', () => {
         patch.unpackedBytes[200] = 0x42;
         const syx = buildSingleSysex(patch);
         // Extract packed payload
-        const packedPayload = syx.slice(8, 8 + 278);
+        const packedPayload = syx.slice(10, 10 + 278);
         const recovered = unpack7to8(packedPayload);
         expect(recovered.length).toBe(242);
         expect(recovered[0]).toBe(0xFF);
@@ -610,7 +614,7 @@ describe('buildSingleSysex — SysEx message construction', () => {
         expect(syx[0]).toBe(0xF0);
         expect(syx[290]).toBe(0xF7);
         // Round-trip check
-        const packedPayload = syx.slice(8, 8 + 278);
+        const packedPayload = syx.slice(10, 10 + 278);
         const recovered = unpack7to8(packedPayload);
         for (let i = 0; i < 242; i++) {
             expect(recovered[i]).toBe(patch.unpackedBytes[i]);
@@ -624,16 +628,16 @@ describe('Integration — pack8to7 → unpack7to8 → extractNameFromRawSysex', 
     it('pack then extract name from built SysEx', () => {
         const patch = createDefaultPatch();
         patch.name = 'BASS PATCH';
-        for (let k = 0; k < 15; k++) {
-            patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
+        for (let k = 0; k < 16; k++) {
+            patch.unpackedBytes[223 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
         }
         const syx = buildSingleSysex(patch);
-        const packedPayload = syx.slice(8, 8 + 278);
+        const packedPayload = syx.slice(10, 10 + 278);
         const unpacked = unpack7to8(packedPayload);
-        // Extract name from unpacked: name starts at byte 224, 15 chars
+        // Extract name from unpacked: name starts at byte 223, 16 chars
         const nameChars = [];
-        for (let n = 0; n < 15; n++) {
-            const ch = unpacked[224 + n];
+        for (let n = 0; n < 16; n++) {
+            const ch = unpacked[223 + n];
             if (ch >= 32 && ch < 127) {nameChars.push(String.fromCharCode(ch));}
             else if (ch === 0) {break;}
         }
@@ -644,8 +648,8 @@ describe('Integration — pack8to7 → unpack7to8 → extractNameFromRawSysex', 
     it('buildSingleSysex → extractNameFromRawSysex via rawSysEx', () => {
         const patch = createDefaultPatch();
         patch.name = 'SYNTH LEAD';
-        for (let k = 0; k < 15; k++) {
-            patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
+        for (let k = 0; k < 16; k++) {
+            patch.unpackedBytes[223 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
         }
         const syx = buildSingleSysex(patch);
         // extractNameFromRawSysex reads from raw SysEx, not unpacked

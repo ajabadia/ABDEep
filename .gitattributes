@@ -1,0 +1,4 @@
+# Los archivos de banco SysEx del corpus son binarios: nunca normalizar
+# finales de línea (los hashes SHA-256 de schemas/corpus-hashes.json se
+# verifican en CI y deben ser deterministas).
+resources/banks/*.syx binary

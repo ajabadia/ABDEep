@@ -225,13 +225,11 @@ map[220] = bp(220, 'FX3 Output Gain',     'FX3',  'value',    { desc: '0-150' })
 map[221] = bp(221, 'FX4 Output Gain',     'FX4',  'value',    { desc: '0-150' });
 map[222] = bp(222, 'FX Mode',             'FX',   'enum',     { enumLabels: ENUM_FX_MODE });
 
-// Byte 223: Firmware metadata
-map[223] = bp(223, '(firmware metadata)', 'Firmware', 'value', { desc: 'Firmware internal metadata. 116 unique values. Not CRC16/checksum. No DSP impact.' });
-
-// Program Name (224-238)
-for (let i = 224; i <= 238; i++) {
-  const charIdx = i - 224;
-  map[i] = bp(i, 'Program Name char[' + charIdx + ']', 'Name', 'ascii', { desc: 'ASCII character of patch name (15 chars in SysEx format)' });
+// Program Name (223-238) — 16 chars ASCII, verificado en dumps reales
+// (banco A preset 0: "Blue Dolphin BC " empieza en el byte 223)
+for (let i = 223; i <= 238; i++) {
+  const charIdx = i - 223;
+  map[i] = bp(i, 'Program Name char[' + charIdx + ']', 'Name', 'ascii', { desc: 'ASCII character of patch name (16 chars in SysEx format)' });
 }
 
 // Tail bytes (239-241)

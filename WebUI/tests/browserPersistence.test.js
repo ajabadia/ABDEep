@@ -33,8 +33,8 @@ function createEmptyBank() {
     for (let i = 0; i < 128; i++) {
         const defaultUnpacked = new Uint8Array(242);
         const nameStr = 'INIT PATCH ' + (i + 1);
-        for (let k = 0; k < 15; k++) {
-            defaultUnpacked[224 + k] = k < nameStr.length ? nameStr.charCodeAt(k) : 0x20;
+        for (let k = 0; k < 16; k++) {
+            defaultUnpacked[223 + k] = k < nameStr.length ? nameStr.charCodeAt(k) : 0x20;
         }
         defaultUnpacked[39] = 255;
         defaultUnpacked[80] = 0;
@@ -152,14 +152,14 @@ describe('createEmptyBank', function() {
         expect(bank[0].unpackedBytes.length).toBe(242);
     });
 
-    it('name is written into bytes 224-238', function() {
+    it('name is written into bytes 223-238', function() {
         const bytes = bank[0].unpackedBytes;
-        expect(bytes[224]).toBe('I'.charCodeAt(0));
-        expect(bytes[225]).toBe('N'.charCodeAt(0));
-        expect(bytes[226]).toBe('I'.charCodeAt(0));
-        expect(bytes[227]).toBe('T'.charCodeAt(0));
-        expect(bytes[228]).toBe(0x20); // space
-        expect(bytes[229]).toBe('P'.charCodeAt(0));
+        expect(bytes[223]).toBe('I'.charCodeAt(0));
+        expect(bytes[224]).toBe('N'.charCodeAt(0));
+        expect(bytes[225]).toBe('I'.charCodeAt(0));
+        expect(bytes[226]).toBe('T'.charCodeAt(0));
+        expect(bytes[227]).toBe(0x20); // space
+        expect(bytes[228]).toBe('P'.charCodeAt(0));
     });
 
     it('default byte values: VCF cutoff=255, VCA level=0, env depth=128, vel sens=255, pan=64', function() {

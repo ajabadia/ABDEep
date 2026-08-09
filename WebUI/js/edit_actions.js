@@ -72,8 +72,8 @@ function initEditActions() {
                 patch.unpackedBytes = new Uint8Array(globalClipboardBytes);
                 patch.name = globalClipboardName;
                 
-                for (let k = 0; k < 15; k++) {
-                    patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
+                for (let k = 0; k < 16; k++) {
+                    patch.unpackedBytes[223 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
                 }
 
                 if (window.triggerMidiDump) {window.triggerMidiDump(patch);}

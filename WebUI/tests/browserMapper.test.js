@@ -211,10 +211,9 @@ BYTE_MAP[219] = bp(219, 'FX2 Output Gain',     'FX2',  'value',    { desc: '0-15
 BYTE_MAP[220] = bp(220, 'FX3 Output Gain',     'FX3',  'value',    { desc: '0-150' });
 BYTE_MAP[221] = bp(221, 'FX4 Output Gain',     'FX4',  'value',    { desc: '0-150' });
 BYTE_MAP[222] = bp(222, 'FX Mode',             'FX',   'enum',     { enumLabels: ENUM_FX_MODE });
-BYTE_MAP[223] = bp(223, '(firmware metadata)', 'Firmware', 'value', { desc: 'Firmware internal metadata. 116 unique values. No CRC16/checksum. No DSP impact.' });
-for (let ci = 224; ci <= 238; ci++) {
-  const charIdx = ci - 224;
-  BYTE_MAP[ci] = bp(ci, 'Program Name char[' + charIdx + ']', 'Name', 'ascii', { desc: 'ASCII character of patch name (15 chars in SysEx format)' });
+for (let ci = 223; ci <= 238; ci++) {
+  const charIdx = ci - 223;
+  BYTE_MAP[ci] = bp(ci, 'Program Name char[' + charIdx + ']', 'Name', 'ascii', { desc: 'ASCII character of patch name (16 chars in SysEx format)' });
 }
 BYTE_MAP[239] = bp(239, '(name field tail)', 'Tail', 'value', { desc: 'Data after name field. raw SysEx offsets 282-284. Part of packed payload tail.' });
 BYTE_MAP[240] = bp(240, '(name field tail)', 'Tail', 'value', { desc: 'Data after name field. raw SysEx offsets 282-284. Part of packed payload tail.' });
@@ -613,8 +612,8 @@ describe('BYTE_MAP — region range integrity', function () {
         expect(true).toBe(true);
     });
 
-    it('bytes 224-238 are Name region', function () {
-        for (let i = 224; i <= 238; i++) {
+    it('bytes 223-238 are Name region', function () {
+        for (let i = 223; i <= 238; i++) {
             expect(BYTE_MAP[i].region).toBe('Name');
         }
     });
@@ -1102,7 +1101,7 @@ describe('formatParamValue — value display formatting', function () {
 
     it('missing byte offset entry falls back to percentage', function () {
         // Use a paramId that maps to a byte offset outside 0-241
-        // fx_feedback_gain maps to byte 223 (firmware metadata, value type)
+        // fx_feedback_gain is a virtual param (304) — no BYTE_MAP entry → percentage
         expect(formatParamValue('fx_feedback_gain', 0.5)).toBe('50%');
     });
 

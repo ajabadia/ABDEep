@@ -20,9 +20,9 @@ const crypto = require('crypto');
 // ============================================================================
 // CONSTANTES
 // ============================================================================
-const SYSEX_HEADER_LEN = 8;    // bytes 0-7 del mensaje SysEx
-const SYSEX_PACKED_LEN = 278;  // payload empaquetado (bytes 8-285)
-const SYSEX_TAIL_LEN = 5;      // bytes 286-290 (progNum + checksum + F7)
+const SYSEX_HEADER_LEN = 10;   // bytes 0-9: F0 00 20 32 20 <dev> 02 <proto> <bank> <prog>
+const SYSEX_PACKED_LEN = 278;  // payload empaquetado (bytes 10-287) → 242 bytes unpacked
+const SYSEX_TAIL_LEN = 3;      // bytes 288-290 (00 00 F7)
 const SYSEX_MSG_LEN = 291;     // mensaje completo
 const UNPACKED_LEN = 242;      // bytes desempaquetados
 const PRESETS_PER_BANK = 128;  // presets por banco
@@ -31,11 +31,16 @@ const PRESETS_PER_BANK = 128;  // presets por banco
 // ALGORITMO DE DESEMPAQUETADO 7-to-8 (idéntico a MidiTranslationEngine.h)
 // ============================================================================
 function unpack7to8(packed) {
+    // Idéntico al algoritmo de producción (browser_packer.js / RoundTripValidator.cpp):
+    // el último grupo parcial (1 byte de flags + hasta 5 bytes de datos, packed 272-277)
+    // también se decodifica — produce unpacked 238-242 (cortado a 242). Sin esto se
+    // perderían unpacked 238-241 (char 15 del nombre + región Tail).
     const out = Buffer.alloc(UNPACKED_LEN);
     let outIdx = 0;
-    for (let i = 0; i + 7 < packed.length && outIdx < UNPACKED_LEN; i += 8) {
+    for (let i = 0; i < packed.length && outIdx < UNPACKED_LEN; i += 8) {
         const msbByte = packed[i] & 0x7F;
         for (let j = 0; j < 7 && outIdx < UNPACKED_LEN; j++) {
+            if (i + 1 + j >= packed.length) break;
             const low7 = packed[i + 1 + j] & 0x7F;
             const msb = (msbByte >> j) & 0x01;
             out[outIdx++] = low7 | (msb << 7);
@@ -233,12 +238,9 @@ function buildByteMap() {
     map[220] = bp(220, 'FX3 Output Gain',     'FX3',  'value');
     map[221] = bp(221, 'FX4 Output Gain',     'FX4',  'value');
 
-    // Byte 223: firmware metadata
-    map[223] = bp(223, '(firmware metadata)', 'Firmware', 'value');
-
-    // Program Name (224-238)
-    for (let i = 224; i <= 238; i++) {
-        map[i] = bp(i, `Program Name char[${i-224}]`, 'Name', 'ascii');
+    // Program Name (223-238) — 16 chars ASCII, verificado en dumps reales
+    for (let i = 223; i <= 238; i++) {
+        map[i] = bp(i, `Program Name char[${i-223}]`, 'Name', 'ascii');
     }
 
     // Name tail (239-241)
@@ -299,9 +301,9 @@ function validatePreset(bytes, bank, presetIdx, map) {
 
     let localErrors = 0;
 
-    // 2. Extraer nombre (bytes 224-238)
+    // 2. Extraer nombre (bytes 223-238 — 16 chars, verificado en dumps reales)
     const nameChars = [];
-    for (let i = 224; i <= 238; i++) {
+    for (let i = 223; i <= 238; i++) {
         const c = bytes[i];
         if (c >= 32 && c < 127) {nameChars.push(String.fromCharCode(c));}
     }
@@ -309,13 +311,7 @@ function validatePreset(bytes, bank, presetIdx, map) {
 
     // Verificar que el nombre no esté vacío
     if (!name) {
-        reportWarning(bank, presetIdx, 'Nombre vacío en bytes 224-238');
-    }
-
-    // 3. Byte 225 siempre debe ser 0
-    if (bytes[225] !== 0) {
-        reportError(bank, presetIdx, `Byte 225 = ${bytes[225]} (debe ser 0)`);
-        localErrors++;
+        reportWarning(bank, presetIdx, 'Nombre vacío en bytes 223-238');
     }
 
     // 4. Validar valores de tipo FX (0-33 en hardware real).
@@ -336,10 +332,9 @@ function validatePreset(bytes, bank, presetIdx, map) {
     //   - La interpretación enum/toggle/rango ocurre en la UI (raw/maxEnum)
     //   - Ej: byte 46 (VCF LFO Select, toggle) = 128 → UI interpreta como "On"
     //   - Ej: byte 156 (Arp Mode, enum 0-10) = 255 → UI interpreta 255/10 = modo más alto
-    //   - Ej: nombre en 224-238 puede contener UTF-8/Latin-1 > 127 (acentos)
+    //   - Ej: nombre en 223-238 puede contener UTF-8/Latin-1 > 127 (acentos)
     //
-    // Solo validamos límites de HARDWARE reales (FX type 0-35) y restricciones
-    // CIERTAS (byte 225 = 0).
+    // Solo validamos límites de HARDWARE reales (FX type 0-35).
 
     return { ok: localErrors === 0, errors: localErrors, name };
 }
@@ -381,10 +376,10 @@ function loadBank(filePath) {
         }
 
         const command = msg[6];
-        const bankNum = msg[7];
-        const progNum = msg[286];
+        const bankNum = msg[8];   // Byte 8 = banco (0-7 = A-H)
+        const progNum = msg[9];   // Byte 9 = programa (0-127)
 
-        // Extraer payload empaquetado (bytes 8-285 = 278 bytes)
+        // Extraer payload empaquetado (bytes 10-287 = 278 bytes)
         const packedPayload = msg.slice(SYSEX_HEADER_LEN, SYSEX_HEADER_LEN + SYSEX_PACKED_LEN);
 
         // Desempaquetar
@@ -415,7 +410,6 @@ function computeBankStats(presets) {
     const stats = {
         totalPresets: presets.length,
         uniqueValues: {},
-        byte225AllZero: true,
         names: [],
     };
 
@@ -429,13 +423,9 @@ function computeBankStats(presets) {
             stats.uniqueValues[i].add(preset.unpacked[i]);
         }
 
-        if (preset.unpacked[225] !== 0) {
-            stats.byte225AllZero = false;
-        }
-
-        // Extraer nombre
+        // Extraer nombre (223-238)
         const chars = [];
-        for (let i = 224; i <= 238; i++) {
+        for (let i = 223; i <= 238; i++) {
             const c = preset.unpacked[i];
             if (c >= 32 && c < 127) {chars.push(String.fromCharCode(c));}
         }
@@ -452,9 +442,6 @@ function computeBankStats(presets) {
 
 function printBankStats(bankLabel, stats) {
     console.log(`\n📊 Estadísticas — ${bankLabel} (${stats.totalPresets} presets):`);
-
-    // Byte 225
-    console.log(`   Byte 225: ${stats.byte225AllZero ? '✅ Siempre 0' : '❌ NO siempre 0'}`);
 
     // Bytes más variables
     const sortedByUnique = Object.entries(stats.uniqueValues)
@@ -611,11 +598,8 @@ function main() {
     console.log(`   Errores totales: ${grandTotalErrors}`);
     console.log(`   Warnings totales: ${totalWarnings}`);
 
-    if (allStats.length > 1) {
-        // Estadísticas globales de byte 225
-        const allByte225Zero = allStats.every(s => s.stats.byte225AllZero);
-        console.log(`\n   Byte 225 global: ${allByte225Zero ? '✅ Siempre 0 en todos los bancos' : '⚠️  NO siempre 0'}`);
-    }
+    // NOTA: la antigua estadística global "byte 225 siempre 0" se eliminó — con la
+    // cabecera corregida (10 bytes), el byte 225 es el char[2] del nombre del preset.
 
     console.log(`\n${grandTotalErrors === 0 ? '✅' : '❌'} Validación completada.`);
 

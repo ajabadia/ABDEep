@@ -37,8 +37,8 @@ function isSlotOccupied(patch) {
 }
 
 function encodePatchName(unpackedBytes, name) {
-    for (let k = 0; k < 15; k++) {
-        unpackedBytes[224 + k] = k < name.length ? name.charCodeAt(k) : 0x20;
+    for (let k = 0; k < 16; k++) {
+        unpackedBytes[223 + k] = k < name.length ? name.charCodeAt(k) : 0x20;
     }
     return unpackedBytes;
 }
@@ -156,31 +156,31 @@ describe('isSlotOccupied', function() {
     });
 });
 
-describe('encodePatchName — writes name into unpackedBytes at offset 224', function() {
+describe('encodePatchName — writes name into unpackedBytes at offset 223', function() {
     it('writes short name, pads remaining with 0x20 (space)', function() {
         const bytes = new Uint8Array(256);
         encodePatchName(bytes, 'Test');
         // T=84, e=101, s=115, t=116, then spaces
-        expect(bytes[224]).toBe(84);
-        expect(bytes[225]).toBe(101);
-        expect(bytes[226]).toBe(115);
-        expect(bytes[227]).toBe(116);
-        expect(bytes[228]).toBe(0x20); // space
+        expect(bytes[223]).toBe(84);
+        expect(bytes[224]).toBe(101);
+        expect(bytes[225]).toBe(115);
+        expect(bytes[226]).toBe(116);
+        expect(bytes[227]).toBe(0x20); // space
         expect(bytes[238]).toBe(0x20); // last byte also space
     });
 
-    it('writes exactly 15 characters', function() {
+    it('writes exactly 16 characters', function() {
         const bytes = new Uint8Array(256);
-        encodePatchName(bytes, 'ABCDEFGHIJKLMNO'); // 15 chars
-        expect(bytes[224]).toBe(65);  // A
-        expect(bytes[238]).toBe(79); // O
+        encodePatchName(bytes, 'ABCDEFGHIJKLMNOP'); // 16 chars
+        expect(bytes[223]).toBe(65);  // A
+        expect(bytes[238]).toBe(80); // P
     });
 
-    it('truncates names longer than 15 chars', function() {
+    it('truncates names longer than 16 chars', function() {
         const bytes = new Uint8Array(256);
         encodePatchName(bytes, 'ABCDEFGHIJKLMNOPQRST'); // 20 chars
-        expect(bytes[224]).toBe(65);   // A
-        expect(bytes[238]).toBe(79);   // O (15th char)
+        expect(bytes[223]).toBe(65);   // A
+        expect(bytes[238]).toBe(80);   // P (16th char)
         // Byte 239 should remain 0 (not written by this function)
         expect(bytes[239]).toBe(0);
     });
@@ -188,19 +188,19 @@ describe('encodePatchName — writes name into unpackedBytes at offset 224', fun
     it('handles empty string (all spaces)', function() {
         const bytes = new Uint8Array(256);
         encodePatchName(bytes, '');
-        for (let k = 0; k < 15; k++) {
-            expect(bytes[224 + k]).toBe(0x20);
+        for (let k = 0; k < 16; k++) {
+            expect(bytes[223 + k]).toBe(0x20);
         }
     });
 
     it('preserves other bytes outside name range', function() {
         const bytes = new Uint8Array(256);
         bytes[0] = 42;
-        bytes[223] = 99;
+        bytes[222] = 99;
         bytes[239] = 77;
         encodePatchName(bytes, 'Test');
         expect(bytes[0]).toBe(42);
-        expect(bytes[223]).toBe(99);
+        expect(bytes[222]).toBe(99);
         expect(bytes[239]).toBe(77);
     });
 });

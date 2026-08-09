@@ -25,9 +25,43 @@
   colisiona con un parámetro real del hardware (FX1 Param 12).
 - **Regenerados** los 4 artefactos `.gen` (226 físicos · 3 extendidos · 6 virtuales); byteMap
   223-241 limpio (id null). Tests: Vitest 4383/4383 ✓ · C++ UnitTests 3.689.132 assertions ✓.
-- *Pendiente conocido*: `byte_map_data.js` aún etiqueta el byte 223 como "(firmware
-  metadata)" y el fix de `validate_sysex_mapping.js` (nombre 223-238) queda para la fase
-  de round-trip.
+- *Resuelto en 0.2.4*: la etiqueta "(firmware metadata)" de b223 y el fix de
+  `validate_sysex_mapping.js` (nombre 223-238 + cabecera real de 10 bytes).
+
+---
+
+## [0.2.4] — 2026-08-09
+
+### 🏷️ Corrección del nombre del preset (byte 223-238) + alineación real de cabecera SysEx
+
+- **`byte_map_data.js`**: byte 223 etiquetado como `Program Name char[0]`; región de nombre
+  **223-238 (16 chars)** — verificada con dumps reales de fábrica en los 8 bancos
+  (banco A preset 0 = `"Blue Dolphin BC "`). Eliminada la etiqueta falsa "(firmware metadata)".
+- **Consumidores migrados a 223-238**: `validate_sysex_mapping.js`, `browser_io_parse.js`,
+  `edit_actions.js`, `browser_persistence.js`, `edit_persistence.js`, `browser_render.js`,
+  `browser_modals.js`, `calibration_lab_validation.js`, `calibration_lab_patchdiff.js`,
+  `browser_packer.js` (`extractNameFromRawSysex` → 16 chars), C++ (`RoundTripValidator.cpp`,
+  `PatchDiffTypes.h`, `AudioABValidationViewComponent_SysEx.cpp`,
+  `PatchDiffViewComponent_File.cpp`), tests espejo y `docs/sysex_format.md`.
+- **Alineación de cabecera corregida (hallazgo)**: los mensajes de banco tienen **cabecera de
+  10 bytes** (`F0 00 20 32 20 <dev> 02 <proto> <bank> <prog>`), payload en 10-287 y cola
+  `00 00 F7` en 288-290 — no 8 bytes como asumía `validate_sysex_mapping.js`. La
+  desalineación de 2 bytes generaba **146 errores FX falsos** en los 8 bancos; corregido →
+  **0 errores / 0 warnings en los 1024 presets**.
+- **Unpack del último bloque parcial**: `validate_sysex_mapping.js` y
+  `MidiTranslationEngine::unpackDeepMindSysEx` decodifican ahora el grupo final
+  (packed 272-277 → unpacked 238-242); antes se perdían unpacked 238-241
+  (char 15 del nombre + región Tail).
+- **Otros fixes de cabecera**: `bridge-midi-rx.js` (bank=[8], prog=[9] — antes [7]/[8]),
+  `RoundTripValidator` (eliminado check `msg[9]==0` — es el número de programa),
+  `chooseSysExFile` (header cmd-aware 10/8 bytes), `buildSingleSysex` (comentarios [8]/[9]).
+- **Workflow CI `roundtrip-corpus.yml`**: valida los 8 factory banks A-H contra el
+  byte map (0 errores) y verifica los hashes SHA-256 contra `schemas/corpus-hashes.json`
+  (`--check-hashes`) — el corpus es inmutable; se dispara ante cambios en el validador,
+  el byte map, los esquemas o los bancos.
+- **Verificación**: Vitest **83 files / 4383 tests / 0 fallos**; C++ UnitTests
+  **123 suites / 3.689.132 assertions / 0 fallos**; validador corpus **0 errores en A-H**;
+  hashes SHA-256 del corpus intactos (archivos sin modificar).
 
 ---
 

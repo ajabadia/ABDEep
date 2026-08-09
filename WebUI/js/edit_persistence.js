@@ -26,8 +26,8 @@ window.initEditPersistence = function() {
                 if (typeof window.updateUnpackedBytesFromCache === 'function') {
                     window.updateUnpackedBytesFromCache(patch.unpackedBytes);
                 }
-                for (let k = 0; k < 15; k++) {
-                    patch.unpackedBytes[224 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
+                for (let k = 0; k < 16; k++) {
+                    patch.unpackedBytes[223 + k] = k < patch.name.length ? patch.name.charCodeAt(k) : 0x20;
                 }
                 if (typeof updateSysExMonitor === 'function') {updateSysExMonitor(patch.unpackedBytes);}
                 
@@ -167,8 +167,8 @@ window.initEditPersistence = function() {
                 }
 
                 targetPatch.name = newName;
-                for (let k = 0; k < 15; k++) {
-                    targetPatch.unpackedBytes[224 + k] = k < targetPatch.name.length ? targetPatch.name.charCodeAt(k) : 0x20;
+                for (let k = 0; k < 16; k++) {
+                    targetPatch.unpackedBytes[223 + k] = k < targetPatch.name.length ? targetPatch.name.charCodeAt(k) : 0x20;
                 }
                 if (typeof window.updateUnpackedBytesFromCache === 'function') {
                     window.updateUnpackedBytesFromCache(targetPatch.unpackedBytes);

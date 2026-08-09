@@ -47,11 +47,13 @@ function pack8to7(unpackedBytes) {
 function extractNameFromRawSysex(rawSysex, baseOffset) {
     baseOffset = baseOffset || 0;
     // Con cabecera de 10 bytes, el payload empaquetado está desplazado en 2 bytes respecto a la especificación de 8 bytes.
-    // Los offsets de los caracteres del nombre de 15 bytes son: 265 (último byte del bloque 31),
-    // saltando 266 (prefijo del bloque 32), 267 a 273 (bloque 32), saltando 274 (prefijo del bloque 33), 275 a 281 (bloque 33).
+    // El nombre ocupa unpacked 223-238 (16 chars): 265 (último byte del bloque 31 = unpacked 223),
+    // saltando 266 (prefijo del bloque 32), 267 a 273 (bloque 32), saltando 274 (prefijo del bloque 33),
+    // 275 a 281 (bloque 33), saltando 282 (prefijo del bloque 34), 283 (primer byte del bloque 34 = unpacked 238).
     const rawOffsets = [265];
     for (let j = 267; j <= 273; j++) {rawOffsets.push(j);}
     for (let j = 275; j <= 281; j++) {rawOffsets.push(j);}
+    rawOffsets.push(283); // unpacked 238 (16º char)
     
     const nameChars = [];
     for (let idx = 0; idx < rawOffsets.length; idx++) {
@@ -76,8 +78,8 @@ function buildSingleSysex(patch) {
     syxMsg[5] = 0x7F;
     syxMsg[6] = 0x02;
     syxMsg[7] = 0x07; // Banco por defecto
-    syxMsg[8] = 0x00; // Programa por defecto
-    syxMsg[9] = 0x00; // Reservado
+    syxMsg[8] = 0x00; // Banco por defecto (0 = A)
+    syxMsg[9] = 0x00; // Programa por defecto (0-127)
     syxMsg.set(packed, 10); // Insertar payload a partir del byte 10
     syxMsg[290] = 0xF7;
     return syxMsg;

@@ -11,9 +11,9 @@ Cada preset del DeepMind 12 se transmite como un **mensaje SysEx de 291 bytes**.
 
 ```
 SysEx Crudo (291 bytes)
-├── Cabecera (8 bytes):  F0 00 20 32 20 <DeviceID> <Cmd> <Bank>
-├── Payload Empaquetado (278 bytes):  datos 7-bit empaquetados
-├── Cola (5 bytes):  <ProgNum> <Checksum?> F7
+├── Cabecera (10 bytes):  F0 00 20 32 20 <DeviceID> 02 <Protocol> <Bank> <Program>
+├── Payload Empaquetado (278 bytes):  bytes 10-287, datos 7-bit empaquetados
+├── Cola (3 bytes):  <00> <00> <F7>
 │
 └── Desempaquetado 7→8 → 242 bytes de preset
      ├── 000-006:  LFO 1
@@ -29,8 +29,7 @@ SysEx Crudo (291 bytes)
      ├── 123-154:  Seq Step Values
      ├── 155-164:  Arpeggiator
      ├── 165-222:  FX Engine (routing, 4x tipos+params, gains, mode)
-     ├── 223:      Firmware metadata (investigado)
-     ├── 224-238:  Nombre del preset (15 caracteres ASCII)
+     ├── 223-238:  Nombre del preset (16 caracteres ASCII, verificado en dumps)
      ├── 239-241:  Cola del campo de nombre
      └── (242 bytes total)
 ```
@@ -39,7 +38,7 @@ SysEx Crudo (291 bytes)
 
 ## 2. Mensaje SysEx Completo (291 bytes)
 
-### Cabecera (bytes 0–7)
+### Cabecera (bytes 0–9)
 
 | Offset | Valor | Descripción |
 |--------|-------|-------------|
@@ -48,20 +47,21 @@ SysEx Crudo (291 bytes)
 | 2 | `0x20` | Manufacturer ID (Behringer) byte 2 |
 | 3 | `0x32` | Manufacturer ID (Behringer) byte 3 |
 | 4 | `0x20` | Family / Model (DeepMind 12) |
-| 5 | `0x00` | Device ID (0–127, normalmente 0) |
-| 6 | `0x01` | **Command Type**: `0x01`=Program Dump, `0x02`=Program Dump Response, `0x03`=Edit Buffer Request, `0x04`=Edit Buffer Dump, `0x05`=Global Request, `0x06`=Global Dump |
-| 7 | `0x00` | Bank Number (0–7 = A–H) |
+| 5 | `0x7F` | Device ID (0–127; `0x7F` en los dumps de fábrica exportados) |
+| 6 | `0x02` | **Command Type**: `0x01`=Program Dump Request, `0x02`=Program Dump Response, `0x03`=Edit Buffer Dump Request, `0x04`=Edit Buffer Dump Response, `0x05`=Global Parameter Dump Request, `0x06`=Global Dump |
+| 7 | `0x07` | Comms Protocol Version (`0x06` documentado; `0x07` en los archivos de fábrica V1.1.2) |
+| 8 | `0x00` | Bank Number (0–7 = A–H; 0 en los archivos de fábrica exportados) |
+| 9 | `0x00`–`0x7F` | **Program Number (0–127)** |
 
-### Payload (bytes 8–285)
+### Payload (bytes 10–287)
 
 278 bytes de datos empaquetados en formato 7-bit (ver algoritmo de desempaquetado).
 
-### Cola (bytes 286–290)
+### Cola (bytes 288–290)
 
 | Offset | Valor | Descripción |
 |--------|-------|-------------|
-| 286 | `0x00`–`0x7F` | Program Number (0–127) |
-| 287–289 | — | Checksum (3 bytes, algoritmo propietario — no es CRC16 estándar) |
+| 288–289 | `0x00` | Padding (no usado) |
 | 290 | `0xF7` | Fin SysEx |
 
 ---
@@ -87,9 +87,10 @@ Para cada grupo de 8 bytes empaquetados:
 static juce::MemoryBlock unpackDeepMindSysEx(const uint8_t* packedData, size_t packedLength) {
     juce::MemoryBlock out;
     out.ensureSize((packedLength * 7) / 8, false);
-    for (size_t i = 0; i + 7 < packedLength; i += 8) {
+    for (size_t i = 0; i < packedLength; i += 8) {
         uint8_t msbByte = packedData[i] & 0x7F;
         for (int j = 0; j < 7; ++j) {
+            if (i + 1 + j >= packedLength) break; // último grupo parcial (packed 272-277)
             uint8_t low7 = packedData[i + 1 + j] & 0x7F;
             uint8_t msb = (msbByte >> j) & 0x01;
             uint8_t originalByte = low7 | (msb << 7);
@@ -105,9 +106,10 @@ static juce::MemoryBlock unpackDeepMindSysEx(const uint8_t* packedData, size_t p
 function unpack7to8(packed) {
     const out = new Uint8Array(242);
     let outIdx = 0;
-    for (let i = 0; i + 7 < packed.length && outIdx < 242; i += 8) {
+    for (let i = 0; i < packed.length && outIdx < 242; i += 8) {
         const msbByte = packed[i];
         for (let j = 0; j < 7 && outIdx < 242; j++) {
+            if (i + 1 + j >= packed.length) break; // último grupo parcial
             const low7 = packed[i + 1 + j] & 0x7F;
             const msb = (msbByte >> j) & 0x01;
             out[outIdx++] = low7 | (msb << 7);
@@ -116,6 +118,11 @@ function unpack7to8(packed) {
     return out;
 }
 ```
+
+> **Nota:** El último grupo empaquetado es parcial: 34 grupos completos (packed 0–271,
+> unpacked 0–237) + 1 grupo final (packed 272–277 = 1 byte de flags + 5 de datos,
+> unpacked 238–242). Un unpack que exija grupos completos (`i + 7 < length`) perdería
+> unpacked 238–241 (char 15 del nombre + región Tail).
 
 ### Correspondencia Packed → Unpacked
 
@@ -402,60 +409,52 @@ Ocho slots de modulación, cada uno con 3 bytes (source, destination, depth).
 
 > **Nota sobre tipos FX:** El hardware DeepMind 12 soporta 34 tipos de efectos (0–33), incluyendo reverbs, delays, chorus, flanger, phaser, distorsión, ecualizador, compresor, etc.
 
-### 4.17 Byte 223 — Firmware Metadata (región `Firmware`)
-
-| Byte | Parámetro | Tipo | Región (byte-map.js) | Notas |
-|------|-----------|------|----------------------|-------|
-| 223 | Firmware metadata | value | `Firmware` | 116 valores únicos. No es CRC16. Sin impacto en sonido. Ver §6 |
-
-**En el Dump viewer:**
-- Región `Firmware` tiene color propio: `{bg:'#141e28', fg:'#88aacc'}` (azul acero oscuro)
-- Antes usaba región `?` (reserved), ahora tiene su propio grupo cromático
-- Sin borde punteado ni prefijo `•` — se muestra como un byte de datos normal
-- El contador de bytes reservados en el sumario ya **no** incluye este byte
-
-### 4.18 Nombre del Preset — Bytes 224–238 (15 caracteres ASCII)
+### 4.17 Nombre del Preset — Bytes 223–238 (16 caracteres ASCII)
 
 | Byte(s) | Parámetro | Tipo | Notas |
 |---------|-----------|------|-------|
-| 224–238 | Program Name char[0–14] | ASCII | 15 caracteres. Relleno con 0x20 (espacio) si el nombre es más corto. |
+| 223–238 | Program Name char[0–15] | ASCII | 16 caracteres. Relleno con 0x20 (espacio) si el nombre es más corto. |
 
-> ⚠️ **IMPORTANTE: NO leer el nombre de unpacked bytes 224–238.**
-> El algoritmo 7-to-8 aplica los MSB flags de los grupos 32–34 sobre estos bytes,
-> corrompiendo los caracteres ASCII. **Verificado: 1024/1024 presets de fábrica tienen
-> nombres corruptos en unpacked.**
->
-> El nombre correcto se lee de **raw SysEx offsets 265–281** (7-bit clean, ignorando
-> los flag bytes en posiciones 272 y 280). Este es el método usado por `browser.js`
-> para extraer nombres de presets.
+> **Verificado en dumps reales (fábrica):** banco A preset 0 = `"Blue Dolphin BC "` empieza
+> en el byte 223. La etiqueta previa "(firmware metadata)" era falsa — el byte 223 es el
+> **primer carácter** del nombre del patch.
 
-**Correspondencia con SysEx raw (forma correcta de leer el nombre):**
+### 4.18 Lectura del Nombre — unpacked 223–238 y raw SysEx (16 caracteres)
+
+El nombre se lee directamente de **unpacked bytes 223–238** (16 chars ASCII limpio, verificado
+en dumps reales — **NO corrupto**). En el mensaje SysEx raw con cabecera de 10 bytes
+(payload empaquetado en 10–287) los caracteres viven en:
+
 ```
-Raw SysEx offsets 265–281 → 17 bytes raw (incluye 2 flag bytes en 272, 280)
-  - raw[265–271]:  bytes de datos (nombre chars 0–6, 7-bit clean)
-  - raw[272]:      flag byte del grupo 33 (NO es nombre) — ignorar
-  - raw[273–279]:  bytes de datos (nombre chars 7–13, 7-bit clean)
-  - raw[280]:      flag byte del grupo 34 (NO es nombre) — ignorar
-  - raw[281]:      byte de datos (nombre char 14, 7-bit clean)
+Raw SysEx offsets del nombre (unpacked 223–238):
+  - raw[265]:      byte de datos (char 0 = unpacked 223)
+  - raw[266]:      flag byte del grupo 32 (NO es nombre) — ignorar
+  - raw[267–273]:  bytes de datos (chars 1–7 = unpacked 224–230)
+  - raw[274]:      flag byte del grupo 33 (NO es nombre) — ignorar
+  - raw[275–281]:  bytes de datos (chars 8–14 = unpacked 231–237)
+  - raw[282]:      flag byte del grupo 34 (NO es nombre) — ignorar
+  - raw[283]:      byte de datos (char 15 = unpacked 238)
 
-Lectura correcta en JavaScript:
-  let nameChars = [];
-  for (let j = 265; j <= 281; j++) {
-    const b = rawSysex[offset + j];
-    if (b > 0) nameChars.push(String.fromCharCode(b));
-  }
-  const name = nameChars.join('').trim();
+Extracción en JavaScript (browser_packer.js → extractNameFromRawSysex):
+  const rawOffsets = [265];
+  for (let j = 267; j <= 273; j++) rawOffsets.push(j);
+  for (let j = 275; j <= 281; j++) rawOffsets.push(j);
+  rawOffsets.push(283);
 ```
+
+> ⚠️ El byte 222 (FX Mode) es el último byte de parámetros; los bytes 223–238 son el nombre
+> y 239–241 la cola del payload. Ningún parámetro debe declararse en 223–241
+> (el generador de registro lo rechaza con `RESERVED_BYTE_COLLISION`).
 
 ### 4.19 Cola del Nombre — Bytes 239–241 (región `Tail`)
 
 | Byte | Parámetro | Tipo | Región (byte-map.js) | Notas |
 |------|-----------|------|----------------------|-------|
-| 239 | Name field tail | value | `Tail` | Raw SysEx offset 282 |
-| 240 | Name field tail | value | `Tail` | Raw SysEx offset 283 |
-| 241 | Name field tail | value | `Tail` | Raw SysEx offset 284 (último byte del payload empaquetado) |
+| 239 | Name field tail | value | `Tail` | Raw SysEx offset 284 |
+| 240 | Name field tail | value | `Tail` | Raw SysEx offset 285 |
+| 241 | Name field tail | value | `Tail` | Raw SysEx offset 286 (el último byte del payload empaquetado es raw 287) |
 
-Estos 3 bytes contienen los datos residuales del payload empaquetado tras el campo de nombre de 17 bytes raw (offsets SysEx 282–284). Forman parte de la cola del grupo 34 de empaquetado.
+Estos 3 bytes contienen los datos residuales del payload empaquetado tras el campo de nombre (16 chars, raw 265–283). Forman parte de la cola del grupo 34 de empaquetado.
 
 **En el Dump viewer:**
 - Región `Tail` tiene color propio: `{bg:'#1e1a14', fg:'#998866'}` (ámbar/marrón cálido)
@@ -502,28 +501,21 @@ byteOffset ≥ 128 → NRPN(MSB=1, LSB=byteOffset-128)
 
 ## 6. Investigación de Bytes No Documentados
 
-### Byte 225 (zero padding)
+### Bytes 222–224 (transición a nombre)
 
-| Hallazgo | Valor |
-|----------|-------|
-| **Siempre 0** | ✅ 1024/1024 presets en factory banks A–H |
-| **Veredicto** | Zero padding — no usado por firmware ni DSP |
-| **Impacto** | Ninguno |
+| Hallazgo | b222 | b223 | b224 |
+|----------|------|------|------|
+| Interpretación actual | FX Mode | **Nombre char[0]** | **Nombre char[1]** |
+| Veredicto | Último byte de parámetros | Primer carácter del nombre del patch | Segundo carácter |
 
-### Bytes 223–224 (firmware metadata)
-
-| Hallazgo | b223 | b224 |
-|----------|------|------|
-| Valores únicos | **116** (en 1024 presets) | **56** |
-| Rango | 0–254 | 51–218 |
-| ¿CRC16 estándar? | ❌ No (13 algoritmos probados) | ❌ No |
-| ¿Checksum simple? | ❌ No (ni sum, xor, fletcher, adler) | ❌ No |
-| **Veredicto** | Metadatos internos del firmware | Metadatos internos |
-| **Impacto** | Ninguno en sonido | Ninguno |
+> **Corrección 2026-08:** La etiqueta previa "(firmware metadata)" para b223 era falsa
+> (verificada contra dumps reales: "Blue Dolphin BC " empieza en el byte 223). Los bytes
+> 223–238 son el nombre del preset (16 chars ASCII). El byte 225 tampoco es "zero padding"
+> — es el tercer carácter del nombre.
 
 ### Bytes 239–241 (name field tail)
 
-Son el remanente de datos del payload empaquetado después del campo de nombre. No son parámetros de control — solo existen porque el mecanismo de empaquetado 7-to-8 produce 242 bytes a partir de 278 bytes empaquetados, y los últimos bytes después del nombre (raw 282–284) no tienen una función específica.
+Son el remanente de datos del payload empaquetado después del campo de nombre (raw 284–286; el flag byte del grupo 34 está en raw 282 y los datos del nombre en 283). No son parámetros de control — solo existen porque el mecanismo de empaquetado 7-to-8 produce 242 bytes a partir de 278 bytes empaquetados, y no tienen una función específica.
 
 ---
 
@@ -706,6 +698,8 @@ Son el remanente de datos del payload empaquetado después del campo de nombre. 
 | 2026-07 | Documentación bytes 239–241 como "name field tail" |
 | 2026-07 | Nueva región `Tail` en byte-map.js y settings.js para bytes 239–241 (ámbar/marrón) |
 | 2026-07 | Nueva región `Firmware` en byte-map.js y settings.js para byte 223 (acero azulado) |
+| 2026-08 | **Corrección del nombre**: byte 223 = char[0], región 223–238 (16 chars) verificada en dumps; eliminada la etiqueta falsa "(firmware metadata)", el check "byte 225 = 0" y la afirmación de nombres corruptos en unpacked |
+| 2026-08 | **Cabecera verificada en dumps**: 10 bytes (`F0 00 20 32 20 <dev> 02 <proto> <bank> <prog>`), payload en 10–287, cola `00 00 F7` en 288–290; `validate_sysex_mapping.js` corregido (146 errores FX eran artefactos de desalineación de 2 bytes → 0 errores en los 8 bancos) |
 
 ---
 

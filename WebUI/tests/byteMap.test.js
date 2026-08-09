@@ -218,11 +218,9 @@ function buildByteMap() {
   map[220] = bp(220, 'FX3 Output Gain',     'FX3', 'value',    { desc: '0-150' });
   map[221] = bp(221, 'FX4 Output Gain',     'FX4', 'value',    { desc: '0-150' });
   map[222] = bp(222, 'FX Mode',             'FX',   'enum',    { enumLabels: ENUM_FX_MODE });
-  map[223] = bp(223, '(firmware metadata)', 'Firmware', 'value', { desc: 'Firmware internal metadata. 116 unique values. Not CRC16/checksum. No DSP impact.' });
-
-  for (let i = 224; i <= 238; i++) {
-    const charIdx = i - 224;
-    map[i] = bp(i, 'Program Name char[' + charIdx + ']', 'Name', 'ascii', { desc: 'ASCII character of patch name (15 chars in SysEx format)' });
+  for (let i = 223; i <= 238; i++) {
+    const charIdx = i - 223;
+    map[i] = bp(i, 'Program Name char[' + charIdx + ']', 'Name', 'ascii', { desc: 'ASCII character of patch name (16 chars in SysEx format)' });
   }
 
   map[239] = bp(239, '(name field tail)', 'Tail', 'value', { desc: 'Data after name field. raw SysEx offsets 282-284. Part of packed payload tail.' });
@@ -386,8 +384,8 @@ describe('BYTE_MAP structure', () => {
     }
   });
 
-  it('spot-check: bytes 224-238 are Program Name chars (ascii, 15 entries)', () => {
-    for (let i = 224; i <= 238; i++) {
+  it('spot-check: bytes 223-238 are Program Name chars (ascii, 16 entries)', () => {
+    for (let i = 223; i <= 238; i++) {
       expect(byteMap[i].region).toBe('Name');
       expect(byteMap[i].type).toBe('ascii');
       expect(byteMap[i].param).toContain('Program Name char');
