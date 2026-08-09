@@ -1,3 +1,4 @@
+import { describe, it, expect} from 'vitest';
 /**
  * @purpose Tests for WebUI/js/script_randomizer.js — Random sound generator for the synthesizer.
  * @purpose_en Tests for the musical random patch generator function.

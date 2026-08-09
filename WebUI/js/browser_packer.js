@@ -50,8 +50,8 @@ function extractNameFromRawSysex(rawSysex, baseOffset) {
     // Los offsets de los caracteres del nombre de 15 bytes son: 265 (último byte del bloque 31),
     // saltando 266 (prefijo del bloque 32), 267 a 273 (bloque 32), saltando 274 (prefijo del bloque 33), 275 a 281 (bloque 33).
     const rawOffsets = [265];
-    for (var j = 267; j <= 273; j++) {rawOffsets.push(j);}
-    for (var j = 275; j <= 281; j++) {rawOffsets.push(j);}
+    for (let j = 267; j <= 273; j++) {rawOffsets.push(j);}
+    for (let j = 275; j <= 281; j++) {rawOffsets.push(j);}
     
     const nameChars = [];
     for (let idx = 0; idx < rawOffsets.length; idx++) {

@@ -68,8 +68,8 @@ function pack8to7(unpackedBytes) {
 function extractNameFromRawSysex(rawSysex, baseOffset) {
   baseOffset = baseOffset || 0;
   const rawOffsets = [];
-  for (var j = 265; j <= 271; j++) {rawOffsets.push(j);}
-  for (var j = 273; j <= 279; j++) {rawOffsets.push(j);}
+  for (let j = 265; j <= 271; j++) {rawOffsets.push(j);}
+  for (let j = 273; j <= 279; j++) {rawOffsets.push(j);}
   rawOffsets.push(281);
 
   const nameChars = [];
@@ -304,8 +304,8 @@ describe('extractNameFromRawSysex', () => {
     const raw = new Uint8Array(offset + 282); // 265-271 + 273-279 + 281
     // Offsets: 265-271 (7), skip 272, 273-279 (7), skip 280, 281 (1)
     const nameOffsets = [];
-    for (var j = 265; j <= 271; j++) {nameOffsets.push(j);}
-    for (var j = 273; j <= 279; j++) {nameOffsets.push(j);}
+    for (let j = 265; j <= 271; j++) {nameOffsets.push(j);}
+    for (let j = 273; j <= 279; j++) {nameOffsets.push(j);}
     nameOffsets.push(281);
     for (let k = 0; k < Math.min(name.length, 15); k++) {
       raw[offset + nameOffsets[k]] = name.charCodeAt(k);
@@ -986,5 +986,82 @@ describe('exportSinglePatch — validation logic', () => {
     const syx = buildSingleSysex(patch);
     expect(syx.length).toBe(291);
     expect(syx[0]).toBe(0xF0);
+  });
+});
+
+// ────────── Semantic CSS classes in rendered patch HTML ─────────
+
+describe('renderPatchesForBank — semantic class assertions', () => {
+  function renderPatchHtml(patch, isGridView, isFactory) {
+    const labelText = patch.name;
+    const isFav = patch.meta && patch.meta.favorite;
+    const starPrefix = isFav ? '<span class="color-star mr-4">★</span>' : '';
+    let html = `<span class="patch-name-text text-ellipsis" style="font-weight:${isGridView ? 'bold' : 'normal'}">${starPrefix}${labelText}</span>`;
+    if (!isGridView && patch.meta && patch.meta.category) {
+      html += ` <span class="cat-badge shrink-0 mr-6">${patch.meta.category}</span>`;
+    }
+    html += '<div class="patch-actions-group flex-row gap-3 items-center ml-auto shrink-0">';
+    html += '<button class="patch-action-btn primary" title="Load patch to editor">▶</button>';
+    if (!isFactory) {
+      if (!isGridView) {
+        html += '<button class="patch-action-btn secondary" title="Rename patch">✏️</button>';
+      }
+      html += '<button class="patch-action-btn teal" title="Paste SysEx to this patch">📋</button>';
+    }
+    html += '<button class="patch-action-btn dim" title="More options">⋮</button>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderHardwarePatchHtml(patch) {
+    const labelText = patch.name;
+    let html = `<span class="patch-name-text text-ellipsis">${labelText}</span>`;
+    html += '<div class="patch-actions-group flex-row gap-3 items-center ml-auto shrink-0">';
+    html += '<button class="patch-action-btn primary" title="Load patch to editor">▶</button>';
+    html += '<button class="patch-action-btn dim" title="More options">⋮</button>';
+    html += '</div>';
+    return html;
+  }
+
+  it('local patch item contains .patch-action-btn and .text-ellipsis classes', () => {
+    const patch = { name: 'LEAD PATCH', meta: { category: 'Lead', favorite: false } };
+    const html = renderPatchHtml(patch, false, false);
+    expect(html).toContain('patch-name-text text-ellipsis');
+    expect(html).toContain('patch-action-btn primary');
+    expect(html).toContain('patch-action-btn secondary');
+    expect(html).toContain('patch-action-btn teal');
+    expect(html).toContain('patch-action-btn dim');
+    expect(html).toContain('patch-actions-group flex-row');
+  });
+
+  it('favorite local patch item contains .color-star class', () => {
+    const patch = { name: 'FAV PATCH', meta: { category: 'Lead', favorite: true } };
+    const html = renderPatchHtml(patch, false, false);
+    expect(html).toContain('color-star mr-4');
+  });
+
+  it('factory patch item hides rename/paste buttons but keeps play and menu', () => {
+    const patch = { name: 'FACTORY PATCH', meta: { category: 'Lead', favorite: false } };
+    const html = renderPatchHtml(patch, false, true);
+    expect(html).toContain('patch-action-btn primary');
+    expect(html).toContain('patch-action-btn dim');
+    expect(html).not.toContain('patch-action-btn secondary');
+    expect(html).not.toContain('patch-action-btn teal');
+  });
+
+  it('grid view patch item uses bold font-weight but same action classes', () => {
+    const patch = { name: 'GRID PATCH', meta: { category: 'Pad', favorite: false } };
+    const html = renderPatchHtml(patch, true, false);
+    expect(html).toContain('style="font-weight:bold"');
+    expect(html).toContain('patch-action-btn primary');
+    expect(html).not.toContain('patch-action-btn secondary');
+  });
+
+  it('hardware patch item contains .patch-action-btn classes', () => {
+    const patch = { name: 'HW PATCH' };
+    const html = renderHardwarePatchHtml(patch);
+    expect(html).toContain('patch-name-text text-ellipsis');
+    expect(html).toContain('patch-action-btn primary');
+    expect(html).toContain('patch-action-btn dim');
   });
 });

@@ -13,6 +13,7 @@ namespace ABD
     {
         sampleRate = std::max(1.0, newSampleRate);
         updateLFO();
+        updateEnvCoeffs();
     }
 
     void FXMoodFilter::setParameter(int index, float value)
@@ -25,11 +26,21 @@ namespace ABD
             case 2: reso  = value; break;
             case 3: baseFreq = value; break;
             case 4: filterType = (int)(value * 3.99f); break;
-            case 5: waveShape = (int)(value * 6.99f); break;
-            case 6: envMod = value; break;
-            case 7: drive = value; break;
-            case 8: fourPole = (value > 0.5f) ? 1 : 0; break;
+            case 5: break; // Mix almacenado (aplicado por FXSlot)
+            case 6: waveShape = (int)(value * 6.99f); break;
+            case 7: envMod = value; break;
+            case 8: attackParam = value; updateEnvCoeffs(); break;
+            case 9: releaseParam = value; updateEnvCoeffs(); break;
+            case 10: drive = value; break;
+            case 11: fourPole = (value > 0.5f) ? 1 : 0; break;
         }
+    }
+
+    void FXMoodFilter::updateEnvCoeffs()
+    {
+        // Attack/Release: 0-1 → factor de suavizado del envelope follower
+        envAttack  = 0.005f + 0.5f * attackParam;
+        envRelease = 0.0005f + 0.5f * releaseParam;
     }
 
     void FXMoodFilter::reset()
@@ -93,8 +104,8 @@ namespace ABD
             auto updateEnv = [](float& state, float in, float atk, float rel) {
                 state = (in > state) ? state + atk * (in - state) : state + rel * (in - state);
             };
-            updateEnv(envStateL, absL, 0.01f, 0.001f);
-            updateEnv(envStateR, absR, 0.01f, 0.001f);
+            updateEnv(envStateL, absL, envAttack, envRelease);
+            updateEnv(envStateR, absR, envAttack, envRelease);
             float env = (envStateL + envStateR) * 0.5f;
 
             // Modulación = LFO + Envelope

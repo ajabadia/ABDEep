@@ -13,24 +13,44 @@ function initMidiLearnEditor() {
         if (!container) {return;}
         const bridge = window.dualMidiBridge;
         if (!bridge || !bridge.midiLearnMappings || Object.keys(bridge.midiLearnMappings).length === 0) {
-            container.innerHTML = '<div class="text-dim text-center" style="padding:20px;font-size:var(--text-sm)">No mappings yet. Use MIDI LEARN on the main panel to create mappings.</div>';
+            container.innerHTML = '<div class="midi-learn-empty">No mappings yet. Use MIDI LEARN on the main panel to create mappings.</div>';
             if (countEl) {countEl.textContent = '0 mappings';}
             return;
         }
-        let html = '';
+        container.innerHTML = '';
         const keys = Object.keys(bridge.midiLearnMappings);
         keys.forEach(function(key) {
             const paramId = bridge.midiLearnMappings[key];
             const displayKey = key.replace('nrpn:', 'NRPN ').replace('cc:', 'CC ');
             const paramName = bridge._getParamName ? bridge._getParamName(paramId) : paramId;
-            html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-bottom:1px solid var(--border-dim);font-size:var(--text-sm)">'
-                + '<span style="color:var(--accent-blue);font-weight:bold;font-family:\'Share Tech Mono\',monospace;min-width:80px">' + displayKey + '</span>'
-                + '<span style="color:var(--text-secondary)">→</span>'
-                + '<span style="color:var(--brand-accent);flex:1">' + paramName.toUpperCase() + '</span>'
-                + '<button class="midi-learn-del-btn" data-key="' + key + '" style="background:none;border:1px solid var(--color-danger);color:var(--color-danger);border-radius:2px;cursor:pointer;padding:1px 6px;font-size:9px">Delete</button>'
-                + '</div>';
+
+            const row = document.createElement('div');
+            row.className = 'midi-learn-row';
+
+            const keySpan = document.createElement('span');
+            keySpan.className = 'midi-learn-key';
+            keySpan.textContent = displayKey;
+
+            const arrowSpan = document.createElement('span');
+            arrowSpan.className = 'midi-learn-arrow';
+            arrowSpan.textContent = '→';
+
+            const paramSpan = document.createElement('span');
+            paramSpan.className = 'midi-learn-param';
+            paramSpan.textContent = String(paramName).toUpperCase();
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'midi-learn-del-btn';
+            delBtn.setAttribute('data-key', key);
+            delBtn.textContent = 'Delete';
+
+            row.appendChild(keySpan);
+            row.appendChild(arrowSpan);
+            row.appendChild(paramSpan);
+            row.appendChild(delBtn);
+
+            container.appendChild(row);
         });
-        container.innerHTML = html;
         if (countEl) {countEl.textContent = keys.length + ' mapping' + (keys.length === 1 ? '' : 's');}
 
         container.querySelectorAll('.midi-learn-del-btn').forEach(function(btn) {
@@ -97,13 +117,17 @@ function initMidiLearnEditor() {
                     try {
                         const parsed = JSON.parse(ev.target.result);
                         const bridge = window.dualMidiBridge;
-                        if (!bridge) {return;}
+                        if (!bridge || typeof parsed !== 'object' || parsed === null) {throw new Error('Invalid payload');}
+                        let addedCount = 0;
                         Object.keys(parsed).forEach(function(key) {
-                            bridge.midiLearnMappings[key] = parsed[key];
+                            if ((key.startsWith('nrpn:') || key.startsWith('cc:')) && typeof parsed[key] === 'string') {
+                                bridge.midiLearnMappings[key] = parsed[key];
+                                addedCount++;
+                            }
                         });
                         if (bridge._saveMidiLearnMappings) {bridge._saveMidiLearnMappings();}
                         refreshMappingsList();
-                        if (importStatus) {importStatus.textContent = '✅ Imported ' + Object.keys(parsed).length + ' mappings';}
+                        if (importStatus) {importStatus.textContent = '✅ Imported ' + addedCount + ' mappings';}
                         setTimeout(function() { if (importStatus) {importStatus.textContent = '';} }, 3000);
                     } catch(e) {
                         if (importStatus) {importStatus.textContent = '❌ Invalid JSON';}

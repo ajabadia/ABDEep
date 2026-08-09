@@ -1,3 +1,4 @@
+import { describe, it, expect} from 'vitest';
 /**
  * Tests for WebUI/js/panel_templates.js — HTML template generators for panel editor
  *
@@ -46,12 +47,23 @@ try {
     // that check typeof on the actual module.
     const path = require('path');
     const fs = require('fs');
-    const sourceContent = fs.readFileSync(path.join(__dirname, '..', 'js', 'panel_templates.js'), 'utf8');
-    // Extract PANEL_TEMPLATES by evaluating in a sandbox
     const vm = require('vm');
     const sandbox = { window: {}, console: console };
     vm.createContext(sandbox);
-    vm.runInContext(sourceContent, sandbox);
+    // Load template files (core + vcf + performance)
+    const sourceCore = fs.readFileSync(path.join(__dirname, '..', 'js', 'panel_templates.js'), 'utf8');
+    vm.runInContext(sourceCore, sandbox);
+    const sourceVcf = fs.readFileSync(path.join(__dirname, '..', 'js', 'panel_templates_vcf.js'), 'utf8');
+    vm.runInContext(sourceVcf, sandbox);
+    const sourcePerf = fs.readFileSync(path.join(__dirname, '..', 'js', 'panel_templates_performance.js'), 'utf8');
+    vm.runInContext(sourcePerf, sandbox);
+    // Load sub-module template files (poly/porta, chord, arp/seq)
+    const sourcePolyPorta = fs.readFileSync(path.join(__dirname, '..', 'js', 'panel_templates_poly_porta.js'), 'utf8');
+    vm.runInContext(sourcePolyPorta, sandbox);
+    const sourceChord = fs.readFileSync(path.join(__dirname, '..', 'js', 'panel_templates_chord.js'), 'utf8');
+    vm.runInContext(sourceChord, sandbox);
+    const sourceArpSeq = fs.readFileSync(path.join(__dirname, '..', 'js', 'panel_templates_arp_seq.js'), 'utf8');
+    vm.runInContext(sourceArpSeq, sandbox);
     PANEL_TEMPLATES = sandbox.window.PANEL_TEMPLATES;
 } catch (e) {
     // Fallback: define tests without module reference
@@ -193,14 +205,14 @@ describe('PANEL_TEMPLATES — section titles', function () {
         expect(html).toContain('ROOT KEY');
         expect(html).toContain('CHORD TYPE');
         expect(html).toContain('Summary');
-        expect(html).toContain('Presets & Hardware');
+        expect(html).toContain('Presets &amp; Hardware');
     });
 
     it('ARP template contains Arpeggiator Status, Arp Routing, Mode & Range, Faders', function () {
         const html = PANEL_TEMPLATES.ARP();
         expect(html).toContain('Arpeggiator Status');
-        expect(html).toContain('Arp Routing & Clock');
-        expect(html).toContain('Mode & Range');
+        expect(html).toContain('Arp Routing &amp; Clock');
+        expect(html).toContain('Mode &amp; Range');
         expect(html).toContain('Arpeggiator Faders');
     });
 

@@ -118,7 +118,15 @@ namespace ABD
         void setRoute(int slotIndex, ModSource src, ModDestination dest, float amount);
         float getModulationValue(ModDestination dest, const float* sourceValues) const;
 
-        static constexpr int kNumSlots = 8; // 8 buses de modulación
+#ifndef DEEP_TARGET_MODEL
+ #define DEEP_TARGET_MODEL 1
+#endif
+
+#if DEEP_TARGET_MODEL >= 2
+        static constexpr int kNumSlots = 32; // 32 buses de modulación (AbyssMind Pro)
+#else
+        static constexpr int kNumSlots = 8;  // 8 buses de modulación (DeepMind 12)
+#endif
 
     private:
         ModRoute routes[kNumSlots];

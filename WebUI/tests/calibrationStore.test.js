@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Simular el entorno de navegador básico antes de importar
 if (typeof window === 'undefined') {
@@ -6,6 +6,13 @@ if (typeof window === 'undefined') {
 }
 
 // Cargar la definición del store
+import '../js/calibration_store_data.js';
+import '../js/calibration_store_utils.js';
+import '../js/calibration_store_normalize.js';
+import '../js/calibration_store_validation.js';
+import '../js/calibration_store_selectors.js';
+import '../js/calibration_store_selectors_bank.js';
+import '../js/calibration_store_actions.js';
 import '../js/calibration_store.js';
 
 describe('Calibration Store', () => {

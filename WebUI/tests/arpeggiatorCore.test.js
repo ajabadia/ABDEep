@@ -140,8 +140,8 @@ function _arpStepClick(stepUnit, stepBar, pattern, index) {
 function _arpClockLcdHtml(selectValue) {
   const idx = parseInt(selectValue);
   const clockName = ARP_CLOCK_NAMES[idx] || '';
-  return '<span style="font-size:10px; opacity:0.6;">ARPEGGIATOR</span><br>'
-    + '<strong style="color:var(--accent-primary);">CLOCK <span style="color:var(--accent-yellow);">'
+  return '<span class="lcd-label">ARPEGGIATOR</span><br>'
+    + '<strong class="text-accent">CLOCK <span class="lcd-color-yellow">'
     + clockName + '</span></strong>';
 }
 
@@ -149,8 +149,8 @@ function _arpClockLcdHtml(selectValue) {
 function _arpModeLcdHtml(selectValue) {
   const idx = parseInt(selectValue);
   const modeName = ARP_MODE_NAMES[idx] || '';
-  return '<span style="font-size:10px; opacity:0.6;">ARPEGGIATOR</span><br>'
-    + '<strong style="color:var(--accent-primary);">MODE: <span style="color:var(--accent-orange);">'
+  return '<span class="lcd-label">ARPEGGIATOR</span><br>'
+    + '<strong class="text-accent">MODE: <span class="arp-preset-name">'
     + modeName + '</span></strong>';
 }
 
@@ -158,24 +158,24 @@ function _arpModeLcdHtml(selectValue) {
 function _arpVelGateLcdHtml(selectValue) {
   const idx = parseInt(selectValue);
   const vgName = ARP_VELGATE_NAMES[idx] || '';
-  return '<span style="font-size:10px; opacity:0.6;">ARPEGGIATOR</span><br>'
-    + '<strong style="color:var(--accent-primary);">VEL GATE: <span style="color:var(--accent-teal);">'
+  return '<span class="lcd-label">ARPEGGIATOR</span><br>'
+    + '<strong class="text-accent">VEL GATE: <span class="lcd-color-teal">'
     + vgName + '</span></strong>';
 }
 
 /** Generate LCD HTML for octave select change (mirrors source) */
 function _arpOctaveLcdHtml(selectValue) {
   const octVal = parseInt(selectValue) + 1;
-  return '<span style="font-size:10px; opacity:0.6;">ARPEGGIATOR</span><br>'
-    + '<strong style="color:var(--accent-primary);">OCTAVE RANGE: <span style="color:var(--accent-cyan);">'
+  return '<span class="lcd-label">ARPEGGIATOR</span><br>'
+    + '<strong class="text-accent">OCTAVE RANGE: <span class="lcd-color-cyan">'
     + octVal + '</span></strong>';
 }
 
 /** Generate LCD HTML for step gate click (mirrors source) */
 function _arpStepGateLcdHtml(stepIndex, isOn) {
-  return '<span style="font-size:10px; opacity:0.6;">ARPEGGIATOR</span><br>'
+  return '<span class="lcd-label">ARPEGGIATOR</span><br>'
     + '<strong>STEP ' + (stepIndex + 1) + ' GATE</strong><br>'
-    + '<span style="font-size:15px; color:var(--color-gold);">'
+    + '<span class="lcd-value">'
     + (isOn ? 'ON' : 'OFF') + '</span>';
 }
 
@@ -471,7 +471,7 @@ describe('Arp select change — LCD HTML generation', () => {
     const html = _arpClockLcdHtml('0');
     expect(html).toContain('CLOCK');
     expect(html).toContain('1/1');
-    expect(html).toContain('accent-yellow');
+    expect(html).toContain('lcd-color-yellow');
   });
 
   it('clock select at index 6 produces "CLOCK 1/12" LCD', () => {
@@ -488,7 +488,7 @@ describe('Arp select change — LCD HTML generation', () => {
     const html = _arpModeLcdHtml('0');
     expect(html).toContain('MODE:');
     expect(html).toContain('UP');
-    expect(html).toContain('accent-orange');
+    expect(html).toContain('arp-preset-name');
   });
 
   it('mode select at index 8 produces "MODE: RANDOM" LCD', () => {
@@ -505,7 +505,7 @@ describe('Arp select change — LCD HTML generation', () => {
     const html = _arpVelGateLcdHtml('0');
     expect(html).toContain('VEL GATE:');
     expect(html).toContain('Gate');
-    expect(html).toContain('accent-teal');
+    expect(html).toContain('lcd-color-teal');
   });
 
   it('vel/gate select at index 1 produces "VEL GATE: Velocity" LCD', () => {
@@ -522,7 +522,7 @@ describe('Arp select change — LCD HTML generation', () => {
     const html = _arpOctaveLcdHtml('0');
     expect(html).toContain('OCTAVE RANGE:');
     expect(html).toContain('1');
-    expect(html).toContain('accent-cyan');
+    expect(html).toContain('lcd-color-cyan');
   });
 
   it('octave select at index 1 produces "OCTAVE RANGE: 2" LCD', () => {
@@ -544,7 +544,7 @@ describe('Arp select change — LCD HTML generation', () => {
     ];
     htmls.forEach(h => {
       expect(h).toContain('ARPEGGIATOR');
-      expect(h).toContain('font-size:10px; opacity:0.6');
+      expect(h).toContain('lcd-label');
     });
   });
 });
@@ -556,7 +556,7 @@ describe('Arp step click — LCD HTML content', () => {
     const html = _arpStepGateLcdHtml(0, true);
     expect(html).toContain('STEP 1 GATE');
     expect(html).toContain('ON');
-    expect(html).toContain('color:var(--color-gold)');
+    expect(html).toContain('lcd-value');
   });
 
   it('gate OFF at step 32 produces "STEP 32 GATE" with OFF text', () => {
@@ -580,8 +580,7 @@ describe('Arp step click — LCD HTML content', () => {
     const html = _arpStepGateLcdHtml(15, true);
     expect(html).toContain('ARPEGGIATOR');
     expect(html).toContain('STEP 16 GATE');
-    expect(html).toContain('font-size:15px');
-    expect(html).toContain('color:var(--color-gold)');
+    expect(html).toContain('lcd-value');
   });
 });
 
@@ -1598,5 +1597,50 @@ describe('Arp pattern editor — full lifecycle', () => {
     expect(changes[10].height).toBe('90%');
     // Step 15 should be OFF (odd index)
     expect(changes[15].height).toBe('15%');
+  });
+});
+
+// ────────── Semantic CSS classes in rendered ARP HTML ─────────
+
+describe('ARP semantic class assertions', () => {
+  function renderArpPresetItem(p) {
+    return `<span class="arp-preset-name">${p.name}</span>` +
+           '<span class="delete-arp-preset-btn">✕</span>';
+  }
+
+  it('preset item contains .arp-preset-name and .delete-arp-preset-btn', () => {
+    const html = renderArpPresetItem({ name: 'Default' });
+    expect(html).toContain('arp-preset-name');
+    expect(html).toContain('delete-arp-preset-btn');
+    expect(html).toContain('Default');
+    expect(html).toContain('✕');
+  });
+
+  it('mode select LCD contains .text-accent and .arp-preset-name', () => {
+    const html = _arpModeLcdHtml('4');
+    expect(html).toContain('text-accent');
+    expect(html).toContain('arp-preset-name');
+    expect(html).toContain('DOWN-INV');
+  });
+
+  it('clock select LCD contains .text-accent and lcd-color-yellow', () => {
+    const html = _arpClockLcdHtml('4');
+    expect(html).toContain('text-accent');
+    expect(html).toContain('lcd-color-yellow');
+    expect(html).toContain('1/6');
+  });
+
+  it('vel/gate select LCD contains .text-accent and lcd-color-teal', () => {
+    const html = _arpVelGateLcdHtml('2');
+    expect(html).toContain('text-accent');
+    expect(html).toContain('lcd-color-teal');
+    expect(html).toContain('Seq');
+  });
+
+  it('octave select LCD contains .text-accent and lcd-color-cyan', () => {
+    const html = _arpOctaveLcdHtml('2');
+    expect(html).toContain('text-accent');
+    expect(html).toContain('lcd-color-cyan');
+    expect(html).toContain('3');
   });
 });

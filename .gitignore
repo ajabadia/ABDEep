@@ -1,46 +1,42 @@
-# CMake build directories
-/build/
-/cmake-build-*/
-/out/
+node_modules
+build/
+wasm/build/
+wasm/juce_shim/juce_core/
+WebUI/wasm/abdeep_dsp.js
+WebUI/wasm/abdeep_dsp.wasm
+pluginval_temp/
+testsprite_tests/tmp/
+testsprite_tests/tmp/config.json
 
-# IDE files
-/.vs/
-/.idea/
-/*.user
-/*.suo
+# JUCE clonado por CI (dsp-ci.yml) - no debe commitearse
+/JUCE/
 
-# OS files
-.DS_Store
-Thumbs.db
+# Reportes de cobertura generados
+coverage/
 
-# Codebase memory / AI agent files
+# Logs de ejecucion y binarios descargados
+webview_log.txt
+verify_release_log.txt
+test_cpp_output.txt
+pluginval_Windows.zip
+/nul
+
+# Tooling de agentes de desarrollo (no es codigo fuente del producto)
+/.agents/
 /.codebase-memory/
-.aider*
 /brain/
 
-# Resources
-/resources/
+# Despliegue Vercel (config local)
+.vercel/
 
-.vercel
-
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-lerna-debug.log*
-
-# Testing & Coverage
-coverage/
-.nyc_output/
-
-# Logs & temp
-*.log
-webview_log.txt
-
-# Agent configurations
-.agents/
+# Artefacto espurio en WebUI
 /WebUI/nul
-/nul
-/WebUItestspanelEdit.test.js
+
+# Resources: solo se commitean parameters_spec.json, Deepmind 12.csv y banks/
+# (los binarios/descargas de referencia NO son codigo fuente)
+/resources/*.zip
+/resources/DeepMindAppWindows_1_0_6/
+/resources/images/
+/resources/manual/
+/resources/md/
+/resources/patchwork-deepmind-main/

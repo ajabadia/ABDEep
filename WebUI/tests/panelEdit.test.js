@@ -9,7 +9,7 @@
  *   - updateRealScopeHeight (collapses/expands real scope per mode / JUCE flag)
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // ══════════════════════════════════════════════════════════════════
 // Mock state
@@ -1903,7 +1903,7 @@ describe('drawPanelGraphic — canvas rendering', () => {
 
     if (currentPanelMode === 'ENV' || currentPanelMode === 'VCA') {
       const envNum = currentPanelMode === 'VCA' ? 1 : panelActiveEnv;
-      var prefix = 'env' + envNum + '_';
+const prefix = 'env' + envNum + '_';
       const a = typeof cache[prefix + 'attack'] !== 'undefined' ? cache[prefix + 'attack'] : 0.2;
       const d = typeof cache[prefix + 'decay'] !== 'undefined' ? cache[prefix + 'decay'] : 0.35;
       const s = typeof cache[prefix + 'sustain'] !== 'undefined' ? cache[prefix + 'sustain'] : 0.55;
@@ -1912,11 +1912,11 @@ describe('drawPanelGraphic — canvas rendering', () => {
       const dCurve = typeof cache[prefix + 'decay_curve'] !== 'undefined' ? (cache[prefix + 'decay_curve'] * 2.0 - 1.0) : 0.0;
       const rCurve = typeof cache[prefix + 'release_curve'] !== 'undefined' ? (cache[prefix + 'release_curve'] * 2.0 - 1.0) : 0.0;
 
-      var padding = 10;
-      var graphW = w - padding * 2;
-      var graphH = h - padding * 2;
+const padding = 10;
+const graphW = w - padding * 2;
+const graphH = h - padding * 2;
       const startX = padding;
-      var startY = h - padding;
+const startY = h - padding;
       const topY = padding;
 
       const totalTime = a + d + 0.7 + r;
@@ -1968,7 +1968,7 @@ describe('drawPanelGraphic — canvas rendering', () => {
       ctxLocal.fillText(envLabel, padding + 2, padding + 8);
 
     } else if (currentPanelMode === 'LFO') {
-      var prefix = 'lfo' + panelActiveLfo + '_';
+const prefix = 'lfo' + panelActiveLfo + '_';
       const shapeVal = typeof cache[prefix + 'shape'] !== 'undefined' ? Math.round(cache[prefix + 'shape'] * 6) : 1;
       const lfoRate = typeof cache[prefix + 'rate'] !== 'undefined' ? cache[prefix + 'rate'] : 0.5;
 
@@ -1976,10 +1976,10 @@ describe('drawPanelGraphic — canvas rendering', () => {
       ctxLocal.lineWidth = 2;
       ctxLocal.beginPath();
 
-      var padding = 10;
-      var graphW = w - padding * 2;
-      var graphH = h - padding * 2;
-      var centerY = h / 2;
+const padding = 10;
+const graphW = w - padding * 2;
+const graphH = h - padding * 2;
+const centerY = h / 2;
       const freq = 0.5 + lfoRate * 4.0;
       const phaseOffset = (_animTime / 1000) * freq * Math.PI * 2;
 
@@ -2021,9 +2021,9 @@ describe('drawPanelGraphic — canvas rendering', () => {
       ctxLocal.lineWidth = 2;
       ctxLocal.beginPath();
 
-      var graphW = w - 20;
-      var graphH = h - 20;
-      var startY = h - 10;
+const graphW = w - 20;
+const graphH = h - 20;
+const startY = h - 10;
 
       for (let fx = 0; fx < graphW; fx++) {
         const freq2 = fx / graphW;
@@ -2055,10 +2055,10 @@ describe('drawPanelGraphic — canvas rendering', () => {
       ctxLocal.strokeStyle = brandColor;
       ctxLocal.lineWidth = 2;
       ctxLocal.beginPath();
-      var padding = 10;
-      var graphW = w - padding * 2;
-      var graphH = h - padding * 2;
-      var centerY = h / 2;
+const padding = 10;
+const graphW = w - padding * 2;
+const graphH = h - padding * 2;
+const centerY = h / 2;
       const oscPhase = (_animTime / 1000) * Math.PI * 2 * 2.2;
       for (let ox = 0; ox < graphW; ox++) {
         const pct3 = ox / graphW;
@@ -2088,10 +2088,10 @@ describe('drawPanelGraphic — canvas rendering', () => {
     } else if (currentPanelMode === 'ARP') {
       ctxLocal.strokeStyle = brandColor;
       ctxLocal.lineWidth = 2;
-      var padding = 10;
-      var graphW = w - padding * 2;
-      var graphH = h - padding * 2;
-      var centerY = h / 2;
+const padding = 10;
+const graphW = w - padding * 2;
+const graphH = h - padding * 2;
+const centerY = h / 2;
       const arpRate = typeof cache['arp_rate'] !== 'undefined' ? cache['arp_rate'] : 0.5;
       const bpm = 20 + arpRate * 220;
       const beatMs = 60000 / bpm;
@@ -2491,13 +2491,13 @@ describe('_updatePanelStepVisual — SEQ step bar visual', () => {
         fillBar.style.background = 'transparent';
         fillBar.style.borderTop = '1px dashed var(--color-danger)';
       } else if (val >= 0) {
-        var pct = Math.min(50, (val / 127) * 50);
+const pct = Math.min(50, (val / 127) * 50);
         fillBar.style.bottom = '50%';
         fillBar.style.height = pct + '%';
         fillBar.style.background = 'var(--accent-pink)';
         fillBar.style.borderTop = 'none';
       } else {
-        var pct = Math.min(50, (Math.abs(val) / 128) * 50);
+const pct = Math.min(50, (Math.abs(val) / 128) * 50);
         fillBar.style.bottom = (50 - pct) + '%';
         fillBar.style.height = pct + '%';
         fillBar.style.background = 'color-mix(in srgb, var(--accent-pink) 40%, #000)';
@@ -3085,13 +3085,13 @@ describe('_updatePanelStepVisual — active length dimming', () => {
         fillBar.style.background = 'transparent';
         fillBar.style.borderTop = '1px dashed var(--color-danger)';
       } else if (val >= 0) {
-        var pct = Math.min(50, (val / 127) * 50);
+const pct = Math.min(50, (val / 127) * 50);
         fillBar.style.bottom = '50%';
         fillBar.style.height = pct + '%';
         fillBar.style.background = 'var(--accent-pink)';
         fillBar.style.borderTop = 'none';
       } else {
-        var pct = Math.min(50, (Math.abs(val) / 128) * 50);
+const pct = Math.min(50, (Math.abs(val) / 128) * 50);
         fillBar.style.bottom = (50 - pct) + '%';
         fillBar.style.height = pct + '%';
         fillBar.style.background = 'color-mix(in srgb, var(--accent-pink) 40%, #000)';

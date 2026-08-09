@@ -22,6 +22,10 @@ void getSynthState (ABDEepAudioProcessor& audioProcessor,
                    const juce::Array<juce::var>& args,
                    juce::WebBrowserComponent::NativeFunctionCompletion completion);
 
+void setPresetName (ABDEepAudioProcessor& audioProcessor,
+                   const juce::Array<juce::var>& args,
+                   juce::WebBrowserComponent::NativeFunctionCompletion completion);
+
 void requestMidiDump (ABDEepAudioProcessor& audioProcessor,
                      const juce::Array<juce::var>& args,
                      juce::WebBrowserComponent::NativeFunctionCompletion completion);

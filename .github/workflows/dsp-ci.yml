@@ -39,6 +39,14 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Fetch JUCE 8.0.12 (no submodule; CMake falls back to ./JUCE)
+        shell: bash
+        run: |
+          if [ ! -d JUCE ]; then
+            git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+          fi
+          echo "JUCE at: $PWD/JUCE"
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
@@ -54,3 +62,139 @@ jobs:
         run: |
           .\build\ABDEep_UnitTests_artefacts\Release\ABDEep_UnitTests.exe
         continue-on-error: true
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Allocation audit — Invariante de tiempo real §3.1 del plan v3.2:
+  # processBlock() debe ejecutarse con CERO asignaciones dinámicas.
+  # Ejecuta ABDEep_Benchmarks.exe en el escenario idle y falla si allocs > 0.
+  # ────────────────────────────────────────────────────────────────────────────
+  allocation-audit:
+    name: Allocation audit — 0 allocs in idle processBlock
+    runs-on: windows-2022
+    timeout-minutes: 40
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Fetch JUCE 8.0.12 (no submodule; CMake falls back to ./JUCE)
+        shell: bash
+        run: |
+          if [ ! -d JUCE ]; then
+            git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+          fi
+          echo "JUCE at: $PWD/JUCE"
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Configure CMake (model 2 — Enhanced, full test coverage)
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2
+
+      - name: Build ABDEep_Benchmarks target
+        run: |
+          cmake --build build --config Release --target ABDEep_Benchmarks
+
+      - name: Run allocation audit (idle scenario, 3 repeats)
+        shell: bash
+        run: |
+          set -o pipefail
+          ./build/ABDEep_Benchmarks_artefacts/Release/ABDEep_Benchmarks.exe --scenario idle > bench.log 2>&1
+          cat bench.log
+          ALLOCS=$(sed -n 's/.*BEST[[:space:]]\+idle.*allocs=\([0-9]*\).*/\1/p' bench.log | head -1)
+          echo "idle allocs per block = ${ALLOCS:-<not found>}"
+          if [ -z "${ALLOCS}" ]; then
+            echo "::error::No se pudo parsear el contador de allocs (falta la linea BEST idle)"
+            exit 1
+          fi
+          if [ "${ALLOCS}" -gt 0 ]; then
+            echo "::error::Allocation audit FAILED: ${ALLOCS} asignaciones detectadas en idle processBlock (invariante 3.1: debe ser 0)"
+            exit 1
+          fi
+          echo "Allocation audit passed: 0 asignaciones en idle processBlock"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Benchmark — presupuesto temporal definitivo p95/p99/p999 (§3.3 plan v3.2).
+  # Ejecuta los 18 escenarios de carga máxima (3 repeticiones, mejor p95) en un
+  # runner dedicado windows-2022 y publica los resultados en la rama
+  # `benchmark-results` (se leen via raw.githubusercontent.com para fijar el
+  # presupuesto en docs/baseline_fase0_v32.md).
+  # ────────────────────────────────────────────────────────────────────────────
+  benchmark:
+    name: Benchmark — definitive p95/p99/p999 (18 scenarios)
+    runs-on: windows-2022
+    timeout-minutes: 90
+    permissions:
+      contents: write
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Fetch JUCE 8.0.12 (no submodule; CMake falls back to ./JUCE)
+        shell: bash
+        run: |
+          if [ ! -d JUCE ]; then
+            git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+          fi
+          echo "JUCE at: $PWD/JUCE"
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Configure CMake (model 2 — Enhanced, full test coverage)
+        run: |
+          cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2
+
+      - name: Build ABDEep_Benchmarks target
+        run: |
+          cmake --build build --config Release --target ABDEep_Benchmarks
+
+      - name: Run full benchmark (18 scenarios, 3 repeats, best-p95)
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            echo "# ABDEep processBlock benchmark — CI windows-2022 (dedicated runner)"
+            echo "runner=$RUNNER_NAME os=$RUNNER_OS arch=$RUNNER_ARCH cpus=$NUMBER_OF_PROCESSORS"
+            echo "commit=$(git rev-parse --short HEAD) timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo
+          } > bench_meta.txt
+          ./build/ABDEep_Benchmarks_artefacts/Release/ABDEep_Benchmarks.exe > bench_full.log 2>&1
+          echo "benchmark exit=$?"
+          grep -E '^(RESULT|BEST|BENCH_DONE)' bench_full.log > bench_results.txt
+          grep -q '^BENCH_DONE' bench_full.log || {
+            echo "::error::BENCH_DONE no encontrado — benchmark incompleto"
+            cat bench_full.log
+            exit 1
+          }
+          echo "::group::Benchmark results"
+          cat bench_meta.txt
+          cat bench_results.txt
+          echo "::endgroup::"
+          cat bench_results.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish results to benchmark-results branch
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B benchmark-results
+          git add bench_meta.txt bench_results.txt bench_full.log
+          git commit -m "benchmark results (CI windows-2022) $(git rev-parse --short HEAD)" --allow-empty
+          git push origin benchmark-results --force
+          echo "Published: https://github.com/ajabadia/ABDEep/tree/benchmark-results"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

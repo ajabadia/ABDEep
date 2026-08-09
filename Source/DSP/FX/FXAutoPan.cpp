@@ -17,6 +17,7 @@ namespace ABD
     {
         sampleRate = std::max(1.0, newSampleRate);
         updateLFOIncrement();
+        updateEnvCoeffs();
     }
 
     void FXAutoPan::setParameter(int index, float value)
@@ -31,7 +32,17 @@ namespace ABD
             case 3: depth = value;  break;
             case 4: envSpd = value; break;
             case 5: envDepth = value; break;
+            case 6: attackParam = value; updateEnvCoeffs(); break;
+            case 7: hold = value; break; // almacenado (sin equivalente DSP)
+            case 8: releaseParam = value; updateEnvCoeffs(); break;
         }
+    }
+
+    void FXAutoPan::updateEnvCoeffs()
+    {
+        // Attack/Release: 0-1 → factor de suavizado del envelope follower
+        envAttack  = 0.005f + 0.5f * attackParam;
+        envRelease = 0.0005f + 0.5f * releaseParam;
     }
 
     void FXAutoPan::reset()

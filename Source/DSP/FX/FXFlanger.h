@@ -6,15 +6,20 @@ namespace ABD
 {
     /**
      * FXFlanger: Efecto Flanger estéreo con LFO, delay corto y feedback intenso.
-     * 
-     * Similar al Chorus pero con delay más corto (0-5ms) y más feedback,
-     * creando el característico efecto de "jet plane" o peine espectral.
-     * 
-     * Parámetros:
-     *   0: Rate (0-1, 0.05Hz - 8Hz)
-     *   1: Depth (0-1, 0ms - 5ms)
-     *   2: Feedback (0-1, 0 - 0.97)
-     *   3: Delay Base (0-1, 0ms - 3ms)
+     *
+     * Parámetros (orden hardware, docs/deepmind_fx.md FX Type 11):
+     *   0: Speed   (0-1, 0.05Hz - 8Hz)
+     *   1: WidthL  (0-1, profundidad de modulación canal izquierdo)
+     *   2: WidthR  (0-1, profundidad de modulación canal derecho)
+     *   3: DelayL  (0-1, 0.5ms - 20ms delay base izquierdo)
+     *   4: DelayR  (0-1, 0.5ms - 20ms delay base derecho)
+     *   5: Mix     (0-1, wet/dry — aplicado por FXSlot)
+     *   6: LoCut   (0-1, almacenado — sin equivalente DSP)
+     *   7: HiCut   (0-1, almacenado — sin equivalente DSP)
+     *   8: Phase   (0-1, 0-180°, offset estéreo del LFO)
+     *   9: FeedLC  (0-1, almacenado — sin equivalente DSP)
+     *   10: FeedHC (0-1, almacenado — sin equivalente DSP)
+     *   11: Feed   (0-1, feedback ±90%)
      */
     class FXFlanger : public FXBase
     {
@@ -28,17 +33,20 @@ namespace ABD
                       int numSamples) override;
         void setParameter(int index, float value) override;
         void reset() override;
-        int getNumParameters() const override { return 4; }
+        int getNumParameters() const override { return 12; }
         juce::String getEffectName() const override { return "Flanger"; }
 
     private:
         double sampleRate = 44100.0;
 
-        // Parámetros
-        float rate = 0.2f;
-        float depth = 0.5f;
-        float feedback = 0.5f;
-        float baseDelay = 0.3f;
+        // Parámetros (orden hardware)
+        float rate = 0.2f;        // 0-1 → 0.05Hz - 8Hz
+        float depthL = 0.5f;      // 0-1 → 0ms - 5ms
+        float depthR = 0.5f;      // 0-1 → 0ms - 5ms
+        float baseDelayL = 0.3f;  // 0-1 → 0.5ms - 20ms
+        float baseDelayR = 0.3f;  // 0-1 → 0.5ms - 20ms
+        float phase = 0.25f;      // 0-1 → 0-180° offset estéreo (ciclo 0-0.5)
+        float feedback = 0.5f;    // 0-0.9
 
         // LFO state
         double lfoPhaseL = 0.0;

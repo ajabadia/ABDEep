@@ -12,14 +12,15 @@ namespace ABD
      *   - Horn (agudo): rotación más rápida, modulación de fase
      *   - Rotor (grave): rotación más lenta, tremolo + modulación
      *
-     * Parámetros:
+     * Parámetros (orden hardware, docs/deepmind_fx.md FX Type 16):
      *   0: LoSpeed  (0-1, 0.1Hz - 4.0Hz, velocidad lenta)
      *   1: HiSpeed  (0-1, 2.0Hz - 9.9Hz, velocidad rápida)
      *   2: Accel    (0-1, 0-100%, tasa de aceleración entre slow↔fast)
      *   3: Distance (0-1, 0-100%, distancia micrófono-virtual)
      *   4: Balance  (0-1, -100% a +100%, balance horn/rotor)
-     *   5: Speed    (0=SLOW, 1=FAST)
+     *   5: Mix      (0-1, wet/dry — aplicado por FXSlot)
      *   6: Motor    (0=RUN, 1=STOP)
+     *   7: Speed    (0=SLOW, 1=FAST)
      */
     class FXRotarySpeaker : public FXBase
     {
@@ -33,7 +34,7 @@ namespace ABD
                       int numSamples) override;
         void setParameter(int index, float value) override;
         void reset() override;
-        int getNumParameters() const override { return 7; }
+        int getNumParameters() const override { return 8; }
         juce::String getEffectName() const override { return "Rotary Speaker"; }
 
     private:

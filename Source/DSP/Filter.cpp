@@ -22,8 +22,6 @@ namespace ABD
     {
         sampleRate = std::max(1.0, newSampleRate);
         mFilter.prepare(sampleRate);
-        m2PoleState[0] = m2PoleState[1] = 0.0f;
-        m2PoleOutput = 0.0f;
     }
 
     void VCF::setCutoff(float cutoffHz)
@@ -44,23 +42,12 @@ namespace ABD
             poleMode = newMode;
             mFilter.setPoleMode(newMode == 0 ? JunoVCF_ZDF::PoleMode::FourPole
                                               : JunoVCF_ZDF::PoleMode::TwoPole);
-            if (poleMode == 0)
-            {
-                // Switching to 4-pole: clear 2-pole state
-                m2PoleState[0] = m2PoleState[1] = 0.0f;
-                m2PoleOutput = 0.0f;
-            }
         }
     }
 
     void VCF::setOversample(int factor)
     {
-        int clamped = (factor <= 1) ? 1 : (factor == 2) ? 2 : 4;
-        if (clamped != mOversample)
-        {
-            mOversample = clamped;
-            mFilter.setOversample(mOversample);
-        }
+        mFilter.setOversample(factor);
     }
 
     void VCF::setMode(JunoVCF_ZDF::Mode mode)
@@ -70,9 +57,9 @@ namespace ABD
 
     float VCF::process(float sample)
     {
-        // frq = cutoffHz / Nyquist — the ZDF core expects this
+        // frq = cutoffHz / Nyquist — the ZDF core clamps frq to its
+        // stability limit (0.85) unconditionally at process() entry.
         float frq = cutoff / static_cast<float>(sampleRate * 0.5f);
-        frq = std::clamp(frq, 0.0001f, 0.85f);
 
         return mFilter.process(sample, frq, resonance);
     }

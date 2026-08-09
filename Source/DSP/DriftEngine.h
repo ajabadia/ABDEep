@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdlib>
+#include <cstdint>
 #include <cmath>
 #include <algorithm>
 
@@ -52,6 +52,13 @@ namespace ABD
     private:
         double sampleRate = 44100.0;
 
+        // --- Tuning del slew de drift, en Hz (por segundo), derivado del tuning
+        //     legacy por-muestra a 44.1 kHz: base 0.0001/sample y 0.01/sample por
+        //     unidad de driftRate -> x44100 muestras/s. El cómputo per-sample usa
+        //     solo sampleRate (DAW): slew/sample = (basePerSec + drift·ratePerSec)/sr.
+        static constexpr double kSlewBasePerSec = 4.41;       // 0.0001 * 44100
+        static constexpr double kSlewRatePerSec = 441.0;      // 0.01 * 44100
+
         // --- Parámetros (normalizados 0-1 desde la UI) ---
         float voiceDriftAmount = 0.0f;   // escala para pitch drift (cents)
         float paramDriftAmount = 0.0f;   // escala para VCF/Env drift
@@ -61,15 +68,16 @@ namespace ABD
         struct DriftOsc
         {
             double samplesUntilNextTarget = 0.0;
-            double targetIntervalSamples = 44100.0; // samples entre cambios de target
+            double targetIntervalSamples = 44100.0; // samples entre cambios de target (set en setSampleRate)
             float currentValue = 0.0f;
             float targetValue = 0.0f;
             float slewFactor = 0.001f; // qué tan rápido glidea (mayor = más rápido)
 
-            void pickNewTarget(float amplitudeScale)
+            void pickNewTarget(float amplitudeScale, float randomVal)
             {
-                // Valor aleatorio en [-amplitudeScale, +amplitudeScale]
-                targetValue = (-1.0f + 2.0f * ((float)std::rand() / (float)RAND_MAX)) * amplitudeScale;
+                // randomVal viene en [-1, +1] desde DriftEngine::nextRandomFloat()
+                // Escalar por amplitud deseada
+                targetValue = randomVal * amplitudeScale;
             }
         };
 
@@ -91,5 +99,15 @@ namespace ABD
 
         /** Calcula el intervalo en samples entre cambios de target según driftRate */
         double computeTargetInterval() const;
+
+        /**
+         * Genera un valor aleatorio en [-1, 1] usando LCG (Linear Congruential Generator).
+         * Thread-safe porque solo el audio thread llama a nextSample().
+         * Misma implementación que LFO::nextRandomFloat() para consistencia.
+         */
+        float nextRandomFloat();
+
+        /** Semilla del LCG local (no compartida, thread-safe por diseño) */
+        uint32_t driftSeed = 1;
     };
 }

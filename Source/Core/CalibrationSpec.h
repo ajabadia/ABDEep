@@ -34,8 +34,8 @@ struct CalibrationSpec
 
         struct
         {
-            float referenceHz = 261.63f;  // SynthVoice.cpp:579 — C4 (Middle C)
-            float amountScale = 1.0f;     // multiplier on (freq1 - referenceHz) * vcfKeyTrack
+            float referenceHz = 261.63f;  // SynthVoice_Filter.cpp — C4 (Middle C) pivot
+            float amountScale = 1.0f;     // exponent: cutoff *= (freq1/referenceHz)^(vcfKeyTrack*amountScale)
         } vcfKeytrack;
 
         struct
@@ -54,8 +54,7 @@ struct CalibrationSpec
         struct
         {
             float driftToTimeScale = 0.3f;  // SynthVoice.cpp:312 — env time drift scaling
-            float minTimeSec       = 0.002f; // SynthEngine.cpp:148 — minimum envelope time (2ms)
-            float exponentialBase  = 32768.0f; // SynthEngine.cpp:148 — 2^15, 16-bit timer limit
+            float maxTimeSec       = 10.0f; // hardware DM12: raw/255*10 = 0-10s lineal (sysex_format.md)
         } envelopes;
 
         struct

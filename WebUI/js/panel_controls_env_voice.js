@@ -36,7 +36,7 @@ window.bindPanelEnvControls = function(container, state, titleEl) {
             const name = lbl ? lbl.textContent.trim() : pid;
             const pct = typeof v === 'number' ? Math.round(v * 100) : 0;
             const envName = state.panelActiveEnv === 1 ? 'VCA' : (state.panelActiveEnv === 2 ? 'VCF' : 'MOD');
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">' + envName + ' ENV PANEL</span><br>'
+            lcd.innerHTML = '<span class="lcd-label">' + envName + ' ENV PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + pct + '%</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
@@ -52,7 +52,7 @@ window.bindPanelEnvControls = function(container, state, titleEl) {
             const nameEl = this.querySelector('.shape-name');
             const name = nameEl ? nameEl.textContent.trim() : pid;
             const envName = state.panelActiveEnv === 1 ? 'VCA' : (state.panelActiveEnv === 2 ? 'VCF' : 'MOD');
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">' + envName + ' ENV PANEL</span><br>'
+            lcd.innerHTML = '<span class="lcd-label">' + envName + ' ENV PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
@@ -102,7 +102,7 @@ window.bindPanelPolyControls = function(container, state, titleEl) {
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
             const pct = typeof v === 'number' ? Math.round(v * 100) : 0;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">POLY PANEL</span><br>'
+            lcd.innerHTML = '<span class="lcd-label">POLY PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + pct + '%</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
@@ -117,7 +117,7 @@ window.bindPanelPolyControls = function(container, state, titleEl) {
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const nameEl = this.querySelector('.shape-name');
             const name = nameEl ? nameEl.textContent.trim() : pid;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">POLY PANEL</span><br>'
+            lcd.innerHTML = '<span class="lcd-label">POLY PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
@@ -133,7 +133,7 @@ window.bindPanelPolyControls = function(container, state, titleEl) {
             const opts = this.options;
             const idx = Math.round(v * (opts.length - 1));
             const selectedText = opts[idx] ? opts[idx].textContent.trim() : pid;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">POLY PANEL</span><br>'
+            lcd.innerHTML = '<span class="lcd-label">POLY PANEL</span><br>'
                 + '<strong>' + pid.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + selectedText + '</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}

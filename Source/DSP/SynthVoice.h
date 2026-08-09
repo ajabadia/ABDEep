@@ -8,6 +8,10 @@
 #include "Filter.h"
 #include "ModulationMatrix.h"
 #include "DriftEngine.h"
+#if DEEP_TARGET_MODEL >= 2
+#include "MoogLadderVCF.h"
+#include "KorgMS20VCF.h"
+#endif
 #include "../Core/CalibrationSpec.h"
 #include "Core/DiagnosticSnapshots.h"
 
@@ -55,6 +59,7 @@ namespace ABD
         // Portamento / Glide state
         float currentPortaPitch = 0.0f;       // current interpolated pitch (MIDI note + fraction)
         float targetPortaPitch = 0.0f;        // target MIDI note number (integer)
+        float portaBasePitch = 0.0f;          // starting pitch at trigger time
         bool portaActive = false;             // true while glide is in progress
 
         // Hard Sync state
@@ -66,6 +71,10 @@ namespace ABD
 
         // Arpeggiator clock frequency for LFO Arp Sync (propagated from SynthEngine)
         float arpClockHz = 1.0f;
+
+        // LFO Arp Sync rates desde la tabla de Clock Divide del hardware (por-LFO, distintos entre sí)
+        float lfo1ArpSyncHz = 1.0f;
+        float lfo2ArpSyncHz = 1.0f;
 
         // Instantaneous modulated values (updated every sample in process sample)
         // Read from getVoiceState() in SynthEngine for real-time debug
@@ -92,7 +101,39 @@ namespace ABD
         void setOsc2Level (float level);
 
     private:
+        // Parámetros de calibración para el filtro (extraídos del CalibrationSpec)
+        struct FilterCalibrationParams {
+            float vcfMinHz, vcfCurveBase;
+            float keytrackRefHz, keytrackAmountScale;
+            float pitchBendCutoffScale;
+            float hpfMinHz, hpfMaxHz, hpfModScaleHz;
+            float cutoffDriftScale, resonanceDriftScale;
+        };
+
+        // Helpers extraídos de processSample para división modular
+        // (SynthVoice_Pitch.cpp) — pitch modulation, portamento, osc generation
+        float processOscillatorSection(const ModulationMatrix& matrix, int sampleIndex,
+                                        const float* globalLfo1, const float* globalLfo2,
+                                        float driftOsc1, float driftOsc2,
+                                        float& freq1, float& freq2);
+
+        // (SynthVoice_Filter.cpp) — VCF + HPF filtering con switching de modelo
+        float processFilterSection(const ModulationMatrix& matrix, float combinedOsc, float freq1,
+                                   float driftCutoff, float driftResonance, float velocityValue,
+                                   const FilterCalibrationParams& cal);
+
+        // (SynthVoice_VCA.cpp) — VCA amplification (Transparent / Ballsy)
+        float processVCASection(float finalFiltered, float velocityValue,
+                                const ModulationMatrix& matrix);
+
+   
         double sampleRate = 44100.0;
+        double invSampleRate = 0.0;  // cached 1/sampleRate (avoid per-sample division)
+        float cutoffSmoothCoeff = 0.05f;  // per-sample coeff, recomputed in prepare() from DAW SR
+        float ampSmoothCoeff = 0.05f;     // per-sample coeff, recomputed in prepare() from DAW SR
+        // Cutoff/amp smoothing time constant in seconds. Legacy per-sample coeff
+        // was 0.05 @ 44.1 kHz: tau = -1/(ln(1-0.05)·44100) = 0.0004421 s.
+        static constexpr float kSmoothTauSec = 0.00044208f;
         int currentMidiNote = -1;
         int lastMidiNote = -1;  // preserved across force-stops (for portamento glide)
         int rootNoteTriggered = -1;  // root MIDI note that triggered this voice (for chord/poly release)
@@ -106,10 +147,18 @@ namespace ABD
         float staticResOffset = 0.0f;      // normalized -1..+1
         float staticEnvTimeOffset = 0.0f;  // normalized -1..+1
 
+        // Per-voice white noise LCG seed (deterministic, no global std::rand())
+        uint32_t noiseSeed = 0u;
+
         // Cached filter config (only update VCF when params change)
         int lastPoleMode = -1;
         int lastOversample = -1;
         int lastVcfVoicingMode = -1;
+#if DEEP_TARGET_MODEL >= 2
+        int lastVcfModel = -1;
+        int lastMoogSubMode = -1;
+        int lastKorgSubMode = -1;
+#endif
 
         // Calibration snapshot (immutable per-block, set by SynthEngine)
         const CalibrationSpec* calibration = nullptr;
@@ -118,7 +167,11 @@ namespace ABD
         OSC1 osc1;
         OSC2 osc2;
         VCF vcf;
-        HPF hpf;
+#if DEEP_TARGET_MODEL >= 2
+        MoogLadderVCF moogVcf;
+        KorgMS20VCF korgVcf;
+        int cachedVcfModel = 0;   // 0=OTA, 1=Moog, 2=Korg (tracks params.vcfModel)
+#endif
 
         Envelope env1VCA;
         Envelope env2VCF;
@@ -130,6 +183,23 @@ namespace ABD
 
         // Sub Oscillator state (square wave, 1 octave below)
         double subPhase = 0.0;
+
+        // Parameter smoothing & Voice Stealing anti-click
+        float smoothedCutoffLvl = 1.0f;
+        float smoothedAmpLevel = 1.0f;
+        float stealingFadeGain = 1.0f;  // 1.0 normal, decrements to 0.0 when stolen
+
+        // Caches for the per-sample cutoff pow(): the exp-smoothed cutoff level
+        // (coeff 0.05) converges to a constant, so std::pow only needs to be
+        // re-evaluated while it is still moving beyond epsilon.
+        float lastSmoothedCutoffLvl = -1.0f;
+        float lastCutoffHz = 0.0f;
+        float lastCalVcfMinHz = 0.0f;
+        float lastCalVcfCurveBase = 1.0f;
+        // Diagnostic base-cutoff pow() cache (recomputed only when its inputs change)
+        float lastDiagVcfMinHz = 0.0f;
+        float lastDiagVcfCurveBase = 1.0f;
+        float lastDiagVcfCutoff = -1.0f;
 
         // Valores instantáneos de las fuentes de modulación (24 fuentes)
         float modSources[(int)ModSource::kMaxSources];
@@ -166,10 +236,15 @@ namespace ABD
             // Filtros
             float vcfCutoff = 1.0f;
             float vcfResonance = 0.0f;
+#if DEEP_TARGET_MODEL >= 2
+            int vcfModel = 0;        // 0=DM12 OTA, 1=Moog Ladder, 2=Korg MS-20
+            int vcfMoogSubMode = 0;  // 0=LP, 1=BP, 2=HP (Moog sub-type)
+            int vcfKorgSubMode = 0;  // 0=K35 LP, 1=K35 HP (Korg sub-type)
+#endif
             int vcfPoleMode = 1; // 24dB
             int vcfOversample = 1; // 1x/2x/4x oversampling
             int vcfVoicingMode = 0; // 0=DeepMind, 1=Juno106
-            float vcfEnvDepth = 0.0f;
+            float vcfEnvDepth = 0.5f;
             float vcfEnvVel = 0.0f;
             float vcfLfoDepth = 0.0f;
             int vcfLfoSelect = 0;
@@ -238,6 +313,7 @@ namespace ABD
         float lastCutoffFromKeytrack = 0.0f;
 
         friend class SynthEngine;
+        friend class SynthEngineRapidSweepTests;
 
         void updateModulationSources(int sampleIndex = 0,
                                       const float* globalLfo1 = nullptr,

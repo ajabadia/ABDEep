@@ -1,3 +1,4 @@
+import { describe, it, expect} from 'vitest';
 /**
  * Tests for WebUI/js/browser_io.js — SysEx bank importing/parsing and patch export
  *
@@ -71,8 +72,8 @@ function pack8to7(unpackedBytes) {
 function extractNameFromRawSysex(rawSysex, baseOffset) {
     baseOffset = baseOffset || 0;
     const rawOffsets = [];
-    for (var j = 265; j <= 271; j++) {rawOffsets.push(j);}
-    for (var j = 273; j <= 279; j++) {rawOffsets.push(j);}
+    for (let j = 265; j <= 271; j++) {rawOffsets.push(j);}
+    for (let j = 273; j <= 279; j++) {rawOffsets.push(j);}
     rawOffsets.push(281);
 
     const nameChars = [];
@@ -139,8 +140,8 @@ function buildTestPatch(name, unpackedData) {
 
     // Write name at SysEx raw offsets (265-271, 273-279, 281)
     const nameOffsets = [];
-    for (var j = 265; j <= 271; j++) {nameOffsets.push(j);}
-    for (var j = 273; j <= 279; j++) {nameOffsets.push(j);}
+    for (let j = 265; j <= 271; j++) {nameOffsets.push(j);}
+    for (let j = 273; j <= 279; j++) {nameOffsets.push(j);}
     nameOffsets.push(281);
 
     const nameLen = Math.min(name.length, nameOffsets.length);
@@ -307,12 +308,12 @@ describe('extractNameFromRawSysex', function () {
         const sysex = buildTestPatch('SHORT');
         // Only write first 5 chars
         const nameOffsets = [];
-        for (var j = 265; j <= 271; j++) {nameOffsets.push(j);}
-        for (var j = 273; j <= 279; j++) {nameOffsets.push(j);}
+        for (let j = 265; j <= 271; j++) {nameOffsets.push(j);}
+        for (let j = 273; j <= 279; j++) {nameOffsets.push(j);}
         nameOffsets.push(281);
         // Set first 5 chars
-        for (var k = 0; k < 5; k++) {sysex[nameOffsets[k]] = 'S'.charCodeAt(0);}
-        for (var k = 5; k < nameOffsets.length; k++) {sysex[nameOffsets[k]] = 0x20;} // space
+        for (let k = 0; k < 5; k++) {sysex[nameOffsets[k]] = 'S'.charCodeAt(0);}
+        for (let k = 5; k < nameOffsets.length; k++) {sysex[nameOffsets[k]] = 0x20;} // space
         sysex[nameOffsets[5]] = 0; // null terminator
         const name = extractNameFromRawSysex(sysex, 0);
         expect(name).toBe('SSSSS');
@@ -331,8 +332,8 @@ describe('extractNameFromRawSysex', function () {
     it('filters non-printable characters (below 32, above 126)', function () {
         const sysex = buildTestPatch('');
         const nameOffsets = [];
-        for (var j = 265; j <= 271; j++) {nameOffsets.push(j);}
-        for (var j = 273; j <= 279; j++) {nameOffsets.push(j);}
+        for (let j = 265; j <= 271; j++) {nameOffsets.push(j);}
+        for (let j = 273; j <= 279; j++) {nameOffsets.push(j);}
         nameOffsets.push(281);
         sysex[nameOffsets[0]] = 65; // 'A'
         sysex[nameOffsets[1]] = 31; // not printable → filtered

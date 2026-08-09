@@ -11,12 +11,20 @@ namespace ABD
      *   Hall (1), Plate (2), Rich Plate (3), Ambience (4),
      *   Gated (5), Reverse (6), Chamber (26), Room (27), Vintage (28)
      * 
-     * Parámetros:
-     *   0: Decay (0-1, tiempo de reverb)
-     *   1: Pre-delay (0-1, 0-200ms)
-     *   2: Damping (0-1, absorción HF)
-     *   3: Diffusion (0-1, densidad all-pass)
-     *   4: Room Size (0-1, escala longitudes de comb)
+     * Parámetros (orden hardware por tipo, docs/deepmind_fx.md):
+     *   Hall(1)/Plate(2)/RichPlate(3)/Chamber(26)/Room(27)/Vintage(28): 12 params
+     *     [preDelay, decay, size, damping, diffusion, mix, loCut, hiCut,
+     *      bassMult, spread, shape, spin]
+     *   Ambience(4): 10 params [preDelay, decay, size, damping, diffusion,
+     *     mix, loCut, hiCut, mod, tailGain]
+     *   Gated(5): 10 params [preDelay, decay, attack, density, spread,
+     *     mix, loCut, hiSvFreq, hiSvGain, diffusion]
+     *   Reverse(6): 9 params [preDelay, decay, rise, diffusion, spread,
+     *     mix, loCut, hiSvFreq, hiSvGain]
+     *   DeepVerb(22): 5 params [preset, decay, tone, preDelay, mix]
+     *
+     * DSP real para los controles con equivalente interno (preDelay, decay,
+     * size→roomSize, damping, diffusion); el resto se almacena/ignora.
      */
     class FXSimpleReverb : public FXBase
     {
@@ -30,7 +38,7 @@ namespace ABD
                       int numSamples) override;
         void setParameter(int index, float value) override;
         void reset() override;
-        int getNumParameters() const override { return 5; }
+        int getNumParameters() const override;
         juce::String getEffectName() const override;
 
     private:
@@ -81,6 +89,7 @@ namespace ABD
         void updateFilters();
         void updateCombParams();
         void setDefaultsForType(int type);
+        int numParametersForType(int type) const;
         float processComb(CombFilter& comb, float input);
         float processAllPass(AllPassFilter& ap, float input);
     };

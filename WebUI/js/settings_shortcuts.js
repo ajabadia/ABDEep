@@ -6,69 +6,57 @@
 function initKeyboardShortcutsSettings() {
     const kbTabBtn = document.querySelector('.btn[data-tab="keyboard"]');
     if (!kbTabBtn) {return;}
-    
+
     const container = document.getElementById('keyboard-shortcuts-list');
     const resetAllBtn = document.getElementById('keyboard-shortcuts-reset-all');
     const feedbackEl = document.getElementById('keyboard-shortcuts-feedback');
-    
+
     let captureState = null;
-    
+
     function renderShortcutList() {
         if (!container || !window.ShortcutConfig) {return;}
         const config = window.ShortcutConfig.load();
         const ids = window.ShortcutConfig.getAllIds();
         const meta = window.ShortcutConfig._meta;
-        
+
         const groups = {};
         ids.forEach(function(id) {
             const m = meta[id] || { group: 'other', label: id, description: '', color: '--text-dim' };
             if (!groups[m.group]) {groups[m.group] = [];}
             groups[m.group].push({ id: id, meta: m, combo: config[id] });
         });
-        
+
         let html = '';
         const groupOrder = ['global', 'sequencer', 'other'];
         const groupLabels = { 'global': 'Global', 'sequencer': 'Sequencer', 'other': 'Other' };
-        const groupColors = { 'global': '--accent-cyan', 'sequencer': '--accent-pink', 'other': '--text-dim' };
-        
+
         groupOrder.forEach(function(group) {
             const items = groups[group];
             if (!items || items.length === 0) {return;}
-            
-            html += '<div style="font-size:var(--text-xs);text-transform:uppercase;font-weight:bold;color:var(' + groupColors[group] + ');padding:6px 8px;border-bottom:1px solid var(--border-dim);margin:4px 0 2px 0">' + groupLabels[group] + '</div>';
-            
+
+            html += '<div class="shortcut-group-header" data-group="' + group + '">' + groupLabels[group] + '</div>';
+
             items.forEach(function(item) {
                 const comboStr = window.ShortcutConfig.formatCombo(item.combo);
                 const isCapturing = captureState && captureState.id === item.id;
-                html += '<div class="shortcut-config-row" data-shortcut-id="' + item.id + '" style="display:grid;grid-template-columns:1fr auto 60px;gap:10px;align-items:center;padding:6px 8px;border-radius:var(--radius-xs);font-size:var(--text-sm);cursor:pointer;transition:background 0.15s ease' + (isCapturing ? ';background:color-mix(in srgb,var(--accent-primary) 20%,transparent);outline:1px solid var(--accent-primary)' : '') + '">'
-                    + '<div><div style="color:var(--text-primary);font-weight:bold">' + item.meta.label + '</div><div style="color:var(--text-dim);font-size:var(--text-2xs)">' + item.meta.description + '</div></div>'
-                    + '<kbd style="display:inline-block;background:var(--bg-deepest);border:1px solid var(--border);border-radius:3px;padding:2px 7px;font-family:\'Share Tech Mono\',monospace;font-size:10px;color:var(--text-primary);min-width:90px;text-align:center">' + comboStr + '</kbd>'
-                    + '<button class="shortcut-reset-btn" data-shortcut-id="' + item.id + '" style="background:none;border:1px solid var(--border-dim);color:var(--text-faint);border-radius:2px;cursor:pointer;padding:1px 6px;font-size:9px;transition:all 0.15s ease">' + (isCapturing ? '...' : 'Edit') + '</button>'
+                html += '<div class="shortcut-config-row' + (isCapturing ? ' is-capturing' : '') + '" data-shortcut-id="' + item.id + '">'
+                    + '<div><div class="shortcut-label">' + item.meta.label + '</div><div class="shortcut-description">' + item.meta.description + '</div></div>'
+                    + '<kbd class="kbd-tag">' + comboStr + '</kbd>'
+                    + '<button class="shortcut-reset-btn" data-shortcut-id="' + item.id + '">' + (isCapturing ? '...' : 'Edit') + '</button>'
                     + '</div>';
             });
         });
-        
-        container.innerHTML = html || '<div class="text-dim text-center" style="padding:20px;font-size:var(--text-sm)">No shortcuts configured.</div>';
-        
+
+        container.innerHTML = html || '<div class="shortcuts-empty">No shortcuts configured.</div>';
+
         container.querySelectorAll('.shortcut-config-row').forEach(function(row) {
             row.addEventListener('click', function(e) {
                 if (e.target.closest('.shortcut-reset-btn')) {return;}
                 const id = this.dataset.shortcutId;
                 startCapture(id, this);
             });
-            
-            row.addEventListener('mouseenter', function() {
-                if (!captureState || captureState.id !== this.dataset.shortcutId) {
-                    this.style.background = 'var(--bg-hover)';
-                }
-            });
-            row.addEventListener('mouseleave', function() {
-                if (!captureState || captureState.id !== this.dataset.shortcutId) {
-                    this.style.background = '';
-                }
-            });
         });
-        
+
         container.querySelectorAll('.shortcut-reset-btn').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -82,34 +70,28 @@ function initKeyboardShortcutsSettings() {
             });
         });
     }
-    
+
     function startCapture(id, rowEl) {
         cancelCapture();
-        
+
         captureState = { id: id, el: rowEl };
         window._shortcutCaptureActive = true;
-        
-        rowEl.style.background = 'color-mix(in srgb,var(--accent-primary) 20%,transparent)';
-        rowEl.style.outline = '1px solid var(--accent-primary)';
-        
+
+        rowEl.classList.add('is-capturing');
+
         const btn = rowEl.querySelector('.shortcut-reset-btn');
         if (btn) {btn.textContent = 'Press...';}
-        
-        if (feedbackEl) {
-            feedbackEl.textContent = '⌨ Press key combination for "' + (window.ShortcutConfig._meta[id] ? window.ShortcutConfig._meta[id].label : id) + '"...';
-            feedbackEl.style.opacity = '1';
-            feedbackEl.style.color = 'var(--accent-cyan)';
-        }
-        
+
+        setFeedback('info', '\u2328 Press key combination for "' + (window.ShortcutConfig._meta[id] ? window.ShortcutConfig._meta[id].label : id) + '"...');
+
         document.addEventListener('keydown', captureHandler);
     }
-    
+
     function cancelCapture() {
         if (captureState) {
             const oldRow = captureState.el;
             if (oldRow) {
-                oldRow.style.background = '';
-                oldRow.style.outline = '';
+                oldRow.classList.remove('is-capturing');
                 const btn = oldRow.querySelector('.shortcut-reset-btn');
                 if (btn) {btn.textContent = 'Edit';}
             }
@@ -118,15 +100,15 @@ function initKeyboardShortcutsSettings() {
         window._shortcutCaptureActive = false;
         document.removeEventListener('keydown', captureHandler);
     }
-    
+
     function captureHandler(e) {
         if (!captureState) {return;}
-        
+
         if (e.key === 'Control' || e.key === 'Shift' || e.key === 'Alt' || e.key === 'Meta') {return;}
-        
+
         e.preventDefault();
         e.stopPropagation();
-        
+
         const combo = {
             ctrl: !!e.ctrlKey,
             shift: !!e.shiftKey,
@@ -134,69 +116,65 @@ function initKeyboardShortcutsSettings() {
             meta: !!e.metaKey,
             key: e.key
         };
-        
+
         if (e.key === 'Escape') {
             cancelCapture();
-            if (feedbackEl) {
-                feedbackEl.textContent = '✕ Cancelled';
-                setTimeout(function() { feedbackEl.style.opacity = '0'; }, 1000);
-            }
+            setFeedback('error', '\u2715 Cancelled');
+            setTimeout(function() { feedbackEl.classList.remove('is-visible'); }, 1000);
             return;
         }
-        
+
         if (!combo.ctrl && !combo.shift && !combo.alt && !combo.meta) {
-            if (feedbackEl) {
-                feedbackEl.textContent = '⚠ Use at least one modifier key (Ctrl, Shift, Alt)';
-                feedbackEl.style.color = 'var(--accent-orange)';
-                setTimeout(function() { feedbackEl.style.opacity = '0'; }, 2000);
-            }
+            setFeedback('error', '\u26A0 Use at least one modifier key (Ctrl, Shift, Alt)');
+            setTimeout(function() { feedbackEl.classList.remove('is-visible'); }, 2000);
             return;
         }
-        
+
         if (window.ShortcutConfig) {
             window.ShortcutConfig.set(captureState.id, combo);
         }
-        
+
         const comboStr = window.ShortcutConfig.formatCombo(combo);
-        
+
         cancelCapture();
         renderShortcutList();
         showFeedback();
-        
-        if (feedbackEl) {
-            feedbackEl.textContent = '✓ Saved: ' + comboStr;
-            feedbackEl.style.color = 'var(--accent-green)';
-        }
+
+        setFeedback('success', '\u2713 Saved: ' + comboStr);
     }
-    
+
+    function setFeedback(type, text) {
+        if (!feedbackEl) {return;}
+        feedbackEl.textContent = text;
+        feedbackEl.classList.remove('is-info', 'is-success', 'is-error');
+        feedbackEl.classList.add('is-visible', 'is-' + type);
+    }
+
     function showFeedback() {
         if (!feedbackEl) {return;}
-        feedbackEl.style.opacity = '1';
+        feedbackEl.classList.add('is-visible');
         clearTimeout(feedbackEl._hideTimer);
         feedbackEl._hideTimer = setTimeout(function() {
-            feedbackEl.style.opacity = '0';
+            feedbackEl.classList.remove('is-visible');
         }, 2500);
     }
-    
+
     kbTabBtn.addEventListener('click', function() {
         setTimeout(renderShortcutList, 50);
         cancelCapture();
     });
-    
+
     if (resetAllBtn) {
         resetAllBtn.addEventListener('click', function() {
             if (!window.ShortcutConfig) {return;}
             window.ShortcutConfig.resetAll();
             cancelCapture();
             renderShortcutList();
-            if (feedbackEl) {
-                feedbackEl.textContent = '✓ All shortcuts reset to defaults';
-                feedbackEl.style.color = 'var(--accent-green)';
-                showFeedback();
-            }
+            setFeedback('success', '\u2713 All shortcuts reset to defaults');
+            showFeedback();
         });
     }
-    
+
     renderShortcutList();
 }
 

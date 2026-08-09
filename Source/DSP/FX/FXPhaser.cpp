@@ -18,6 +18,7 @@ namespace ABD
         sampleRate = std::max(1.0, newSampleRate);
         updateLFOIncrement();
         updateFreqRange();
+        updateEnvCoeffs();
     }
 
     void FXPhaser::setParameter(int index, float value)
@@ -37,8 +38,13 @@ namespace ABD
                 stages = stageMap[idx];
                 break;
             }
-            case 5: wave = value;   break;
-            case 6: phase = value;  break;
+            case 5: break; // Mix almacenado (aplicado por FXSlot)
+            case 6: wave = value;   break;
+            case 7: phase = value;  break;
+            case 8: envMod = value; break;
+            case 9: attackParam = value; updateEnvCoeffs(); break;
+            case 10: hold = value;  break;
+            case 11: releaseParam = value; updateEnvCoeffs(); break;
         }
     }
 
@@ -52,6 +58,8 @@ namespace ABD
         fbStateR = 0.0f;
         lfoPhaseL = 0.0;
         lfoPhaseR = 0.0;
+        envStateL = 0.0f;
+        envStateR = 0.0f;
     }
 
     void FXPhaser::updateLFOIncrement()
@@ -67,6 +75,15 @@ namespace ABD
         baseHz = 20.0f * std::pow(750.0f, base); // 20 * 750^base, 750≈15000/20
         // Depth: 0-1 → rango de modulación 0Hz - 6000Hz
         modRange = 6000.0f * depth;
+    }
+
+    void FXPhaser::updateEnvCoeffs()
+    {
+        // Attack/Release: 0-1 → 10ms - 1000ms → coeficiente de 1-polo por muestra
+        float atkS = 0.01f + 0.99f * attackParam;
+        float relS = 0.01f + 0.99f * releaseParam;
+        envAttack  = (float)std::exp(-1.0 / (sampleRate * atkS));
+        envRelease = (float)std::exp(-1.0 / (sampleRate * relS));
     }
 
     float FXPhaser::calcAllpassCoeff(float cutoffHz)
@@ -105,9 +122,24 @@ namespace ABD
                             int numSamples)
     {
         float feedback = reso * 0.7f; // 0-70% feedback para resonancia
+        float envAmt = (envMod - 0.5f) * 2.0f; // -1..+1
 
         for (int s = 0; s < numSamples; ++s)
         {
+            // Envelope follower (modula la profundidad del barrido)
+            float absL = std::abs(inL[s]);
+            float absR = std::abs(inR[s]);
+            envStateL = (absL > envStateL)
+                ? envStateL + (1.0f - envAttack) * (absL - envStateL)
+                : envStateL + (1.0f - envRelease) * (absL - envStateL);
+            envStateR = (absR > envStateR)
+                ? envStateR + (1.0f - envAttack) * (absR - envStateR)
+                : envStateR + (1.0f - envRelease) * (absR - envStateR);
+            float env = (envStateL + envStateR) * 0.5f;
+
+            float effectiveDepth = depth * (1.0f + envAmt * env);
+            effectiveDepth = std::clamp(effectiveDepth, 0.0f, 1.0f);
+
             // Avanzar LFO
             lfoPhaseL += lfoInc;
             if (lfoPhaseL >= 1.0) lfoPhaseL -= 1.0;
@@ -120,8 +152,9 @@ namespace ABD
             float lfoValL = getLFOWave(lfoPhaseL);
             float lfoValR = getLFOWave(lfoPhaseR);
 
-            float freqModL = baseHz + (lfoValL * 0.5f + 0.5f) * modRange;
-            float freqModR = baseHz + (lfoValR * 0.5f + 0.5f) * modRange;
+            float effModRange = 6000.0f * effectiveDepth;
+            float freqModL = baseHz + (lfoValL * 0.5f + 0.5f) * effModRange;
+            float freqModR = baseHz + (lfoValR * 0.5f + 0.5f) * effModRange;
 
             float coeffL = calcAllpassCoeff(freqModL);
             float coeffR = calcAllpassCoeff(freqModR);

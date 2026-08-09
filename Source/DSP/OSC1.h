@@ -42,6 +42,10 @@ namespace ABD
         float pitchModValue = 0.0f;
         float pwmModValue = 0.5f;
         float currentPwmDuty = 0.5f;    // slew-limited PWM duty for smooth transitions
+        float pwmSlewCoeff = 0.1f;      // per-sample slew coeff, recomputed in prepare() from DAW SR
+        // PWM slew time constant in seconds. Legacy per-sample coeff was 0.1 @
+        // 44.1 kHz: tau = -1/(ln(1-0.1)·44100) = 0.0002152 s.
+        static constexpr float kPwmSlewTauSec = 0.00021522f;
 
         bool sawActive = true;
         bool squareActive = false;

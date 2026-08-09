@@ -1,3 +1,4 @@
+import { describe, it, expect} from 'vitest';
 /**
  * Tests for WebUI/js/keyboard_active_notes.js — MIDI note naming, active notes parsing, LCD display
  *

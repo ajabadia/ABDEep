@@ -1,11 +1,12 @@
 #include "FXSimpleReverb.h"
 #include <cmath>
 #include <algorithm>
-#include <cstring>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+/**
+ * @purpose FXSimpleReverb lifecycle, parameter, and filter setup methods.
+ * DSP audio processing (processComb, processAllPass, process) is in
+ * FXSimpleReverb_Process.cpp.
+ */
 
 namespace ABD
 {
@@ -65,12 +66,13 @@ namespace ABD
 
     void FXSimpleReverb::prepare(double newSampleRate, int samplesPerBlock)
     {
+        (void)samplesPerBlock;
         sampleRate = std::max(1.0, newSampleRate);
-        
-        // Calcular tamaños de buffer según roomSize y sampleRate
+
+        // Recalculate buffer sizes and pre-delay
         updateFilters();
-        
-        // Pre-delay buffer (máximo 200ms)
+
+        // Pre-delay buffer (max 200ms)
         int maxPreDelay = (int)(sampleRate * 0.2);
         preDelayBuffer.setSize(1, maxPreDelay);
         preDelayBuffer.clear();
@@ -97,31 +99,31 @@ namespace ABD
 
     void FXSimpleReverb::updateFilters()
     {
-        // Longitudes de comb filters (en samples) - valores clásicos de Schroeder
-        // Escalados por roomSize (0.5-1.5x)
+        // Comb filter lengths (in samples) — classic Schroeder values
+        // Scaled by roomSize (0.5-1.5x)
         float sizeScale = 0.5f + roomSize;
-        
+
         int combLen[4] = {
             (int)(sampleRate * 0.0297 * sizeScale),
             (int)(sampleRate * 0.0331 * sizeScale),
             (int)(sampleRate * 0.0378 * sizeScale),
             (int)(sampleRate * 0.0411 * sizeScale)
         };
-        
-        // Asegurar que sean primos relativos
+
+        // Ensure relatively prime lengths
         for (int i = 0; i < 4; ++i)
         {
             combLen[i] = std::max(1, combLen[i]);
-            // Pequeño ajuste para evitar periodicidad
-            combLen[i] += (i * 7);
+            combLen[i] += (i * 7); // Small offset to avoid periodicity
         }
 
-        // Redimensionar buffers comb
-        combBufferL.setSize(4, combLen[0] + combLen[1] + combLen[2] + combLen[3] + 10);
+        // Resize comb buffers
+        int combTotal = combLen[0] + combLen[1] + combLen[2] + combLen[3];
+        combBufferL.setSize(4, combTotal + 10);
         combBufferL.clear();
-        combBufferR.setSize(4, combLen[0] + combLen[1] + combLen[2] + combLen[3] + 10);
+        combBufferR.setSize(4, combTotal + 10);
         combBufferR.clear();
-        
+
         size_t offset = 0;
         for (int i = 0; i < 4; ++i)
         {
@@ -150,7 +152,7 @@ namespace ABD
             (int)(sampleRate * 0.0068 * sizeScale),
             (int)(sampleRate * 0.0083 * sizeScale)
         };
-        
+
         int apTotal = 0;
         for (int i = 0; i < 3; ++i) apTotal += std::max(1, apLen[i]);
 
@@ -158,7 +160,7 @@ namespace ABD
         allpassBufferL.clear();
         allpassBufferR.setSize(3, apTotal + 10);
         allpassBufferR.clear();
-        
+
         offset = 0;
         for (int i = 0; i < 3; ++i)
         {
@@ -180,17 +182,81 @@ namespace ABD
         preDelaySamples = std::clamp(preDelaySamples, 0, (int)(sampleRate * 0.2));
     }
 
+    int FXSimpleReverb::numParametersForType(int type) const
+    {
+        switch (type)
+        {
+            case 1: case 2: case 3: case 26: case 27: case 28: return 12; // Hall/Plate/Rich/Chamber/Room/Vintage
+            case 4: case 5: return 10;    // Ambience / Gated
+            case 6: return 9;             // Reverse
+            case 22: return 5;            // Deep Verb
+            default: return 12;
+        }
+    }
+
+    int FXSimpleReverb::getNumParameters() const
+    {
+        return numParametersForType(reverbType);
+    }
+
     void FXSimpleReverb::setParameter(int index, float value)
     {
         value = std::clamp(value, 0.0f, 1.0f);
+        if (index >= getNumParameters())
+            return;
 
-        switch (index)
+        const int type = reverbType;
+
+        // Mapeo por-tipo desde el orden hardware (docs/deepmind_fx.md).
+        // Controles con equivalente interno: preDelay, decay, size→roomSize,
+        // damping, diffusion. El resto (mix, loCut/hiCut, bassMult, spread,
+        // shape, spin, mod*, attack, density, ...) se almacena/ignora.
+        switch (type)
         {
-            case 0: decay = value; updateCombParams(); break;
-            case 1: preDelayTime = value; updateFilters(); break;
-            case 2: damping = value; updateCombParams(); break;
-            case 3: diffusion = value; updateCombParams(); break;
-            case 4: roomSize = value; updateFilters(); break;
+            case 1: case 2: case 3: case 4: case 26: case 27: case 28:
+                // [preDelay, decay, size, damping, diffusion, ...]
+                switch (index)
+                {
+                    case 0: preDelayTime = value; updateFilters(); break;
+                    case 1: decay = value; updateCombParams(); break;
+                    case 2: roomSize = value; updateFilters(); break;
+                    case 3: damping = value; updateCombParams(); break;
+                    case 4: diffusion = value; updateCombParams(); break;
+                    default: break; // mix/loCut/hiCut/bassMult/spread/shape/spin/mod/tailGain
+                }
+                break;
+
+            case 5: // Gated: [preDelay, decay, attack, density, spread, mix, loCut, hiSvFreq, hiSvGain, diffusion]
+                switch (index)
+                {
+                    case 0: preDelayTime = value; updateFilters(); break;
+                    case 1: decay = value; updateCombParams(); break;
+                    case 9: diffusion = value; updateCombParams(); break;
+                    default: break; // attack/density/spread/mix/loCut/hiSvFreq/hiSvGain
+                }
+                break;
+
+            case 6: // Reverse: [preDelay, decay, rise, diffusion, spread, mix, loCut, hiSvFreq, hiSvGain]
+                switch (index)
+                {
+                    case 0: preDelayTime = value; updateFilters(); break;
+                    case 1: decay = value; updateCombParams(); break;
+                    case 3: diffusion = value; updateCombParams(); break;
+                    default: break; // rise/spread/mix/loCut/hiSvFreq/hiSvGain
+                }
+                break;
+
+            case 22: // DeepVerb: [preset, decay, tone, preDelay, mix]
+                switch (index)
+                {
+                    case 1: decay = value; updateCombParams(); break;
+                    case 3: preDelayTime = value; updateFilters(); break;
+                    default: break; // preset/tone/mix
+                }
+                break;
+
+            default:
+                break;
         }
     }
 
@@ -214,89 +280,6 @@ namespace ABD
         {
             allpassL[i].writePos = 0;
             allpassR[i].writePos = 0;
-        }
-    }
-
-    float FXSimpleReverb::processComb(CombFilter& comb, float input)
-    {
-        int readPos = comb.writePos;
-        float output = comb.buffer[readPos];
-        
-        // Low-pass damping en feedback
-        comb.filterState = output * comb.damp1 + comb.filterState * comb.damp2;
-        
-        // Escribir: input + feedback con damping
-        comb.buffer[comb.writePos] = input + comb.filterState * comb.feedback;
-        
-        // Avanzar puntero
-        comb.writePos = (comb.writePos + 1) % comb.bufferSize;
-        
-        return output;
-    }
-
-    float FXSimpleReverb::processAllPass(AllPassFilter& ap, float input)
-    {
-        int readPos = ap.writePos;
-        float bufOut = ap.buffer[readPos];
-        float output = -input + bufOut;
-        ap.buffer[ap.writePos] = input + bufOut * ap.gain;
-        ap.writePos = (ap.writePos + 1) % ap.bufferSize;
-        return output;
-    }
-
-    void FXSimpleReverb::process(const float* inL, const float* inR,
-                                  float* outL, float* outR,
-                                  int numSamples)
-    {
-        for (int s = 0; s < numSamples; ++s)
-        {
-            // Pre-delay
-            float wetL = inL[s];
-            float wetR = inR[s];
-
-            if (preDelaySamples > 0)
-            {
-                int preDelayReadPos = preDelayWritePos - preDelaySamples;
-                if (preDelayReadPos < 0)
-                    preDelayReadPos += (int)(sampleRate * 0.2);
-                
-                float* preData = preDelayBuffer.getWritePointer(0);
-                wetL = preData[preDelayReadPos];
-                wetR = preData[preDelayReadPos];
-                preData[preDelayWritePos] = (inL[s] + inR[s]) * 0.5f;
-                preDelayWritePos = (preDelayWritePos + 1) % (int)(sampleRate * 0.2);
-            }
-
-            // Gated/Reverse: decay negativo invierte la fase
-            float dryScale = 1.0f;
-            if (reverbType == 5) // Gated: decay corto y seco
-                dryScale = 1.0f;
-            else if (reverbType == 6) // Reverse: fase invertida
-                wetL = -wetL;
-
-            // Procesar comb filters en paralelo
-            float combSumL = 0.0f, combSumR = 0.0f;
-            for (int i = 0; i < 4; ++i)
-            {
-                combSumL += processComb(combL[i], wetL);
-                combSumR += processComb(combR[i], wetR);
-            }
-            combSumL *= 0.25f; // Promedio
-            combSumR *= 0.25f;
-
-            // Procesar all-pass filters en serie
-            for (int i = 0; i < 3; ++i)
-            {
-                combSumL = processAllPass(allpassL[i], combSumL);
-                combSumR = processAllPass(allpassR[i], combSumR);
-            }
-
-            // Escalar por decay (para gated: decay corto)
-            float reverbScale = (decay < 0) ? 0.5f : decay * 0.7f + 0.3f;
-            
-            // 100% wet (el slot maneja la mezcla)
-            outL[s] = combSumL * reverbScale;
-            outR[s] = combSumR * reverbScale;
         }
     }
 }

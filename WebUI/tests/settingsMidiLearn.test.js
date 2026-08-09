@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/settings_midi_learn.js — MIDI Learn mappings management
  *

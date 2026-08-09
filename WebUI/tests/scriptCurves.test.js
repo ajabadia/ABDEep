@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/script_curves.js — Controller curves (expo, log, s-curve, custom)
  *

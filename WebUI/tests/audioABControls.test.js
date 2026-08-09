@@ -100,12 +100,27 @@ if (typeof global.document === 'undefined') {
   };
 }
 
-// Helper global escapeHtml
-global.escapeHtml = (str) => str || '';
-
 // Importar de forma diferida usando require para evitar hoisting
+// Nota: escapeHtml y otras utilidades globales se cargan desde calibration_store_utils.js y calibration_lab_utils.js
+require('../js/calibration_store_data.js');
+require('../js/calibration_store_utils.js');
+require('../js/calibration_store_selectors.js');
 require('../js/calibration_store.js');
-require('../js/calibration_lab_page.js');
+require('../js/calibration_lab_utils.js');
+require('../js/calibration_lab_template.js');
+require('../js/calibration_lab_render.js');
+require('../js/calibration_lab_page.js');    require('../js/calibration_lab_tab_audioab_render.js');
+    require('../js/calibration_lab_tab_audioab_events.js');
+    require('../js/calibration_lab_tab_audioab.js');
+require('../js/calibration_lab_tab_roundtrip.js');
+require('../js/calibration_lab_tab_live.js');
+require('../js/calibration_lab_tab_diff.js');
+require('../js/calibration_lab_tab_info.js');
+require('../js/calibration_lab_tabs.js');
+require('../js/calibration_lab_picker.js');
+require('../js/calibration_lab_drawer.js');
+require('../js/calibration_lab_workflow.js');
+
 
 describe('CalibrationLabPage - Audio A/B Control Tab State Machine (AUD-05B)', () => {
   let pageEl, store;

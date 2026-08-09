@@ -1,0 +1,1059 @@
+[
+  {
+    "id": "TC001",
+    "title": "Shape a sound from the main panel",
+    "description": "This verifies that a user can adjust core synthesis controls on the main panel and see the sound-design sections remain available for editing.",
+    "category": "Synthesizer Main Panel",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Adjust an oscillator control"
+      },
+      {
+        "type": "action",
+        "description": "Adjust a filter control"
+      },
+      {
+        "type": "action",
+        "description": "Adjust an envelope control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main sound-design sections are still displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Load a patch from Bank Manager and return to the active sound",
+    "description": "This verifies that a user can browse banks, load a patch, and see the active sound remain available in the main panel after the modal is closed.",
+    "category": "Bank and Patch Manager Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Bank Manager modal"
+      },
+      {
+        "type": "action",
+        "description": "Browse preset banks"
+      },
+      {
+        "type": "action",
+        "description": "Select a patch to load"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the loaded patch becomes active"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main panel remains accessible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Change oscillator shape and observe analyzer feedback",
+    "description": "This verifies that a user can toggle oscillator shape controls and see the visual analyzer feedback remain present after the edit.",
+    "category": "Synthesizer Main Panel",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Toggle an oscillator shape"
+      },
+      {
+        "type": "action",
+        "description": "Adjust a synthesis control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the oscilloscope display is shown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the spectrum analyzer display is shown"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Adjust filter and amplifier shaping together",
+    "description": "This verifies that a user can make multiple sound-shaping edits across the main synthesis sections and keep the panel usable for further editing.",
+    "category": "Synthesizer Main Panel",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Adjust a VCF control"
+      },
+      {
+        "type": "action",
+        "description": "Adjust a VCA control"
+      },
+      {
+        "type": "action",
+        "description": "Adjust an HPF control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the synthesis controls remain available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Edit sequencer steps and gates",
+    "description": "Verifies that a user can open the sequencer editor, modify step note and gate values, and close the editor with the changes retained.",
+    "category": "Arpeggiator and Sequencer Modals",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Sequencer modal"
+      },
+      {
+        "type": "action",
+        "description": "Edit a sequence step note"
+      },
+      {
+        "type": "action",
+        "description": "Edit a sequence step gate"
+      },
+      {
+        "type": "action",
+        "description": "Close the Sequencer modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the edited sequence steps remain applied"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main interface is still available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Configure all FX slots with different algorithms",
+    "description": "Verifies that a user can open the FX modal, choose algorithms for multiple effect slots, and keep the selected processing chain after closing the modal.",
+    "category": "FX Modal Processor",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the FX modal"
+      },
+      {
+        "type": "action",
+        "description": "Select an FX algorithm for Slot 1"
+      },
+      {
+        "type": "action",
+        "description": "Select an FX algorithm for Slot 2"
+      },
+      {
+        "type": "action",
+        "description": "Select an FX algorithm for Slot 3"
+      },
+      {
+        "type": "action",
+        "description": "Select an FX algorithm for Slot 4"
+      },
+      {
+        "type": "action",
+        "description": "Close the FX modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected FX algorithms remain applied"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main interface is still available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Create a modulation routing and close the matrix",
+    "description": "This verifies that a user can open the Modulation Matrix, edit a routing assignment and modulation depth, then close the modal while keeping the session usable.",
+    "category": "Modulation Matrix Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Modulation Matrix modal"
+      },
+      {
+        "type": "action",
+        "description": "Adjust a modulation routing assignment"
+      },
+      {
+        "type": "action",
+        "description": "Adjust modulation depth"
+      },
+      {
+        "type": "action",
+        "description": "Close the Modulation Matrix modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the modulation matrix is closed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main panel is still available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Adjust arpeggiator timing and pattern behavior",
+    "description": "Verifies that a user can open the arpeggiator controls, change core pattern settings, and keep the updated behavior available after closing the modal.",
+    "category": "Arpeggiator and Sequencer Modals",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Arpeggiator modal"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid arpeggiator rate"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid octave range"
+      },
+      {
+        "type": "action",
+        "description": "Select a different pattern direction"
+      },
+      {
+        "type": "action",
+        "description": "Close the Arpeggiator modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the arpeggiator settings remain applied"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main interface is still available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Adjust FX parameters for a selected processor",
+    "description": "Verifies that a user can change effect parameters in the FX modal and close it with the parameter changes preserved.",
+    "category": "FX Modal Processor",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the FX modal"
+      },
+      {
+        "type": "action",
+        "description": "Select an FX algorithm for one slot"
+      },
+      {
+        "type": "action",
+        "description": "Adjust an FX parameter for that slot"
+      },
+      {
+        "type": "action",
+        "description": "Close the FX modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the FX parameter change remains applied"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main interface is still available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Browse preset, user, and hardware banks without loading",
+    "description": "This verifies that a user can inspect all bank categories in the Bank Manager without changing the active patch.",
+    "category": "Bank and Patch Manager Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Bank Manager modal"
+      },
+      {
+        "type": "action",
+        "description": "Browse preset banks"
+      },
+      {
+        "type": "action",
+        "description": "Browse user banks"
+      },
+      {
+        "type": "action",
+        "description": "Browse hardware banks"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify bank contents are displayed for each category"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no patch load confirmation is shown"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Edit arpeggiator playback settings",
+    "description": "This verifies that a user can open the arpeggiator controls and change rate, octave, and direction settings successfully.",
+    "category": "Arpeggiator Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Arpeggiator modal"
+      },
+      {
+        "type": "action",
+        "description": "Change the arpeggiator rate"
+      },
+      {
+        "type": "action",
+        "description": "Change the arpeggiator octave range"
+      },
+      {
+        "type": "action",
+        "description": "Change the arpeggiator direction"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the arpeggiator settings are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Edit a 32-step sequencer pattern",
+    "description": "This verifies that a user can open the sequencer, edit step note and gate values, and keep the edited pattern available for further use.",
+    "category": "Sequencer Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Sequencer modal"
+      },
+      {
+        "type": "action",
+        "description": "Edit a step note value"
+      },
+      {
+        "type": "action",
+        "description": "Edit a step gate value"
+      },
+      {
+        "type": "action",
+        "description": "Scroll to another section of the step grid"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sequencer step grid is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the edited pattern remains visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Change FX slot algorithms and fine-tune parameters in one session",
+    "description": "Verifies that a user can modify more than one effect slot, adjust their parameters, and retain the configuration after closing the modal.",
+    "category": "FX Modal Processor",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the FX modal"
+      },
+      {
+        "type": "action",
+        "description": "Select an FX algorithm for Slot 1"
+      },
+      {
+        "type": "action",
+        "description": "Select a different FX algorithm for Slot 2"
+      },
+      {
+        "type": "action",
+        "description": "Adjust an FX parameter for Slot 1"
+      },
+      {
+        "type": "action",
+        "description": "Adjust an FX parameter for Slot 2"
+      },
+      {
+        "type": "action",
+        "description": "Close the FX modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected FX algorithms remain applied"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the adjusted FX parameters remain applied"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Switch between arpeggiator and sequencer without losing changes",
+    "description": "Verifies that a user can configure arpeggiator settings, open the sequencer in the same session, and keep both sets of changes when the modals are closed.",
+    "category": "Arpeggiator and Sequencer Modals",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Arpeggiator modal"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid arpeggiator rate"
+      },
+      {
+        "type": "action",
+        "description": "Open the Sequencer modal"
+      },
+      {
+        "type": "action",
+        "description": "Edit a sequence step note"
+      },
+      {
+        "type": "action",
+        "description": "Close the Sequencer modal"
+      },
+      {
+        "type": "action",
+        "description": "Close the Arpeggiator modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the arpeggiator settings remain applied"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the edited sequence steps remain applied"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC015",
+    "title": "Review updated modulation configuration before closing",
+    "description": "This verifies that a user can change modulation routing, review the updated configuration in the modal, and keep the edited setup visible until dismissal.",
+    "category": "Modulation Matrix Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Modulation Matrix modal"
+      },
+      {
+        "type": "action",
+        "description": "Change a source to destination routing"
+      },
+      {
+        "type": "action",
+        "description": "Review the updated modulation configuration"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated modulation configuration is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the modulation matrix remains open"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC016",
+    "title": "Review calibration views across diagnostic tabs",
+    "description": "Verifies that a user can open the calibration area, switch among diagnostic views, and see the expected output for each view.",
+    "category": "Calibration Lab",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Calibration Lab page"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the PatchDiff view"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the Raw view"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the Engine view"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the Effective view"
+      },
+      {
+        "type": "action",
+        "description": "Close the Calibration Lab page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify diagnostic output is displayed for the selected views"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main interface is still available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC017",
+    "title": "Keep sound editing available after opening and closing multiple modals",
+    "description": "This verifies that a user can move between the Bank Manager and Modulation Matrix in one session and return to the main panel without losing access to sound controls.",
+    "category": "Cross-Modal Workflow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Bank Manager modal"
+      },
+      {
+        "type": "action",
+        "description": "Close the Bank Manager modal"
+      },
+      {
+        "type": "action",
+        "description": "Open the Modulation Matrix modal"
+      },
+      {
+        "type": "action",
+        "description": "Close the Modulation Matrix modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main sound controls are still displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the session remains on the main interface"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC018",
+    "title": "Refresh calibration snapshots while reviewing diagnostics",
+    "description": "Verifies that a user can refresh calibration data in the lab and continue viewing the updated snapshots without leaving the diagnostics workflow.",
+    "category": "Calibration Lab",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Calibration Lab page"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the PatchDiff view"
+      },
+      {
+        "type": "action",
+        "description": "Refresh diagnostic snapshots"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the Engine view"
+      },
+      {
+        "type": "action",
+        "description": "Close the Calibration Lab page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify refreshed diagnostic snapshots are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main interface is still available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC019",
+    "title": "Review all settings tabs",
+    "description": "A user can switch between the settings tabs and each section remains accessible within the modal.",
+    "category": "Settings Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the settings modal"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the connection tab"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the routing tab"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the misc tab"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the global tab"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the settings modal remains visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the tabbed settings sections are accessible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC020",
+    "title": "Adjust routing preferences in settings",
+    "description": "A user can review and change routing preferences in the settings modal and return without losing access to the main panel.",
+    "category": "Settings Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the settings modal"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the routing tab"
+      },
+      {
+        "type": "action",
+        "description": "Change a routing preference"
+      },
+      {
+        "type": "action",
+        "description": "Close the settings modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main interface is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the routing preference change is reflected"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC021",
+    "title": "View MIDI connection settings",
+    "description": "A user can open the connection tab and review MIDI connection settings in the settings modal.",
+    "category": "Settings Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the settings modal"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the connection tab"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the connection settings section is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify MIDI connection settings are displayed"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC022",
+    "title": "Browse calibration views and close without losing the main interface",
+    "description": "Verifies that a user can inspect calibration information and return to the main synth interface without losing access to editing controls.",
+    "category": "Calibration Lab",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Calibration Lab page"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the Raw view"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the Effective view"
+      },
+      {
+        "type": "action",
+        "description": "Close the Calibration Lab page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify diagnostic output is displayed for the selected views"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main synth controls are available"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC023",
+    "title": "Adjust global tuning in settings",
+    "description": "A user can change the master tuning in the settings modal and keep control of the main interface afterward.",
+    "category": "Settings Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the settings modal"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the global tab"
+      },
+      {
+        "type": "action",
+        "description": "Change the master tuning value"
+      },
+      {
+        "type": "action",
+        "description": "Close the settings modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main interface is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the tuning preference change is reflected"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC024",
+    "title": "Reject invalid tuning or routing input values",
+    "description": "This verifies that a user receives validation feedback when entering out-of-range control values in settings-related synthesis or routing fields.",
+    "category": "Settings Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Settings modal"
+      },
+      {
+        "type": "action",
+        "description": "Enter an invalid value into a tuning field"
+      },
+      {
+        "type": "action",
+        "description": "Enter an invalid value into a routing field"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a validation error is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the settings modal remains open"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC025",
+    "title": "Preserve main panel access after settings changes",
+    "description": "A user can make multiple settings changes in one session and still return to the main editing interface afterward.",
+    "category": "Settings Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the settings modal"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the routing tab"
+      },
+      {
+        "type": "action",
+        "description": "Change a routing preference"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the global tab"
+      },
+      {
+        "type": "action",
+        "description": "Change the master tuning value"
+      },
+      {
+        "type": "action",
+        "description": "Close the settings modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main interface is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify sound editing controls remain accessible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC026",
+    "title": "Open and close the settings modal",
+    "description": "A user can open the settings modal from the main interface and close it without changing the current view.",
+    "category": "Settings Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the settings modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the settings modal is visible"
+      },
+      {
+        "type": "action",
+        "description": "Close the settings modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the settings modal is no longer visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC027",
+    "title": "Handle an empty bank browsing view",
+    "description": "This verifies that a user can browse bank categories and see an empty state when no items are available in the current view.",
+    "category": "Bank and Patch Manager Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Bank Manager modal"
+      },
+      {
+        "type": "action",
+        "description": "Browse a bank category with no visible items"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an empty state message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the bank browser remains usable"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC028",
+    "title": "Adjust the UI theme in settings",
+    "description": "A user can change the UI theme in the settings modal and return to the main interface with the preference applied.",
+    "category": "Settings Modal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the settings modal"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the misc tab"
+      },
+      {
+        "type": "action",
+        "description": "Change the UI theme setting"
+      },
+      {
+        "type": "action",
+        "description": "Close the settings modal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main interface is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected UI theme preference is reflected"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC029",
+    "title": "Cancel a modal edit without applying changes",
+    "description": "This verifies that a user can dismiss an in-progress modal edit and return to the main panel without the modal staying open.",
+    "category": "Cross-Modal Workflow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /"
+      },
+      {
+        "type": "action",
+        "description": "Open the Modulation Matrix modal"
+      },
+      {
+        "type": "action",
+        "description": "Adjust a modulation depth"
+      },
+      {
+        "type": "action",
+        "description": "Close the modal without applying the edit"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the modulation matrix is closed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main panel is displayed"
+      }
+    ],
+    "priority": "Low"
+  }
+]

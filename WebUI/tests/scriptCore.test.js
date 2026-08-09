@@ -1723,10 +1723,10 @@ describe('Controller overlay — PB/MW/AT bar calculations', () => {
 
     function smooth(vu, raw, dt) {
       if (raw > vu) {
-        var coeff = Math.exp(-dt / VU_ATTACK_MS);
+const coeff = Math.exp(-dt / VU_ATTACK_MS);
         return vu * coeff + raw * (1 - coeff);
       } else {
-        var coeff = Math.exp(-dt / VU_RELEASE_MS);
+const coeff = Math.exp(-dt / VU_RELEASE_MS);
         return raw + (vu - raw) * coeff;
       }
     }

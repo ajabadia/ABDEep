@@ -1,6 +1,6 @@
 /**
- * @purpose Handles parameter bindings, selectors, clicks, and LCD hover actions for OSC, HPF, and VCF panel views.
- * @purpose_en OSC and VCF control panel bindings.
+ * @purpose OSC panel control bindings: waveform toggles, pitch range, modulation sources, selectors, and LCD hovers.
+ * HPF y VCF bindings extraídos a panel_controls_hpf.js y panel_controls_vcf.js.
  */
 
 window.bindPanelOscControls = function(container, state, titleEl) {
@@ -9,7 +9,7 @@ window.bindPanelOscControls = function(container, state, titleEl) {
         state.panelActiveOsc = oscSelectBtn.innerText.includes('OSC 2') ? 2 : 1;
     }
 
-    titleEl.innerText = `OSC ${state.panelActiveOsc} Editor`;
+    titleEl.innerText = 'OSC ' + state.panelActiveOsc + ' Editor';
 
     if (state.panelActiveOsc === 1) {
         container.innerHTML = window.PANEL_TEMPLATES.OSC1();
@@ -100,9 +100,9 @@ window.bindPanelOscControls = function(container, state, titleEl) {
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
             const pct = typeof v === 'number' ? Math.round(v * 100) : 0;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">OSC ' + (state.panelActiveOsc || 1) + ' PANEL</span><br>'
+            lcd.innerHTML = '<span class=\"lcd-label\">OSC ' + (state.panelActiveOsc || 1) + ' PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
-                + '<span style="font-size:15px;color:var(--accent-pink);">' + pct + '%</span>';
+                + '<span style=\"font-size:15px;color:var(--accent-pink);\">' + pct + '%</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
         });
     });
@@ -115,9 +115,9 @@ window.bindPanelOscControls = function(container, state, titleEl) {
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.toggle-label');
             const name = lbl ? lbl.textContent.trim() : pid;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">OSC ' + (state.panelActiveOsc || 1) + ' PANEL</span><br>'
+            lcd.innerHTML = '<span class=\"lcd-label\">OSC ' + (state.panelActiveOsc || 1) + ' PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
-                + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
+                + '<span style=\"font-size:15px;color:var(--accent-pink);\">' + window.formatParamValue(pid, v) + '</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
         });
     });
@@ -130,9 +130,9 @@ window.bindPanelOscControls = function(container, state, titleEl) {
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const nameEl = this.querySelector('.shape-name');
             const name = nameEl ? nameEl.textContent.trim() : pid;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">OSC ' + (state.panelActiveOsc || 1) + ' PANEL</span><br>'
+            lcd.innerHTML = '<span class=\"lcd-label\">OSC ' + (state.panelActiveOsc || 1) + ' PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
-                + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
+                + '<span style=\"font-size:15px;color:var(--accent-pink);\">' + window.formatParamValue(pid, v) + '</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
         });
     });
@@ -146,154 +146,9 @@ window.bindPanelOscControls = function(container, state, titleEl) {
             const opts = this.options;
             const idx = Math.round(v * (opts.length - 1));
             const selectedText = opts[idx] ? opts[idx].textContent.trim() : pid;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">OSC ' + (state.panelActiveOsc || 1) + ' PANEL</span><br>'
+            lcd.innerHTML = '<span class=\"lcd-label\">OSC ' + (state.panelActiveOsc || 1) + ' PANEL</span><br>'
                 + '<strong>' + pid.toUpperCase() + '</strong><br>'
-                + '<span style="font-size:15px;color:var(--accent-pink);">' + selectedText + '</span>';
-            if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
-        });
-    });
-};
-
-window.bindPanelHpfControls = function(container, state, titleEl) {
-    titleEl.innerText = 'HPF Editor';
-    container.innerHTML = window.PANEL_TEMPLATES.HPF();
-
-    const btnBoostOff = document.getElementById('panel-hpf-boost-off');
-    const btnBoostOn = document.getElementById('panel-hpf-boost-on');
-    
-    if (btnBoostOff && btnBoostOn) {
-        btnBoostOff.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('hpf_boost_enable', 0.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('hpf_boost_enable', 0.0);
-            }
-        });
-        btnBoostOn.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('hpf_boost_enable', 1.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('hpf_boost_enable', 1.0);
-            }
-        });
-    }
-
-    // LCD hovers
-    container.querySelectorAll('.ctrl-unit[data-param]').forEach(function(el) {
-        el.addEventListener('mouseenter', function() {
-            const lcd = document.getElementById('lcd-text');
-            if (!lcd) {return;}
-            const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
-            const v = bridge ? bridge.parameterCache[pid] : 0;
-            const lbl = this.querySelector('.label');
-            const name = lbl ? lbl.textContent.trim() : pid;
-            const pct = typeof v === 'number' ? Math.round(v * 100) : 0;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">HPF PANEL</span><br>'
-                + '<strong>' + name.toUpperCase() + '</strong><br>'
-                + '<span style="font-size:15px;color:var(--accent-pink);">' + pct + '%</span>';
-            if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
-        });
-    });
-    container.querySelectorAll('.toggle-box[data-param]').forEach(function(el) {
-        el.addEventListener('mouseenter', function() {
-            const lcd = document.getElementById('lcd-text');
-            if (!lcd) {return;}
-            const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
-            const v = bridge ? bridge.parameterCache[pid] : 0;
-            const lbl = this.querySelector('.toggle-label');
-            const name = lbl ? lbl.textContent.trim() : pid;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">HPF PANEL</span><br>'
-                + '<strong>' + name.toUpperCase() + '</strong><br>'
-                + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
-            if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
-        });
-    });
-};
-
-window.bindPanelVcfControls = function(container, state, titleEl) {
-    titleEl.innerText = 'VCF Filter Editor';
-    container.innerHTML = window.PANEL_TEMPLATES.VCF();
-
-    const btnPole2 = document.getElementById('panel-vcf-pole-2');
-    const btnPole4 = document.getElementById('panel-vcf-pole-4');
-    if (btnPole2 && btnPole4) {
-        btnPole2.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_pole_mode', 0.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_pole_mode', 0.0);
-            }
-        });
-        btnPole4.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_pole_mode', 1.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_pole_mode', 1.0);
-            }
-        });
-    }
-
-    const btnPolNorm = document.getElementById('panel-vcf-pol-normal');
-    const btnPolInv = document.getElementById('panel-vcf-pol-inverted');
-    if (btnPolNorm && btnPolInv) {
-        btnPolNorm.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_env_polarity', 1.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_env_polarity', 1.0);
-            }
-        });
-        btnPolInv.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_env_polarity', 0.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_env_polarity', 0.0);
-            }
-        });
-    }
-
-    const btnLfoSrc1 = document.getElementById('panel-vcf-lfosrc-1');
-    const btnLfoSrc2 = document.getElementById('panel-vcf-lfosrc-2');
-    if (btnLfoSrc1 && btnLfoSrc2) {
-        btnLfoSrc1.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_lfo_select', 0.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_lfo_select', 0.0);
-            }
-        });
-        btnLfoSrc2.addEventListener('click', () => {
-            if (window.dualMidiBridge) {
-                window.dualMidiBridge.setParameter('vcf_lfo_select', 1.0);
-                window.dualMidiBridge.handleParameterChangeFromBackend('vcf_lfo_select', 1.0);
-            }
-        });
-    }
-
-    // LCD hovers
-    container.querySelectorAll('.ctrl-unit[data-param]').forEach(function(el) {
-        el.addEventListener('mouseenter', function() {
-            const lcd = document.getElementById('lcd-text');
-            if (!lcd) {return;}
-            const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
-            const v = bridge ? bridge.parameterCache[pid] : 0;
-            const lbl = this.querySelector('.label');
-            const name = lbl ? lbl.textContent.trim() : pid;
-            const pct = typeof v === 'number' ? Math.round(v * 100) : 0;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">VCF FILTER PANEL</span><br>'
-                + '<strong>' + name.toUpperCase() + '</strong><br>'
-                + '<span style="font-size:15px;color:var(--accent-pink);">' + pct + '%</span>';
-            if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
-        });
-    });
-    container.querySelectorAll('.toggle-box[data-param]').forEach(function(el) {
-        el.addEventListener('mouseenter', function() {
-            const lcd = document.getElementById('lcd-text');
-            if (!lcd) {return;}
-            const pid = this.getAttribute('data-param');
-            const bridge = window.dualMidiBridge;
-            const v = bridge ? bridge.parameterCache[pid] : 0;
-            const lbl = this.querySelector('.toggle-label');
-            const name = lbl ? lbl.textContent.trim() : pid;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">VCF FILTER PANEL</span><br>'
-                + '<strong>' + name.toUpperCase() + '</strong><br>'
-                + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
+                + '<span style=\"font-size:15px;color:var(--accent-pink);\">' + selectedText + '</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
         });
     });

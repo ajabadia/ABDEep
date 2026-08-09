@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/keyboard_chord_memory.js — Chord intervals, capture, playback, transpose
  *

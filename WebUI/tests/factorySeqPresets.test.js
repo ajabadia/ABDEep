@@ -1,3 +1,4 @@
+import { describe, it, expect} from 'vitest';
 /**
  * Tests for WebUI/js/factory_seq_presets.js — static FACTORY_SEQ_PRESETS data validation
  *

@@ -13,6 +13,7 @@ namespace ABD
         phase = 0.0;
         phaseInc = 0.0;
         currentPwmDuty = 0.5;
+        pwmSlewCoeff = DSP::slewCoeffFromTimeConstant(kPwmSlewTauSec, sampleRate);
     }
 
     void OSC1::setFrequency(double hz)
@@ -80,7 +81,8 @@ namespace ABD
             targetDuty = std::clamp(targetDuty, 0.055f, 0.945f);
 
             // Slew limit to smooth PWM transitions (prevents clicks)
-            currentPwmDuty = DSP::slewLimit(currentPwmDuty, targetDuty, 0.1f);
+            // SR-normalized coefficient: same physical response at any sample rate
+            currentPwmDuty = DSP::slewLimit(currentPwmDuty, targetDuty, pwmSlewCoeff);
 
             // Bipolar pulse wave
             float pulse = (phase < currentPwmDuty) ? 1.0f : -1.0f;

@@ -1,6 +1,6 @@
 // WebUI/tests/calibrationReportExporter.test.js
 // CL-10e: Tests del CalibrationReportExporter
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach} from 'vitest';
 
 if (typeof window === 'undefined') {global.window = {};}
 if (typeof document === 'undefined') {
@@ -37,6 +37,7 @@ if (typeof global.window.jspdf === 'undefined') {
   global.window.jspdf = { jsPDF: MockJsPDF };
 }
 
+import '../js/calibration_report_exporter_pdf.js';
 import '../js/calibration_report_exporter.js';
 
 describe('CalibrationReportExporter', () => {

@@ -8,7 +8,7 @@
  *   - bindPanelOscControls   (OSC1: toggles, pmod/pwm selects, range/pmode LED rows, LCD;
  *                             OSC2: sync-box, pmod/tpm selects, range LED rows, LCD)
  *   - bindPanelHpfControls   (HPF: boost off/on buttons, LCD hovers)
- *   - bindPanelVcfControls   (VCF: pole 2/4, polarity norm/inv, LFO src 1/2, LCD hovers)
+ *   - bindPanelVcfControls   (VCF: model selector DM12/Moog/Korg, pole 2/4, polarity norm/inv, LFO src 1/2, LCD hovers)
  *
  * Pattern: inline functions + fake DOM + vi.stubGlobal for bridge/templates/document
  */
@@ -80,6 +80,9 @@ function _makeTemplateHpf() {
 function _makeTemplateVcf() {
   return function() {
     return '<div id="panel-vcf-container">'
+      + '<div class="shape-led-row vcf-model-led-row" data-val="0" data-param="vcf_model"><div class="led-dot"></div><span class="shape-name text-xs">DM12</span></div>'
+      + '<div class="shape-led-row vcf-model-led-row" data-val="1" data-param="vcf_model"><div class="led-dot"></div><span class="shape-name text-xs">Moog</span></div>'
+      + '<div class="shape-led-row vcf-model-led-row" data-val="2" data-param="vcf_model"><div class="led-dot"></div><span class="shape-name text-xs">Korg</span></div>'
       + '<div id="panel-vcf-pole-2" class="btn">2-Pole</div>'
       + '<div id="panel-vcf-pole-4" class="btn">4-Pole</div>'
       + '<div id="panel-vcf-pol-normal" class="btn">Normal</div>'
@@ -369,6 +372,16 @@ function bindPanelVcfControls(container, state, titleEl) {
     titleEl.innerText = 'VCF Filter Editor';
     container.innerHTML = window.PANEL_TEMPLATES.VCF();
 
+    // VCF Model selector (shape-led-row style)
+    container.querySelectorAll('.vcf-model-led-row').forEach(row => {
+        row.addEventListener('click', () => {
+            const val = parseInt(row.getAttribute('data-val'));
+            container.querySelectorAll('.vcf-model-led-row').forEach(r => r.classList.remove('active'));
+            row.classList.add('active');
+            if (window.dualMidiBridge) {window.dualMidiBridge.setParameter('vcf_model', val / 2.0);}
+        });
+    });
+
     const btnPole2 = document.getElementById('panel-vcf-pole-2');
     const btnPole4 = document.getElementById('panel-vcf-pole-4');
     if (btnPole2 && btnPole4) {
@@ -619,6 +632,24 @@ function _makeHpfContainer() {
 function _makeVcfContainer() {
   const cont = _createFakeEl('div');
   cont._selectorAll = {};
+
+  // VCF model LED rows
+  const modelRows = [];
+  [0, 1, 2].forEach(function(v) {
+    const row = _createFakeEl('div', { 'data-val': String(v), 'data-param': 'vcf_model' });
+    row.classList.add('shape-led-row');
+    row.classList.add('vcf-model-led-row');
+    const dot = _createFakeEl('div');
+    dot.classList.add('led-dot');
+    row._subElements['.led-dot'] = dot;
+    const name = _createFakeEl('span');
+    name.classList.add('shape-name');
+    name.classList.add('text-xs');
+    name.textContent = v === 0 ? 'DM12' : v === 1 ? 'Moog' : 'Korg';
+    row._subElements['.shape-name'] = name;
+    modelRows.push(row);
+  });
+  cont._selectorAll['.vcf-model-led-row'] = modelRows;
 
   // Ctrl units
   const ctrlDefs = [
@@ -1262,6 +1293,59 @@ describe('bindPanelVcfControls', () => {
     btnLfoSrc2._listeners['click'][0]();
     expect(_bridge.setParameter).toHaveBeenCalledWith('vcf_lfo_select', 1.0);
     expect(_bridge.handleParameterChangeFromBackend).toHaveBeenCalledWith('vcf_lfo_select', 1.0);
+  });
+
+  // ── VCF Model selector ──
+
+  it('registers click handlers on all three model LED rows', () => {
+    bindPanelVcfControls(container, state, titleEl);
+    const rows = container._selectorAll['.vcf-model-led-row'];
+    expect(rows[0]._listeners['click']).toBeDefined();
+    expect(rows[1]._listeners['click']).toBeDefined();
+    expect(rows[2]._listeners['click']).toBeDefined();
+  });
+
+  it('clicking DM12 row (data-val=0) sets vcf_model=0.0', () => {
+    bindPanelVcfControls(container, state, titleEl);
+    const rows = container._selectorAll['.vcf-model-led-row'];
+    rows[0]._listeners['click'][0]();
+    expect(_bridge.setParameter).toHaveBeenCalledWith('vcf_model', 0.0);
+  });
+
+  it('clicking Moog row (data-val=1) sets vcf_model=0.5', () => {
+    bindPanelVcfControls(container, state, titleEl);
+    const rows = container._selectorAll['.vcf-model-led-row'];
+    rows[1]._listeners['click'][0]();
+    expect(_bridge.setParameter).toHaveBeenCalledWith('vcf_model', 0.5);
+  });
+
+  it('clicking Korg row (data-val=2) sets vcf_model=1.0', () => {
+    bindPanelVcfControls(container, state, titleEl);
+    const rows = container._selectorAll['.vcf-model-led-row'];
+    rows[2]._listeners['click'][0]();
+    expect(_bridge.setParameter).toHaveBeenCalledWith('vcf_model', 1.0);
+  });
+
+  it('clicking a model row adds active class and removes from others', () => {
+    bindPanelVcfControls(container, state, titleEl);
+    const rows = container._selectorAll['.vcf-model-led-row'];
+    rows[0].classList.add('active');
+    rows[1]._listeners['click'][0]();
+    expect(rows[0].classList.contains('active')).toBe(false);
+    expect(rows[1].classList.contains('active')).toBe(true);
+    expect(rows[2].classList.contains('active')).toBe(false);
+  });
+
+  it('clicking model row does not crash without bridge', () => {
+    vi.stubGlobal('window', {
+      dualMidiBridge: null,
+      PANEL_TEMPLATES: { VCF: _makeTemplateVcf() },
+    });
+    bindPanelVcfControls(container, state, titleEl);
+    const rows = container._selectorAll['.vcf-model-led-row'];
+    expect(function() { rows[0]._listeners['click'][0](); }).not.toThrow();
+    expect(function() { rows[1]._listeners['click'][0](); }).not.toThrow();
+    expect(function() { rows[2]._listeners['click'][0](); }).not.toThrow();
   });
 
   // ── No-bridge ──

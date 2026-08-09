@@ -35,5 +35,9 @@ namespace ABD
         float pitchModValue = 0.0f;
         float toneModValue = 0.0f;
         float currentDuty = 0.5f;       // slew-limited duty cycle
+        float dutySlewCoeff = 0.1f;     // per-sample slew coeff, recomputed in prepare() from DAW SR
+        // Duty slew time constant in seconds. Legacy per-sample coeff was 0.1 @
+        // 44.1 kHz: tau = -1/(ln(1-0.1)·44100) = 0.0002152 s.
+        static constexpr float kDutySlewTauSec = 0.00021522f;
     };
 }

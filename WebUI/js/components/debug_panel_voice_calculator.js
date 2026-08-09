@@ -29,7 +29,6 @@ window.calculateUnisonParams = function(voiceMode, unisonDetune, vcaPanSpread) {
 
     for (let v = 0; v < totalVoices; v++) {
         let detuneCents;
-        let panPos;
 
         if (totalVoices === 2) {
             detuneCents = v === 0 ? -maxDetuneCents : maxDetuneCents;
@@ -38,7 +37,7 @@ window.calculateUnisonParams = function(voiceMode, unisonDetune, vcaPanSpread) {
             detuneCents = -maxDetuneCents + v * step;
         }
 
-        panPos = totalVoices === 2 ? (v === 0 ? 0.0 : 1.0) : v / (totalVoices - 1);
+        const panPos = totalVoices === 2 ? (v === 0 ? 0.0 : 1.0) : v / (totalVoices - 1);
         const basePan = 0.5 + (panPos - 0.5) * vcaPanSpread;
 
         results.push({ voiceIndex: v, detuneCents, panRaw: panPos, panOutput: basePan, active: false, midiNote: -1 });

@@ -11,12 +11,15 @@
     gap: 6px;
 }
 
-.patch-item {
+.patch-item,
+.browser-list-item {
     background: var(--bg-header);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 6px 12px;
-    font-size: 10.5px;
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    line-height: 1.2;
     color: var(--text-secondary);
     cursor: pointer;
     white-space: nowrap;
@@ -24,12 +27,30 @@
     text-overflow: ellipsis;
     transition: all 0.1s;
 }
-.patch-item:hover {
+
+.patch-name-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: -0.1px;
+}
+
+/* Reducción refinada en rejilla de 3 columnas para evitar truncado */
+.patches-grid[style*="repeat(3"] .patch-item,
+.patches-grid[style*="repeat(3"] .browser-list-item,
+.patches-grid[style*="repeat(3"] .patch-name-text {
+    font-size: 9.5px;
+    padding: 2px 5px;
+}
+
+.patch-item:hover,
+.browser-list-item:hover {
     border-color: var(--brand-accent);
     color: var(--text-primary);
-    background: color-mix(in srgb, var(--accent-primary) 5%, transparent);
+    background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
 }
-.patch-item.active {
+
+.patch-item.active,
+.browser-list-item.active {
     background: var(--brand-accent);
     color: #000;
     font-weight: bold;

@@ -1,6 +1,6 @@
 /**
  * @component TopBar
- * @purpose Web Component para la barra de navegación superior (File/Edit/View)
+ * @purpose Web Component para la barra de navegación superior (File/Edit/View, Operating Mode Selector & Web Audio Toggle)
  * @classification UI Component
  * @complexity Low
  */
@@ -55,7 +55,21 @@
                     </ul>
                 </div>
             </div>
-            <div id="app-title-mini">ABD EEP CONTROLLER</div>
+
+            <div id="app-title-mini" style="font-weight:bold;margin-right:8px">ABD EEP CONTROLLER</div>
+
+            <!-- Selector de Modo de Operación en Barra Superior -->
+            <select id="app-operating-mode-select" class="topbar-mode-select" style="background:var(--bg-elevated,#1e1e1e);border:1px solid var(--border,#444);color:var(--accent-blue,#00e5ff);font-family:'Share Tech Mono',monospace;font-size:10px;padding:2px 8px;border-radius:var(--radius-xs,4px);margin:0 6px;cursor:pointer;outline:none" data-ctrl-tooltip="Select Operation Mode">
+                <option value="abyssmind_pro">⚡ AbyssMind Pro (Web & HW)</option>
+                <option value="deepmind_web_standalone">💻 DM12 Web Standalone (WASM)</option>
+                <option value="deepmind_hw_controller">🎛️ DM12 HW Controller</option>
+            </select>
+ 
+            <!-- Botón de Activación de Audio Web -->
+            <button id="wasm-audio-toggle-btn" class="topbar-audio-btn" style="display:inline-flex;align-items:center;background:var(--bg-elevated,#1e1e1e);border:1px solid var(--border,#444);color:var(--text-secondary,#ccc);font-family:'Share Tech Mono',monospace;font-size:9.5px;padding:2px 8px;border-radius:var(--radius-xs,4px);margin:0 4px;cursor:pointer;transition:all 0.15s ease" data-ctrl-tooltip="Start WebAssembly synthesizer in browser">
+                🔊 ACTIVATE WEB AUDIO
+            </button>
+ 
             <!-- Controller overlay permanente -->
             <div id="ctrl-overlay">
                 <div class="ctrl-overlay-item" data-ctrl="pb">
@@ -81,11 +95,11 @@
                     <span class="ctrl-overlay-value" id="ctrl-o-at-val">0%</span>
                 </div>
             </div>
-            <div id="keyboard-shortcuts-icon" style="width:16px;height:16px;border-radius:3px;background:var(--bg-hover);border:1px solid var(--border-dim);color:var(--text-faint);font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all 0.15s ease;margin:0 4px;line-height:1" data-ctrl-tooltip="Keyboard Shortcuts">⌨</div>
             <div id="midi-activity-led" style="width:6px;height:6px;border-radius:50%;background:var(--accent-green);margin:0;opacity:0.15;flex-shrink:0;transition:opacity 0.05s linear, box-shadow 0.05s linear;box-shadow:none" data-ctrl-tooltip="MIDI Activity"></div>
             <button id="reconnect-hw-btn" style="display:none;font-size:8.5px;font-weight:bold;padding:1px 6px;border-radius:3px;border:1px solid var(--accent-red);background:rgba(234,33,45,0.12);color:var(--accent-red);cursor:pointer;margin:0 4px;height:16px;line-height:1;box-shadow:0 0 5px rgba(234,33,45,0.2);animation:heartbeat-pulse 1.2s infinite ease-in-out;flex-shrink:0" data-ctrl-tooltip="Hardware Synth disconnected. Click to re-connect.">RE-CONNECT HARDWARE</button>
             <div id="midi-connection-indicator" style="width:10px;height:10px;border-radius:50%;background:var(--color-danger);margin:0 6px 0 4px;transition:all 0.3s ease;box-shadow:0 0 4px var(--color-danger);flex-shrink:0" data-ctrl-tooltip="MIDI: Disconnected"></div>
         </header>
+
     `;
 
     class TopBar extends HTMLElement {

@@ -1,3 +1,6 @@
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console;
+
 /**
  * @purpose Poly Chord Engine which maps key classes to specific chord type assignments.
  * @purpose_en Poly Chord Engine.
@@ -22,8 +25,10 @@ window.POLY_CHORD_DEFAULTS = POLY_CHORD_DEFAULTS;
 const CHORD_TYPE_NAMES = ['Memory', 'Major', 'Minor', 'Major 7th', 'Minor 7th', 'Dom 7th', 'Susp 4th', 'Power Chd', 'Augmented', 'Diminished', 'Sus2', '7th'];
 window.CHORD_TYPE_NAMES = CHORD_TYPE_NAMES;
 
-const NOTE_NAMES_SHORT = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-window.NOTE_NAMES_SHORT = NOTE_NAMES_SHORT;
+if (!window.NOTE_NAMES_SHORT) {
+    window.NOTE_NAMES_SHORT = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+}
+
 
 window._initPolyChordNotes = function() {
     const bridge = window.dualMidiBridge;
@@ -43,12 +48,13 @@ window._initPolyChordNotes = function() {
         bridge.parameterCache['poly_chord_notes'] = new Array(512).fill(0xFF);
     }
     
-    console.log('[PolyChord] Initialized poly chord map with defaults');
+    Logger.log('[PolyChord] Initialized poly chord map with defaults');
 };
 
 window._playPolyChordMemory = function(rootNote, velocity) {
     const bridge = window.dualMidiBridge;
     if (!bridge) {return false;}
+    if (!bridge._isSimulatorMode()) {return false;} // controlador: el chord lo ejecuta el hardware
     
     const polyChordEn = bridge.parameterCache['poly_chord_enable'] || 0.0;
     if (polyChordEn < 0.5) {return false;}
@@ -101,9 +107,9 @@ window._playPolyChordMemory = function(rootNote, velocity) {
         bridge.pianoNoteOn(note, velocity);
     });
     
-    const keyName = NOTE_NAMES_SHORT[keyClass];
+    const keyName = window.NOTE_NAMES_SHORT[keyClass];
     const typeName = CHORD_TYPE_NAMES[chordType] || 'Chord';
-    console.log('[PolyChord] Key', keyName, '→', typeName, 'at root', rootNote, ':', notesToPlay.join(','));
+    Logger.log('[PolyChord] Key', keyName, '→', typeName, 'at root', rootNote, ':', notesToPlay.join(','));
     
     return true;
 };
@@ -111,6 +117,7 @@ window._playPolyChordMemory = function(rootNote, velocity) {
 window._stopPolyChordMemory = function(rootNote) {
     const bridge = window.dualMidiBridge;
     if (!bridge || !bridge._chordActiveNotes) {return;}
+    if (!bridge._isSimulatorMode()) {return;} // controlador: el chord lo ejecuta el hardware
     
     const polyChordEn = bridge.parameterCache['poly_chord_enable'] || 0.0;
     if (polyChordEn < 0.5) {return;}

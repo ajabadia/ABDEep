@@ -19,7 +19,10 @@ window.BRIDGE_PARAM_MAPS = (function() {
         35: 9, 38: 1, 46: 1, 50: 1, 51: 1, 52: 1,
         57: 4, 66: 4, 75: 4, 84: 2, 85: 12, 86: 3, 92: 1,
         117: 1, 118: 15, 119: 31, 121: 2, 155: 1, 156: 10, 158: 12, 159: 1, 161: 1, 162: 64, 164: 3, 165: 9,
-        166: 35, 179: 35, 192: 35, 205: 35, 222: 2
+        166: 49, 179: 49, 192: 49, 205: 49,         222: 2,
+        245: 2,
+        246: 2,
+        247: 1
     };
 
     // Mapa: paramId → byteOffset
@@ -92,7 +95,10 @@ window.BRIDGE_PARAM_MAPS = (function() {
         'fx1_gain': 218, 'fx2_gain': 219, 'fx3_gain': 220, 'fx4_gain': 221,
         'fx_mode': 222,
         'fx_feedback_gain': 223,
-        'fx_send_level': 225
+        'fx_send_level': 225,
+        'vcf_model': 245,
+        'vcf_moog_submode': 246,
+        'vcf_korg_submode': 247
     };
 
     // Mapa: paramId → MIDI CC
@@ -144,6 +150,23 @@ window.BRIDGE_PARAM_MAPS = (function() {
 
     const CC_TO_PARAM = buildReverseCCMap();
 
+    const ADVANCED_TO_HW_FALLBACK = {
+        36: 29, // Roland BBD Chorus → Chorus-D
+        37: 28, // Solina Ensemble → Stereo Chorus
+        38: 32, // Ring Modulator → Mood Filter
+        39: 25, // Space Echo RE-201 → T-RayDelay
+        40: 22, // Analog Tape Delay → Delay
+        41: 27, // Shimmer Delay → ModDlyRev
+        42: 23, // Granular Delay → 3Tap Delay
+        43: 24, // Pattern Freeze → 4Tap Delay
+        44: 22, // Ducking Delay → Delay
+        45: 25, // Spectral Dly → T-RayDelay
+        46: 33, // Freq Shifter → Dual Pitch
+        47: 32, // HarmonicReso → Mood Filter
+        48: 32, // Combulator → Mood Filter
+        49: 15  // MB Vocoder → Enhancer
+    };
+
     return {
         BIPOLAR_BYTES: BIPOLAR_BYTES,
         ENUM_BYTES: ENUM_BYTES,
@@ -151,6 +174,7 @@ window.BRIDGE_PARAM_MAPS = (function() {
         PARAM_TO_CC: PARAM_TO_CC,
         BYTE_OFFSET_TO_PARAM_IDS: BYTE_OFFSET_TO_PARAM_IDS,
         CC_TO_PARAM: CC_TO_PARAM,
+        ADVANCED_TO_HW_FALLBACK: ADVANCED_TO_HW_FALLBACK,
 
         /** Convierte valor raw (0-255) a normalized (0-1). Maneja bipolares y enums. */
         rawToNormalized: function(byteOffset, rawValue) {

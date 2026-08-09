@@ -44,5 +44,17 @@ namespace ABD
 
         /** Retorna el nombre del tipo de efecto (para debugging) */
         virtual juce::String getEffectName() const = 0;
+
+        /**
+         * Proporciona una señal de modulador externo al efecto (opcional).
+         * Usado por FXVocoder para recibir sidechain/mic input.
+         * @param modL  Buffer del modulador canal izquierdo (o nullptr si no disponible)
+         * @param modR  Buffer del modulador canal derecho (o nullptr si no disponible)
+         * @param numSamples Número de muestras del modulador
+         */
+        virtual void setModulatorInput(const float* modL, const float* modR, int numSamples)
+        {
+            (void)modL; (void)modR; (void)numSamples;
+        }
     };
 }

@@ -20,7 +20,7 @@ namespace ABD
         // Cabinet filter ~4kHz
         float cabFreq = 4000.0f;
         cabCoeff = (float)(cabFreq / (cabFreq + sampleRate * 0.3));
-        // Post-filter LPF ~5.5kHz (coincides with 0.2f at 44100Hz)
+        // Post-filter LPF ~5.5kHz: coeff = f/(f + sr·0.5), SR-correct (0.2 @44.1kHz)
         float postFreq = 5513.0f;
         postCoeff = (float)(postFreq / (postFreq + sampleRate * 0.5));
     }

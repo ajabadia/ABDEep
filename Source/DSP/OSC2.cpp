@@ -13,6 +13,7 @@ namespace ABD
         phase = 0.0;
         phaseInc = 0.0;
         currentDuty = 0.5;
+        dutySlewCoeff = DSP::slewCoeffFromTimeConstant(kDutySlewTauSec, sampleRate);
     }
 
     void OSC2::setFrequency(double hz)
@@ -49,7 +50,7 @@ namespace ABD
         // --- Duty cycle with slew limiting (prevents clicks on Tone Mod changes) ---
         float targetDuty = 0.5f + toneModValue * 0.45f;
         targetDuty = std::clamp(targetDuty, 0.01f, 0.99f);
-        currentDuty = DSP::slewLimit(currentDuty, targetDuty, 0.1f);
+        currentDuty = DSP::slewLimit(currentDuty, targetDuty, dutySlewCoeff);
 
         // --- Generate square/pulse with PolyBLEP ---
         float square = (phase < currentDuty) ? 1.0f : -1.0f;

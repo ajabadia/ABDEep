@@ -1,3 +1,6 @@
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console;
+
 /**
  * @purpose Manages loading/saving user presets library banks to/from browser LocalStorage.
  * @purpose_en User banks LocalStorage persistence.
@@ -34,10 +37,10 @@ function _saveUserBanksToStorage() {
             }
         });
         localStorage.setItem('abd-eep-user-banks', JSON.stringify(userBanks));
-        console.log('[BankStorage] Saved ' + Object.keys(userBanks).length + ' user banks to localStorage');
+        Logger.log('[BankStorage] Saved ' + Object.keys(userBanks).length + ' user banks to localStorage');
         return true;
     } catch (e) {
-        console.warn('[BankStorage] Error saving user banks:', e);
+        Logger.warn('[BankStorage] Error saving user banks:', e);
         if (e.name === 'QuotaExceededError' || e.code === 22) {
             alert('Storage quota exceeded. Try reducing the number of user banks or patches.');
         }
@@ -57,10 +60,10 @@ function _loadUserBanksFromStorage() {
                 count++;
             }
         });
-        console.log('[BankStorage] Loaded ' + count + ' user banks from localStorage (' + Object.keys(parsed).length + ' total in storage)');
+        Logger.log('[BankStorage] Loaded ' + count + ' user banks from localStorage (' + Object.keys(parsed).length + ' total in storage)');
         return count > 0;
     } catch (e) {
-        console.warn('[BankStorage] Error loading user banks:', e);
+        Logger.warn('[BankStorage] Error loading user banks:', e);
         return false;
     }
 }

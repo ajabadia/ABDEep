@@ -1,3 +1,6 @@
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console;
+
 /**
  * @purpose Chord Memory Engine which captures custom held notes or plays predefined intervals from a root note.
  * @purpose_en Chord Memory Engine.
@@ -57,7 +60,7 @@ window._captureChordMemory = function() {
     }
     
     bridge.parameterCache['chord_notes'] = notes;
-    console.log('[ChordMemory] Captured chord:', notes.join(', '));
+    Logger.log('[ChordMemory] Captured chord:', notes.join(', '));
     
     const lcdText = document.getElementById('lcd-text');
     if (lcdText) {
@@ -65,7 +68,7 @@ window._captureChordMemory = function() {
             const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
             return names[n % 12] + Math.floor((n / 12) - 1);
         });
-        lcdText.innerHTML = '<span style="font-size:10px; opacity:0.6;">CHORD MEMORY</span><br>'
+        lcdText.innerHTML = '<span class="lcd-label">CHORD MEMORY</span><br>'
             + '<strong>CAPTURED</strong><br>'
             + '<span style="font-size:14px; color:var(--accent-green);">' + noteNames.join(' ') + '</span>';
         if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcdText);}
@@ -75,6 +78,7 @@ window._captureChordMemory = function() {
 window._playChordMemory = function(rootNote, velocity) {
     const bridge = window.dualMidiBridge;
     if (!bridge) {return false;}
+    if (!bridge._isSimulatorMode()) {return false;} // controlador: el chord lo ejecuta el hardware
     
     const chordEn = bridge.parameterCache['chord_enable'] || 0.0;
     if (chordEn < 0.5) {return false;}
@@ -99,7 +103,7 @@ window._playChordMemory = function(rootNote, velocity) {
             }
         });
         
-        console.log('[ChordMemory] Memory mode: transposed by', interval, 'semitones from', baseNote, 'to', rootNote);
+        Logger.log('[ChordMemory] Memory mode: transposed by', interval, 'semitones from', baseNote, 'to', rootNote);
     } else {
         const intervals = CHORD_INTERVALS[chordType];
         if (!intervals) {return false;}
@@ -112,7 +116,7 @@ window._playChordMemory = function(rootNote, velocity) {
         });
         
         const typeNames = ['', 'Major', 'Minor', 'Major 7th', 'Minor 7th', 'Dom 7th', 'Susp 4th', 'Power', 'Augmented', 'Diminished', 'Sus2', '7th'];
-        console.log('[ChordMemory] Generated', typeNames[chordType] || 'Chord', 'at root', rootNote, ':', notesToPlay.join(','));
+        Logger.log('[ChordMemory] Generated', typeNames[chordType] || 'Chord', 'at root', rootNote, ':', notesToPlay.join(','));
     }
     
     if (notesToPlay.length === 0) {return false;}
@@ -128,6 +132,7 @@ window._playChordMemory = function(rootNote, velocity) {
 window._stopChordMemory = function(rootNote) {
     const bridge = window.dualMidiBridge;
     if (!bridge || !bridge._chordActiveNotes) {return;}
+    if (!bridge._isSimulatorMode()) {return;} // controlador: el chord lo ejecuta el hardware
     
     const chordEn = bridge.parameterCache['chord_enable'] || 0.0;
     if (chordEn < 0.5) {return;}
@@ -176,7 +181,6 @@ window._stopChordMemory = function(rootNote) {
  * Falls back to displaying the lowest note as pseudo-root when no chord match.
  */
 const NOTE_NAMES_SHORT = window.NOTE_NAMES_SHORT || ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const CHORD_TYPE_NAMES = window.CHORD_TYPE_NAMES || [];
 window._detectChordFromNotes = function(notes) {
     if (!Array.isArray(notes) || notes.length < 2) {return null;}
     const sorted = notes.slice().sort(function(a,b) { return a - b; });
@@ -203,10 +207,10 @@ window._detectChordFromNotes = function(notes) {
         const diff = chordIvs.length - intervals.length;
         if (diff < 0) {continue;}
         if (diff === 0) {
-            bestMatch = { type: parseInt(t), root: root, rootName: NOTE_NAMES_SHORT[rootClass], typeName: CHORD_TYPE_NAMES[t] };
+            bestMatch = { type: parseInt(t), root: root, rootName: NOTE_NAMES_SHORT[rootClass], typeName: (window.CHORD_TYPE_NAMES || [])[t] };
             break;
         }
-        if (diff < bestDiff) { bestDiff = diff; bestMatch = { type: parseInt(t), root: root, rootName: NOTE_NAMES_SHORT[rootClass], typeName: CHORD_TYPE_NAMES[t] }; }
+        if (diff < bestDiff) { bestDiff = diff; bestMatch = { type: parseInt(t), root: root, rootName: NOTE_NAMES_SHORT[rootClass], typeName: (window.CHORD_TYPE_NAMES || [])[t] }; }
     }
     return bestMatch;
 };

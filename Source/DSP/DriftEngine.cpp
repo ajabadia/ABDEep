@@ -68,8 +68,9 @@ namespace ABD
         {
             osc->currentValue = 0.0f;
             osc->targetValue = 0.0f;
-            osc->samplesUntilNextTarget = osc->targetIntervalSamples
-                * (0.5 + 0.5 * ((float)std::rand() / (float)RAND_MAX));
+            // nextRandomFloat() devuelve [-1, +1]; mapear a [0, 1] y escalar
+            float r = nextRandomFloat() * 0.5f + 0.5f; // [0, 1]
+            osc->samplesUntilNextTarget = osc->targetIntervalSamples * (0.5 + 0.5 * r);
         }
     }
 
@@ -100,16 +101,19 @@ namespace ABD
 
         if (osc.samplesUntilNextTarget <= 0.0)
         {
-            // Elegir nuevo target aleatorio
-            osc.pickNewTarget(amplitudeScale);
-            // El slew factor determina cuán rápido llegar al target
-            // Más driftRate → slew más rápido (cambios más abruptos)
-            double slewBase = (0.0001 + driftRate * 0.01) * (44100.0 / sampleRate);
+            // Elegir nuevo target aleatorio con el LCG local
+            osc.pickNewTarget(amplitudeScale, nextRandomFloat());
+            // El slew factor determina qué tan rápido llegar al target.
+            // Se expresa en Hz (per-second) y se divide por el sampleRate del DAW
+            // para obtener el factor per-sample: el comportamiento físico queda
+            // invariante entre sample rates.
+            double slewBase = (kSlewBasePerSec + driftRate * kSlewRatePerSec) / sampleRate;
             // Variar el slew aleatoriamente en cada nuevo target
-            osc.slewFactor = (float)(slewBase * (0.5 + (double)std::rand() / (double)RAND_MAX));
+            float r1 = nextRandomFloat() * 0.5f + 0.5f; // [0, 1]
+            osc.slewFactor = (float)(slewBase * (0.5 + r1));
             // Programar el próximo cambio de target con un poco de jitter
-            double jitter = 0.8 + 0.4 * ((float)std::rand() / (float)RAND_MAX);
-            osc.samplesUntilNextTarget = osc.targetIntervalSamples * jitter;
+            float r2 = nextRandomFloat() * 0.5f + 0.5f; // [0, 1]
+            osc.samplesUntilNextTarget = osc.targetIntervalSamples * (0.8 + 0.4 * r2);
         }
 
         // 2. Glide suave hacia el target (filtro de 1-polo)
@@ -121,5 +125,11 @@ namespace ABD
 
         // 4. Saturación suave para evitar valores extremos
         output = std::tanh(osc.currentValue * 2.0f) / 2.0f;
+    }
+    float DriftEngine::nextRandomFloat()
+    {
+        // LCG clásico (misma implementación que LFO::nextRandomFloat)
+        driftSeed = driftSeed * 1664525u + 1013904223u;
+        return -1.0f + 2.0f * (static_cast<float>(driftSeed & 0x7FFFFFFFu) / 2147483647.0f);
     }
 }

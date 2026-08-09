@@ -38,7 +38,7 @@ function restoreParamSnapshot(snapshotStr) {
     
     const lcdText = document.getElementById('lcd-text');
     if (lcdText) {
-        lcdText.innerHTML = '<span style="font-size:10px; opacity:0.6;">EDIT HISTORY</span><br><strong>STATE RESTORED</strong>';
+        lcdText.innerHTML = '<span class="lcd-label">EDIT HISTORY</span><br><strong>STATE RESTORED</strong>';
     }
 }
 window.restoreParamSnapshot = restoreParamSnapshot;
@@ -46,7 +46,7 @@ window.restoreParamSnapshot = restoreParamSnapshot;
 window.initEditHistory = function() {
     if (window.dualMidiBridge) {
         let changeTimeout = null;
-        window.dualMidiBridge.onParameterChanged((paramId, val) => {
+        window.dualMidiBridge.onParameterChanged((_paramId, _val) => {
             if (window.isHistoryAction || isHistoryAction) {return;}
 
             clearTimeout(changeTimeout);

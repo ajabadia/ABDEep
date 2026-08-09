@@ -39,7 +39,7 @@ function initKnobs() {
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
                     const displayVal = typeof window.formatParamValue === 'function' ? window.formatParamValue(paramId, baseValue) : baseValue.toFixed(2);
-                    lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">PERFORMANCE</span><br><strong>${paramId.toUpperCase()}</strong><br><span style="font-size:15px; color:var(--color-gold);">${displayVal}</span>`;
+                    lcdText.innerHTML = `<span class="lcd-label">PERFORMANCE</span><br><strong>${paramId.toUpperCase()}</strong><br><span style="font-size:15px; color:var(--color-gold);">${displayVal}</span>`;
                     if (typeof window.setLcdParamDisplayTimer === 'function') {
                         window.setLcdParamDisplayTimer(lcdText);
                     }

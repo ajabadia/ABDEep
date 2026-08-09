@@ -21,7 +21,9 @@ namespace ABD
 
     void LFO::setRate(float rateHz)
     {
-        rate = std::clamp(rateHz, 0.005f, 1280.0f);
+        float clamped = std::clamp(rateHz, 0.005f, 1280.0f);
+        if (clamped == rate) return;  // hot-path guard
+        rate = clamped;
         updatePhaseIncrement();
     }
 

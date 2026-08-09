@@ -776,3 +776,98 @@
   50% { opacity: 0.25; }
 }
 
+/* ── Inline-style cleanup helpers for calibration_lab_page.js ── */
+.cal-modal-wide { width: 1200px; height: 760px; }
+.cal-modal-body { flex: 1; overflow: hidden; display: flex; gap: 10px; padding: 15px; }
+.cal-page-flex { flex: 1; overflow: hidden; display: flex; flex-direction: column; border: none; padding: 0; min-height: 0; }
+.cal-title-hidden { display: none; }
+.cal-filters-mb { margin-bottom: 6px; }
+.cal-panel-flex { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.cal-input-w64 { width: 64px; }
+.cal-input-full { width: 100%; }
+.cal-btn-full { width: 100%; }
+.cal-row-cursor { cursor: pointer; }
+.cal-bank-select { width: 120px; }
+.cal-run-item-cursor { cursor: pointer; }
+.cal-badge-crit { font-size: 8px; }
+.cal-wf-warning { font-size: 10px; padding: 4px 8px; margin-bottom: 4px; }
+.cal-wf-btn-pass { color: var(--accent-green, #65d36e); }
+.cal-wf-btn-review { color: var(--accent-blue, #6ec7ff); }
+.cal-wf-btn-fail { color: var(--accent-orange, #ff9d42); }
+.cal-wf-notes { width: 100%; resize: vertical; margin-top: 6px; }
+.cal-wf-actions-mt { margin-top: 6px; }
+.cal-drawer-note-mt { margin-top: 8px; font-style: italic; }
+
+/* Audio A/B tab */
+.cal-audio-title { margin: 0 0 10px 0; color: var(--text-primary); font-size: 12px; }
+.cal-audio-desc { font-size: 11px; color: var(--text-dim); margin-bottom: 12px; }
+.cal-audio-inputs { display: flex; gap: 15px; background: var(--bg-header); padding: 12px; border-radius: 8px; border: 1px solid var(--border-dim); margin-bottom: 12px; }
+.cal-audio-input-group { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.cal-audio-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+.cal-audio-buttons { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.cal-audio-status-col { display: flex; flex-direction: column; gap: 6px; }
+.cal-audio-status-row { display: flex; justify-content: space-between; font-size: 11px; background: var(--bg-surface); padding: 8px; border-radius: 6px; }
+.cal-audio-logs { font-family: 'Share Tech Mono', monospace; font-size: 10.5px; width: 100%; resize: vertical; background: var(--bg-surface); color: #8cd0d3; }
+.cal-audio-logs-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; margin-top: 6px; }
+.cal-audio-error { background: rgba(231, 76, 60, 0.15); border: 1px solid #e74c3c; padding: 12px; border-radius: 6px; margin-top: 12px; }
+.cal-audio-error-title { color: #e74c3c; font-weight: bold; font-size: 12px; margin-bottom: 4px; }
+.cal-audio-error-reason { font-size: 11px; color: var(--text-primary); font-family: 'Share Tech Mono', monospace; }
+.cal-audio-error-list { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.cal-audio-verdict { background: var(--bg-header); border: 1px solid var(--border-dim); padding: 12px; border-radius: 8px; margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.cal-audio-verdict-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-dim); padding-bottom: 6px; }
+.cal-audio-verdict-title { font-weight: bold; font-size: 12px; color: var(--text-primary); }
+.cal-audio-verdict-badge { color: #000; font-weight: bold; font-size: 10px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+.cal-audio-warning-box { font-size: 10.5px; color: #e74c3c; background: rgba(231, 76, 60, 0.08); padding: 6px; border-radius: 4px; margin-bottom: 4px; }
+.cal-audio-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px; }
+.cal-audio-metric-col { display: flex; flex-direction: column; gap: 4px; }
+.cal-audio-section-label { color: var(--text-dim); font-size: 10px; text-transform: uppercase; display: block; margin-bottom: 2px; }
+.cal-audio-spectral { border-top: 1px solid var(--border-dim); padding-top: 6px; font-size: 11px; }
+.cal-audio-spectral-dim { font-size: 10.5px; color: var(--text-dim); }
+
+/* RoundTrip tab */
+.cal-rt-title { margin: 0 0 8px 0; color: var(--text-primary); font-size: 12px; }
+.cal-rt-desc { font-size: 10.5px; color: var(--text-dim); margin-bottom: 10px; }
+.cal-rt-actions { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.cal-rt-source { font-size: 10.5px; color: var(--text-dim); margin-bottom: 8px; }
+.cal-rt-source-name { color: var(--text-primary); }
+.cal-rt-source-info { margin-left: 12px; color: var(--text-faint); }
+.cal-rt-summary { display: flex; gap: 12px; align-items: center; padding: 8px 12px; background: var(--bg-header); border-radius: 6px; margin-bottom: 8px; border: 1px solid var(--border-dim); }
+.cal-rt-status { font-weight: bold; font-size: 13px; }
+.cal-rt-summary-count { font-size: 11px; color: var(--text-dim); }
+.cal-rt-summary-count strong { color: var(--text-primary); }
+.cal-rt-table-param { font-size: 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+.cal-rt-classification { font-weight: normal; }
+.cal-rt-classification.mismatch { font-weight: bold; }
+
+/* Dynamic color helpers: values are injected via inline CSS custom properties */
+.cal-audio-verdict-badge { background: var(--cal-badge-bg, var(--bg-header, #1a1a1a)); }
+.cal-rt-status { color: var(--cal-rt-status-color, inherit); }
+.cal-rt-summary-count .cal-mismatch-count { color: var(--cal-mismatch-color, inherit); }
+.cal-rt-classification { color: var(--cal-rt-class-color, inherit); }
+.cal-live-status { color: var(--cal-live-status-color, inherit); }
+.cal-live-cell { color: var(--cal-live-status-color, inherit); }
+.cal-live-check-value { color: inherit; }
+.cal-live-fail-count { color: var(--cal-fail-count-color, inherit); }
+
+/* Live Validation tab */
+.cal-live-title { margin: 0 0 8px 0; color: var(--text-primary); font-size: 12px; }
+.cal-live-desc { font-size: 10.5px; color: var(--text-dim); margin-bottom: 10px; }
+.cal-live-actions { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.cal-live-header { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 12px; background: var(--bg-header); border-radius: 6px; margin-bottom: 8px; border: 1px solid var(--border-dim); }
+.cal-live-status { font-weight: bold; font-size: 13px; }
+.cal-live-header-meta { font-size: 11px; color: var(--text-dim); }
+.cal-live-empty { padding: 20px; text-align: center; color: var(--text-faint); font-size: 12px; }
+.cal-live-table-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+.cal-live-cell { font-weight: bold; font-size: 12px; }
+.cal-live-check-value { font-size: 9px; color: var(--text-faint); }
+.cal-live-blink-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.cal-patchdiff-semantic { font-size: 10.5px; }
+
+

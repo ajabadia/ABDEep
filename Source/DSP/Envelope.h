@@ -52,6 +52,7 @@ namespace ABD
         double currentProgress = 0.0; // 0.0 a 1.0 dentro de la fase actual
         double progressIncrement = 0.0;
         double currentStageDurationSec = 0.01; // duración de la fase actual (para setTimeScale)
+        float timeScale = 1.0f;  // escala de tiempo activa (para guards + changeStage)
         float startLevel = 0.0f;
         float targetLevel = 0.0f;
         float currentLevel = 0.0f;
@@ -79,7 +80,16 @@ namespace ABD
         void setLoopMode(bool loop);
         bool getLoopMode() const { return loopMode; }
 
+        /**
+         * Modo One-Shot (voice.envelopeTriggerMode=3): al completar Decay, salta
+         * directamente a Release (sin fase Sustain). El note-off se ignora en
+         * SynthVoice, así que la envolvente completa sola su ciclo.
+         */
+        void setBypassSustain(bool bypass);
+        bool getBypassSustain() const { return bypassSustain; }
+
     private:
         bool loopMode = false;
+        bool bypassSustain = false;
     };
 }

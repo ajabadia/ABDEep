@@ -700,13 +700,13 @@ function bindPanelSeqControls(container, state, titleEl) {
                 fillBar.style.background = 'transparent';
                 fillBar.style.borderTop = '1px dashed var(--color-danger)';
             } else if (val >= 0) {
-                var pct = Math.min(50, (val / 127) * 50);
+const pct = Math.min(50, (val / 127) * 50);
                 fillBar.style.bottom = '50%';
                 fillBar.style.height = pct + '%';
                 fillBar.style.background = 'var(--accent-pink)';
                 fillBar.style.borderTop = 'none';
             } else {
-                var pct = Math.min(50, (Math.abs(val) / 128) * 50);
+const pct = Math.min(50, (Math.abs(val) / 128) * 50);
                 fillBar.style.bottom = (50 - pct) + '%';
                 fillBar.style.height = pct + '%';
                 fillBar.style.background = 'color-mix(in srgb, var(--accent-pink) 40%, #000)';
@@ -1316,7 +1316,7 @@ describe('bindPanelPolyChordControls', () => {
     // Add poly rows
     const keySelectRows = [];
     for (let ki = 0; ki < 12; ki++) {
-      var row = _createFakeEl('div', { 'data-keyidx': String(ki) });
+const row = _createFakeEl('div', { 'data-keyidx': String(ki) });
       row.classList.add('poly-key-select-row');
       keySelectRows.push(row);
     }
@@ -1324,7 +1324,7 @@ describe('bindPanelPolyChordControls', () => {
 
     const rootRows = [];
     for (let ri = 0; ri < 12; ri++) {
-      var row = _createFakeEl('div', { 'data-val': String(ri) });
+const row = _createFakeEl('div', { 'data-val': String(ri) });
       row.classList.add('poly-root-row');
       rootRows.push(row);
     }
@@ -1332,7 +1332,7 @@ describe('bindPanelPolyChordControls', () => {
 
     const typeRows = [];
     for (let ti = 0; ti < 8; ti++) {
-      var row = _createFakeEl('div', { 'data-val': String(ti) });
+const row = _createFakeEl('div', { 'data-val': String(ti) });
       row.classList.add('poly-type-row');
       typeRows.push(row);
     }

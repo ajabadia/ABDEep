@@ -44,14 +44,9 @@ namespace ABD
         double sampleRate = 44100.0;
         float cutoff = 1000.0f;
         float resonance = 0.0f;
-        int poleMode = 0; // 0 = 4-pole (default), 1 = 2-pole (stub)
-        int mOversample = 1;
+        int poleMode = 0; // 0 = 4-pole (default), 1 = 2-pole
 
         JunoVCF_ZDF mFilter;
-
-        // 2-pole output for poleMode==0
-        float m2PoleState[2] = {};
-        float m2PoleOutput = 0.0f;
     };
 
     /**

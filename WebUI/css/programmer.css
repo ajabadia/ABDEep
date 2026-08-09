@@ -115,3 +115,30 @@
     color: #000;
     box-shadow: 0 0 5px #00ff66, inset 0 0 2px #fff;
 }
+
+/* --- SETTINGS: Global Dump refresh button (replaces inline cssText) --- */
+.settings-global-dump-btn {
+    font-size: 9px;
+    padding: 2px 8px;
+    margin-top: 6px;
+    margin-left: auto;
+    display: block;
+}
+
+/* --- COMPARE MODE button states (replaces inline styles in settings.js) --- */
+#programmer-compare-btn.compare-mode-btn {
+    background: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+    border-color: var(--brand-accent);
+    color: var(--brand-accent);
+}
+#programmer-compare-btn.compare-mode-btn.active {
+    background: var(--brand-accent);
+    border-color: var(--brand-accent);
+    color: #000;
+}
+
+/* --- LCD compare helper text --- */
+.lcd-compare-original {
+    font-size: 9px;
+    color: var(--text-dim);
+}

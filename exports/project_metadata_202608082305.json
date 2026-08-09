@@ -1,0 +1,24 @@
+﻿{
+    "projectName":  "ABDEep",
+    "rootDir":  "D:\\desarrollos\\ABDSynths\\ABDEep",
+    "generatedAt":  "2026-08-08T23:06:04.6749784+02:00",
+    "compactMode":  false,
+    "excludes":  [
+
+                 ],
+    "git":  {
+                "branch":  "main",
+                "commit":  "9917bcd8c0129f6c907e3e91c78178fc7048d32b",
+                "dirty":  true
+            },
+    "stats":  {
+                  "totalFiles":  864,
+                  "totalBytes":  7326232,
+                  "includedFiles":  621,
+                  "includedBytes":  6029329,
+                  "skippedExcluded":  243,
+                  "skippedCompact":  0,
+                  "skippedEmpty":  0,
+                  "skippedErrors":  0
+              }
+}

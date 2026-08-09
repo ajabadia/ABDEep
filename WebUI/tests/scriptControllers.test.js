@@ -1,3 +1,4 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 /**
  * Tests for WebUI/js/script_controllers.js — LCD priority queue, fade timing, VU ballistics, controller display
  *
@@ -60,13 +61,13 @@ function createLcdQueue() {
         },
 
         clear: function() {
-            for (var id in expiryTimers) {
+            for (const id in expiryTimers) {
                 clearTimeout(expiryTimers[id]);
             }
-            for (var id in messages) {
+            for (const id in messages) {
                 delete messages[id];
             }
-            for (var id in expiryTimers) {
+            for (const id in expiryTimers) {
                 delete expiryTimers[id];
             }
         }

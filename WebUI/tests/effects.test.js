@@ -4,7 +4,7 @@
  * Run with: npx vitest run WebUI/tests/effects.test.js
  *
  * Covers:
- *   - FX_TYPE_NAMES array validation (35 types, first="Bypass")
+ *   - FX_TYPE_NAMES array validation (57 names: 36 standard + 21 advanced, first="Bypass")
  *   - escapeHtml (HTML sanitization)
  *   - _readFxParamValue (bridge cache → patch → default fallback)
  *   - saveFxPreset (localStorage, sanitize name, replace existing)
@@ -28,7 +28,10 @@ const FX_TYPE_NAMES = [
   'MBDistortion', 'RackAmp', 'Edison', 'AutoPan/Trem', 'NoiseGate', 'Delay',
   '3Tap Delay', '4Tap Delay', 'T-RayDelay', 'DecimatorDelay', 'ModDlyRev',
   'Stereo Chorus', 'Chorus-D', 'Stereo Flanger', 'Stereo Phaser', 'Mood Filter',
-  'Dual Pitch', 'Vintage Pitch', 'Rotary Speaker'
+  'Dual Pitch', 'Vintage Pitch', 'Rotary Speaker', 'BBD Chorus', 'Solina Ens', 'Ring Mod',
+  'Space Echo', 'Tape Delay', 'Shimmer Dly', 'Granular Dly', 'Pattern Frz', 'Duck Delay',
+  'Spectral Dly', 'Freq Shifter', 'HarmonicReso', 'Combulator', 'MB Vocoder',
+  'OS Distortion', 'WaveShaper', 'FDN Reverb', 'Zita Reverb', 'Nimbus', 'Bonsai', 'TreeMonster'
 ];
 
 // ══════════════════════════════════════════════════════════════════
@@ -103,7 +106,7 @@ function _readFxParamValue(paramId, fallbackByte, defaultVal, bridge, currentAct
   return defaultVal;
 }
 
-const FX_TYPE_COUNT = 35; // max raw value for the selector
+  const FX_TYPE_COUNT = 56; // max raw value for the 57-type advanced selector (36 standard + 21 advanced)
 
 function getSlotOffsets(slotNumber) {
   const typeByte = slotNumber === 1 ? 166 : (slotNumber === 2 ? 179 : (slotNumber === 3 ? 192 : 205));
@@ -228,16 +231,16 @@ function renderFxPresetList(containerEl, presets, applyFn, deleteFn, selectedSlo
 // ══════════════════════════════════════════════════════════════════
 
 describe('FX_TYPE_NAMES', () => {
-  it('has exactly 36 entries (0=Bypass, 35=Rotary Speaker)', () => {
-    expect(FX_TYPE_NAMES.length).toBe(36);
+  it('has 57 entries (0=Bypass, 56=TreeMonster)', () => {
+    expect(FX_TYPE_NAMES.length).toBe(57);
   });
 
   it('first entry is Bypass', () => {
     expect(FX_TYPE_NAMES[0]).toBe('Bypass');
   });
 
-  it('last entry is Rotary Speaker', () => {
-    expect(FX_TYPE_NAMES[35]).toBe('Rotary Speaker');
+  it('last entry is TreeMonster', () => {
+    expect(FX_TYPE_NAMES[56]).toBe('TreeMonster');
   });
 
   it('all entries are non-empty strings', () => {
@@ -617,7 +620,7 @@ describe('renderFxPresetList', () => {
   it('renders preset items with names and type labels', () => {
     const presets = [
       { name: 'MyVerb', slot: 1, type: 0, params: [], gain: 1.0 }, // type=0 → Bypass
-      { name: 'MyDelay', slot: 2, type: 22 / 35, params: [], gain: 0.8 }, // type=22 → Delay
+      { name: 'MyDelay', slot: 2, type: 22 / 56, params: [], gain: 0.8 }, // type=22 → Delay
     ];
 
     renderFxPresetList(container, presets, applySpy, deleteSpy, 1);
@@ -850,27 +853,26 @@ describe('initEffectsModal exports', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('FX_TYPE_COUNT', () => {
-  it('equals 35 (max raw value for selector, indices 0-35 = 36 types)', () => {
-    expect(FX_TYPE_COUNT).toBe(35);
+  it('equals 56 (max raw value for advanced selector, indices 0-56 = 57 types)', () => {
+    expect(FX_TYPE_COUNT).toBe(56);
   });
 
   it('when used as Math.round(normalized * FX_TYPE_COUNT), type 0 returns 0 (Bypass)', () => {
     expect(Math.round(0 * FX_TYPE_COUNT)).toBe(0);
   });
 
-  it('when used as Math.round(normalized * FX_TYPE_COUNT), type 1 returns 35 (Rotary Speaker)', () => {
-    expect(Math.round(1 * FX_TYPE_COUNT)).toBe(35);
+  it('when used as Math.round(normalized * FX_TYPE_COUNT), type 1 returns 56 (TreeMonster)', () => {
+    expect(Math.round(1 * FX_TYPE_COUNT)).toBe(56);
   });
 
   it('converts midpoint normalized value correctly', () => {
-    // Normalized 0.5 → raw 17 or 18
+    // Normalized 0.5 → raw 28
     const raw = Math.round(0.5 * FX_TYPE_COUNT);
-    expect(raw).toBeGreaterThanOrEqual(17);
-    expect(raw).toBeLessThanOrEqual(18);
+    expect(raw).toBe(28);
   });
 
-  it('FX_TYPE_NAMES length equals FX_TYPE_COUNT + 1 (36 types)', () => {
-    expect(FX_TYPE_NAMES.length).toBe(FX_TYPE_COUNT + 1);
+  it('FX_TYPE_NAMES has 57 entries (36 standard + 21 advanced)', () => {
+    expect(FX_TYPE_NAMES.length).toBe(57);
   });
 });
 
@@ -1123,7 +1125,7 @@ describe('renderFxPresetList — edge cases', () => {
   });
 
   it('renders with type index out of range using fallback "Bypass"', () => {
-    // type * 35 = 99 → Math.round(99) = 99, which is > 35 → out of range
+    // type * 56 = 158 → Math.round(158) = 158, which is > 56 → out of range
     const presets = [{ name: 'Crazy', slot: 1, type: 2.828, params: [] }];
     renderFxPresetList(container, presets, applySpy, deleteSpy, 1);
     expect(container.innerHTML).toContain('Bypass');
@@ -1136,7 +1138,7 @@ describe('renderFxPresetList — edge cases', () => {
   });
 
   it('uses correct slot numbering in title for slot 4', () => {
-    const presets = [{ name: 'Delay4', slot: 4, type: 22 / 35, params: [] }];
+    const presets = [{ name: 'Delay4', slot: 4, type: 22 / 56, params: [] }];
     renderFxPresetList(container, presets, applySpy, deleteSpy, 4);
     expect(container.innerHTML).toContain('to FX4');
   });

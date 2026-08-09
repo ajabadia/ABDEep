@@ -38,7 +38,7 @@ $specificFiles = @(
 )
 
 # Folders to explicitly INCLUDE (relative to root)
-$foldersToProcess = @("Source", "WebUI")
+$foldersToProcess = @("Source", "WebUI", "scripts", "wasm")
 
 # Directories to exclude (always ignore these)
 $excludeDirsBase = @(
@@ -73,7 +73,7 @@ $globalSizeLimitBytes = 500KB
 $excludedExtensions = @(".png", ".jpg", ".jpeg", ".gif", ".pdf", ".ttf", ".woff", ".woff2", ".exe", ".dll", ".lib", ".obj", ".pdb")
 
 # Files specifically excluded by name (large logs etc)
-$specificallyExcludedNames = @()
+$specificallyExcludedNames = @("nul", "NUL")
 
 Write-Host "Bundling code from $rootDir to $jsonlFile..."
 Write-Host "Metadata file: $metaFile"
@@ -184,10 +184,6 @@ function Get-GitInfo {
     return $gitInfo
 }
 
-# Create Writers
-$jsonlWriter   = [System.IO.StreamWriter]::new($jsonlFile, $false, [System.Text.Encoding]::UTF8)
-$controlWriter = [System.IO.StreamWriter]::new($controlFile, $false, [System.Text.Encoding]::UTF8)
-
 # Global stats
 $totalFiles       = 0
 $totalBytes       = 0
@@ -198,29 +194,39 @@ $skippedExcluded  = 0
 $skippedEmpty     = 0
 $skippedErrors    = 0
 
+$includedObjects = [System.Collections.Generic.List[psobject]]::new()
+
+$controlWriter = [System.IO.StreamWriter]::new($controlFile, $false, [System.Text.Encoding]::UTF8)
+
 try {
     # 1. Get files from explicitly included folders
     $allFiles = @()
     foreach ($folder in $foldersToProcess) {
         $folderPath = Join-Path $rootDir $folder
         if (Test-Path $folderPath) {
-            $allFiles += Get-ChildItem -Path $folderPath -Recurse -File
+            $allFiles += Get-ChildItem -Path $folderPath -Recurse -File -ErrorAction SilentlyContinue
         }
     }
 
     # 2. Get files from root
-    $rootFiles = Get-ChildItem -Path $rootDir -Depth 0 -File | Where-Object { 
+    $rootFiles = Get-ChildItem -Path $rootDir -Depth 0 -File -ErrorAction SilentlyContinue | Where-Object { 
         $_.Extension -eq ".md" -or 
         $specificFiles -contains $_.Name 
     }
     $allFiles += $rootFiles
 
-    # Distinct by path
-    $allFiles = $allFiles | Sort-Object FullName -Unique
+    # Distinct by path and exclude invalid device files
+    $allFiles = $allFiles | Where-Object { $_.Name -ne "nul" -and $_.Name -ne "NUL" } | Sort-Object FullName -Unique
 
     foreach ($item in $allFiles) {
-        $filePath     = $item.FullName
-        $relativePath = Resolve-Path -Path $filePath -Relative
+        $filePath = $item.FullName
+
+        # Calculate robust relative path
+        if ($filePath.StartsWith($rootDir)) {
+            $relativePath = "." + $filePath.Substring($rootDir.Length)
+        } else {
+            $relativePath = $filePath
+        }
 
         $totalFiles++
         $totalBytes += $item.Length
@@ -315,7 +321,7 @@ try {
             continue
         }
 
-        # F. Read content and write JSONL
+        # F. Read content
         try {
             $content = [System.IO.File]::ReadAllText($filePath)
 
@@ -335,8 +341,7 @@ try {
                 content  = $content
             }
 
-            $json = $obj | ConvertTo-Json -Depth 10 -Compress
-            $jsonlWriter.WriteLine($json)
+            $includedObjects.Add($obj)
 
             $includedFiles++
             $includedBytes += $item.Length
@@ -374,25 +379,27 @@ try {
         }
     }
 
-} finally {
-    $jsonlWriter.Close()
-    $jsonlWriter.Dispose()
+    # 1. Write JSONL file: Line 1 = Metadata, Line 2+ = Files
+    $jsonlWriter = [System.IO.StreamWriter]::new($jsonlFile, $false, [System.Text.Encoding]::UTF8)
+    try {
+        $metaJson = $meta | ConvertTo-Json -Depth 10 -Compress
+        $jsonlWriter.WriteLine($metaJson)
 
+        foreach ($fileObj in $includedObjects) {
+            $json = $fileObj | ConvertTo-Json -Depth 10 -Compress
+            $jsonlWriter.WriteLine($json)
+        }
+    } finally {
+        $jsonlWriter.Close()
+        $jsonlWriter.Dispose()
+    }
+
+    # 2. Write metadata JSON file
+    $meta | ConvertTo-Json -Depth 10 | Out-File -FilePath $metaFile -Encoding UTF8
+
+} finally {
     $controlWriter.Close()
     $controlWriter.Dispose()
-}
-
-# Prepend metadata line to JSONL
-$existingLines = @()
-if (Test-Path $jsonlFile) {
-    $existingLines = Get-Content $jsonlFile
-}
-
-$metaJson = $meta | ConvertTo-Json -Depth 10 -Compress
-
-$metaJson | Out-File -FilePath $jsonlFile -Encoding UTF8
-if ($existingLines.Count -gt 0) {
-    $existingLines | Out-File -FilePath $jsonlFile -Encoding UTF8 -Append
 }
 
 # Write metadata JSON separately

@@ -50,7 +50,7 @@ window.bindPanelLfoControls = function(container, state, titleEl) {
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
             const pct = typeof v === 'number' ? Math.round(v * 100) : 0;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">LFO ' + (state.panelActiveLfo || 1) + ' PANEL</span><br>'
+            lcd.innerHTML = '<span class="lcd-label">LFO ' + (state.panelActiveLfo || 1) + ' PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + pct + '%</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
@@ -65,7 +65,7 @@ window.bindPanelLfoControls = function(container, state, titleEl) {
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.toggle-label');
             const name = lbl ? lbl.textContent.trim() : pid;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">LFO ' + (state.panelActiveLfo || 1) + ' PANEL</span><br>'
+            lcd.innerHTML = '<span class="lcd-label">LFO ' + (state.panelActiveLfo || 1) + ' PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
@@ -80,7 +80,7 @@ window.bindPanelLfoControls = function(container, state, titleEl) {
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const nameEl = this.querySelector('.shape-name');
             const name = nameEl ? nameEl.textContent.trim() : pid;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">LFO ' + (state.panelActiveLfo || 1) + ' PANEL</span><br>'
+            lcd.innerHTML = '<span class="lcd-label">LFO ' + (state.panelActiveLfo || 1) + ' PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
@@ -121,7 +121,7 @@ window.bindPanelVcaControls = function(container, state, titleEl) {
             const lbl = this.querySelector('.label');
             const name = lbl ? lbl.textContent.trim() : pid;
             const pct = typeof v === 'number' ? Math.round(v * 100) : 0;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">VCA PANEL</span><br>'
+            lcd.innerHTML = '<span class="lcd-label">VCA PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + pct + '%</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}
@@ -136,7 +136,7 @@ window.bindPanelVcaControls = function(container, state, titleEl) {
             const v = bridge ? bridge.parameterCache[pid] : 0;
             const lbl = this.querySelector('.toggle-label');
             const name = lbl ? lbl.textContent.trim() : pid;
-            lcd.innerHTML = '<span style="font-size:10px;opacity:0.6;">VCA PANEL</span><br>'
+            lcd.innerHTML = '<span class="lcd-label">VCA PANEL</span><br>'
                 + '<strong>' + name.toUpperCase() + '</strong><br>'
                 + '<span style="font-size:15px;color:var(--accent-pink);">' + window.formatParamValue(pid, v) + '</span>';
             if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcd);}

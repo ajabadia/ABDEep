@@ -68,8 +68,8 @@ function pack8to7(unpackedBytes) {
 function extractNameFromRawSysex(rawSysex, baseOffset) {
     baseOffset = baseOffset || 0;
     const rawOffsets = [];
-    for (var j = 265; j <= 271; j++) {rawOffsets.push(j);}
-    for (var j = 273; j <= 279; j++) {rawOffsets.push(j);}
+    for (let j = 265; j <= 271; j++) {rawOffsets.push(j);}
+    for (let j = 273; j <= 279; j++) {rawOffsets.push(j);}
     rawOffsets.push(281);
 
     const nameChars = [];
@@ -108,8 +108,8 @@ function makeRawSysexWithName(name, offset) {
     offset = offset || 0;
     const raw = new Uint8Array(offset + 282);
     const nameOffsets = [];
-    for (var j = 265; j <= 271; j++) {nameOffsets.push(j);}
-    for (var j = 273; j <= 279; j++) {nameOffsets.push(j);}
+    for (let j = 265; j <= 271; j++) {nameOffsets.push(j);}
+    for (let j = 273; j <= 279; j++) {nameOffsets.push(j);}
     nameOffsets.push(281);
     for (let k = 0; k < Math.min(name.length, 15); k++) {
         raw[offset + nameOffsets[k]] = name.charCodeAt(k);
@@ -510,8 +510,8 @@ describe('extractNameFromRawSysex', () => {
         // Write a character to each valid offset to verify
         const raw = new Uint8Array(282);
         const offsets = [];
-        for (var j = 265; j <= 271; j++) {offsets.push(j);}
-        for (var j = 273; j <= 279; j++) {offsets.push(j);}
+        for (let j = 265; j <= 271; j++) {offsets.push(j);}
+        for (let j = 273; j <= 279; j++) {offsets.push(j);}
         offsets.push(281);
         const name = 'ABCDEFGHIJKLMNO'; // 15 unique chars
         offsets.forEach(function(off, idx) {

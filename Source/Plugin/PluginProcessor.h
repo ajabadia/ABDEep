@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <JuceHeader.h>
 #include "DSP/SynthEngine.h"
 #include "Calibration/AudioABRecorder.h"
@@ -14,6 +15,7 @@ public:
     void releaseResources() override;
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void processBlockBypassed (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override;
@@ -33,9 +35,13 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    juce::UndoManager* getUndoManager() { return &undoManager; }
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     ABD::SynthEngine& getSynthEngine() { return synthEngine; }
     AudioABRecorder& getAudioABRecorder() { return audioABRecorder; }
+
+    juce::String getPresetName() const { return currentPresetName; }
+    void setPresetName (const juce::String& newName);
 
     void queueMidiMessage (const juce::MidiMessage& msg)
     {
@@ -49,11 +55,19 @@ public:
         midiQueue.clear();
     }
 
+    // Callback invoked after restoring DAW session state (setStateInformation)
+    // Used by PluginEditor to refresh the WebUI when a project is loaded
+    std::function<void()> onStateRestored;
+
 private:
+    juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState apvts;
     juce::MidiBuffer midiQueue;
     juce::CriticalSection midiQueueLock;
     ABD::SynthEngine synthEngine;
     AudioABRecorder audioABRecorder;
+    juce::String currentPresetName = "Default";
+    bool isPrepared = false;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ABDEepAudioProcessor)
 };

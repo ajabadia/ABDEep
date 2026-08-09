@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/keyboard_poly_chord.js — Poly Chord Engine with per-key assignments
  *

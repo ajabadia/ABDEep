@@ -1,3 +1,6 @@
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console;
+
 /**
  * @purpose Simulador local del secuenciador para probar la UI sin hardware MIDI/JUCE.
  * @purpose_en Local sequencer simulator for testing the UI without MIDI/JUCE hardware.
@@ -13,14 +16,14 @@
 
 (function() {
     // Esperar a que el bridge esté listo
-    var checkInterval = setInterval(function() {
+    const checkInterval = setInterval(function() {
         const bridge = window.dualMidiBridge;
         if (!bridge || !bridge._ready) {return;}
         clearInterval(checkInterval);
         
         // Solo activar en modo navegador puro (sin JUCE)
         if (bridge.isJuce) {
-            console.log('[SeqSim] JUCE mode detected — simulation disabled');
+            Logger.log('[SeqSim] JUCE mode detected — simulation disabled');
             return;
         }
         
@@ -28,11 +31,11 @@
         setTimeout(function() {
             // Si ya hay MIDI hardware conectado, no activar simulación
             if (bridge._connected && bridge.midiOutput) {
-                console.log('[SeqSim] MIDI hardware detected — simulation disabled');
+                Logger.log('[SeqSim] MIDI hardware detected — simulation disabled');
                 return;
             }
             
-            console.log('[SeqSim] 🔵 Browser-only mode — activating local sequencer simulation');
+            Logger.log('[SeqSim] 🔵 Browser-only mode — activating local sequencer simulation');
             window._seqSimMode = true;
             
             // Generar un patrón sawtooth para los 32 steps: -96..+96 progresivo
@@ -40,7 +43,7 @@
             const sawPattern = [];
             for (let i = 0; i < 32; i++) {
                 // Progresión lineal de -96 a +96 con algunos steps a 0 para variar
-                var bipolar, raw;
+                let bipolar;
                 if (i === 0) {
                     bipolar = 96;    // +96 (alto positivo)
                 } else if (i === 16) {
@@ -52,7 +55,7 @@
                     const phase = i / 31;
                     bipolar = Math.round(96 * Math.cos(phase * Math.PI * 2));
                 }
-                raw = Math.max(1, Math.min(255, bipolar + 128)); // raw, nunca 0 para evitar SKIP
+                const raw = Math.max(1, Math.min(255, bipolar + 128)); // raw, nunca 0 para evitar SKIP
                 sawPattern.push(raw);
             }
             // Step 8 como SKIP (raw = 0) para probar esa funcionalidad
@@ -87,8 +90,8 @@
                 window.syncDetailPanelControls();
             }
             
-            console.log('[SeqSim] ✅ Populated 32 steps with test pattern (sawtooth + 1 skip)');
-            console.log('[SeqSim] 💡 Toggle seq_enable to start the engine and see highlighting');
+            Logger.log('[SeqSim] ✅ Populated 32 steps with test pattern (sawtooth + 1 skip)');
+            Logger.log('[SeqSim] 💡 Toggle seq_enable to start the engine and see highlighting');
         }, 1500); // Esperar 1.5s para que la conexión MIDI se estabilice
     }, 100);
 })();

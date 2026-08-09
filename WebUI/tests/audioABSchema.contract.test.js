@@ -8,7 +8,7 @@ describe('Audio A/B Manifest JSON Schema Contract (v1.0.0)', () => {
 
   beforeEach(() => {
     schema = JSON.parse(
-      fs.readFileSync(path.resolve('WebUI/schemas/audio-ab-manifest.schema.v1.0.0.json'), 'utf8')
+      fs.readFileSync(path.resolve(__dirname, '../schemas/audio-ab-manifest.schema.v1.0.0.json'), 'utf8')
     );
   });
 

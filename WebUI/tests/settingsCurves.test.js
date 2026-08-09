@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/settings_curves.js — Curve preview canvas math, custom point editing
  *

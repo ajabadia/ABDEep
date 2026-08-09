@@ -156,7 +156,9 @@ namespace ABD
         // Set HPF cutoff directly in Hz (0 = FLAT/bypass)
         void setCutoff(float cutoffHz)
         {
-            currentFreqHz = std::max(cutoffHz, 0.f);
+            float clamped = std::max(cutoffHz, 0.f);
+            if (clamped == currentFreqHz) return;  // hot-path guard
+            currentFreqHz = clamped;
             updateCoefs();
         }
 
@@ -164,7 +166,9 @@ namespace ABD
         // Maps through PCHIP interpolation to 38.6–1394.2 Hz
         void setContinuousPosition(float sliderVal)
         {
-            currentFreqHz = getJuno6HPFFreqPCHIP(sliderVal);
+            float freq = getJuno6HPFFreqPCHIP(sliderVal);
+            if (freq == currentFreqHz) return;  // hot-path guard
+            currentFreqHz = freq;
             updateCoefs();
         }
 

@@ -255,8 +255,8 @@ function _arpStep(engine, parameterCache) {
       octaveOffset = Math.floor(engine.stepIndex / held.length) * 12;
       break;
     case 2:
-      var cycleLen = held.length * 2 - (held.length > 1 ? 2 : 1);
-      var pos = engine.stepIndex % cycleLen;
+const cycleLen = held.length * 2 - (held.length > 1 ? 2 : 1);
+const pos = engine.stepIndex % cycleLen;
       if (pos < held.length) {
         noteIdx = pos;
       } else {
@@ -273,8 +273,8 @@ function _arpStep(engine, parameterCache) {
       octaveOffset = Math.floor(engine.stepIndex / held.length) * 12;
       break;
     case 5:
-      var cycleLen2 = held.length * 2 - (held.length > 1 ? 2 : 1);
-      var pos2 = engine.stepIndex % cycleLen2;
+const cycleLen2 = held.length * 2 - (held.length > 1 ? 2 : 1);
+const pos2 = engine.stepIndex % cycleLen2;
       if (pos2 < held.length) {
         noteIdx = pos2;
       } else {

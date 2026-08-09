@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "corpus": "Behringer DeepMind 12 — Factory Banks V1.1.2",
+  "description": "Hashes SHA-256 de regresión del corpus de 8 bancos (A–H, 1024 presets). Verificados por el job CI roundtrip-corpus (scripts/validate_sysex_mapping.js --check-hashes). Actualizar SOLO al reemplazar deliberadamente un banco del corpus.",
+  "banks": {
+    "A": "21ed77a43687fcbe2dd509eb71f55ba02a9b9b70d0f0a15d1f883e62e0621f60",
+    "B": "a78361a790df2bc93b1a510415d212e4ae8243005be371b0355b6910a4aadf6b",
+    "C": "b83289c36b182c5e47ad8613b038d23b66e9cd658e9a9c793f85c3a49178b0bf",
+    "D": "b59683948173bcb699205bc43f7ced72117133dbf81738191c09218b67391bad",
+    "E": "9f63212d72be6d91adbad2d37bdb750f102d6ec303c72df15d2ee1730ccd5c3e",
+    "F": "83acd6857122b37eb3640236f51c7d26e722acd74f3fb074ba4fcd978debd993",
+    "G": "d92f389a1ed931b89b5e3cd3c386785d5370872f06a4fb787e00f73c463a78f5",
+    "H": "841099ea476b66a66e766b17c064df880026797535c9d1b43f4876b7fa68287c"
+  }
+}

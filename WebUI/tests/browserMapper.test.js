@@ -1,3 +1,4 @@
+import { describe, it, expect} from 'vitest';
 /**
  * @purpose Tests for WebUI/js/byte-map.js and WebUI/js/bridge-param-maps.js
  * @purpose_en BYTE_MAP data integrity, BRIDGE_PARAM_MAPS consistency, raw↔normalized conversions, formatParamValue

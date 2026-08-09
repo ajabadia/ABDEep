@@ -1,0 +1,204 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://abdeep.local/schemas/parameter-registry.schema.v1.json",
+  "title": "ABDEep Parameter Registry",
+  "description": "Esquema del registro canónico de parámetros ABDEep (schemaVersion 1). Generado por scripts/registry_generator.js a partir de resources/parameters_spec.json, WebUI/js/bridge-param-maps.js y WebUI/js/byte_map_data.js. Los artefactos .gen.js / .gen.h / .gen.cpp se derivan de la instancia validada schemas/parameter-registry.data.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "sourceHashes",
+    "parameters",
+    "byteMap",
+    "specOnly",
+    "warnings",
+    "summary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "description": "Versión congelada del esquema. Cualquier cambio de contrato exige bump + migración (política de rollback de localStorage, sección 2.1 del plan)."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp UTC de generación (ISO 8601)."
+    },
+    "sourceHashes": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "required": ["parametersSpec", "bridgeParamMaps", "byteMapData"],
+      "description": "SHA-256 de cada fuente de entrada para detectar registros obsoletos."
+    },
+    "parameters": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/parameter" }
+    },
+    "byteMap": {
+      "type": "array",
+      "minItems": 242,
+      "items": { "$ref": "#/definitions/byteMapEntry" },
+      "description": "Copia canónica de los 242 bytes físicos del preset (BYTE_MAP)."
+    },
+    "specOnly": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/specOnlyEntry" },
+      "description": "Parámetros presentes solo en parameters_spec.json (universo legacy del emulador) sin mapeo de byte físico."
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" }
+        },
+        "additionalProperties": true
+      },
+      "description": "Divergencias no fatales entre fuentes (p.ej. CC legacy vs canónico). Alimentan el modo comparisonMode (sección 6 del plan)."
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total", "physical", "extended", "virtual", "aliasGroups", "enumCount", "bipolarCount", "valueCount", "ccCount", "specOnlyCount", "warningCount"],
+      "properties": {
+        "total": { "type": "integer" },
+        "physical": { "type": "integer" },
+        "extended": { "type": "integer" },
+        "virtual": { "type": "integer" },
+        "aliasGroups": { "type": "integer" },
+        "enumCount": { "type": "integer" },
+        "bipolarCount": { "type": "integer" },
+        "valueCount": { "type": "integer" },
+        "ccCount": { "type": "integer" },
+        "specOnlyCount": { "type": "integer" },
+        "warningCount": { "type": "integer" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "byteOffset", "category", "codecType", "cppName", "index"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Identificador estable del parámetro (clave primaria)."
+        },
+        "byteOffset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 303,
+          "description": "Offset de byte en el preset: 0-241 físico, 242-299 extendido (AbyssMind Pro), 300+ virtual (chords)."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["physical", "extended", "virtual"]
+        },
+        "region": {
+          "type": "string",
+          "description": "Región del byte map (VCF, LFO1, FX1, ...) o 'Extended'/'Virtual' para no físicos."
+        },
+        "codecType": {
+          "type": "string",
+          "enum": ["value", "bipolar", "enum"],
+          "description": "Tipo de conversión raw↔normalized (bridge-param-maps)."
+        },
+        "byteMapType": {
+          "type": ["string", "null"],
+          "description": "Tipo descriptivo del BYTE_MAP (value, toggle, time, dual, ascii, ...)."
+        },
+        "enumMax": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "Índice máximo de enum (ENUM_BYTES) o null si no aplica."
+        },
+        "enumLabels": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Etiquetas de enum del BYTE_MAP cuando existen."
+        },
+        "cc": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 127,
+          "description": "CC canónico (PARAM_TO_CC del bridge). null = sin mapeo."
+        },
+        "legacyCC": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 127,
+          "description": "CC del universo legacy (parameters_spec.json). Se conserva para el diff comparativo."
+        },
+        "ccConflict": {
+          "type": "boolean",
+          "description": "true si legacyCC y cc difieren (divergencia registrada, no fatal)."
+        },
+        "name": {
+          "type": ["string", "null"],
+          "description": "Nombre de display (BYTE_MAP.param o spec.name)."
+        },
+        "desc": {
+          "type": ["string", "null"],
+          "description": "Descripción (BYTE_MAP.desc o spec.description)."
+        },
+        "defaultValue": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Default normalizado 0..1 cuando es computable; null si no aplica."
+        },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Otros ids que comparten el mismo byteOffset."
+        },
+        "cppName": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Za-z0-9]*$",
+          "description": "Identificador C++ (enum ParameterIndex) derivado del id."
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Índice posicional en kParameters / ParameterIndex."
+        }
+      }
+    },
+    "byteMapEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["idx", "param", "region", "type", "id"],
+      "properties": {
+        "idx": { "type": "integer", "minimum": 0, "maximum": 241 },
+        "param": { "type": "string", "description": "Nombre de display del byte." },
+        "region": { "type": "string" },
+        "type": { "type": "string", "description": "Tipo descriptivo (value/enum/toggle/bipolar/time/dual/ascii)." },
+        "desc": { "type": ["string", "null"] },
+        "enumLabels": { "type": ["array", "null"], "items": { "type": "string" } },
+        "id": {
+          "type": ["string", "null"],
+          "description": "id del registro que ocupa este byte (null para bytes sin parámetro: nombre ASCII y cola)."
+        }
+      }
+    },
+    "specOnlyEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "block", "type"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "block": { "type": "string" },
+        "type": { "type": "string" },
+        "description": { "type": ["string", "null"] },
+        "options": { "type": ["array", "null"], "items": { "type": "string" } }
+      }
+    }
+  }
+}

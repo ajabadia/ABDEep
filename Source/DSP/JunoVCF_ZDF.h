@@ -9,6 +9,8 @@
 namespace ABD
 {
 
+constexpr float kJunoVCFPi = 3.14159265358979323846f;
+
 // ============================================================
 // Polyphase IIR resampler (Laurent de Soras) — 2x up/down
 // ============================================================
@@ -112,7 +114,8 @@ private:
         return y;
     }
 
-    // Resonance curve: J106 polynomial fit
+public:
+    // Resonance curve: J106 polynomial fit (public for calibration/tests)
     static inline float ResK_J106(float res) noexcept
     {
         float r2 = res * res;
@@ -121,24 +124,22 @@ private:
         return 1.24f * (4.7116f * res - 6.5743f * r2 + 13.4633f * r3 - 8.2197f * r4);
     }
 
-    // Resonance curve: Juno-6 exponential
-    static inline float ResK_J6(float res) noexcept
-    {
-        constexpr float kShape = 2.128f;
-        constexpr float kNorm  = 0.811f;
-        return kNorm * (std::exp(kShape * res) - 1.f);
-    }
-
-    // Soft-clip resonance above k=3.0 (OTA gain compression)
+    // Soft-clip resonance above k=4.0 (OTA gain compression) (public for calibration/tests)
+    // The J106 resonance polynomial already reaches k=4 at res≈0.855, so the
+    // self-oscillation onset sits at the DeepMind 12 hardware point (fader
+    // ~220/255 = 0.863). Clipping below k=4 would push the knee under the
+    // self-osc threshold and silence it entirely.
     static inline float SoftClipK(float k) noexcept
     {
-        if (k > 3.0f)
+        if (k > 4.0f)
         {
-            float excess = k - 3.0f;
-            k = 3.0f + excess / (1.0f + excess * 0.2f);
+            float excess = k - 4.0f;
+            k = 4.0f + excess / (1.0f + excess * 0.2f);
         }
         return std::min(k, 6.6f);
     }
+
+private:
 
     // Cutoff compensation for high resonance
     static inline float FreqCompensationClamped(float k, float frq) noexcept
@@ -179,7 +180,7 @@ private:
     }
 
     // Resonance feedback with self-oscillation
-    static inline float computeResonanceFeedback(float res01, float selfOscThreshold = 0.95f, float selfOscInt = 1.0f) noexcept
+    static inline float computeResonanceFeedback(float res01, float selfOscThreshold = VcfCalibration::kSelfOscThreshold, float selfOscInt = VcfCalibration::kSelfOscIntensity) noexcept
     {
         if (res01 < selfOscThreshold)
             return res01 * (4.0f / selfOscThreshold);
@@ -196,8 +197,7 @@ private:
     std::array<float, 4> s{};
     float lastOutput = 0.0f;
 
-    double sampleRate    = 44100.0;
-    float  invSampleRate = 1.0f / 44100.0f;
+    double sampleRate = 44100.0;
 
     int mOversample = 1;
 
@@ -206,6 +206,28 @@ private:
     float mInputEnv = 0.f;
     float mEnvDecay = 0.999f;
     float mFreqComp = 1.f;
+
+    // Coefficient caches: skip re-evaluating the transcendental functions
+    // (std::tan / std::pow / std::log / std::exp) every sample when the
+    // control inputs (frq, res, k) have not moved beyond epsilon. frq and res
+    // are exp-smoothed upstream, so the cache hits during steady state and
+    // slow modulation sweeps while staying exact during fast sweeps.
+    static constexpr float kJunoVCFCacheEps = 1.0e-4f;
+    void invalidateCoefficientCaches() noexcept;
+
+    // Cache for process() — FreqCompensationClamped(k, frq * 0.25)
+    float mLastOutFrq = -1.0f;
+    float mLastOutK = -1.0f;
+    float mCachedFreqComp = 1.f;
+
+    // Cache for processSampleInternal() — g (std::tan), g1, InputComp
+    float mLastIntFrq = -1.0f;
+    float mLastIntRes = -1.0f;
+    float mLastIntK = -1.0f;
+    float mLastIntFreqComp = -1.0f;
+    float mCachedG = 0.0f;
+    float mCachedG1 = 0.0f;
+    float mCachedComp = 0.0f;
 
     // Resamplers
     Upsampler2x mUp1, mUp2;

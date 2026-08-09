@@ -1,3 +1,4 @@
+import { describe, it, expect} from 'vitest';
 /**
  * @purpose Tests for WebUI/js/factory_fx_presets.js — Factory FX presets database.
  * @purpose_en Tests for the static FACTORY_FX_PRESETS array: data integrity, type mapping, structure.
@@ -5,7 +6,7 @@
  * Source: window.FACTORY_FX_PRESETS — a read-only array of preset objects extracted from
  *         the DeepMind 12 Factory Banks. Each preset has:
  *         - name: display label (e.g. "Ambience (2)")
- *         - type: normalized value 0..1 (maps to FX_TYPE_NAMES index via round(type * 35))
+ *         - type: normalized value 0..1 (maps to FX_TYPE_NAMES index via round(type * 35) for standard types)
  *         - gain: normalized gain 0..1
  *         - params: 12-element array of normalized param values 0..1
  *         - patches: array of originating patch references (e.g. "A-089 (2)")
@@ -17,14 +18,17 @@
  *  "MBDistortion", "RackAmp", "Edison", "AutoPan/Trem", "NoiseGate", "Delay",
  *  "3Tap Delay", "4Tap Delay", "T-RayDelay", "DecimatorDelay", "ModDlyRev",
  *  "Stereo Chorus", "Chorus-D", "Stereo Flanger", "Stereo Phaser", "Mood Filter",
- *  "Dual Pitch", "Vintage Pitch", "Rotary Speaker"]
+ *  "Dual Pitch", "Vintage Pitch", "Rotary Speaker", "BBD Chorus", "Solina Ens",
+ *  "Ring Mod"]
+ * Note: the hardware normalization uses *35, so standard indices are 0-35.
+ *       Indices 36-38 are the Tema 12 advanced effects.
  */
 
 // =============================================================================
 // Source Constants (extracted from effects.js)
 // =============================================================================
 
-const FX_TYPE_NAMES = ['Bypass', 'Ambience', 'tcDeepVerb', 'RoomRev', 'VintageRoom', 'HallReverb', 'ChamberRev', 'Plate Reverb', 'Rich Plate', 'Gated Reverb', 'Reverse Reverb', 'ChorusRev', 'DelayRev', 'FlangerRev', 'MidasEQ', 'Enhancer', 'FairComp', 'MBDistortion', 'RackAmp', 'Edison', 'AutoPan/Trem', 'NoiseGate', 'Delay', '3Tap Delay', '4Tap Delay', 'T-RayDelay', 'DecimatorDelay', 'ModDlyRev', 'Stereo Chorus', 'Chorus-D', 'Stereo Flanger', 'Stereo Phaser', 'Mood Filter', 'Dual Pitch', 'Vintage Pitch', 'Rotary Speaker'];
+const FX_TYPE_NAMES = ['Bypass', 'Ambience', 'tcDeepVerb', 'RoomRev', 'VintageRoom', 'HallReverb', 'ChamberRev', 'Plate Reverb', 'Rich Plate', 'Gated Reverb', 'Reverse Reverb', 'ChorusRev', 'DelayRev', 'FlangerRev', 'MidasEQ', 'Enhancer', 'FairComp', 'MBDistortion', 'RackAmp', 'Edison', 'AutoPan/Trem', 'NoiseGate', 'Delay', '3Tap Delay', '4Tap Delay', 'T-RayDelay', 'DecimatorDelay', 'ModDlyRev', 'Stereo Chorus', 'Chorus-D', 'Stereo Flanger', 'Stereo Phaser', 'Mood Filter', 'Dual Pitch', 'Vintage Pitch', 'Rotary Speaker', 'BBD Chorus', 'Solina Ens', 'Ring Mod', 'Space Echo', 'Tape Delay', 'Shimmer Dly', 'Granular Dly', 'Pattern Frz', 'Duck Delay', 'Spectral Dly', 'Freq Shifter', 'HarmonicReso', 'Combulator', 'MB Vocoder', 'OS Distortion', 'WaveShaper', 'FDN Reverb', 'Zita Reverb', 'Nimbus', 'Bonsai', 'TreeMonster'];
 
 // =============================================================================
 // Extracted pure functions
@@ -261,7 +265,7 @@ describe('fxTypeNameFromNormalized — type name resolution', function() {
     });
 
     it('returns "Bypass" for type outside known range (fallback)', function() {
-        // FX_TYPE_NAMES has 36 entries (0-35). round(2.0 * 35) = 70, which is out of range.
+        // FX_TYPE_NAMES has 57 entries (0-56). round(2.0 * 35) = 70, which is out of range.
         // The function has fallback: FX_TYPE_NAMES[idx] || "Bypass"
         expect(fxTypeNameFromNormalized(2.0)).toBe('Bypass');
     });
@@ -522,16 +526,16 @@ describe('groupPresetsByType — grouping', function() {
 // ---- FX_TYPE_NAMES integrity ----
 
 describe('FX_TYPE_NAMES — static array integrity', function() {
-    it('has 36 entries (indices 0-35)', function() {
-        expect(FX_TYPE_NAMES.length).toBe(36);
+    it('has 57 entries (36 standard 0-35 + 14 Phase1-3 36-49 + 7 Phase4-5 50-56)', function() {
+        expect(FX_TYPE_NAMES.length).toBe(57);
     });
 
     it('first entry is "Bypass"', function() {
         expect(FX_TYPE_NAMES[0]).toBe('Bypass');
     });
 
-    it('last entry is "Rotary Speaker"', function() {
-        expect(FX_TYPE_NAMES[35]).toBe('Rotary Speaker');
+    it('last entry is "TreeMonster"', function() {
+        expect(FX_TYPE_NAMES[56]).toBe('TreeMonster');
     });
 
     it('all entries are non-empty strings', function() {

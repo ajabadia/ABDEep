@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/modmatrix.js — Modulation Matrix UI
  *
@@ -76,25 +77,25 @@ function syncModMatrixUIFromState(bridge, getElementById) {
         const activeBank = bridge._loadedBanks ? bridge._loadedBanks[bridge._currentActiveBank] : null;
 
         if (srcCache === undefined && activeBank && bridge._currentActivePatchIndex !== -1) {
-            var patch = activeBank[bridge._currentActivePatchIndex];
+const patch = activeBank[bridge._currentActivePatchIndex];
             if (patch && patch.unpackedBytes) {
-                var b = patch.unpackedBytes;
+const b = patch.unpackedBytes;
                 const srcByte = 93 + (slot - 1) * 3;
                 if (srcCache === undefined) {srcCache = b[srcByte] ? Math.min(1, b[srcByte] / 22.0) : 0;}
             }
         }
         if (destCache === undefined && activeBank && bridge._currentActivePatchIndex !== -1) {
-            var patch = activeBank[bridge._currentActivePatchIndex];
+const patch = activeBank[bridge._currentActivePatchIndex];
             if (patch && patch.unpackedBytes) {
-                var b = patch.unpackedBytes;
+const b = patch.unpackedBytes;
                 const destByte = 94 + (slot - 1) * 3;
                 if (destCache === undefined) {destCache = b[destByte] ? Math.min(1, b[destByte] / 129.0) : 0;}
             }
         }
         if (depthCache === undefined && activeBank && bridge._currentActivePatchIndex !== -1) {
-            var patch = activeBank[bridge._currentActivePatchIndex];
+const patch = activeBank[bridge._currentActivePatchIndex];
             if (patch && patch.unpackedBytes) {
-                var b = patch.unpackedBytes;
+const b = patch.unpackedBytes;
                 const depthByte = 95 + (slot - 1) * 3;
                 if (depthCache === undefined) {depthCache = b[depthByte] / 255.0;}
             }

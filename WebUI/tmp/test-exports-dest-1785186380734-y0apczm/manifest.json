@@ -1,0 +1,12 @@
+{
+  "exportedAt": "2026-07-27T21:06:21.414Z",
+  "schemaVersion": 1,
+  "schema_version": "1.0.0",
+  "runId": "run-pdf-99",
+  "files": [
+    "cal_report_run-pdf-99.csv",
+    "cal_report_run-pdf-99_report.json",
+    "cal_report_run-pdf-99_report.pdf"
+  ],
+  "environment": "local"
+}

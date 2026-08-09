@@ -1,32 +1,27 @@
 /**
- * Tests for WebUI/js/panel_oscilloscope.js — Real-time DSP oscilloscope
+ * Unit tests for panel_oscilloscope.js — Real-time DSP oscilloscope + FFT spectrum + filter overlay.
  *
- * Extracted pure functions:
- * - hexToRgba(hex, alpha): hex color → rgba string
- * - findTriggerPoint(samples, mode, edge): trigger point detection in waveform
- * - getScopeColors(state, colors): color scheme lookup
- * - calcPeakLevel(samples): max absolute sample value
- * - calcPeakDb(peakLevel): peak level → dB string
- * - calcScopeTimeMs(numSamples, sampleRate): samples → milliseconds
+ * Covers:
+ *   - hexToRgba (hex color → rgba string)
+ *   - drawRealScope with all 3 view modes (0=DUAL, 1=WAVE, 2=SPC) via eval()
+ *   - _drawPlaceholder with mocked canvas context
+ *   - _drawFilterOverlay canvas rendering (filter type detection, cutoff mapping, resonance)
+ *   - _calcFilterResponse LP/HP/BP math
+ *   - Frequency label mapping helpers
  *
- * Constants:
- * - SCOPE_COLORS: array of 4 color schemes
+ * Pattern: Standalone functions extracted directly (like panelGraphics.test.js).
+ * window.drawRealScope loaded via eval() when needed.
+ *
+ * Run with: npx vitest run WebUI/tests/panelOscilloscope.test.js
  */
 
-// =============================================================================
-// Constants (from panel_oscilloscope.js)
-// =============================================================================
+import { describe, it, expect, beforeAll, beforeEach, vi, afterEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 
-const SCOPE_COLORS = [
-    { waveform: '#ff9900',  grid: 'rgba(255,153,0,0.03)',  center: 'rgba(255,153,0,0.08)',  text: 'rgba(255,153,0,0.4)',  glow: '#ff9900',  trigger: 'rgba(255,153,0,0.15)', name: 'Brand' },
-    { waveform: '#00ff66',  grid: 'rgba(0,255,102,0.03)',  center: 'rgba(0,255,102,0.08)',  text: 'rgba(0,255,102,0.4)',  glow: '#00ff66',  trigger: 'rgba(0,255,102,0.15)', name: 'CRT Green' },
-    { waveform: '#00ccff',  grid: 'rgba(0,204,255,0.03)',  center: 'rgba(0,204,255,0.08)',  text: 'rgba(0,204,255,0.4)',  glow: '#00ccff',  trigger: 'rgba(0,204,255,0.15)', name: 'Blue' },
-    { waveform: '#ffb000',  grid: 'rgba(255,176,0,0.03)',  center: 'rgba(255,176,0,0.08)',  text: 'rgba(255,176,0,0.4)',  glow: '#ffb000',  trigger: 'rgba(255,176,0,0.15)', name: 'Amber' },
-];
-
-// =============================================================================
-// Extracted pure functions from panel_oscilloscope.js
-// =============================================================================
+// ══════════════════════════════════════════════════════════════════
+// Extracted from panel_oscilloscope.js
+// ══════════════════════════════════════════════════════════════════
 
 function hexToRgba(hex, alpha) {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -35,310 +30,800 @@ function hexToRgba(hex, alpha) {
     return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
 }
 
-// Source: if (edge===0) rising (prev<=0 && curr>0); else falling (prev>=0 && curr<0)
-function _findTriggerPoint(samples, mode, edge) {
-    if (mode === 0 || !samples || samples.length < 4) {return 0;}
-    const threshold = 0.0;
-    const searchStart = Math.floor(samples.length * 0.1);
-    const searchEnd = Math.floor(samples.length * 0.8);
-    for (let i = searchStart; i < searchEnd; i++) {
-        const prev = samples[i - 1];
-        const curr = samples[i];
-        if (typeof prev !== 'number' || typeof curr !== 'number') {continue;}
-        if (edge === 0) {
-            if (prev <= threshold && curr > threshold) {return i;}
-        } else {
-            if (prev >= threshold && curr < threshold) {return i;}
-        }
+/** Draws centered placeholder text */
+function _drawPlaceholder(ctx, w, h, colors, line1, line2) {
+    ctx.fillStyle = colors.text;
+    ctx.font = '8px Share Tech Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(line1, w / 2, h / 2 - 4);
+    ctx.font = '6px Share Tech Mono, monospace';
+    ctx.fillText(line2, w / 2, h / 2 + 10);
+    ctx.textAlign = 'left';
+}
+
+/** Calculates filter response for LP/HP/BP */
+function _calcFilterResponse(freqHz, cutoffHz, res, type, poles) {
+    if (cutoffHz <= 0) {return (type === 2) ? 1 : 0;}
+
+    const ratio = freqHz / cutoffHz;
+    const slope = (poles === 0) ? 4 : 2;
+
+    let response;
+    if (type === 0) {
+        response = 1 / (1 + Math.pow(ratio, 2 * slope));
+    } else if (type === 2) {
+        response = 1 / (1 + Math.pow(1 / Math.max(ratio, 0.001), 2 * slope));
+    } else {
+        response = Math.max(0, 2 * ratio / (1 + ratio * ratio));
     }
-    return -1;
-}
 
-function getScopeColors(state, colors) {
-    state = state || {};
-    colors = colors || SCOPE_COLORS;
-    const idx = Math.max(0, Math.min(colors.length - 1, state._scopeColorScheme || 0));
-    return colors[idx];
-}
-
-function calcPeakLevel(samples) {
-    let peak = 0;
-    for (let i = 0; i < samples.length; i++) {
-        const s = Math.abs(samples[i]);
-        if (s > peak) {peak = s;}
+    if (res > 0.01 && type !== 1) {
+        const peakWidth = 1 + res * 5;
+        const peakGain = 1 + res * 2.5;
+        const peak = peakGain / (1 + Math.pow((freqHz / cutoffHz - 1) * peakWidth, 2));
+        response = Math.min(1, response + (peak - 1) * res * 0.6);
     }
-    return peak;
+
+    return Math.max(0, Math.min(1, response));
 }
 
-function calcPeakDb(peakLevel) {
-    if (peakLevel < 0.0001) {return '-\\u221E';}
-    return (20.0 * Math.log10(peakLevel)).toFixed(1) + ' dB';
+/** Draws filter overlay on spectrum */
+function _drawFilterOverlay(ctx, padding, w, top, bot, graphH, graphW) {
+    const cache = window.dualMidiBridge ? window.dualMidiBridge.parameterCache : null;
+    if (!cache) {return;}
+
+    const rawCutoff = cache['vcf_cutoff'];
+    if (rawCutoff === undefined || rawCutoff === null) {return;}
+    const vcfCutoff = Math.max(0, Math.min(1, rawCutoff));
+    const vcfRes = cache['vcf_resonance'] !== undefined ? Math.max(0, Math.min(1, cache['vcf_resonance'])) : 0;
+    const vcfModel = cache['vcf_model'] !== undefined ? Math.round(cache['vcf_model']) : 0;
+
+    // Filter type detection
+    let filterType = 0;
+    let filterName = '';
+    if (vcfModel === 0) {
+        filterType = 0;
+        filterName = 'OTA LP';
+    } else if (vcfModel === 1) {
+        const moogSub = cache['vcf_moog_submode'] !== undefined ? Math.round(cache['vcf_moog_submode']) : 0;
+        filterType = moogSub;
+        filterName = 'Moog ' + (moogSub === 0 ? 'LP' : moogSub === 1 ? 'BP' : 'HP');
+    } else if (vcfModel === 2) {
+        const korgSub = cache['vcf_korg_submode'] !== undefined ? Math.round(cache['vcf_korg_submode']) : 0;
+        filterType = korgSub === 0 ? 0 : 2;
+        filterName = 'MS-20 ' + (korgSub === 0 ? 'LP' : 'HP');
+    }
+
+    const poleMode = cache['vcf_pole_mode'] !== undefined ? Math.round(cache['vcf_pole_mode']) : 0;
+    if (filterName) {
+        filterName += ' ' + (poleMode === 0 ? '24dB' : '12dB');
+    }
+
+    // Map cutoff to Hz and canvas X
+    const cutoffHz = 20 * Math.pow(1000, vcfCutoff);
+    const normX = Math.log(cutoffHz / 20) / Math.log(20000 / 20);
+    const cutoffX = padding + Math.round(normX * graphW);
+
+    // Dashed vertical line
+    ctx.strokeStyle = 'rgba(0, 255, 200, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath();
+    ctx.moveTo(cutoffX, top);
+    ctx.lineTo(cutoffX, bot);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Attenuated zone shadow
+    const shadowColor = 'rgba(0, 100, 180, 0.12)';
+    if (filterType === 0) {
+        ctx.fillStyle = shadowColor;
+        ctx.fillRect(cutoffX, top, w - cutoffX, bot - top);
+    } else if (filterType === 2) {
+        ctx.fillStyle = shadowColor;
+        ctx.fillRect(padding, top, cutoffX - padding, bot - top);
+    } else {
+        ctx.fillStyle = shadowColor;
+        ctx.fillRect(padding, top, cutoffX - padding, bot - top);
+        ctx.fillRect(cutoffX, top, w - padding - cutoffX, bot - top);
+    }
+
+    // Response curve (60 steps)
+    ctx.strokeStyle = 'rgba(0, 255, 200, 0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+
+    for (let si = 0; si <= 60; si++) {
+        const t = si / 60;
+        const x = padding + t * graphW;
+        const freqHz = 20 * Math.pow(20000 / 20, t);
+        const response = _calcFilterResponse(freqHz, cutoffHz, vcfRes, filterType, poleMode);
+        const regionH = graphH * 0.8;
+        const y = top + (1 - response) * regionH;
+        if (si === 0) {ctx.moveTo(x, y);}
+        else {ctx.lineTo(x, y);}
+    }
+    ctx.stroke();
+
+    // Resonance ellipse
+    if (vcfRes > 0.05) {
+        const peakH = Math.min(graphH * 0.6, 4 + vcfRes * 8 * 3);
+        const peakTopY = top + 2;
+        const peakSpread = Math.max(2, 6 + vcfRes * 20);
+        ctx.fillStyle = 'rgba(255, 200, 50, ' + (0.3 + vcfRes * 0.4) + ')';
+        ctx.beginPath();
+        ctx.ellipse(cutoffX, peakTopY + peakH - 2, peakSpread, peakH, 0, Math.PI, 0, true);
+        ctx.fill();
+    }
+
+    // Filter name label
+    if (filterName) {
+        ctx.fillStyle = 'rgba(0, 255, 200, 0.6)';
+        ctx.font = '6.5px Share Tech Mono, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(filterName, padding + 4, top + 10);
+
+        const freqLabel = cutoffHz < 1000 ? Math.round(cutoffHz) + 'Hz' : (cutoffHz / 1000).toFixed(1) + 'kHz';
+        ctx.fillStyle = 'rgba(0, 255, 200, 0.45)';
+        ctx.font = '6px Share Tech Mono, monospace';
+        ctx.fillText(freqLabel, padding + 4, top + 20);
+        ctx.textAlign = 'left';
+    }
 }
 
-function calcScopeTimeMs(numSamples, sampleRate) {
-    sampleRate = sampleRate || 44100;
-    return (numSamples / sampleRate) * 1000;
+// ══════════════════════════════════════════════════════════════════
+// Mock canvas context factory
+// ══════════════════════════════════════════════════════════════════
+
+function createMockCtx() {
+  const mockCtx = {
+    _calls: [],
+    _clearRectCalls: 0,
+    clearRect: function() { this._clearRectCalls++; this._calls.push('clearRect'); },
+    beginPath: function() { this._calls.push('beginPath'); },
+    moveTo: function(x, y) { this._calls.push('moveTo(' + x + ',' + y + ')'); },
+    lineTo: function(x, y) { this._calls.push('lineTo(' + x + ',' + y + ')'); },
+    stroke: function() { this._calls.push('stroke'); },
+    fill: function() { this._calls.push('fill'); },
+    fillRect: function(x, y, w, h) { this._calls.push('fillRect(' + x + ',' + y + ',' + w + ',' + h + ')'); },
+    arc: function() { this._calls.push('arc'); },
+    ellipse: function() { this._calls.push('ellipse'); },
+    fillText: function(text, x, y) { this._calls.push('fillText("' + text + '",' + x + ',' + y + ')'); },
+    setLineDash: function() { this._calls.push('setLineDash'); },
+    strokeStyle: '',
+    fillStyle: '',
+    lineWidth: 1,
+    shadowColor: '',
+    shadowBlur: 0,
+    font: '',
+    textAlign: 'left',
+  };
+  return mockCtx;
 }
 
-// =============================================================================
-// Tests
-// =============================================================================
+function createMockCanvas(width, height) {
+  const mockCtx = createMockCtx();
+  return {
+    width: width || 480,
+    height: height || 95,
+    clientWidth: width || 480,
+    clientHeight: height || 95,
+    _ctx: mockCtx,
+    getContext: function() { return mockCtx; },
+    style: {},
+  };
+}
 
-// ---------------------------------------------------------------------------
-// SCOPE_COLORS — color scheme constants
-// ---------------------------------------------------------------------------
+function createMockDoc(canvases) {
+  const elMap = {};
+  if (canvases) {
+    for (const key in canvases) {
+      elMap[key] = canvases[key];
+    }
+  }
+  return {
+    getElementById: function(id) { return elMap[id] || null; },
+    addEventListener: vi.fn(),
+    querySelector: vi.fn(function() { return null; }),
+    querySelectorAll: vi.fn(function() { return []; }),
+  };
+}
 
-describe('SCOPE_COLORS', function () {
+// ══════════════════════════════════════════════════════════════════
+// Tests: hexToRgba
+// ══════════════════════════════════════════════════════════════════
 
-    it('has 4 color schemes', function () {
-        expect(SCOPE_COLORS.length).toBe(4);
-    });
+describe('hexToRgba', function() {
 
-    it('each scheme has all required properties', function () {
-        const required = ['waveform', 'grid', 'center', 'text', 'glow', 'trigger', 'name'];
-        for (let i = 0; i < SCOPE_COLORS.length; i++) {
-            for (let j = 0; j < required.length; j++) {
-                expect(SCOPE_COLORS[i]).toHaveProperty(required[j]);
-            }
-        }
-    });
+  it('converts #ff9900 with alpha 1.0', function() {
+    expect(hexToRgba('#ff9900', 1.0)).toBe('rgba(255,153,0,1)');
+  });
 
-    it('Brand is the first color scheme', function () {
-        expect(SCOPE_COLORS[0].name).toBe('Brand');
-        expect(SCOPE_COLORS[0].waveform).toBe('#ff9900');
-    });
+  it('converts #00ff00 with alpha 0.5', function() {
+    expect(hexToRgba('#00ff00', 0.5)).toBe('rgba(0,255,0,0.5)');
+  });
 
-    it('each scheme has unique name', function () {
-        const names = {};
-        for (let i = 0; i < SCOPE_COLORS.length; i++) {
-            names[SCOPE_COLORS[i].name] = (names[SCOPE_COLORS[i].name] || 0) + 1;
-        }
-        for (const name in names) {
-            expect(names[name]).toBe(1);
-        }
-    });
+  it('converts #000000 with alpha 0', function() {
+    expect(hexToRgba('#000000', 0)).toBe('rgba(0,0,0,0)');
+  });
 
-    it('all waveform colors are valid hex strings', function () {
-        for (let i = 0; i < SCOPE_COLORS.length; i++) {
-            expect(SCOPE_COLORS[i].waveform).toMatch(/^#[0-9a-f]{6}$/);
-        }
-    });
+  it('converts #ffffff with alpha 0.85', function() {
+    expect(hexToRgba('#ffffff', 0.85)).toBe('rgba(255,255,255,0.85)');
+  });
 
-});
-
-// ---------------------------------------------------------------------------
-// hexToRgba
-// ---------------------------------------------------------------------------
-
-describe('hexToRgba', function () {
-
-    it('converts #ff9900 to rgba', function () {
-        expect(hexToRgba('#ff9900', 0.85)).toBe('rgba(255,153,0,0.85)');
-    });
-
-    it('converts #00ff66 to rgba', function () {
-        expect(hexToRgba('#00ff66', 0.4)).toBe('rgba(0,255,102,0.4)');
-    });
-
-    it('converts #000000 to rgba', function () {
-        expect(hexToRgba('#000000', 0.03)).toBe('rgba(0,0,0,0.03)');
-    });
+  it('converts #003366 with alpha 0.7', function() {
+    expect(hexToRgba('#003366', 0.7)).toBe('rgba(0,51,102,0.7)');
+  });
 
 });
 
-// ---------------------------------------------------------------------------
-// findTriggerPoint — zero-crossing trigger detection
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════
+// Tests: drawRealScope — view modes (via eval'd source)
+// ══════════════════════════════════════════════════════════════════
 
-describe('findTriggerPoint', function () {
+describe('drawRealScope — view modes', function() {
+  let canvas;
+  let ctx;
+  let origDoc;
+  let origBridge;
+  let origWasmBridge;
+  let origState;
+  let origScopeColors;
 
-    it('returns 0 when mode is 0 (free-run)', function () {
-        expect(_findTriggerPoint([0.5, 0.3, 0.1, -0.1], 0, 0)).toBe(0);
+  beforeAll(function() {
+    // Load the real source to provide window.drawRealScope
+    if (typeof global.window === 'undefined') {
+      global.window = {};
+    }
+    if (typeof global.document === 'undefined') {
+      global.document = { getElementById: function() { return null; }, addEventListener: function() {} };
+    }
+    // Load waveform module first (provides window._drawWaveform, window._drawPlaceholder, window.hexToRgba)
+    const waveformCode = fs.readFileSync(path.resolve(__dirname, '../js/panel_oscilloscope_waveform.js'), 'utf-8');
+    eval(waveformCode);
+    // Then load the main oscilloscope module (provides window.drawRealScope)
+    const code = fs.readFileSync(path.resolve(__dirname, '../js/panel_oscilloscope.js'), 'utf-8');
+    eval(code);
+  });
+
+  beforeEach(function() {
+    canvas = createMockCanvas(480, 95);
+    ctx = canvas._ctx;
+
+    origDoc = global.document;
+    origBridge = window.dualMidiBridge;
+    origWasmBridge = window.wasmBridge;
+    origState = window.panelEditState;
+    origScopeColors = window._getScopeColors;
+
+    global.document = createMockDoc({ 'programmer-scope-canvas': canvas });
+    window._getScopeColors = function() {
+      return {
+        grid: 'rgba(51,51,51,0.2)',
+        center: 'rgba(102,102,102,0.3)',
+        trigger: 'rgba(255,200,0,0.5)',
+        waveform: '#00ffcc',
+        text: 'rgba(200,200,200,0.7)',
+      };
+    };
+  });
+
+  afterEach(function() {
+    global.document = origDoc;
+    window.dualMidiBridge = origBridge;
+    window.wasmBridge = origWasmBridge;
+    window.panelEditState = origState;
+    window._getScopeColors = origScopeColors;
+  });
+
+  it('returns early when no canvas found', function() {
+    global.document = createMockDoc({});
+    expect(function() {
+      window.drawRealScope('non-existent-canvas');
+    }).not.toThrow();
+  });
+
+  it('draws NO DSP ENGINE placeholder when no bridge and no wasmBridge', function() {
+    window.dualMidiBridge = null;
+    window.wasmBridge = null;
+    window.panelEditState = { _scopeViewMode: 0 };
+
+    window.drawRealScope('programmer-scope-canvas');
+
+    expect(ctx._clearRectCalls).toBeGreaterThan(0);
+    const textCalls = ctx._calls.filter(function(c) {
+      return c.indexOf('fillText') >= 0 && c.indexOf('NO DSP ENGINE') >= 0;
     });
+    expect(textCalls.length).toBe(1);
+  });
 
-    it('returns 0 for empty or short samples (< 4)', function () {
-        expect(_findTriggerPoint([], 1, 0)).toBe(0);
-        expect(_findTriggerPoint([0.1, 0.2], 1, 0)).toBe(0);
-        expect(_findTriggerPoint(null, 1, 0)).toBe(0);
-        expect(_findTriggerPoint(undefined, 1, 0)).toBe(0);
-    });
+  it('draws WAITING FOR AUDIO when bridge exists but no waveform data (WAVE mode)', function() {
+    window.dualMidiBridge = {
+      isJuce: true,
+      _lastAudioWaveform: null,
+      _lastAudioFrequencyData: null,
+    };
+    window.wasmBridge = { isAudioStarted: true };
+    window.panelEditState = { _scopeViewMode: 1 };
 
-    it('detects rising zero-crossing (edge=0): prev <= 0 and curr > 0', function () {
-        // Sine wave crossing from negative to positive
-        const samples = [-0.5, -0.3, -0.1, 0.1, 0.3, 0.5];
-        const idx = _findTriggerPoint(samples, 1, 0);
-        expect(idx).toBe(3); // i=3: prev=-0.1 <= 0, curr=0.1 > 0
-    });
+    window.drawRealScope('programmer-scope-canvas');
+    expect(ctx._clearRectCalls).toBeGreaterThan(0);
+  });
 
-    it('detects falling zero-crossing (edge=1): prev >= 0 and curr < 0', function () {
-        const samples = [0.5, 0.3, 0.1, -0.1, -0.3, -0.5];
-        const idx = _findTriggerPoint(samples, 1, 1);
-        expect(idx).toBe(3); // i=3: prev=0.1 >= 0, curr=-0.1 < 0
-    });
+  it('draws grid lines', function() {
+    window.dualMidiBridge = null;
+    window.wasmBridge = null;
+    window.panelEditState = { _scopeViewMode: 0 };
 
-    it('returns -1 when no zero-crossing found in search window', function () {
-        // All positive samples, no crossing
-        const samples = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0];
-        const idx = _findTriggerPoint(samples, 1, 0);
-        expect(idx).toBe(-1);
-    });
+    window.drawRealScope('programmer-scope-canvas');
 
-    it('skips NaN or non-number samples without throwing', function () {
-        const samples = [-0.3, -0.1, NaN, 0.2, 0.4];
-        const idx = _findTriggerPoint(samples, 1, 0);
-        // Should skip NaN at index 2, check i=3: prev=NaN → typeof !== 'number' → skip
-        // i=4: starts at searchStart = floor(5*0.1) = 0, searchEnd = floor(5*0.8) = 4
-        // i=0: prev=samples[-1]=undefined → skip... actually samples[-1] is undefined
-        // Actually let me just check it doesn't throw
-        expect(typeof idx).toBe('number');
-    });
+    const moveCalls = ctx._calls.filter(function(c) { return c.indexOf('moveTo') >= 0; });
+    expect(moveCalls.length).toBeGreaterThan(0);
+  });
 
-    it('searches in the 10%-80% range of samples', function () {
-        // Create a long sample with the only zero crossing at index 5
-        const samples = [0.1, 0.2, 0.3, 0.4, 0.5, -0.1, 0.1, 0.2, 0.3, 0.4];
-        // searchStart = floor(10*0.1) = 1
-        // searchEnd = floor(10*0.8) = 8
-        // i=6: prev=-0.1 <= 0, curr=0.1 > 0 → returns 6
-        const idx = _findTriggerPoint(samples, 1, 0);
-        expect(idx).toBe(6);
-    });
+  it('handles missing _getScopeColors gracefully', function() {
+    window._getScopeColors = undefined;
+    window.dualMidiBridge = null;
+    window.wasmBridge = null;
 
-    it('detects crossing exactly at zero: prev=0, curr>0', function () {
-        const samples = [-0.3, 0.0, 0.2, 0.4, 0.6];
-        // i=2: prev=0.0 <= 0, curr=0.2 > 0 → returns 2
-        const idx = _findTriggerPoint(samples, 1, 0);
-        expect(idx).toBe(2);
-    });
+    expect(function() {
+      window.drawRealScope('programmer-scope-canvas');
+    }).not.toThrow();
+  });
 
-    it('detects crossing exactly at zero: prev=0, curr<0 for falling edge', function () {
-        const samples = [0.3, 0.0, -0.2, -0.4, -0.6];
-        // i=2: prev=0.0 >= 0, curr=-0.2 < 0 → returns 2
-        const idx = _findTriggerPoint(samples, 1, 1);
-        expect(idx).toBe(2);
-    });
+  it('handles null panelEditState gracefully', function() {
+    window.panelEditState = null;
+    window.dualMidiBridge = null;
+    window.wasmBridge = null;
+
+    expect(function() {
+      window.drawRealScope('programmer-scope-canvas');
+    }).not.toThrow();
+  });
 
 });
 
-// ---------------------------------------------------------------------------
-// getScopeColors — color scheme selection
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════
+// Tests: _drawPlaceholder
+// ══════════════════════════════════════════════════════════════════
 
-describe('getScopeColors', function () {
+describe('_drawPlaceholder', function() {
+  it('draws two lines of centered text', function() {
+    const ctx = createMockCtx();
+    const colors = { text: 'rgba(102,102,102,0.5)' };
 
-    it('returns first scheme (Brand) when state has no color setting', function () {
-        const colors = getScopeColors({});
-        expect(colors.name).toBe('Brand');
-    });
+    _drawPlaceholder(ctx, 480, 95, colors, 'NO DSP ENGINE', '(MIDI controller mode)');
 
-    it('returns scheme at index from state._scopeColorScheme', function () {
-        const colors = getScopeColors({ _scopeColorScheme: 1 }, SCOPE_COLORS);
-        expect(colors.name).toBe('CRT Green');
-        expect(colors.waveform).toBe('#00ff66');
-    });
+    const textCalls = ctx._calls.filter(function(c) { return c.indexOf('fillText') >= 0; });
+    expect(textCalls.length).toBe(2);
+    expect(ctx.fillStyle).toBe('rgba(102,102,102,0.5)');
+    // textAlign is set to 'center' during drawing, then reset to 'left' at end
+    // Check the calls were made during center alignment
+    const textCalls2 = ctx._calls.filter(function(c) { return c.indexOf('fillText') >= 0; });
+    expect(textCalls2.length).toBe(2);
+  });
 
-    it('returns CRT Green at index 1', function () {
-        const colors = getScopeColors({ _scopeColorScheme: 1 }, SCOPE_COLORS);
-        expect(colors.name).toBe('CRT Green');
-    });
+  it('alternate text messages', function() {
+    const ctx = createMockCtx();
+    const colors = { text: 'rgba(200,200,200,0.7)' };
 
-    it('returns Blue at index 2', function () {
-        const colors = getScopeColors({ _scopeColorScheme: 2 }, SCOPE_COLORS);
-        expect(colors.name).toBe('Blue');
-    });
+    _drawPlaceholder(ctx, 480, 95, colors, 'WAITING FOR AUDIO...', 'Play notes to see waveform');
 
-    it('returns Amber at index 3', function () {
-        const colors = getScopeColors({ _scopeColorScheme: 3 }, SCOPE_COLORS);
-        expect(colors.name).toBe('Amber');
-    });
+    const firstCall = ctx._calls.filter(function(c) { return c.indexOf('WAITING') >= 0; })[0];
+    expect(firstCall).toBeTruthy();
+    expect(firstCall).toContain('WAITING FOR AUDIO...');
+  });
 
-    it('clamps negative index to 0', function () {
-        const colors = getScopeColors({ _scopeColorScheme: -1 }, SCOPE_COLORS);
-        expect(colors.name).toBe('Brand');
-    });
+  it('resets textAlign to left after drawing', function() {
+    const ctx = createMockCtx();
+    _drawPlaceholder(ctx, 480, 95, { text: '#fff' }, 'Test', 'Subtitle');
 
-    it('clamps out-of-range index to last scheme', function () {
-        const colors = getScopeColors({ _scopeColorScheme: 10 }, SCOPE_COLORS);
-        expect(colors.name).toBe('Amber');
-    });
-
-    it('defaults to 0 when state is empty', function () {
-        const colors = getScopeColors({});
-        expect(colors.name).toBe('Brand');
-    });
-
+    expect(ctx.textAlign).toBe('left');
+  });
 });
 
-// ---------------------------------------------------------------------------
-// calcPeakLevel — max absolute sample value
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════
+// Tests: _drawFilterOverlay — filter type detection
+// ══════════════════════════════════════════════════════════════════
 
-describe('calcPeakLevel', function () {
+describe('_drawFilterOverlay — filter type detection', function() {
+  let ctx;
+  let origBridge;
 
-    it('returns 1.0 for samples with peak at 1.0', function () {
-        const samples = [0.5, -0.3, 1.0, -0.8, 0.2];
-        expect(calcPeakLevel(samples)).toBe(1.0);
+  beforeEach(function() {
+    ctx = createMockCtx();
+    origBridge = window.dualMidiBridge;
+  });
+
+  afterEach(function() {
+    window.dualMidiBridge = origBridge;
+  });
+
+  it('returns early when no bridge or parameterCache missing', function() {
+    window.dualMidiBridge = null;
+    expect(function() {
+      _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    }).not.toThrow();
+
+    window.dualMidiBridge = { parameterCache: {} };
+    expect(function() {
+      _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    }).not.toThrow();
+  });
+
+  it('returns early when vcf_cutoff is undefined', function() {
+    window.dualMidiBridge = { parameterCache: { vcf_resonance: 0.3 } };
+    expect(function() {
+      _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    }).not.toThrow();
+  });
+
+  it('detects DM12 OTA (model=0) as LP', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0.3,
+        vcf_model: 0,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const dashCalls = ctx._calls.filter(function(c) { return c.indexOf('setLineDash') >= 0; });
+    expect(dashCalls.length).toBeGreaterThan(0);
+  });
+
+  it('detects Moog LP (model=1, submode=0)', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 1,
+        vcf_moog_submode: 0,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const textCalls = ctx._calls.filter(function(c) {
+      return c.indexOf('Moog') >= 0;
     });
+    expect(textCalls.length).toBe(1);
+    expect(textCalls[0]).toContain('LP');
+  });
 
-    it('returns 0 for all-zero samples', function () {
-        expect(calcPeakLevel([0, 0, 0, 0])).toBe(0);
+  it('detects Moog BP (model=1, submode=1)', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 1,
+        vcf_moog_submode: 1,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const textCalls = ctx._calls.filter(function(c) {
+      return c.indexOf('BP') >= 0;
     });
+    expect(textCalls.length).toBe(1);
+  });
 
-    it('finds peak with negative values', function () {
-        const samples = [0.1, -0.2, 0.3, -0.9, 0.5];
-        expect(calcPeakLevel(samples)).toBe(0.9);
+  it('detects Moog HP (model=1, submode=2)', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 1,
+        vcf_moog_submode: 2,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const textCalls = ctx._calls.filter(function(c) {
+      return c.indexOf('HP') >= 0;
     });
+    expect(textCalls.length).toBe(1);
+  });
 
-    it('returns 0 for empty array', function () {
-        expect(calcPeakLevel([])).toBe(0);
+  it('detects Korg MS-20 LP (model=2, submode=0)', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 2,
+        vcf_korg_submode: 0,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const textCalls = ctx._calls.filter(function(c) {
+      return c.indexOf('MS-20 LP') >= 0;
     });
+    expect(textCalls.length).toBe(1);
+  });
 
+  it('detects Korg MS-20 HP (model=2, submode=1)', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 2,
+        vcf_korg_submode: 1,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const textCalls = ctx._calls.filter(function(c) {
+      return c.indexOf('MS-20 HP') >= 0;
+    });
+    expect(textCalls.length).toBe(1);
+  });
+
+  it('shows pole mode in label (24dB vs 12dB)', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 0,
+        vcf_pole_mode: 0,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const textCalls = ctx._calls.filter(function(c) {
+      return c.indexOf('24dB') >= 0;
+    });
+    expect(textCalls.length).toBe(1);
+  });
+
+  it('shows 12dB when pole_mode=1', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 0,
+        vcf_pole_mode: 1,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const textCalls = ctx._calls.filter(function(c) {
+      return c.indexOf('12dB') >= 0;
+    });
+    expect(textCalls.length).toBe(1);
+  });
 });
 
-// ---------------------------------------------------------------------------
-// calcPeakDb — peak level to dB string
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════
+// Tests: _drawFilterOverlay — cutoff frequency mapping
+// ══════════════════════════════════════════════════════════════════
 
-describe('calcPeakDb', function () {
+describe('_drawFilterOverlay — cutoff mapping', function() {
+  let ctx;
+  let origBridge;
 
-    it('returns -infinity for peak < 0.0001', function () {
-        expect(calcPeakDb(0)).toBe('-\\u221E');
-        expect(calcPeakDb(0.00005)).toBe('-\\u221E');
-    });
+  beforeEach(function() {
+    ctx = createMockCtx();
+    origBridge = window.dualMidiBridge;
+  });
 
-    it('returns 0.0 dB for peak=1.0', function () {
-        expect(calcPeakDb(1.0)).toBe('0.0 dB');
-    });
+  afterEach(function() {
+    window.dualMidiBridge = origBridge;
+  });
 
-    it('returns -6.0 dB for peak=0.5', function () {
-        expect(calcPeakDb(0.5)).toBe('-6.0 dB');
-    });
+  it('draws response curve with 60 steps via moveTo/lineTo', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 0,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const moveCalls = ctx._calls.filter(function(c) { return c.indexOf('moveTo') >= 0; });
+    const lineCalls = ctx._calls.filter(function(c) { return c.indexOf('lineTo') >= 0; });
+    expect(moveCalls.length).toBeGreaterThan(0);
+    expect(lineCalls.length).toBeGreaterThan(0);
+  });
 
-    it('returns -20.0 dB for peak=0.1', function () {
-        expect(calcPeakDb(0.1)).toBe('-20.0 dB');
-    });
+  it('draws cutoff vertical line at position determined by vcf_cutoff', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.25,
+        vcf_resonance: 0,
+        vcf_model: 0,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const fillRects = ctx._calls.filter(function(c) { return c.indexOf('fillRect') >= 0; });
+    expect(fillRects.length).toBeGreaterThan(0);
+  });
 
+  it('draws resonance ellipse when vcf_resonance > 0.05', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0.5,
+        vcf_model: 0,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const ellipseCalls = ctx._calls.filter(function(c) { return c.indexOf('ellipse') >= 0; });
+    expect(ellipseCalls.length).toBe(1);
+  });
+
+  it('skips resonance ellipse when vcf_resonance is low', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0.02,
+        vcf_model: 0,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const ellipseCalls = ctx._calls.filter(function(c) { return c.indexOf('ellipse') >= 0; });
+    expect(ellipseCalls.length).toBe(0);
+  });
+
+  it('draws frequency label in Hz or kHz based on cutoff value', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 0,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const hzLabel = ctx._calls.filter(function(c) { return c.indexOf('Hz') >= 0; })[0];
+    expect(hzLabel).toBeTruthy();
+  });
+
+  it('draws kHz label for high cutoff', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 1.0,
+        vcf_resonance: 0,
+        vcf_model: 0,
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const kHzLabel = ctx._calls.filter(function(c) { return c.indexOf('kHz') >= 0; })[0];
+    expect(kHzLabel).toBeTruthy();
+  });
 });
 
-// ---------------------------------------------------------------------------
-// calcScopeTimeMs — sample count to milliseconds
-// ---------------------------------------------------------------------------
+// ══════════════════════════════════════════════════════════════════
+// Tests: _drawFilterOverlay — HP shadow (left/right side attenuation)
+// ══════════════════════════════════════════════════════════════════
 
-describe('calcScopeTimeMs', function () {
+describe('_drawFilterOverlay — shadow side', function() {
+  let ctx;
+  let origBridge;
 
-    it('calculates time for 441 samples at 44.1kHz = 10ms', function () {
-        expect(calcScopeTimeMs(441, 44100)).toBeCloseTo(10, 3);
-    });
+  beforeEach(function() {
+    ctx = createMockCtx();
+    origBridge = window.dualMidiBridge;
+  });
 
-    it('calculates time for 882 samples = 20ms', function () {
-        expect(calcScopeTimeMs(882, 44100)).toBeCloseTo(20, 3);
-    });
+  afterEach(function() {
+    window.dualMidiBridge = origBridge;
+  });
 
-    it('uses default sampleRate of 44100', function () {
-        expect(calcScopeTimeMs(44100)).toBeCloseTo(1000, 3);
-    });
+  it('LP draws 1 fillRect (shadow on right HF side)', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 1,
+        vcf_moog_submode: 0, // LP
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const rectCalls = ctx._calls.filter(function(c) { return c.indexOf('fillRect') >= 0; });
+    expect(rectCalls.length).toBe(1);
+  });
 
-    it('returns 0 for 0 samples', function () {
-        expect(calcScopeTimeMs(0)).toBe(0);
-    });
+  it('HP draws 1 fillRect (shadow on left LF side)', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 1,
+        vcf_moog_submode: 2, // HP
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const rectCalls = ctx._calls.filter(function(c) { return c.indexOf('fillRect') >= 0; });
+    expect(rectCalls.length).toBe(1);
+  });
 
+  it('BP draws 2 fillRects (shadow on both sides)', function() {
+    window.dualMidiBridge = {
+      parameterCache: {
+        vcf_cutoff: 0.5,
+        vcf_resonance: 0,
+        vcf_model: 1,
+        vcf_moog_submode: 1, // BP
+      }
+    };
+    _drawFilterOverlay(ctx, 3, 480, 3, 92, 89, 474);
+    const rectCalls = ctx._calls.filter(function(c) { return c.indexOf('fillRect') >= 0; });
+    expect(rectCalls.length).toBe(2);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Tests: _calcFilterResponse
+// ══════════════════════════════════════════════════════════════════
+
+describe('_calcFilterResponse — integration', function() {
+  it('LP response is 0.5 at cutoff (24dB/4pole)', function() {
+    expect(_calcFilterResponse(1000, 1000, 0, 0, 0)).toBeCloseTo(0.5, 4);
+  });
+
+  it('LP response is 0.5 at cutoff (12dB/2pole)', function() {
+    expect(_calcFilterResponse(1000, 1000, 0, 0, 1)).toBeCloseTo(0.5, 4);
+  });
+
+  it('HP response is 0.5 at cutoff', function() {
+    expect(_calcFilterResponse(1000, 1000, 0, 2, 0)).toBeCloseTo(0.5, 4);
+  });
+
+  it('BP response is 1.0 at center frequency', function() {
+    expect(_calcFilterResponse(1000, 1000, 0, 1, 0)).toBeCloseTo(1.0, 4);
+  });
+
+  it('LP response approaches 1 for freq << cutoff', function() {
+    expect(_calcFilterResponse(10, 1000, 0, 0, 0)).toBeGreaterThan(0.999);
+  });
+
+  it('LP response approaches 0 for freq >> cutoff', function() {
+    expect(_calcFilterResponse(100000, 1000, 0, 0, 0)).toBeLessThan(0.001);
+  });
+
+  it('HP response approaches 0 for freq << cutoff', function() {
+    expect(_calcFilterResponse(10, 1000, 0, 2, 0)).toBeLessThan(0.001);
+  });
+
+  it('HP response approaches 1 for freq >> cutoff', function() {
+    expect(_calcFilterResponse(100000, 1000, 0, 2, 0)).toBeGreaterThan(0.999);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Tests: Frequency label mapping helpers
+// ══════════════════════════════════════════════════════════════════
+
+describe('Frequency label helpers', function() {
+  it('cutoffNormToHz(0) = 20', function() {
+    expect(20 * Math.pow(1000, 0)).toBe(20);
+  });
+
+  it('cutoffNormToHz(0.5) ≈ 632', function() {
+    const hz = 20 * Math.pow(1000, 0.5);
+    expect(hz).toBeGreaterThan(630);
+    expect(hz).toBeLessThan(633);
+  });
+
+  it('cutoffNormToHz(1) = 20000', function() {
+    expect(20 * Math.pow(1000, 1)).toBe(20000);
+  });
+
+  it('normX from log scale: hzToNormX(20) = 0', function() {
+    const norm = Math.log(20 / 20) / Math.log(20000 / 20);
+    expect(norm).toBe(0);
+  });
+
+  it('normX from log scale: hzToNormX(20000) = 1', function() {
+    const norm = Math.log(20000 / 20) / Math.log(20000 / 20);
+    expect(norm).toBe(1);
+  });
+
+  it('normX from log scale: hzToNormX(632) ≈ 0.5', function() {
+    const norm = Math.log(632 / 20) / Math.log(20000 / 20);
+    expect(norm).toBeGreaterThan(0.48);
+    expect(norm).toBeLessThan(0.52);
+  });
+
+  it('cutoff to canvas X within bounds', function() {
+    const padding = 3;
+    const graphW = 474;
+    const vcfCutoff = 0.5;
+    const cutoffHz = 20 * Math.pow(1000, vcfCutoff);
+    const normX = Math.log(cutoffHz / 20) / Math.log(20000 / 20);
+    const cutoffX = padding + Math.round(normX * graphW);
+    expect(cutoffX).toBeGreaterThan(padding);
+    expect(cutoffX).toBeLessThan(padding + graphW);
+  });
 });

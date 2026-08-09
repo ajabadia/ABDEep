@@ -7,6 +7,11 @@ if (typeof window === 'undefined') {
   global.window = {};
 }
 
+import '../js/calibration_store_data.js';
+import '../js/calibration_store_utils.js';
+import '../js/calibration_store_selectors.js';
+import '../js/calibration_store_selectors_bank.js';
+import '../js/calibration_store_actions.js';
 import '../js/calibration_store.js';
 
 describe('Calibration Lab JSON & Manifest Schema Contracts (v1.0.0)', () => {
@@ -14,10 +19,10 @@ describe('Calibration Lab JSON & Manifest Schema Contracts (v1.0.0)', () => {
 
   beforeEach(() => {
     reportSchema = JSON.parse(
-      fs.readFileSync(path.resolve('WebUI/schemas/calibration-run.schema.v1.0.0.json'), 'utf8')
+      fs.readFileSync(path.resolve(__dirname, '../schemas/calibration-run.schema.v1.0.0.json'), 'utf8')
     );
     manifestSchema = JSON.parse(
-      fs.readFileSync(path.resolve('WebUI/schemas/calibration-manifest.schema.v1.0.0.json'), 'utf8')
+      fs.readFileSync(path.resolve(__dirname, '../schemas/calibration-manifest.schema.v1.0.0.json'), 'utf8')
     );
   });
 

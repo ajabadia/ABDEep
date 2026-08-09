@@ -8,12 +8,6 @@ on:
         required: false
         default: "true"
   pull_request:
-    paths:
-      - "WebUI/**"
-      - "docs/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/webui-ci.yml"
   push:
     branches:
       - main
@@ -54,13 +48,13 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Run JavaScript lint
-        run: npm run lint:ci
+      - name: Run JavaScript lint (zero warnings)
+        run: npm run lint
 
       - name: Run full Vitest suite
-        run: npm run test:ci
+        run: npm test
 
       - name: Verify WebUI serves correctly
         run: |

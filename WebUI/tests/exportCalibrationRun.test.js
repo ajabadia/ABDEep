@@ -1,22 +1,41 @@
 // WebUI/tests/exportCalibrationRun.test.js
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 
 describe('export-calibration-run script integration', () => {
-  const tmpInputDir = path.resolve('WebUI/tmp/test-exports-src');
-  const tmpOutputDir = path.resolve('WebUI/tmp/test-exports-dest');
+  let tmpInputDir = path.resolve('WebUI/tmp/test-exports-src');
+  let tmpOutputDir = path.resolve('WebUI/tmp/test-exports-dest');
+
+  function uniqueSuffix() {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  }
 
   beforeEach(() => {
+    tmpInputDir = path.resolve(`WebUI/tmp/test-exports-src-${uniqueSuffix()}`);
+    tmpOutputDir = path.resolve(`WebUI/tmp/test-exports-dest-${uniqueSuffix()}`);
     if (!fs.existsSync(tmpInputDir)) {fs.mkdirSync(tmpInputDir, { recursive: true });}
     if (fs.existsSync(tmpOutputDir)) {fs.rmSync(tmpOutputDir, { recursive: true, force: true });}
   });
 
   afterEach(() => {
-    fs.rmSync(tmpInputDir, { recursive: true, force: true });
-    fs.rmSync(tmpOutputDir, { recursive: true, force: true });
+    [tmpInputDir, tmpOutputDir].forEach((dir) => {
+      if (fs.existsSync(dir)) {
+        try {
+          fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+        } catch (e) {
+          // Swallow EPERM/EACCESS cleanup errors caused by Windows file locks;
+          // anything else should still fail the test.
+          if (e.code !== 'EPERM' && e.code !== 'EACCES' && e.code !== 'EBUSY') {
+            throw e;
+          }
+        }
+      }
+    });
   });
+
+  const scriptPath = path.resolve(__dirname, '../scripts/export-calibration-run.js');
 
   it('procesa correctamente archivos JSON y CSV copiándolos y creando manifest.json', () => {
     fs.writeFileSync(path.join(tmpInputDir, 'cal_report_run-123_test.json'), '{}');
@@ -24,7 +43,7 @@ describe('export-calibration-run script integration', () => {
     fs.writeFileSync(path.join(tmpInputDir, 'random_file.txt'), 'ignore me');
 
     execSync(
-      `node WebUI/scripts/export-calibration-run.js --input-dir "${tmpInputDir}" --output-dir "${tmpOutputDir}" --run-id "run-123"`,
+      `node "${scriptPath}" --input-dir "${tmpInputDir}" --output-dir "${tmpOutputDir}" --run-id "run-123"`,
       { stdio: 'inherit' }
     );
 
@@ -58,7 +77,7 @@ describe('export-calibration-run script integration', () => {
     fs.writeFileSync(path.join(tmpInputDir, 'cal_report_run-pdf-99.csv'), 'col1,col2\nv1,v2');
 
     execSync(
-      `node WebUI/scripts/export-calibration-run.js --input-dir "${tmpInputDir}" --output-dir "${tmpOutputDir}" --run-id "run-pdf-99"`,
+      `node "${scriptPath}" --input-dir "${tmpInputDir}" --output-dir "${tmpOutputDir}" --run-id "run-pdf-99"`,
       { stdio: 'inherit' }
     );
 
@@ -75,7 +94,7 @@ describe('export-calibration-run script integration', () => {
   it('falla con código de salida 1 en modo CI si no hay archivos en el input directory', () => {
     expect(() => {
       execSync(
-        `node WebUI/scripts/export-calibration-run.js --input-dir "${tmpInputDir}" --output-dir "${tmpOutputDir}" --ci`,
+        `node "${scriptPath}" --input-dir "${tmpInputDir}" --output-dir "${tmpOutputDir}" --ci`,
         { stdio: 'pipe' }
       );
     }).toThrow();

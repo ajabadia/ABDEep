@@ -18,7 +18,9 @@ import path from 'path';
 
 /** Read a JS source file and evaluate it in the current global context. */
 function _evalSource(relativePath) {
-  const fullPath = path.resolve(process.cwd(), relativePath);
+  // Strip redundant leading WebUI/ if running from within WebUI folder
+  const cleanPath = relativePath.replace(/^WebUI\//, '');
+  const fullPath = path.resolve(__dirname, '..', cleanPath);
   const code = fs.readFileSync(fullPath, 'utf-8');
   // Use indirect eval to run in global scope
   const globalEval = eval;
@@ -140,15 +142,31 @@ beforeEach(async () => {
 
   // 1) Load bridge-param-maps.js (sets window.BRIDGE_PARAM_MAPS)
   _evalSource('WebUI/js/bridge-param-maps.js');
-
-  // Verify param maps loaded
   expect(win.BRIDGE_PARAM_MAPS).toBeDefined();
 
-  // 2) Load bridge-dual.js (creates window.dualMidiBridge)
+  // 2) Load bridge-dual.js (defines class DualMidiBridge & creates window.dualMidiBridge instance)
   _evalSource('WebUI/js/bridge-dual.js');
+
+  // 2b) Load bridge-dual init and params modules
+  _evalSource('WebUI/js/bridge-dual_init.js');
+  _evalSource('WebUI/js/bridge-dual_params.js');
+
+  // 3) Load prototype extension modules
+  _evalSource('WebUI/js/bridge-sysex.js');
+  _evalSource('WebUI/js/bridge-sysex-handlers.js');
+  _evalSource('WebUI/js/bridge-midi-rx-nrpn.js');
+  _evalSource('WebUI/js/bridge-midi-rx-nrpn-handlers.js');
+  _evalSource('WebUI/js/bridge-midi-rx.js');
+  _evalSource('WebUI/js/bridge_connection_utils.js');
+  _evalSource('WebUI/js/bridge_connection_midi.js');
+  _evalSource('WebUI/js/bridge_connection_juce.js');
+  _evalSource('WebUI/js/bridge-connection.js');
 
   _currentBridge = win.dualMidiBridge;
   expect(_currentBridge).toBeDefined();
+
+  // Explicitly call init() now that all prototype methods exist
+  await _currentBridge.init();
 
   // Add MIDI Learn methods (normally from bridge-midi-learn.js) directly onto the instance
   // because indirect eval in Node.js module scope can't share the DualMidiBridge class
@@ -247,16 +265,29 @@ describe('DualMidiBridge – init()', () => {
   });
 
   it('resetMidiConnection restores MIDI channel from localStorage', async () => {
+    localStorage.clear();
     localStorage.setItem('abd-eep-midi-channel', '5');
+
     // Need fresh ports for resetMidiConnection
     _currentBridge.midiAccess = _makeFakeMidiAccess();
     _currentBridge.midiOutput = null;
     _currentBridge.midiInput = null;
+    _currentBridge._hardwareInfo = {};
+    _currentBridge.midiChannel = 1;
+
+    // Stub requestMidiDump to reject immediately so _parseGlobalDump
+    // doesn't overwrite the restored channel with hardware values
+    vi.spyOn(_currentBridge, 'requestMidiDump').mockRejectedValue('no hardware');
+
+    // Stub scanMidiDevices to be a no-op (it can interfere with the test)
+    vi.spyOn(_currentBridge, 'scanMidiDevices').mockResolvedValue(undefined);
 
     const result = await _currentBridge.resetMidiConnection();
 
     expect(_currentBridge.midiChannel).toBe(5);
     expect(_currentBridge._hardwareInfo.midiChannel).toBe(5);
+
+    vi.restoreAllMocks();
   });
 });
 

@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/seq-sim.js — Sequencer simulation pattern generation and cache population
  *
@@ -13,7 +14,7 @@ globalThis.window = globalThis.window || {};
 function generateSeqSimPattern() {
     const sawPattern = [];
     for (let i = 0; i < 32; i++) {
-        var bipolar, raw;
+let bipolar, raw;
         if (i === 0) {
             bipolar = 96;
         } else if (i === 16) {

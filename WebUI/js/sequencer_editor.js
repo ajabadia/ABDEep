@@ -1,6 +1,8 @@
 /**
  * @purpose Generates 32-step grid sliders and manages updates to control values.
  * @purpose_en Control Sequencer interactive step editor.
+ *
+ * updateStepVisual() extraído a sequencer_editor_render.js
  */
 
 const seqStepsValues = Array(32).fill(0);
@@ -18,68 +20,27 @@ window.initSequencerEditor = function() {
 
     for (let i = 0; i < 32; i++) {
         const stepUnit = document.createElement('div');
-        stepUnit.style.display = 'flex';
-        stepUnit.style.flexDirection = 'column';
-        stepUnit.style.justifyContent = 'center';
-        stepUnit.style.alignItems = 'center';
-        stepUnit.style.height = '100%';
-        stepUnit.style.cursor = 'ns-resize';
-        stepUnit.style.position = 'relative';
-        stepUnit.style.background = 'var(--bg-deepest)';
-        stepUnit.style.borderLeft = '1px solid var(--border-dim)';
-        stepUnit.style.transition = 'box-shadow 0.12s ease, outline 0.12s ease';
-        
+        stepUnit.className = 'seq-editor-step';
+
         const numIndicator = document.createElement('div');
         numIndicator.className = 'seq-step-val';
-        numIndicator.style.fontSize = 'var(--text-xs)';
-        numIndicator.style.fontWeight = 'bold';
-        numIndicator.style.color = 'var(--text-secondary)';
-        numIndicator.style.background = 'var(--bg-header)';
-        numIndicator.style.border = '1px solid var(--border)';
-        numIndicator.style.borderRadius = 'var(--radius-xs)';
-        numIndicator.style.padding = '2px 4px 0 4px';
-        numIndicator.style.minWidth = '20px';
-        numIndicator.style.textAlign = 'center';
-        numIndicator.style.lineHeight = '1.2';
         numIndicator.innerText = '0';
         stepUnit.appendChild(numIndicator);
-        
+
         const rawIndicator = document.createElement('div');
         rawIndicator.className = 'seq-step-raw';
-        rawIndicator.style.fontSize = '7px';
-        rawIndicator.style.fontWeight = 'normal';
-        rawIndicator.style.color = 'var(--text-faint)';
-        rawIndicator.style.textAlign = 'center';
-        rawIndicator.style.lineHeight = '1';
-        rawIndicator.style.marginBottom = '3px';
         rawIndicator.innerText = '128';
         stepUnit.appendChild(rawIndicator);
 
         const barContainer = document.createElement('div');
         barContainer.className = 'seq-step-bar-container';
-        barContainer.style.width = '15px';
-        barContainer.style.height = '85px';
-        barContainer.style.background = 'var(--bg-header)';
-        barContainer.style.position = 'relative';
-        barContainer.style.borderRadius = '1px';
-        
+
         const zeroLine = document.createElement('div');
-        zeroLine.style.position = 'absolute';
-        zeroLine.style.left = '0';
-        zeroLine.style.right = '0';
-        zeroLine.style.bottom = '50%';
-        zeroLine.style.height = '1px';
-        zeroLine.style.background = 'rgba(255, 255, 255, 0.15)';
-        zeroLine.style.zIndex = '1';
+        zeroLine.className = 'seq-step-zero-line';
         barContainer.appendChild(zeroLine);
-        
+
         const fillBar = document.createElement('div');
         fillBar.className = 'seq-step-fill-bar';
-        fillBar.style.width = '100%';
-        fillBar.style.position = 'absolute';
-        fillBar.style.background = 'var(--brand-accent)';
-        fillBar.style.bottom = '50%';
-        fillBar.style.height = '0%';
         barContainer.appendChild(fillBar);
         stepUnit.appendChild(barContainer);
 
@@ -97,7 +58,7 @@ window.initSequencerEditor = function() {
                 if (window.dualMidiBridge) {
                     window.dualMidiBridge.setParameter('seq_step_' + (idx + 1), 0.5);
                 }
-                updateStepVisual(idx);
+                window.updateStepVisual(idx);
                 e.preventDefault();
                 e.stopPropagation();
             };
@@ -132,11 +93,11 @@ window.initSequencerEditor = function() {
                 window.dualMidiBridge.setParameter(`seq_step_${i + 1}`, normalized);
             }
             
-            updateStepVisual(i);
+            window.updateStepVisual(i);
 
             const lcdText = document.getElementById('lcd-text');
             if (lcdText) {
-                lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">CONTROL SEQ</span><br><strong>STEP ${i+1} VALUE</strong><br><span style="font-size:15px; color:var(--accent-pink);">${bipolarVal}</span>`;
+                lcdText.innerHTML = `<span class="lcd-label">CONTROL SEQ</span><br><strong>STEP ${i+1} VALUE</strong><br><span class="seq-lcd-value">${bipolarVal}</span>`;
                 if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcdText);}
             }
         };
@@ -158,9 +119,9 @@ window.initSequencerEditor = function() {
                 const isSkip = r === 0;
                 const sign = v >= 0 ? '+' : '';
                 const valStr = isSkip ? 'SKIP' : sign + v;
-                lcdText.innerHTML = '<span style="font-size:10px; opacity:0.6;">CONTROL SEQ MODAL</span><br>'
+                lcdText.innerHTML = '<span class="lcd-label">CONTROL SEQ MODAL</span><br>'
                     + '<strong>STEP ' + (idx + 1) + ' VALUE</strong><br>'
-                    + '<span style="font-size:15px; color:var(--accent-pink);">' + valStr + ' (raw:' + r + ')</span>';
+                    + '<span class="seq-lcd-value">' + valStr + ' (raw:' + r + ')</span>';
                 if (typeof window.setLcdParamDisplayTimer === 'function') {window.setLcdParamDisplayTimer(lcdText);}
             };
         })(i));
@@ -181,118 +142,23 @@ window.initSequencerEditor = function() {
     }
 };
 
-function updateStepVisual(index) {
-    const stepsGrid = document.querySelector('.seq-steps-grid');
-    if (!stepsGrid) {return;}
-    const stepUnit = stepsGrid.children[index];
-    if (!stepUnit) {return;}
-    const numIndicator = stepUnit.querySelector('.seq-step-val');
-    const rawIndicator = stepUnit.querySelector('.seq-step-raw');
-    const fillBar = stepUnit.querySelector('.seq-step-fill-bar');
-    const barContainer = stepUnit.querySelector('.seq-step-bar-container');
-    const val = seqStepsValues[index];
-    const rawVal = seqStepsRaw[index];
-
-    const selectLength = document.getElementById('modal-seq-length-select');
-    const activeLength = selectLength ? (parseInt(selectLength.value) + 2) : 16;
-    const isActive = index < activeLength;
-
-    const rawForSkip = seqStepsRaw[index];
-    const isSkip = (rawForSkip === 0);
-    
-    const signStr = val >= 0 ? '+' : '';
-    stepUnit.title = isSkip 
-        ? 'Step ' + (index + 1) + ': SKIP (raw: ' + rawForSkip + ')' 
-        : 'Step ' + (index + 1) + ': ' + signStr + val + ' (raw: ' + rawForSkip + ')';
-    
-    if (numIndicator) {
-        if (isSkip) {
-            numIndicator.innerText = 'SKIP';
-            numIndicator.style.color = 'var(--text-faint)';
-            numIndicator.style.fontSize = '6px';
-        } else if (val === 0) {
-            numIndicator.innerText = '0';
-            numIndicator.style.color = 'var(--text-dim)';
-            numIndicator.style.fontSize = 'var(--text-xs)';
-        } else {
-            numIndicator.innerText = val > 0 ? '+' + val : String(val);
-            numIndicator.style.color = isActive ? 'var(--brand-accent)' : 'var(--text-faint)';
-            numIndicator.style.fontSize = 'var(--text-xs)';
-        }
-        numIndicator.style.background = isActive ? 'var(--bg-header)' : 'var(--bg-surface)';
-        numIndicator.style.borderColor = isActive ? (isSkip ? 'var(--color-danger)' : 'var(--brand-accent)') : 'var(--border-dim)';
-        numIndicator.style.opacity = isActive ? '1.0' : '0.4';
-    }
-
-    if (rawIndicator) {
-        rawIndicator.innerText = isSkip ? '--' : String(rawVal);
-        rawIndicator.style.color = isSkip ? 'var(--color-danger)' : (isActive ? 'var(--text-dim)' : 'var(--text-faint)');
-        rawIndicator.style.opacity = isActive ? '0.8' : '0.3';
-    }
-
-    if (stepUnit) {
-        stepUnit.style.background = isSkip ? 'rgba(255,0,0,0.05)' : (isActive ? 'var(--bg-surface)' : 'var(--bg-deepest)');
-    }
-
-    if (index === window._modalActiveStep) {
-        stepUnit.style.outline = window._modalActiveSkip
-            ? '1px dashed var(--color-danger)'
-            : '1.5px solid var(--accent-pink)';
-        stepUnit.style.boxShadow = window._modalActiveSkip
-            ? '0 0 4px rgba(255,0,0,0.3)'
-            : '0 0 8px color-mix(in srgb, var(--accent-pink) 40%, transparent)';
-        if (numIndicator) {
-            numIndicator.style.borderColor = window._modalActiveSkip ? 'var(--color-danger)' : 'var(--accent-pink)';
-            numIndicator.style.boxShadow = '0 0 4px var(--accent-pink)';
-        }
-    } else {
-        stepUnit.style.outline = '';
-        stepUnit.style.boxShadow = '';
-        if (numIndicator) {numIndicator.style.boxShadow = '';}
-    }
-
-    if (barContainer) {
-        barContainer.style.background = isActive ? 'var(--bg-header)' : 'var(--bg-surface)';
-    }
-
-    if (fillBar) {
-        if (isSkip) {
-            fillBar.style.bottom = '50%';
-            fillBar.style.height = '0%';
-            fillBar.style.background = 'transparent';
-            fillBar.style.borderLeft = 'none';
-            fillBar.style.outline = '1px dashed var(--color-danger)';
-        } else if (val >= 0) {
-            const pct = (val / 127) * 50;
-            fillBar.style.bottom = '50%';
-            fillBar.style.height = pct + '%';
-            fillBar.style.background = isActive ? 'var(--accent-pink)' : 'color-mix(in srgb, var(--accent-pink) 20%, transparent)';
-            fillBar.style.outline = 'none';
-        } else {
-            const pct = (Math.abs(val) / 128) * 50;
-            fillBar.style.bottom = (50 - pct) + '%';
-            fillBar.style.height = pct + '%';
-            fillBar.style.background = isActive ? 'color-mix(in srgb, var(--accent-pink) 50%, #000)' : 'color-mix(in srgb, var(--accent-pink) 15%, #000)';
-            fillBar.style.outline = 'none';
-        }
-    }
-}
-
 window.initSequencerCanvas = function() {
     const canvas = document.querySelector('.seq-steps-canvas');
     if (!canvas || !window.SequencerStepsCanvas) {return;}
     if (canvas._seqStepsCanvas) { canvas._seqStepsCanvas.resize(); return; }
     canvas._seqStepsCanvas = new window.SequencerStepsCanvas(canvas);
-    canvas._seqStepsCanvas.onValueChange(function(stepIdx, rawVal) {
-        window.seqStepsRaw[stepIdx] = rawVal;
-        window.seqStepsValues[stepIdx] = rawVal === 0 ? 0 : rawVal - 128;
-        if (typeof window.updateStepVisual === 'function') {window.updateStepVisual(stepIdx);}
-        const bridge = window.dualMidiBridge;
-        if (bridge) {
-            const paramId = 'seq_step_' + (stepIdx + 1);
-            bridge.setParameter(paramId, rawVal / 255.0);
-        }
-    });
+    if (typeof canvas._seqStepsCanvas.setOnChange === 'function') {
+        canvas._seqStepsCanvas.setOnChange(function(stepIdx, rawVal) {
+            window.seqStepsRaw[stepIdx] = rawVal;
+            window.seqStepsValues[stepIdx] = rawVal === 0 ? 0 : rawVal - 128;
+            if (typeof window.updateStepVisual === 'function') {window.updateStepVisual(stepIdx);}
+            const bridge = window.dualMidiBridge;
+            if (bridge) {
+                const paramId = 'seq_step_' + (stepIdx + 1);
+                bridge.setParameter(paramId, rawVal / 255.0);
+            }
+        });
+    }
     window.syncSeqCanvasFromValues = function() {
         if (canvas._seqStepsCanvas) {canvas._seqStepsCanvas.syncFromValues();}
     };
@@ -304,6 +170,7 @@ window.syncSeqCanvasFromValues = function() {
     if (canvas && canvas._seqStepsCanvas) {canvas._seqStepsCanvas.syncFromValues();}
 };
 
+// Wrap updateStepVisual to also sync the canvas widget
 const _origUpdateStepVisual = window.updateStepVisual;
 window.updateStepVisual = function(idx) {
     if (typeof _origUpdateStepVisual === 'function') {_origUpdateStepVisual(idx);}

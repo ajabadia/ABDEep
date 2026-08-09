@@ -72,6 +72,12 @@
       this._draw();
     }
 
+    syncFromValues() {
+      const vals = window.seqStepsValues || this.values;
+      const raws = window.seqStepsRaw || this.raw;
+      this.syncFromArrays(vals, raws);
+    }
+
     setActiveStep(step) {
       this.activeStep = step;
       this._draw();

@@ -163,11 +163,11 @@ window._handleEngineActiveNotes = function(notesJSON) {
     }
 
     if (chordResult) {
-        lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">${title}</span><br>`
+        lcdText.innerHTML = `<span class="lcd-label">${title}</span><br>`
             + `<strong style="font-size:18px; color:var(--brand-accent); letter-spacing:1px;">${chordResult.rootName}${chordResult.typeName}</strong><br>`
             + `<span style="font-size:9px; color:var(--text-dim);">${displayedNames.join(' ')}${suffix}</span>`;
     } else {
-        lcdText.innerHTML = `<span style="font-size:10px; opacity:0.6;">${title}</span><br>`
+        lcdText.innerHTML = `<span class="lcd-label">${title}</span><br>`
             + `<strong style="font-size:13px; color:var(--brand-accent);">${displayedNames.join(' ')}${suffix}</strong><br>`
             + '<span style="font-size:8px; color:var(--text-dim);">ACTIVE ENGINE VOICES</span>';
     }
@@ -195,12 +195,7 @@ window.initChordDisplayCanvas = function() {
         if (kbdSection) {
             canvas = document.createElement('canvas');
             canvas.className = 'chord-display-canvas';
-            canvas.style.width = '100%';
-            canvas.style.height = '48px';
-            canvas.style.border = '1px solid var(--border-dim)';
-            canvas.style.borderRadius = 'var(--radius-xs)';
-            canvas.style.background = 'var(--bg-deepest)';
-            canvas.style.margin = '2px 0';
+            // CSS rule canvas.chord-display-canvas handles all sizing, border, radius, bg, margin
             kbdSection.insertBefore(canvas, kbdSection.querySelector('#ivory-keys-bed') || kbdSection.firstChild);
         }
     }
@@ -208,7 +203,7 @@ window.initChordDisplayCanvas = function() {
     if (canvas._chordDisplay) { canvas._chordDisplay.resize(); return; }
     window._chordDisplayCanvasEl = canvas;
     canvas._chordDisplay = new window.ChordDisplayCanvas(canvas);
-    canvas._chordDisplay.onNoteClick(function(midiNote) {
+    canvas._chordDisplay.setCallbacks(function(midiNote) {
         const bridge = window.dualMidiBridge;
         if (!bridge) {return;}
         bridge.sendNoteOn(midiNote, 100);

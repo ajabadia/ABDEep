@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/edit_actions.js — Copy/Paste presets, factory bank protection, keyboard shortcuts
  *

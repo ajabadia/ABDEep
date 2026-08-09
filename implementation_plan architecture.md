@@ -1,0 +1,174 @@
+# 🚀 Plan de Refactorización de Arquitectura e Integración v3.2 Congelado (ABDEep 9.5/10+)
+
+Este documento representa la **especificación técnica ejecutiva definitiva y congelada** para la refactorización arquitectónica, la integración transaccional y el blindaje en tiempo real de **ABDEep** (C++20 / JUCE 8 / WASM).
+
+---
+
+## 🏗️ 1. Arquitectura de 4 Capas y Esquema Generador Versionado
+
+```
+                          ┌─────────────────────────────┐
+                          │  schemas/parameter-registry │
+                          │     (schemaVersion: 1)      │
+                          └──────────────┬──────────────┘
+                                         │  (validate-schema -> build generator)
+                ┌────────────────────────┴────────────────────────┐
+                ▼                                                 ▼
+     ┌─────────────────────┐                           ┌─────────────────────┐
+     │ JS Registry (.gen)  │                           │ C++ Registry (.gen) │
+     └──────────┬──────────┘                           └──────────┬──────────┘
+                │                                                 │
+  ┌─────────────┼─────────────────────────┐         ┌─────────────┼─────────────────────────┐
+  ▼             ▼                         ▼         ▼             ▼                         ▼
+Physical    Parameter                   Codec    Physical    Parameter                   Codec
+ByteMap     Registry                   Services  ByteMap     Registry                   Services
+(242 B)    (Editables)               (SysEx/NRPN) (242 B)    (Editables)               (SysEx/NRPN)
+```
+
+### 1.1 Matriz Formal de Capabilities por Modelo
+```typescript
+interface ModelCapabilities {
+  model: 'dm12_hardware' | 'abyssmind_pro';
+  standardFxCount: number;       // 35 efectos nativos DeepMind 12
+  advancedFxCount: number;       // 21 efectos extendidos AbyssMind Pro
+  modulationSlotCount: number;   // 8 slots estándar / extendidos
+  supportsExtendedSequencer: boolean;
+  supportsAbyssMindParameters: boolean;
+}
+```
+
+---
+
+## 🔄 2. Ciclo de Vida Transaccional, Políticas de Rollback y FSM MIDI
+
+### 2.1 Política de Rollback en `ParameterStore`
+
+```typescript
+interface PendingTransaction {
+  transactionId: string;
+  parameterId: string;
+  originId: string;
+  revision: number;
+  expectedRawValue: number;
+  normalizedValue: number;
+  createdAt: number;
+  expiresAt: number; // TTL = 300 ms
+  state: 'pending' | 'confirmed' | 'timeout' | 'superseded' | 'cancelled';
+}
+```
+
+- **Notificación y Transport Status:** Al confirmarse una transacción (`confirmed`), la UI actualiza únicamente `transportStatus = 'confirmed'`, evitando escrituras redundantes al slider.
+- **Políticas de Rollback Tipadas:**
+  - `Rollback de Edición de Parámetro:` Si expira el TTL (`timeout`), el store restaura el valor `committedValue` previo y marca `transportStatus = 'out_of_sync'`.
+  - `Rollback de Carga de Patch:` Si falla la transmisión SysEx del preset completo, el motor mantiene el patch previo y notifica una alerta de resincronización.
+  - `Rollback de Migración LocalStorage:` Ante un esquema corrupto, se conserva el estado original en backup y se aplica la configuración segura de fábrica.
+
+### 2.2 FSM del Puerto MIDI y Ensamblador SysEx Independiente
+
+```
+[HardwareMidiService (Puerto)]
+  connected ───> syncing ───> ready ───> transmitting ───> resync_required
+
+[SysExAssembler (Mensajes)]
+  waiting ───> collecting ───> complete / malformed / timeout
+```
+
+---
+
+## ⚡ 3. Invariantes de Tiempo Real (Strict Audio Invariants & Presupuesto Temporal)
+
+En el hilo de audio nativo y WASM (`processBlock()`):
+1. **Comportamiento Determinista:** Cero asignaciones dinámicas de memoria, cero búsquedas por cadena de texto, cero operaciones potencialmente bloqueantes y cero locks/mutexes introducidos por el código de ABDEep.
+2. **Lookup por Índice:** Acceso directo a `std::array<ParameterValue, kParameterCount>` mediante enum `ParameterIndex::VcfCutoff` generado en build-time.
+3. **Presupuesto Temporal Multivariante (Benchmarking en CI):**
+   - $\text{p95} \le X\,\mu\text{s}$
+   - $\text{p99} \le Y\,\mu\text{s}$
+   - $\text{p999} \le Z\,\mu\text{s}$ (con $0$ overruns de audio durante $N$ bloques bajo la configuración máxima de polifonía y 4 slots de FX).
+4. **Reserva Fija:** Capacidad preasignada en `wasminitengine()`. Bloques excedentes son rechazados de forma segura sin reasignar ni alterar estados.
+
+---
+
+## 🔒 4. Política de Sanitización DOM y ASCII Diferenciadas
+
+1. **Protección XSS DOM (Sinks no confiables):** Prohibido insertar datos externos o importados en sinks dinámicos sin escape (`innerHTML =`, `innerHTML +=`, `insertAdjacentHTML`, `outerHTML`, `DOMParser`). Templates estáticos auditados permitidos. Uso obligatorio de `textContent` para valores dinámicos.
+2. **Sanitización ASCII (Compatibilidad Hardware):**
+   - `PatchNameValidator`: Valida la estructura según el protocolo SysEx.
+   - `PatchNameRenderer`: Inserción segura en UI vía `textContent`.
+   - `HardwareExporter`: Limita a 15 caracteres ASCII imprimibles sin alterar el modelo original.
+
+---
+
+## 🧪 5. Matriz de Pruebas de 3 Niveles, Property-Based Testing y Fuzzing con Recurso Acotado
+
+- **Nivel 1 (`rawCodecEqual`):** $\text{Bytes} \rightarrow \text{Pack} \rightarrow \text{Unpack} \rightarrow \text{Bytes}$.
+- **Nivel 2 (`semanticEqual`):** $\text{Patch} \rightarrow \text{Parameters} \rightarrow \text{Patch}$ (descartando bytes reservados y padding).
+- **Nivel 3a (`hardwareCanonicalEqual`):** Comparación contra el corpus A–H (1.024 presets) registrando `exact_match`, `canonical_match`, `semantic_match` o `known_exception`.
+- **Nivel 3b (Hardware-in-the-Loop):** Dumps reales en hardware físico (obligatorio previo a cualquier release que modifique el protocolo SysEx o NRPN).
+- **Property-Based Testing & Fuzzing (Límites Acotados):**
+  - Propiedad de Invarianza: $\text{unpack}(\text{pack}(\text{bytes})) \equiv \text{bytes}$ y $\text{decode}(\text{encode}(\text{params})) \approx \text{params}$.
+  - Límites de recurso: Max Payload 500B, Max Timeout 100ms por caso, profundidades acotadas sin mutación global ni envíos MIDI en fallo.
+
+---
+
+## ⚙️ 6. Feature Flags, Diff Comparativo y Logger Estructurado
+
+1. **Diff Comparativo en Modo Diagnóstico (`comparisonMode`):**
+   ```json
+   {
+     "parameterId": "vcf.cutoff",
+     "legacy": 0.50196,
+     "new": 0.5,
+     "difference": 0.00196,
+     "classification": "quantization"
+   }
+   ```
+2. **Logger Estructurado Fuera de Audio:**
+   - `Logger.deprecation("legacy parameter ID", { legacyId, replacementId })`
+   - Invocación restringida exclusivamente a hilos de control y tests; estrictamente prohibido en el hilo de audio.
+
+---
+
+## 📅 7. Plan de Fases de Ejecución
+
+### Fase 0: Inventario, Baseline y Perfilado (Pre-requisito)
+- [ ] Registrar baseline exacta en CI: número de test suites, cobertura, hashes de presets A–H, percentiles temporales ($\text{p95}$, $\text{p99}$, $\text{p999}$) en $\mu\text{s}$ de `processBlock()` y audit de asignaciones.
+
+### Fase 1: Esquema Declarativo, Generador y Pre-validación
+- [ ] Crear `schemas/parameter-registry.json` (`schemaVersion: 1`).
+- [ ] Desarrollar `scripts/validate_and_generate.ps1` (rechaza IDs duplicados, rangos incompatibles o NRPNs colisionados antes de emitir `.gen.js` y `.gen.cpp`).
+- [ ] Vincular con CMake (`add_custom_command`).
+
+### Fase 2: ParameterStore Transaccional, FSM MIDI y Feature Flags
+- [ ] Implementar `ParameterStore` con `PendingTransaction` (TTL, revisiones, transactionId, rollback e inspección depurable de estado).
+- [ ] Implementar `HardwareMidiService` con FSM de puerto y `SysExAssembler` independiente.
+- [ ] Introducir **Feature Flag de comparación paralela** (`comparisonMode`) con diff estructurado.
+
+### Fase 3: Sanitización DOM, ASCII y Manejo de Errores Tipados
+- [ ] Auditar sinks dinámicos HTML no escapados y migrar a `textContent` en `MIDI Learn`, monitores SysEx y visores de parches.
+- [ ] Implementar `PatchNameValidator` y `HardwareExporter`.
+- [ ] Implementar errores tipados para SysEx, MIDI e importación JSON.
+
+### Fase 4: Batería de Tests de 3 Niveles y Property-Based Testing (Fuzzing)
+- [ ] Implementar `rawCodecEqual`, `semanticEqual` y `hardwareCanonicalEqual`.
+- [ ] Desarrollar suite de fuzzing/property-based testing con límites acotados de memoria y tiempo.
+
+### Fase 5: Rendimiento Tiempo Real, Capabilities y Bridge WASM
+- [ ] Sustituir búsquedas dinámicas en `WASMBridge.cpp` por `std::array` e índices `ParameterIndex`.
+- [ ] Integrar `ModelCapabilities` para `dm12_hardware` vs `abyssmind_pro`.
+
+### Fase 6: Retirada Progresiva de Compatibilidad Legacy
+- [ ] Registrar desusos con `Logger.deprecation()` fuera de audio y retirar aliases de `window.dualMidiBridge` tras confirmar estabilidad en producción.
+
+### Fase 7: Pipeline CI/CD Reproducible
+- [ ] Configurar jobs de CI: `schema-validation`, `registry-generation`, `vitest`, `cpp-unit-tests`, `pluginval`, `wasm-build`, `roundtrip-corpus`, `allocation-audit`, `security-scan` y `property-fuzzing`.
+
+---
+
+## 🧪 8. Criterios de Aceptación Definitivos
+
+1. **Schema Validation:** $100\%$ de C++, JS y docs compilados desde `schemaVersion: 1` validado.
+2. **Ciclo de Vida Transaccional:** $0$ bucles de realimentación UI/Hardware gracias a deduplicación por TTL y confirmación explícita con rollback tipado.
+3. **Invariantes Tiempo Real:** $0$ allocations, $0$ búsquedas por string, $0$ logs, $0$ locks en audio; cumplimiento de $\text{p95}$, $\text{p99}$ y $\text{p999}$ en $\mu\text{s}$.
+4. **Seguridad DOM y ASCII:** $0$ datos externos en sinks HTML dinámicos no escapados; sanitización ASCII segura.
+5. **Round-Trip y Fuzzing Verde:** Pases en `rawCodecEqual`, `semanticEqual`, `hardwareCanonicalEqual` y fuzzing generativo acotado.
+6. **Feature Flags y Rollback:** Transición gradual con modo de comparación paralela legacy/nuevo validada antes de la retirada final de compatibilidad.

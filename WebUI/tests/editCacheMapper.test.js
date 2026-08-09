@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/edit_cache_mapper.js — Cache-to-byte mapping with scaling and bipolar conversion
  *
@@ -154,7 +155,7 @@ function updateUnpackedBytesFromCache(unpackedBytes, cache) {
     for (let f = 1; f <= 4; f++) {
         const typeBase = f === 1 ? 166 : (f === 2 ? 179 : (f === 3 ? 192 : 205));
         const gainIdx = f === 1 ? 218 : (f === 2 ? 219 : (f === 3 ? 220 : 221));
-        set(typeBase, cache['fx' + f + '_type'] * 35);
+        set(typeBase, Math.min(cache['fx' + f + '_type'], 1.0) * 56);
         for (let p = 1; p <= 12; p++) {
             set(typeBase + p, cache['fx' + f + '_param' + p] * 255);
         }
@@ -511,9 +512,9 @@ describe('FX bytes — all 4 slots (type + 12 params + gain)', function() {
         bytes = new Uint8Array(256);
     });
 
-    it('maps fx1_type * 35 → byte 166', function() {
+    it('maps fx1_type * 56 → byte 166', function() {
         updateUnpackedBytesFromCache(bytes, { 'fx1_type': 0.5 });
-        expect(bytes[166]).toBe(18); // 0.5 * 35 = 17.5 → round 18
+        expect(bytes[166]).toBe(28); // 0.5 * 56 = 28
     });
 
     it('maps fx1_gain → byte 218', function() {
@@ -523,20 +524,26 @@ describe('FX bytes — all 4 slots (type + 12 params + gain)', function() {
 
     it('maps fx2_type → byte 179, fx2_gain → byte 219', function() {
         updateUnpackedBytesFromCache(bytes, { 'fx2_type': 0.5, 'fx2_gain': 0.5 });
-        expect(bytes[179]).toBe(18);
+        expect(bytes[179]).toBe(28);
         expect(bytes[219]).toBe(128);
     });
 
     it('maps fx3_type → byte 192, fx3_gain → byte 220', function() {
         updateUnpackedBytesFromCache(bytes, { 'fx3_type': 0.5, 'fx3_gain': 0.5 });
-        expect(bytes[192]).toBe(18);
+        expect(bytes[192]).toBe(28);
         expect(bytes[220]).toBe(128);
     });
 
     it('maps fx4_type → byte 205, fx4_gain → byte 221', function() {
         updateUnpackedBytesFromCache(bytes, { 'fx4_type': 0.5, 'fx4_gain': 0.5 });
-        expect(bytes[205]).toBe(18);
+        expect(bytes[205]).toBe(28);
         expect(bytes[221]).toBe(128);
+    });
+
+    it('clamps advanced fx_type values > 1.0 to hardware max 56', function() {
+        updateUnpackedBytesFromCache(bytes, { 'fx3_type': 1.2, 'fx4_type': 0.999 });
+        expect(bytes[192]).toBe(56);
+        expect(bytes[205]).toBe(56);
     });
 
     it('maps all 12 params for each FX slot', function() {

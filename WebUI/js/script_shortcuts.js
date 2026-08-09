@@ -1,3 +1,6 @@
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console;
+
 /**
  * @purpose Manages keyboard shortcuts configuration, metadata, and mapping checks.
  * @purpose_en Keyboard Shortcut Configuration System.
@@ -108,7 +111,7 @@ window.initKeyboardShortcuts = function() {
         // MIDI Learn
         if (window.ShortcutConfig.matches(e, shortcuts['midi-learn'])) {
             e.preventDefault();
-            var bridge = window.dualMidiBridge;
+            const bridge = window.dualMidiBridge;
             if (bridge && typeof bridge.toggleMidiLearn === 'function') {
                 bridge.toggleMidiLearn();
             }
@@ -118,14 +121,14 @@ window.initKeyboardShortcuts = function() {
         // SEQ Quick-Start
         if (window.ShortcutConfig.matches(e, shortcuts['seq-quickstart'])) {
             e.preventDefault();
-            var bridge = window.dualMidiBridge;
+            const bridge = window.dualMidiBridge;
             if (!bridge) {return;}
             const seqBtn = document.getElementById('programmer-seq-btn');
             if (seqBtn) {seqBtn.click();}
             const currentSeqEn = bridge.parameterCache['seq_enable'] || 0;
             if (currentSeqEn < 0.5) {
                 bridge.setParameter('seq_enable', 1.0);
-                console.log('[SeqSim] Started sequencer via shortcut');
+                Logger.log('[SeqSim] Started sequencer via shortcut');
             }
             return;
         }
@@ -134,10 +137,10 @@ window.initKeyboardShortcuts = function() {
         if (window.ShortcutConfig.matches(e, shortcuts['seq-debug'])) {
             e.preventDefault();
             window._seqDebugMode = !window._seqDebugMode;
-            console.log('[SeqDebug] Debug mode:', window._seqDebugMode ? 'ON' : 'OFF');
+            Logger.log('[SeqDebug] Debug mode:', window._seqDebugMode ? 'ON' : 'OFF');
             const lcdText = document.getElementById('lcd-text');
             if (lcdText && window._seqDebugMode) {
-                lcdText.innerHTML = '<span style="font-size:10px; opacity:0.6;">SEQ DEBUG</span><br><strong style="color:var(--accent-pink);">MODE ACTIVE</strong><br><span style="font-size:7px; color:var(--text-dim);">Start sequencer to view steps</span>';
+                lcdText.innerHTML = '<span class="lcd-label">SEQ DEBUG</span><br><strong style="color:var(--accent-pink);">MODE ACTIVE</strong><br><span style="font-size:7px; color:var(--text-dim);">Start sequencer to view steps</span>';
             }
             return;
         }

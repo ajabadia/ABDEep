@@ -38,6 +38,10 @@ namespace ABD
         void setFXMode(int mode) { fxMode = std::clamp(mode, 0, 2); }
         void setRoutingMode(int mode) { fxRouting = std::clamp(mode, 0, 9); }
 
+        /** Provide external modulator audio (e.g. mic/sidechain) to all slots.
+         *  Call this before process() each block. Pointers are consumed after process(). */
+        void setModulatorBuffer(const float* modL, const float* modR, int numSamples);
+
         /** Procesa todo el bloque de audio a través de los 4 slots FX */
         void process(juce::AudioBuffer<float>& buffer);
 
@@ -70,6 +74,11 @@ namespace ABD
         // Feedback state for mode 9
         juce::AudioBuffer<float> fbBuffer;
         float fbGain = 0.0f;
+
+        // External modulator pointers (set per-block before process)
+        const float* extModL = nullptr;
+        const float* extModR = nullptr;
+        int extModNumSamples = 0;
 
         void ensureBuffers(int numChannels, int numSamples);
         void processSeries(juce::AudioBuffer<float>& buffer, int numSamples);

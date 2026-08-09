@@ -15,6 +15,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 // ============================================================================
 // CONSTANTES
@@ -145,19 +146,19 @@ function buildByteMap() {
     map[52] = bp(52, 'HPF Boost Enable',     'HPF',  'toggle');
 
     // Env 1 (53-61)
-    for (let i = 53; i <= 61; i++) map[i] = bp(i, `Env1 byte ${i}`, 'ENV1', 'value');
+    for (let i = 53; i <= 61; i++) {map[i] = bp(i, `Env1 byte ${i}`, 'ENV1', 'value');}
     map[57] = bp(57, 'Env1 Trigger Mode',    'ENV1', 'enum', { enumLabels: ENUM_ENV_TRIG });
 
     // Env 2 (62-70)
-    for (let i = 62; i <= 70; i++) map[i] = bp(i, `Env2 byte ${i}`, 'ENV2', 'value');
+    for (let i = 62; i <= 70; i++) {map[i] = bp(i, `Env2 byte ${i}`, 'ENV2', 'value');}
     map[66] = bp(66, 'Env2 Trigger Mode',    'ENV2', 'enum', { enumLabels: ENUM_ENV_TRIG });
 
     // Env 3 (71-79)
-    for (let i = 71; i <= 79; i++) map[i] = bp(i, `Env3 byte ${i}`, 'ENV3', 'value');
+    for (let i = 71; i <= 79; i++) {map[i] = bp(i, `Env3 byte ${i}`, 'ENV3', 'value');}
     map[75] = bp(75, 'Env3 Trigger Mode',    'ENV3', 'enum', { enumLabels: ENUM_ENV_TRIG });
 
     // VCA (80-83)
-    for (let i = 80; i <= 83; i++) map[i] = bp(i, `VCA byte ${i}`, 'VCA', 'value');
+    for (let i = 80; i <= 83; i++) {map[i] = bp(i, `VCA byte ${i}`, 'VCA', 'value');}
     map[83] = bp(83, 'VCA Pan Spread',       'VCA',  'bipolar');
 
     // Voice (84-92)
@@ -215,16 +216,16 @@ function buildByteMap() {
     }
 
     // FX1 Params (167-178)
-    for (let i = 167; i <= 178; i++) map[i] = bp(i, `FX1 Param ${i-166}`, 'FX1', 'value');
+    for (let i = 167; i <= 178; i++) {map[i] = bp(i, `FX1 Param ${i-166}`, 'FX1', 'value');}
 
     // FX2 Params (180-191)
-    for (let i = 180; i <= 191; i++) map[i] = bp(i, `FX2 Param ${i-179}`, 'FX2', 'value');
+    for (let i = 180; i <= 191; i++) {map[i] = bp(i, `FX2 Param ${i-179}`, 'FX2', 'value');}
 
     // FX3 Params (193-204)
-    for (let i = 193; i <= 204; i++) map[i] = bp(i, `FX3 Param ${i-192}`, 'FX3', 'value');
+    for (let i = 193; i <= 204; i++) {map[i] = bp(i, `FX3 Param ${i-192}`, 'FX3', 'value');}
 
     // FX4 Params (206-217)
-    for (let i = 206; i <= 217; i++) map[i] = bp(i, `FX4 Param ${i-205}`, 'FX4', 'value');
+    for (let i = 206; i <= 217; i++) {map[i] = bp(i, `FX4 Param ${i-205}`, 'FX4', 'value');}
 
     // FX Gains (218-221)
     map[218] = bp(218, 'FX1 Output Gain',     'FX1',  'value');
@@ -281,7 +282,7 @@ function validateCoverage(map) {
         }
     }
     if (uncovered === 0) {
-        console.log(`  ✅ Coverage: 242/242 bytes mapeados`);
+        console.log('  ✅ Coverage: 242/242 bytes mapeados');
     }
     return uncovered === 0;
 }
@@ -302,13 +303,13 @@ function validatePreset(bytes, bank, presetIdx, map) {
     const nameChars = [];
     for (let i = 224; i <= 238; i++) {
         const c = bytes[i];
-        if (c >= 32 && c < 127) nameChars.push(String.fromCharCode(c));
+        if (c >= 32 && c < 127) {nameChars.push(String.fromCharCode(c));}
     }
     const name = nameChars.join('').trim();
 
     // Verificar que el nombre no esté vacío
     if (!name) {
-        reportWarning(bank, presetIdx, `Nombre vacío en bytes 224-238`);
+        reportWarning(bank, presetIdx, 'Nombre vacío en bytes 224-238');
     }
 
     // 3. Byte 225 siempre debe ser 0
@@ -436,7 +437,7 @@ function computeBankStats(presets) {
         const chars = [];
         for (let i = 224; i <= 238; i++) {
             const c = preset.unpacked[i];
-            if (c >= 32 && c < 127) chars.push(String.fromCharCode(c));
+            if (c >= 32 && c < 127) {chars.push(String.fromCharCode(c));}
         }
         stats.names.push(chars.join('').trim());
     }
@@ -460,7 +461,7 @@ function printBankStats(bankLabel, stats) {
         .map(([byte, count]) => ({ byte: parseInt(byte), count }))
         .sort((a, b) => b.count - a.count);
 
-    console.log(`   Top 10 bytes con más valores únicos:`);
+    console.log('   Top 10 bytes con más valores únicos:');
     for (const { byte, count } of sortedByUnique.slice(0, 10)) {
         const pct = (count / stats.totalPresets * 100).toFixed(0);
         console.log(`     b[${byte.toString().padStart(3)}]: ${count} valores únicos (${pct}% cobertura)`);
@@ -469,11 +470,59 @@ function printBankStats(bankLabel, stats) {
     // Bytes constantes (solo 1 valor único en todos los presets)
     const constantBytes = sortedByUnique.filter(b => b.count === 1);
     if (constantBytes.length > 0) {
-        console.log(`   Bytes constantes (1 valor único en todos los presets):`);
+        console.log('   Bytes constantes (1 valor único en todos los presets):');
         for (const { byte } of constantBytes) {
             console.log(`     b[${byte.toString().padStart(3)}]`);
         }
     }
+}
+
+// ============================================================================
+// VALIDACIÓN DE HASH SHA-256 DEL CORPUS (referencia de regresión)
+// ============================================================================
+
+/**
+ * Verifica que cada banco del corpus coincida con su hash SHA-256 de referencia
+ * (schemas/corpus-hashes.json). Activa con --check-hashes.
+ *
+ * El corpus de fábrica es INMUTABLE: si un hash diverge, el job CI falla con
+ * ::error:: — señal de que un banco .syx fue alterado o reemplazado.
+ */
+function checkCorpusHashes(bankFilter, banksDir, hashesFile) {
+    let hashErrors = 0;
+    let reference;
+    try {
+        reference = JSON.parse(fs.readFileSync(hashesFile, 'utf8'));
+    } catch (e) {
+        console.error(`  ❌ No se pudo leer la referencia de hashes ${hashesFile}: ${e.message}`);
+        return 1;
+    }
+
+    for (const bankLetter of bankFilter) {
+        const filePath = path.join(banksDir, `Synth Bank ${bankLetter}.syx`);
+        if (!fs.existsSync(filePath)) {
+            console.error(`  ❌ Hash [${bankLetter}]: archivo no encontrado (${filePath})`);
+            hashErrors++;
+            continue;
+        }
+        const actual = crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+        const expected = reference.banks && reference.banks[bankLetter];
+        if (!expected) {
+            console.error(`  ❌ Hash [${bankLetter}]: sin referencia en ${hashesFile}`);
+            hashErrors++;
+            continue;
+        }
+        if (actual === expected.toLowerCase()) {
+            console.log(`  ✅ Hash [${bankLetter}]: ${actual.slice(0, 16)}… coincide con la referencia`);
+        } else {
+            console.error(`  ❌ Hash [${bankLetter}]: DIVERGE de la referencia`);
+            console.error(`     actual   ${actual}`);
+            console.error(`     esperado ${expected.toLowerCase()}`);
+            console.error(`     ::error::roundtrip-corpus — Synth Bank ${bankLetter}.syx ha cambiado (hash SHA-256 no coincide con schemas/corpus-hashes.json). Si el reemplazo es deliberado, actualiza la referencia.`);
+            hashErrors++;
+        }
+    }
+    return hashErrors;
 }
 
 // ============================================================================
@@ -485,6 +534,11 @@ function main() {
     const bankFilter = args.includes('--banks')
         ? args[args.indexOf('--banks') + 1].split(',').map(s => s.trim().toUpperCase())
         : ['A','B','C','D','E','F','G','H'];
+
+    const checkHashes = args.includes('--check-hashes');
+    const hashesFile = args.includes('--hashes-file')
+        ? args[args.indexOf('--hashes-file') + 1]
+        : path.resolve(__dirname, '..', 'schemas', 'corpus-hashes.json');
 
     const banksDir = path.resolve(__dirname, '..', 'resources', 'banks', 'Factory Banks V1.1.2');
     const map = buildByteMap();
@@ -509,7 +563,7 @@ function main() {
     // 2. Validar cada banco
     let grandTotalPresets = 0;
     let grandTotalErrors = 0;
-    let allStats = [];
+    const allStats = [];
 
     for (const bankLetter of bankFilter) {
         const filePath = path.join(banksDir, `Synth Bank ${bankLetter}.syx`);
@@ -564,6 +618,18 @@ function main() {
     }
 
     console.log(`\n${grandTotalErrors === 0 ? '✅' : '❌'} Validación completada.`);
+
+    // 4. Verificación de hashes SHA-256 del corpus (regresión) — opcional
+    if (checkHashes) {
+        console.log('\n🔒 Verificación de integridad del corpus (SHA-256 de referencia):');
+        const hashErrors = checkCorpusHashes(bankFilter, banksDir, hashesFile);
+        if (hashErrors > 0) {
+            console.error(`   ${hashErrors} hash(es) divergente(s) respecto a la referencia.`);
+            process.exitCode = 1;
+        } else {
+            console.log('   ✅ Los 8 bancos coinciden con schemas/corpus-hashes.json');
+        }
+    }
 
     if (grandTotalErrors === 0) {
         console.log('\n🎉 Todos los mapeos del BYTE_MAP son consistentes con los datos reales de fábrica.');

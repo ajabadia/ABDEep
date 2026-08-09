@@ -74,8 +74,7 @@ namespace ABD
 
     float FXPitchShifter::readDelay(juce::AudioSampleBuffer& buf, int writePos, float readOffset, int maxSamp)
     {
-        // Interpolación lineal
-        float readPos = (float)writePos - readOffset;
+        float readPos = (float)writePos - std::fmod(readOffset, (float)maxSamp);
         if (readPos < 0) readPos += (float)maxSamp;
         int idx = (int)readPos;
         int next = (idx + 1) % maxSamp;

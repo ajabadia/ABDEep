@@ -1,14 +1,22 @@
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console;
+
 /**
- * @purpose Sistema MIDI Learn para DualMidiBridge — añade métodos al prototipo después de la definición de la clase.
- * @purpose_en MIDI Learn system for DualMidiBridge — adds methods to prototype after class definition.
+ * @purpose Sistema MIDI Learn para DualMidiBridge — añade métodos al prototipo.
+ * @purpose_en MIDI Learn system for DualMidiBridge — adds methods to prototype.
  * @classification Module/MIDI Learn
  * @complexity Medium
+ *
+ * Sub-módulos:
+ *   - bridge-midi-learn.js:       Core: toggle, start, stop, setTarget, capture, complete,
+ *                                  getParamName, showLcdPrompt, notify, refreshIndicators
+ *   - bridge-midi-learn_storage.js: Persistencia: _saveMappings, _loadMappings, _applyMapping,
+ *                                   removeMapping, clearMappings, onMidiLearnChange
  */
 
-// --- Sistema MIDI Learn — se añade al prototipo tras la definición de la clase ---
 (function() {
     if (typeof DualMidiBridge === 'undefined') {
-        console.warn('[MIDI Learn] DualMidiBridge not found — deferring...');
+        Logger.warn('[MIDI Learn] DualMidiBridge not found — deferring...');
         return;
     }
 
@@ -27,7 +35,7 @@
         this.midiLearnActive = true;
         this.midiLearnTargetParam = null;
         this.midiLearnPendingCC = null;
-        console.log('[MIDI Learn] 🔵 Entered learn mode — move a hardware control or click a UI parameter');
+        Logger.log('[MIDI Learn] 🔵 Entered learn mode — move a hardware control or click a UI parameter');
         this._notifyMidiLearnChange();
         this.refreshMidiLearnIndicators();
         this._showLcdLearnPrompt('MOVE a control or\\nCLICK a parameter');
@@ -39,14 +47,14 @@
         this.midiLearnActive = false;
         this.midiLearnTargetParam = null;
         this.midiLearnPendingCC = null;
-        console.log('[MIDI Learn] ⏹ Exited learn mode');
+        Logger.log('[MIDI Learn] ⏹ Exited learn mode');
         this._notifyMidiLearnChange();
         this.refreshMidiLearnIndicators();
         setTimeout(function() {
             const lcd = document.getElementById('lcd-text');
             if (lcd && lcd._midiLearnLcd) {
                 lcd._midiLearnLcd = null;
-                window.lcdSafeUpdate(lcd, '<span style="font-size:10px; opacity:0.6;">MIDI LEARN</span><br><strong>INITIAL PATCH</strong>');
+                window.lcdSafeUpdate(lcd, '<span class=\"lcd-label\">MIDI LEARN</span><br><strong>INITIAL PATCH</strong>');
             }
         }, 800);
     };
@@ -85,7 +93,7 @@
         }
 
         this.midiLearnPendingCC = { key: key, desc: desc, cc: ccNum, val: val, nrpn: nrpnInfo };
-        console.log('[MIDI Learn] Captured ' + desc + ' — now click a UI parameter to map');
+        Logger.log('[MIDI Learn] Captured ' + desc + ' — now click a UI parameter to map');
         this._showLcdLearnPrompt('CAPTURED: ' + desc + '\\nNOW click a parameter');
         this._notifyMidiLearnChange();
     };
@@ -96,14 +104,14 @@
         const oldParam = this.midiLearnMappings[key];
 
         if (oldParam && oldParam !== paramId) {
-            console.log('[MIDI Learn] Re-mapping ' + key + ' from ' + oldParam + ' → ' + paramId);
+            Logger.log('[MIDI Learn] Re-mapping ' + key + ' from ' + oldParam + ' → ' + paramId);
         }
 
         this.midiLearnMappings[key] = paramId;
         this._saveMidiLearnMappings();
 
         const meta = this._getParamName(paramId);
-        console.log('[MIDI Learn] ✅ Mapped ' + captured.desc + ' → ' + paramId + ' (' + meta + ')');
+        Logger.log('[MIDI Learn] ✅ Mapped ' + captured.desc + ' → ' + paramId + ' (' + meta + ')');
         this._showLcdLearnPrompt('✅ MAPPED!\\n' + captured.desc + ' → ' + meta.toUpperCase());
 
         this._notifyMidiLearnChange();
@@ -129,10 +137,10 @@
         if (!lcd) {return;}
         lcd._midiLearnLcd = true;
         const parts = msg.split('\\n');
-        const html = '<span style="color:var(--accent-blue,#00ccff);font-weight:bold;font-size:9px">🎯 MIDI LEARN</span><br>' +
+        const html = '<span class=\"midi-learn-label\">🎯 MIDI LEARN</span><br>' +
             parts.map(function(p, i) {
-                if (i === 0) {return '<span style="font-size:10px">' + p + '</span>';}
-                return '<span style="font-size:7px;color:var(--text-dim)">' + p + '</span>';
+                if (i === 0) {return '<span class=\"midi-learn-title\">' + p + '</span>';}
+                return '<span class=\"midi-learn-line\">' + p + '</span>';
             }).join('<br>');
         window.lcdSafeUpdate(lcd, html);
     };
@@ -164,71 +172,5 @@
         }
     };
 
-    /** Register a callback for learn state changes */
-    DualMidiBridge.prototype.onMidiLearnChange = function(callback) {
-        this.midiLearnChangeCallbacks.push(callback);
-    };
-
-    /** Remove a specific mapping */
-    DualMidiBridge.prototype.removeMidiLearnMapping = function(key) {
-        delete this.midiLearnMappings[key];
-        this._saveMidiLearnMappings();
-        this._notifyMidiLearnChange();
-        this.refreshMidiLearnIndicators();
-    };
-
-    /** Clear all MIDI Learn mappings */
-    DualMidiBridge.prototype.clearMidiLearnMappings = function() {
-        this.midiLearnMappings = {};
-        this._saveMidiLearnMappings();
-        this._notifyMidiLearnChange();
-        this.refreshMidiLearnIndicators();
-    };
-
-    /** Persist mappings to localStorage */
-    DualMidiBridge.prototype._saveMidiLearnMappings = function() {
-        try {
-            localStorage.setItem('abd-eep-midi-learn', JSON.stringify(this.midiLearnMappings));
-        } catch (e) {
-            console.warn('[MIDI Learn] Failed to save mappings:', e);
-        }
-    };
-
-    /** Load mappings from localStorage */
-    DualMidiBridge.prototype._loadMidiLearnMappings = function() {
-        try {
-            const raw = localStorage.getItem('abd-eep-midi-learn');
-            if (raw) {
-                this.midiLearnMappings = JSON.parse(raw);
-                console.log('[MIDI Learn] 📥 Loaded ' + Object.keys(this.midiLearnMappings).length + ' mappings from storage');
-            }
-            this.refreshMidiLearnIndicators();
-        } catch (e) {
-            console.warn('[MIDI Learn] Failed to load mappings:', e);
-        }
-    };
-
-    /**
-     * Apply a MIDI Learn mapping: when an incoming CC/NRPN matches a stored mapping,
-     * route it to the mapped parameter instead of default processing.
-     */
-    DualMidiBridge.prototype._applyMidiLearnMapping = function(key, val, nrpnInfo) {
-        const paramId = this.midiLearnMappings[key];
-        if (!paramId) {return false;}
-
-        const byteOffset = window.BRIDGE_PARAM_MAPS.PARAM_TO_BYTE_OFFSET[paramId];
-        let normalized;
-        if (byteOffset !== undefined) {
-            const rawVal = nrpnInfo ? (val & 0xFF) : Math.round(val * 255.0 / 127.0);
-            normalized = window.BRIDGE_PARAM_MAPS.rawToNormalized(byteOffset, rawVal);
-        } else {
-            normalized = val / 127.0;
-        }
-
-        this.setParameter(paramId, normalized);
-        this.handleParameterChangeFromBackend(paramId, normalized);
-        return true;
-    };
-
-    console.log('[Bridge] MIDI Learn module loaded');
+    Logger.log('[Bridge] MIDI Learn module loaded');
 })();

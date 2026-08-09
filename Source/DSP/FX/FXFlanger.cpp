@@ -16,7 +16,7 @@ namespace ABD
     void FXFlanger::prepare(double newSampleRate, int samplesPerBlock)
     {
         sampleRate = std::max(1.0, newSampleRate);
-        maxDelaySamples = (int)(sampleRate * 0.02); // 20ms máx
+        maxDelaySamples = (int)(sampleRate * 0.04); // 40ms (delay base 20ms + profundidad + margen)
         delayBufferL.setSize(1, maxDelaySamples);
         delayBufferR.setSize(1, maxDelaySamples);
         delayBufferL.clear();
@@ -32,9 +32,17 @@ namespace ABD
         switch (index)
         {
             case 0: rate = value; updateLFOIncrement(); break;
-            case 1: depth = value; break;
-            case 2: feedback = value; break;
-            case 3: baseDelay = value; break;
+            case 1: depthL = value; break;
+            case 2: depthR = value; break;
+            case 3: baseDelayL = value; break;
+            case 4: baseDelayR = value; break;
+            case 5: break; // Mix almacenado (aplicado por FXSlot)
+            case 6: break; // LoCut almacenado (sin equivalente DSP)
+            case 7: break; // HiCut almacenado (sin equivalente DSP)
+            case 8: phase = value; break;
+            case 9: break;  // FeedLC almacenado (sin equivalente DSP)
+            case 10: break; // FeedHC almacenado (sin equivalente DSP)
+            case 11: feedback = value * 0.9f; break;
         }
     }
 
@@ -61,14 +69,20 @@ namespace ABD
         float* dL = delayBufferL.getWritePointer(0);
         float* dR = delayBufferR.getWritePointer(0);
 
-        float maxDepthSamp = (float)(sampleRate * 0.005 * depth);
-        float baseSamp = (float)(sampleRate * 0.003 * baseDelay);
+        float maxDepthSampL = (float)(sampleRate * 0.005 * depthL);
+        float maxDepthSampR = (float)(sampleRate * 0.005 * depthR);
+        float baseSampL = (float)(sampleRate * (0.0005f + 0.0195f * baseDelayL));
+        float baseSampR = (float)(sampleRate * (0.0005f + 0.0195f * baseDelayR));
+
+        float phaseOffset = phase * 0.5f;
+        if (phaseOffset >= 1.0) phaseOffset -= 1.0;
 
         for (int s = 0; s < numSamples; ++s)
         {
             lfoPhaseL += lfoPhaseInc;
             if (lfoPhaseL >= 1.0) lfoPhaseL -= 1.0;
-            lfoPhaseR += lfoPhaseInc;
+
+            lfoPhaseR = lfoPhaseL + phaseOffset;
             if (lfoPhaseR >= 1.0) lfoPhaseR -= 1.0;
 
             float dryL = inL[s];
@@ -78,8 +92,8 @@ namespace ABD
             float modL = (float)std::sin(2.0 * M_PI * lfoPhaseL);
             float modR = (float)std::sin(2.0 * M_PI * lfoPhaseR);
 
-            float delaySampL = baseSamp + (modL + 1.0f) * 0.5f * maxDepthSamp;
-            float delaySampR = baseSamp + (modR + 1.0f) * 0.5f * maxDepthSamp;
+            float delaySampL = baseSampL + (modL + 1.0f) * 0.5f * maxDepthSampL;
+            float delaySampR = baseSampR + (modR + 1.0f) * 0.5f * maxDepthSampR;
 
             // Leer delay con interpolación lineal
             float readPosL = (float)writePosL - delaySampL;

@@ -33,10 +33,7 @@ namespace ABD
             case 2: accel   = value; updateAccelRate(); break;
             case 3: distance = value; break;
             case 4: balance  = value; break;
-            case 5: // Speed toggle (0=SLOW, 1=FAST)
-                targetSpeed = (value > 0.5f) ? 1.0f : 0.0f;
-                updateTargets();
-                break;
+            case 5: break; // Mix almacenado (aplicado por FXSlot)
             case 6: // Motor (0=RUN, 1=STOP)
                 motorRunning = (value < 0.5f);
                 if (!motorRunning)
@@ -45,6 +42,10 @@ namespace ABD
                     hornTarget = 0.0;
                     rotorTarget = 0.0;
                 }
+                break;
+            case 7: // Speed toggle (0=SLOW, 1=FAST)
+                targetSpeed = (value > 0.5f) ? 1.0f : 0.0f;
+                updateTargets();
                 break;
         }
     }

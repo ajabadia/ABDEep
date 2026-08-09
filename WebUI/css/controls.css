@@ -8,6 +8,11 @@
     cursor: ns-resize;
 }
 
+.v-slider.v-slider-h-70 { height: 70px; }
+.v-slider.v-slider-h-80 { height: 80px; }
+.v-slider.v-slider-h-100 { height: 100px; }
+.v-slider.v-slider-h-110 { height: 110px; }
+
 .track {
     position: absolute;
     top: 8px;

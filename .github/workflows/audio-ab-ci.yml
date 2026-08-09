@@ -45,6 +45,14 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Fetch JUCE 8.0.12 (no submodule; CMake falls back to ./JUCE)
+        shell: bash
+        run: |
+          if [ ! -d JUCE ]; then
+            git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+          fi
+          echo "JUCE at: $PWD/JUCE"
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 

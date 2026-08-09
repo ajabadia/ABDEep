@@ -34,6 +34,22 @@ namespace ABD
         FXEngine& getFXEngine() { return fxEngine; }
         const FXEngine& getFXEngine() const { return fxEngine; }
 
+        // Global HPF (post-VCA, pre-FX) — test/diagnostics hook. En producción estos
+        // valores se sincronizan desde la APVTS en updateParameters().
+        void setGlobalHpfCutoff(float hz) { globalHpfCutoffHz = hz; }
+        void setGlobalHpfBassBoost(bool on) { globalHpfBassBoost = on; }
+        float getGlobalHpfCutoff() const { return globalHpfCutoffHz; }
+
+        //==============================================================================
+        // Test/diagnostic hooks (benchmarks) — espejan los targets de updateParameters()
+        // para poder estresar el motor sin construir una APVTS completa.
+        //==============================================================================
+        void setVoiceMode(int mode);
+        void setUnisonDetune(float detune);
+        void setVcaPanSpread(float spread);
+        void setVcfModel(int model);
+        void setVcfOversample(int oversample);
+
         /** Retorna el estado actual de las 12 voces para el DebugPanel (C++ → WebUI bridge) */
         /** Thread-safe: lee de un snapshot protegido por voiceStateLock */
         juce::var getVoiceState() const;
@@ -43,6 +59,10 @@ namespace ABD
         juce::var getAudioWaveform() const;
 
         void panic();
+        /** Reset global MIDI controllers (pitch bend, mod wheel, aftertouch, sustain)
+         *  to their default values, and propagate to all active voices.
+         *  Useful when entering bypass to prevent controller jumps on un-bypass. */
+        void resetMidiControllers();
         bool isVoiceActive(int voiceIndex) const { return voiceIndex >= 0 && voiceIndex < kNumVoices ? voices[voiceIndex].isActive() : false; }
 
         /**
@@ -157,18 +177,55 @@ namespace ABD
         void triggerChordForRoot(int rootNote, int numChordNotes, const int* intervals, float velocity);
         void releaseNote(int midiNoteNumber);
 
+        // Sustain pedal latch (CC64 hardware behavior): notes key-released while
+        // the pedal is down stay sounding (envelope held at sustain). They are
+        // released when the pedal goes up, but only if the finger already let go.
+        int sustainLatchedNotes[128] = {};
+        int sustainLatchCount = 0;
+        bool isSustainLatched(int midiNoteNumber) const;
+        void releaseSustainLatchedNotes();
+
         // LFO global para modos Mono/Spread
         LFO globalLfo1, globalLfo2;
         float lfo1MonoMode = 0.0f;
         float lfo2MonoMode = 0.0f;
         juce::Array<float> globalLfo1Buffer, globalLfo2Buffer;
         
-        // Arpeggiator clock frequency for LFO Arp Sync (Hz)
+        // Arpeggiator clock frequency (Hz) para LFO Arp Sync y MIDI clock
         float arpClockHz = 1.0f;
         bool arpSyncActive = false;  // true si alguna voz tiene lfoArpSync activo (para global LFOs)
 
+        // LFO Arp Sync rates desde la tabla de Clock Divide del hardware (lfo_rate → división)
+        float globalLfo1ArpSyncHz = 1.0f;
+        float globalLfo2ArpSyncHz = 1.0f;
+
+    public:
+        /**
+         * Mapea el rate normalizado de un LFO (0-1 → byte 0-255) a la frecuencia de Arp Sync,
+         * reinterpretando el rate como división de la tabla de Clock Divide del hardware DM12
+         * (20 divisiones, raw 8..255, docs lfos.md:23-48). El sync se deriva del Master BPM:
+         * f = (bpm/60) / (división×4). Devuelve Hz.
+         */
+        static float lfoArpSyncHzFromRate(float rateNorm, float bpm);
+
+    private:
         // Master Gain
         float globalVolume = 0.8f;
+
+        // Global HPF (post-VCA, post-SUM, pre-FX) — hardware: VCF → VCA → SUM → HPF → FX.
+        // Actúa sobre la suma de todas las voces; cutoff modulado desde fuentes "common".
+        // Un filtro por canal para no acoplar el estado de los canales estéreo.
+        HPF globalHpf[2];
+        float globalHpfMinHz = 40.0f;
+        float globalHpfMaxHz = 2000.0f;
+        float globalHpfModScaleHz = 18000.0f;
+        float globalHpfCutoffHz = 20.0f;       // base física del param hpf_cutoff (20-2000 Hz)
+        bool  globalHpfBassBoost = false;
+        float globalHpfBassBoostGain = 1.0f;
+
+        // Master Soft-Clip (bypass + headroom)
+        bool masterSoftclipBypass = false;      // true = sin soft-clip en la salida final
+        float masterSoftclipHeadroom = 0.0f;    // normalized 0..1 → 0..6 dB (1.0x..~2.0x)
 
         // Controladores MIDI globales
         float currentPitchBend = 0.0f;

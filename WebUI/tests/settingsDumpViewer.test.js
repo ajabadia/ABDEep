@@ -1,3 +1,4 @@
+import { describe, it, expect} from 'vitest';
 /**
  * Tests for WebUI/js/settings_dump_viewer.js — SysEx decoded dump viewer
  *

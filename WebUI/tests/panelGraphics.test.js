@@ -1,3 +1,4 @@
+import { describe, it, expect} from 'vitest';
 /**
  * Tests for WebUI/js/panel_graphics.js — Canvas rendering math functions
  *
@@ -8,8 +9,8 @@
  * - _evalOscWaveform(sawEn, sqEn, osc2Lvl, osc2Pitch, pct, phase): mixed oscillator waveform
  * - calcEnvelopeWidths(a, d, s, r, graphW): ADSR segment widths
  * - calcEnvelopePoints(aW, dW, sW, rW, sustainVal, graphH, startX, startY): ADSR control points
- * - calcVcfGain(freq, cutoff, resonance): low-pass filter frequency response
- * - calcHpfGain(freq, cutoff): high-pass filter frequency response
+ * - calcVcfGain(freq, cutoff, resonance, vcfModel, moogSubMode, korgSubMode, vcfPoleMode): VCF freq response
+ * - calcHpfGain(freq, cutoff): HPF frequency response
  * - calcArpStepY(stepIndex, graphH, centerY): arpeggiator note position
  */
 
@@ -94,17 +95,47 @@ function calcEnvelopePoints(aW, dW, sW, rW, sustainVal, graphH, startX, startY) 
     return p0.concat(p1, p2, p3, p4);
 }
 
-function calcVcfGain(freq, cutoff, resonance) {
-    if (freq < cutoff) {
-        var dist = cutoff - freq;
-        if (dist < 0.1) {
-            const peak = resonance * 1.8 * (1.0 - dist / 0.1);
-            return 1.0 + peak;
+function calcVcfGain(freq, cutoff, resonance, vcfModel, moogSubMode, korgSubMode, vcfPoleMode) {
+    vcfModel = vcfModel || 0;
+    moogSubMode = moogSubMode || 0;
+    korgSubMode = korgSubMode || 0;
+    vcfPoleMode = vcfPoleMode || 0;
+
+    // Determine effective response type and resonance character
+    let responseType = 'LP';
+    let resMultiplier = 1.8;
+    if (vcfModel === 1) {
+        if (moogSubMode === 1) { responseType = 'BP'; }
+        else if (moogSubMode === 2) { responseType = 'HP'; }
+        resMultiplier = 2.2;
+    } else if (vcfModel === 2) {
+        if (korgSubMode === 1) { responseType = 'HP'; }
+        resMultiplier = 3.0;
+    }
+
+    const slope = vcfPoleMode === 1 ? 7.0 : 14.0;
+    if (responseType === 'LP') {
+        if (freq < cutoff) {
+const dist = cutoff - freq;
+            if (dist < 0.1) { return 1.0 + resonance * resMultiplier * (1.0 - dist / 0.1); }
+            return 1.0;
+        } else {
+const dist = freq - cutoff;
+            return (1.0 + resonance * resMultiplier) / (1.0 + (dist * slope) * (dist * slope));
         }
-        return 1.0;
+    } else if (responseType === 'BP') {
+const dist = Math.abs(freq - cutoff);
+        return (1.0 + resonance * resMultiplier * 1.5) / (1.0 + (dist * 18.0) * (dist * 18.0));
     } else {
-        var dist = freq - cutoff;
-        return (1.0 + resonance * 1.8) / (1.0 + (dist * 12.0) * (dist * 12.0));
+        // HPF
+        if (freq > cutoff) {
+const dist = freq - cutoff;
+            if (dist < 0.1) { return 1.0 + resonance * resMultiplier * (1.0 - dist / 0.1); }
+            return 1.0;
+        } else {
+const dist = cutoff - freq;
+            return (1.0 + resonance * resMultiplier) / (1.0 + (dist * 12.0) * (dist * 12.0));
+        }
     }
 }
 
@@ -575,7 +606,7 @@ describe('calcEnvelopePoints', function () {
 // calcVcfGain — VCF frequency response
 // ---------------------------------------------------------------------------
 
-describe('calcVcfGain', function () {
+describe('calcVcfGain — DM12 LP (default)', function () {
 
     it('returns 1.0 for freq far below cutoff with no resonance', function () {
         expect(calcVcfGain(0.1, 0.5, 0)).toBe(1.0);
@@ -589,15 +620,14 @@ describe('calcVcfGain', function () {
     });
 
     it('attenuates above cutoff with no resonance', function () {
-        // freq=0.7, cutoff=0.5, resonance=0
-        // dist = 0.2, gain = (1+0)/(1+(2.4)^2) = 1/(1+5.76) = 0.148
+        // freq=0.7, cutoff=0.5, resonance=0, slope=14
+        // dist = 0.2, gain = (1+0)/(1+(2.8)^2) = 1/(1+7.84) = 0.113
         const v = calcVcfGain(0.7, 0.5, 0);
-        expect(v).toBeCloseTo(0.148, 2);
+        expect(v).toBeCloseTo(0.113, 2);
     });
 
     it('resonance boosts gain at cutoff', function () {
-        // freq=cutoff=0.5: freq is not less than cutoff, so else branch
-        // dist = 0, gain = (1+0.7*1.8)/(1+0) = 1+1.26 = 2.26
+        // freq=cutoff=0.5: else branch, dist=0, gain = (1+0.7*1.8)/(1+0) = 2.26
         const vNoRes = calcVcfGain(0.5, 0.5, 0);
         const vRes = calcVcfGain(0.5, 0.5, 0.7);
         expect(vRes).toBeGreaterThan(vNoRes);
@@ -606,8 +636,134 @@ describe('calcVcfGain', function () {
 
     it('gain approaches 0 as freq goes far above cutoff', function () {
         const v = calcVcfGain(1.0, 0.1, 0);
-        // dist = 0.9, gain = 1/(1+(10.8)^2) = 1/117.64 ≈ 0.0085
+        // dist = 0.9, slope=14, gain = 1/(1+(12.6)^2) = 1/159.76 ≈ 0.0063
         expect(v).toBeLessThan(0.01);
+    });
+
+});
+
+describe('calcVcfGain — Moog LP (sub-mode 0)', function () {
+
+    it('uses resMultiplier=2.2', function () {
+        const v = calcVcfGain(0.5, 0.5, 0.7, 1, 0, 0, 0);
+        // dist=0, gain = (1+0.7*2.2)/(1+0) = 1+1.54 = 2.54
+        expect(v).toBeCloseTo(2.54, 5);
+    });
+
+    it('attenuates above cutoff with steeper slope than DM12', function () {
+        const vDm12 = calcVcfGain(0.7, 0.5, 0, 0, 0, 0, 0);
+        const vMoog = calcVcfGain(0.7, 0.5, 0, 1, 0, 0, 0);
+        // Both use slope=14 (4-pole), but Moog resMult=2.2 vs DM12=1.8
+        // At resonance=0, (1+0*2.2) = (1+0*1.8) = 1, so equal at zero resonance
+        expect(vMoog).toBeCloseTo(vDm12, 5);
+    });
+
+});
+
+describe('calcVcfGain — Moog BP (sub-mode 1)', function () {
+
+    it('returns bell curve centered at cutoff', function () {
+        // Exactly at cutoff: gain = (1 + 0.5*2.2*1.5)/(1+0) = 1+1.65 = 2.65
+        const vAtCutoff = calcVcfGain(0.5, 0.5, 0.5, 1, 1, 0, 0);
+        expect(vAtCutoff).toBeCloseTo(2.65, 5);
+    });
+
+    it('attenuates both below and above cutoff', function () {
+        const vCenter = calcVcfGain(0.5, 0.5, 0.5, 1, 1, 0, 0);
+        const vBelow = calcVcfGain(0.3, 0.5, 0.5, 1, 1, 0, 0);
+        const vAbove = calcVcfGain(0.7, 0.5, 0.5, 1, 1, 0, 0);
+        expect(vBelow).toBeLessThan(vCenter);
+        expect(vAbove).toBeLessThan(vCenter);
+    });
+
+    it('attenuation is symmetric around cutoff', function () {
+        const vBelow = calcVcfGain(0.35, 0.5, 0.5, 1, 1, 0, 0);
+        const vAbove = calcVcfGain(0.65, 0.5, 0.5, 1, 1, 0, 0);
+        expect(vBelow).toBeCloseTo(vAbove, 5);
+    });
+
+    it('gain approaches 0 far from cutoff', function () {
+        const v = calcVcfGain(0.05, 0.5, 0.5, 1, 1, 0, 0);
+        // BP bell: dist=0.45, (1+0.5*2.2*1.5)/(1+(0.45*18)^2) = 2.65/66.61 ≈ 0.040
+        expect(v).toBeLessThan(0.05);
+    });
+
+});
+
+describe('calcVcfGain — Moog HP (sub-mode 2)', function () {
+
+    it('passes frequencies above cutoff', function () {
+        const v = calcVcfGain(0.7, 0.5, 0, 1, 2, 0, 0);
+        expect(v).toBe(1.0);
+    });
+
+    it('attenuates below cutoff with resonance peak near cutoff', function () {
+        // freq=0.45, cutoff=0.5, dist=0.05, resMult=2.2
+        // HP freq<cutoff: gain = (1+0.5*2.2)/(1+(0.05*12)^2) = 2.1/1.36 = 1.54412
+        const v = calcVcfGain(0.45, 0.5, 0.5, 1, 2, 0, 0);
+        expect(v).toBeCloseTo(1.544, 3);
+    });
+
+    it('gain approaches 0 far below cutoff', function () {
+        const v = calcVcfGain(0.05, 0.5, 0, 1, 2, 0, 0);
+        // dist=0.45, gain = (1+0)/(1+(5.4)^2) = 1/30.16 ≈ 0.033
+        expect(v).toBeLessThan(0.05);
+    });
+
+});
+
+describe('calcVcfGain — Korg LP (sub-mode 0)', function () {
+
+    it('uses resMultiplier=3.0', function () {
+        const v = calcVcfGain(0.5, 0.5, 0.5, 2, 0, 0, 0);
+        // dist=0, gain = (1+0.5*3.0)/(1+0) = 2.5
+        expect(v).toBeCloseTo(2.5, 5);
+    });
+
+    it('stronger resonance peak than DM12 at same resonance', function () {
+        const vDm12 = calcVcfGain(0.5, 0.5, 0.5, 0, 0, 0, 0);
+        const vKorg = calcVcfGain(0.5, 0.5, 0.5, 2, 0, 0, 0);
+        expect(vKorg).toBeGreaterThan(vDm12);
+    });
+
+});
+
+describe('calcVcfGain — Korg HP (sub-mode 1)', function () {
+
+    it('passes frequencies above cutoff', function () {
+        const v = calcVcfGain(0.7, 0.5, 0, 2, 0, 1, 0);
+        expect(v).toBe(1.0);
+    });
+
+    it('attenuates below cutoff with resonance peak', function () {
+        // freq=0.45, cutoff=0.5, dist=0.05, resMult=3.0
+        // HP freq<cutoff: gain = (1+0.5*3.0)/(1+(0.05*12)^2) = 2.5/1.36 = 1.8382
+        const v = calcVcfGain(0.45, 0.5, 0.5, 2, 0, 1, 0);
+        expect(v).toBeCloseTo(1.838, 3);
+    });
+
+    it('sharper peak than Moog HP at same resonance', function () {
+        const vMoog = calcVcfGain(0.45, 0.5, 0.5, 1, 2, 0, 0);
+        const vKorg = calcVcfGain(0.45, 0.5, 0.5, 2, 0, 1, 0);
+        expect(vKorg).toBeGreaterThan(vMoog);
+    });
+
+});
+
+describe('calcVcfGain — 2-pole mode (vcfPoleMode=1)', function () {
+
+    it('uses shallower slope (7 vs 14), so less attenuation above cutoff', function () {
+        const v4pole = calcVcfGain(0.7, 0.5, 0, 0, 0, 0, 0);
+        const v2pole = calcVcfGain(0.7, 0.5, 0, 0, 0, 0, 1);
+        // 4-pole: dist=0.2, slope=14, gain=1/(1+(2.8)^2)=1/8.84=0.113
+        // 2-pole: dist=0.2, slope=7, gain=1/(1+(1.4)^2)=1/2.96=0.338
+        expect(v2pole).toBeGreaterThan(v4pole);
+    });
+
+    it('LP 2-pole attenuation matches 12dB/oct shape', function () {
+        const v = calcVcfGain(0.8, 0.5, 0, 0, 0, 0, 1);
+        // dist=0.3, slope=7, gain=1/(1+(2.1)^2)=1/5.41=0.185
+        expect(v).toBeCloseTo(0.185, 2);
     });
 
 });

@@ -37,7 +37,7 @@ window.initEditPersistence = function() {
                 
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
-                    const html = `<span style="font-size:10px; opacity:0.6;">SAVED</span><br><strong style="color:var(--accent-green);">${patch.name.toUpperCase()}</strong><br><span style="font-size:9px; color:var(--text-dim);">${window.currentActiveBank} › Slot ${window.currentActivePatchIndex + 1}</span>`;
+                    const html = `<span class="lcd-label">SAVED</span><br><strong style="color:var(--accent-green);">${patch.name.toUpperCase()}</strong><br><span style="font-size:9px; color:var(--text-dim);">${window.currentActiveBank} › Slot ${window.currentActivePatchIndex + 1}</span>`;
                     window.lcdSafeUpdate(lcdText, html);
                 }
                 if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(window.currentActiveBank);}
@@ -85,27 +85,13 @@ window.initEditPersistence = function() {
             Object.keys(window.loadedBanks).forEach(bankName => {
                 const isFactory = bankName.startsWith('Factory Bank');
                 const item = document.createElement('div');
-                item.style.cssText = `
-                    padding: 8px; 
-                    font-size: 11px; 
-                    border-radius: 3px; 
-                    cursor: ${isFactory ? 'not-allowed' : 'pointer'}; 
-                    opacity: ${isFactory ? 0.4 : 1};
-                    font-weight: bold;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                `;
+                item.className = 'saveas-bank-item' + (isFactory ? ' is-factory' : ' is-user');
 
                 if (isFactory) {
-                    item.style.background = 'var(--bg-header)';
-                    item.style.color = 'var(--text-faint)';
-                    item.innerHTML = `<span>${bankName}</span><span style="font-size:var(--text-xs); color:var(--color-danger); text-transform:uppercase;">Lock</span>`;
+                    item.innerHTML = `<span>${bankName}</span><span class="saveas-lock-badge">Lock</span>`;
                 } else {
                     const isSelected = bankName === saveAsSelectedBank;
-                    item.style.background = isSelected ? 'linear-gradient(180deg, color-mix(in srgb, var(--accent-primary) 28%, #111), color-mix(in srgb, var(--accent-primary) 10%, #000))' : 'var(--bg-header)';
-                    item.style.color = isSelected ? 'var(--text-primary)' : 'var(--text-secondary)';
-                    item.style.border = isSelected ? '1px solid var(--brand-accent)' : '1px solid var(--border)';
+                    if (isSelected) {item.classList.add('is-selected');}
                     item.innerText = bankName;
 
                     item.addEventListener('click', () => {
@@ -130,21 +116,10 @@ window.initEditPersistence = function() {
                 const isEmpty = patch.name.startsWith('INIT PATCH') || patch.name.startsWith('[Empty');
 
                 const item = document.createElement('div');
-                item.style.cssText = `
-                    padding: 4px 6px;
-                    font-size: 9px;
-                    border-radius: 2px;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    overflow: hidden;
-                    white-space: nowrap;
-                    text-overflow: ellipsis;
-                `;
-                
-                item.style.background = isSelected ? 'var(--brand-accent)' : 'var(--bg-elevated)';
-                item.style.color = isSelected ? '#000' : (isEmpty ? 'var(--text-dim)' : 'var(--text-secondary)');
-                item.style.border = isSelected ? '1px solid #fff' : '1px solid var(--border-dim)';
+                item.className = 'saveas-slot-item';
+                if (isSelected) {item.classList.add('is-selected');}
+                else if (isEmpty) {item.classList.add('is-empty');}
+                else {item.classList.add('is-occupied');}
                 item.innerText = `${(i+1).toString().padStart(3, '0')}: ${patch.name}`;
 
                 item.addEventListener('click', () => {
@@ -215,7 +190,7 @@ window.initEditPersistence = function() {
 
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
-                    const html = `<span style="font-size:10px; opacity:0.6;">SAVED AS</span><br><strong style="color:var(--accent-green);">${newName.toUpperCase()}</strong><br><span style="font-size:9px; color:var(--text-dim);">${saveAsSelectedBank} › Slot ${saveAsSelectedSlotIdx + 1}</span>`;
+                    const html = `<span class="lcd-label">SAVED AS</span><br><strong style="color:var(--accent-green);">${newName.toUpperCase()}</strong><br><span style="font-size:9px; color:var(--text-dim);">${saveAsSelectedBank} › Slot ${saveAsSelectedSlotIdx + 1}</span>`;
                     window.lcdSafeUpdate(lcdText, html);
                 }
                 closeSaveAs();

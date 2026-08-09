@@ -10,7 +10,7 @@ ABDEepAudioProcessor::ABDEepAudioProcessor()
     : AudioProcessor (BusesProperties()
                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts (*this, nullptr, "Parameters", ParametersSpec::createLayout())
+      apvts (*this, &undoManager, "Parameters", ParametersSpec::createLayout())
 {
 #if JucePlugin_Build_Standalone
     // Check for --run-unit-tests flag
@@ -83,7 +83,18 @@ bool ABDEepAudioProcessor::isMidiEffect() const
 
 double ABDEepAudioProcessor::getTailLengthSeconds() const
 {
-    return 0.0;
+    // El motor tiene delays de hasta ~4.6s (FXMultiTapDelay) y reverbs con cola larga.
+    // 5.0s cubre el caso peor: multi-tap delay al máximo + feedback + reverb tail.
+    return 5.0;
+}
+
+void ABDEepAudioProcessor::setPresetName (const juce::String& newName)
+{
+    if (currentPresetName != newName)
+    {
+        currentPresetName = newName;
+        updateHostDisplay (juce::AudioProcessor::ChangeDetails().withProgramChanged (true));
+    }
 }
 
 int ABDEepAudioProcessor::getNumPrograms()
@@ -102,21 +113,31 @@ void ABDEepAudioProcessor::setCurrentProgram (int index)
 
 const juce::String ABDEepAudioProcessor::getProgramName (int index)
 {
-    return {};
+    // Todos los índices (solo 0) retornan el nombre del preset actual
+    juce::ignoreUnused (index);
+    return currentPresetName;
 }
 
 void ABDEepAudioProcessor::changeProgramName (int index, const juce::String& newName)
 {
+    juce::ignoreUnused (index);
+    setPresetName (newName);
 }
 
 void ABDEepAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     synthEngine.prepare (sampleRate, samplesPerBlock);
     audioABRecorder.prepare (sampleRate, samplesPerBlock, getTotalNumInputChannels(), getTotalNumOutputChannels());
+
+    // Reportar latencia al DAW (0 por ahora — sin oversampling interno)
+    setLatencySamples (0);
+
+    isPrepared = true;
 }
 
 void ABDEepAudioProcessor::releaseResources()
 {
+    isPrepared = false;
 }
 
 bool ABDEepAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -131,6 +152,11 @@ bool ABDEepAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) c
 void ABDEepAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
+
+    // Guarda temprana: engine no preparado o buffers vacíos
+    if (!isPrepared || buffer.getNumSamples() == 0 || getTotalNumOutputChannels() == 0)
+        return;
+
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
@@ -173,6 +199,8 @@ juce::AudioProcessorEditor* ABDEepAudioProcessor::createEditor()
 void ABDEepAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     auto state = apvts.copyState();
+    state.setProperty ("presetName", currentPresetName, nullptr);
+    state.setProperty ("version", 1, nullptr);
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
 }
@@ -181,8 +209,52 @@ void ABDEepAudioProcessor::setStateInformation (const void* data, int sizeInByte
 {
     std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
     if (xmlState != nullptr)
+    {
         if (xmlState->hasTagName (apvts.state.getType()))
-            apvts.replaceState (juce::ValueTree::fromXml (*xmlState));
+        {
+            auto newState = juce::ValueTree::fromXml (*xmlState);
+
+            // Leer versión del esquema con fallback a 0 para proyectos anteriores
+            int schemaVersion = newState.getProperty ("version", 0);
+            juce::ignoreUnused (schemaVersion);
+
+            if (newState.hasProperty ("presetName"))
+                currentPresetName = newState.getProperty ("presetName").toString();
+
+            apvts.replaceState (newState);
+            updateHostDisplay (juce::AudioProcessor::ChangeDetails().withProgramChanged (true));
+
+            // Notificar al editor (WebUI) para que refresque su estado
+            if (onStateRestored != nullptr)
+                onStateRestored();
+        }
+    }
+}
+
+void ABDEepAudioProcessor::processBlockBypassed (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+{
+    // Guarda temprana
+    if (!isPrepared || buffer.getNumSamples() == 0 || getTotalNumOutputChannels() == 0)
+        return;
+
+    // En bypass: silenciar todas las voces activas (stuck notes) y limpiar
+    // la cola MIDI para evitar que notas encoladas suenen al salir del bypass.
+    // Llamada incondicional cada bloque — panic() es ligera (12 voces + memsets)
+    // y es necesario si el host desvypatea y revypatea con nuevas notas entre sesiones.
+    synthEngine.panic();
+    // Reiniciar controladores MIDI globales (pitch bend, mod wheel, aftertouch,
+    // sustain pedal) para evitar saltos de modulación al salir del bypass.
+    synthEngine.resetMidiControllers();
+    clearMidiQueue();
+
+    // En bypass: limpiar canales de salida extra, el audio pasa limpio
+    auto totalNumInputChannels  = getTotalNumInputChannels();
+    auto totalNumOutputChannels = getTotalNumOutputChannels();
+
+    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+        buffer.clear (i, 0, buffer.getNumSamples());
+
+    // No procesar síntesis ni efectos — solo pasar el audio de entrada directamente
 }
 
 // Inicialización para standalone/plugin por JUCE

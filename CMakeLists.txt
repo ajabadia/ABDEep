@@ -1,333 +1,493 @@
 cmake_minimum_required(VERSION 3.22)
-
-project(ABDEep VERSION 0.1.0)
+project(ABDEep VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(JUCE_USE_WIN_WEBVIEW2 ON CACHE BOOL "Use WebView2 on Windows" FORCE)
 
-# --- Configuración de Ruta JUCE ---
+# ============================================================
+# JUCE Location
+# ============================================================
 if(NOT DEFINED JUCE_PATH)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/JUCE")
         set(JUCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/JUCE")
-    elseif(EXISTS "d:/desarrollos/ABDSynths/ABDJUNiO601/JUCE")
-        set(JUCE_PATH "d:/desarrollos/ABDSynths/ABDJUNiO601/JUCE")
     elseif(DEFINED ENV{JUCE_PATH})
         set(JUCE_PATH "$ENV{JUCE_PATH}")
     else()
-        set(JUCE_PATH "C:/JUCE" CACHE PATH "Path to JUCE")
+        # Default fallback
+        set(JUCE_PATH "C:/JUCE")
     endif()
 endif()
 
-message(STATUS "Usando JUCE desde: ${JUCE_PATH}")
-if(NOT EXISTS "${JUCE_PATH}/CMakeLists.txt")
-    message(FATAL_ERROR "JUCE no encontrado en ${JUCE_PATH}. Por favor configura JUCE_PATH.")
-endif()
-
-add_subdirectory(${JUCE_PATH} _juce)
-
-# --- Definición de Plugin con JUCE ---
-juce_add_plugin(ABDEep
-    IS_SYNTH TRUE
-    NEEDS_MIDI_INPUT TRUE
-    NEEDS_MIDI_OUTPUT TRUE
-    IS_MIDI_EFFECT FALSE
-    EDITOR_WANTS_KEYBOARD_FOCUS TRUE
-    NEEDS_DIRECT2D TRUE
-    PLUGIN_MANUFACTURER_CODE Abda
-    PLUGIN_CODE Deep
-    FORMATS Standalone VST3
-    PRODUCT_NAME "ABD Eep"
-    NEEDS_WEBVIEW2 TRUE
-)
-
-target_link_libraries(ABDEep PRIVATE
-    abdeep_core
-    juce::juce_dsp
-)
-
-target_sources(ABDEep PRIVATE
-    Source/Plugin/BridgeActions.h
-    Source/Plugin/BridgeActions.cpp
-    Source/Plugin/PluginProcessor.h
-    Source/Plugin/PluginProcessor.cpp
-    Source/Plugin/PluginEditor.h
-    Source/Plugin/PluginEditor.cpp
-    Source/Calibration/AudioABRecorder.h
-    Source/Calibration/AudioABRecorder.cpp
-    Source/Core/PresetManager.h
-    Source/Core/MidiTranslationEngine.h
-)
-
-# ============================================================
-# abdeep_core (Librería estática con el motor DSP y especificación de parámetros)
-# ============================================================
-add_library(abdeep_core STATIC
-    Source/Core/ParametersSpec.h
-    Source/Core/ParametersSpec.cpp
-    Source/Core/DiagnosticSnapshots.h
-    Source/Core/PatchDiffTypes.h
-    Source/Core/RoundTripValidator.h
-    Source/Core/RoundTripValidator.cpp
-    Source/Calibration/AudioABComparator.h
-    Source/Calibration/AudioABComparator.cpp
-    Source/Calibration/AudioABVerdictEngine.h
-    Source/Calibration/AudioABVerdictEngine.cpp
-    Source/DSP/Oscillator.h
-    Source/DSP/DSPHelpers.h
-    Source/DSP/OSC1.h
-    Source/DSP/OSC1.cpp
-    Source/DSP/OSC2.h
-    Source/DSP/OSC2.cpp
-    Source/DSP/ModulationMatrix.h
-    Source/DSP/ModulationMatrix.cpp
-    Source/DSP/Envelope.h
-    Source/DSP/Envelope.cpp
-    Source/DSP/LFO.h
-    Source/DSP/LFO.cpp
-    Source/DSP/JunoVCF_ZDF.h
-    Source/DSP/JunoVCF_ZDF.cpp
-    Source/DSP/VcfVoicing.h
-    Source/DSP/JunoHPF.h
-    Source/DSP/Filter.h
-    Source/DSP/Filter.cpp
-    Source/DSP/SynthVoice.h
-    Source/DSP/SynthVoice.cpp
-    Source/DSP/SynthEngine.h
-    Source/DSP/SynthEngine.cpp
-    Source/DSP/DriftEngine.h
-    Source/DSP/DriftEngine.cpp
-    Source/DSP/FX/FXBase.h
-    Source/DSP/FX/FXSlot.h
-    Source/DSP/FX/FXSlot.cpp
-    Source/DSP/FX/FXDelay.h
-    Source/DSP/FX/FXDelay.cpp
-    Source/DSP/FX/FXChorus.h
-    Source/DSP/FX/FXChorus.cpp
-    Source/DSP/FX/FXSimpleReverb.h
-    Source/DSP/FX/FXSimpleReverb.cpp
-    Source/DSP/FX/FXFlanger.h
-    Source/DSP/FX/FXFlanger.cpp
-    Source/DSP/FX/FXPhaser.h
-    Source/DSP/FX/FXPhaser.cpp
-    Source/DSP/FX/FXRotarySpeaker.h
-    Source/DSP/FX/FXRotarySpeaker.cpp
-    Source/DSP/FX/FXAutoPan.h
-    Source/DSP/FX/FXAutoPan.cpp
-    Source/DSP/FX/FXRackAmp.h
-    Source/DSP/FX/FXRackAmp.cpp
-    Source/DSP/FX/FXMultiBandDist.h
-    Source/DSP/FX/FXMultiBandDist.cpp
-    Source/DSP/FX/FXEdison.h
-    Source/DSP/FX/FXEdison.cpp
-    Source/DSP/FX/FXMoodFilter.h
-    Source/DSP/FX/FXMoodFilter.cpp
-    Source/DSP/FX/FXEnhancer.h
-    Source/DSP/FX/FXEnhancer.cpp
-    Source/DSP/FX/FXSimpleComp.h
-    Source/DSP/FX/FXSimpleComp.cpp
-    Source/DSP/FX/FXNoiseGate.h
-    Source/DSP/FX/FXNoiseGate.cpp
-    Source/DSP/FX/FXPitchShifter.h
-    Source/DSP/FX/FXPitchShifter.cpp
-    Source/DSP/FX/FXDecimDelay.h
-    Source/DSP/FX/FXDecimDelay.cpp
-    Source/DSP/FX/FXTapeDelay.h
-    Source/DSP/FX/FXTapeDelay.cpp
-    Source/DSP/FX/FXModDelayRev.h
-    Source/DSP/FX/FXModDelayRev.cpp
-    Source/DSP/FX/FXMidasEQ.h
-    Source/DSP/FX/FXMidasEQ.cpp
-    Source/DSP/FX/FXHybridReverb.h
-    Source/DSP/FX/FXHybridReverb.cpp
-    Source/DSP/FX/FXMultiTapDelay.h
-    Source/DSP/FX/FXMultiTapDelay.cpp
-    Source/DSP/FX/FXChorusD.h
-    Source/DSP/FX/FXChorusD.cpp
-    Source/DSP/FX/FXFairComp.h
-    Source/DSP/FX/FXFairComp.cpp
-    Source/DSP/FX/FXEngine.h
-    Source/DSP/FX/FXEngine.cpp
-)
-
-target_sources(abdeep_core PRIVATE
-    Source/Core/CalibrationSpec.h
-    Source/Core/CalibrationSpec.cpp
-)
-
-set(abdeep_core_gen_dir "${CMAKE_CURRENT_BINARY_DIR}/abdeep_core_artefacts/JuceLibraryCode")
-set(abdeep_core_juce_header "${abdeep_core_gen_dir}/JuceHeader.h")
-
-add_custom_command(OUTPUT "${abdeep_core_juce_header}"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${abdeep_core_gen_dir}"
-    COMMAND juce::juceaide header "${CMAKE_CURRENT_BINARY_DIR}/ABDEep_artefacts/JuceLibraryCode/\$<CONFIG>/Defs.txt" "${abdeep_core_juce_header}"
-    COMMENT "Generating JuceHeader.h for abdeep_core"
-    VERBATIM)
-
-target_sources(abdeep_core PRIVATE "${abdeep_core_juce_header}")
-
-target_include_directories(abdeep_core PUBLIC
-    Source
-    Source/Core
-    Source/DSP
-    "${abdeep_core_gen_dir}"
-)
-target_link_libraries(abdeep_core PUBLIC
-    juce::juce_audio_processors
-    juce::juce_audio_utils
-    juce::juce_gui_extra
-    juce::juce_dsp
-)
-
-# Enlazar las librerías necesarias de JUCE
-target_link_libraries(ABDEep PRIVATE
-    abdeep_core
-    juce::juce_audio_utils
-    juce::juce_audio_processors
-    juce::juce_gui_extra
-    juce::juce_recommended_config_flags
-    juce::juce_recommended_lto_flags
-    juce::juce_recommended_warning_flags
-)
-
-# Configurar directorios de inclusión
-target_include_directories(ABDEep PRIVATE
-    Source
-    Source/Plugin
-    Source/Core
-    "${CMAKE_CURRENT_BINARY_DIR}/ABDEep_artefacts/JuceLibraryCode"
-)
-
-# Generar cabeceras de JUCE automáticamente
-juce_generate_juce_header(ABDEep)
-
-# --- Build mode selection (DEEP_TARGET_MODEL) ---
-# 0 = MIDI Controller, 1 = Classic (DeepMind Clone), 2 = Enhanced (Expanded Synthesis)
-# CACHE STRING allows -DEEP_TARGET_MODEL=N on command line to override the default (0)
-set(DEEP_TARGET_MODEL 0 CACHE STRING "Build target model: 0=MIDI Controller, 1=Classic, 2=Enhanced")
-
-if(DEEP_TARGET_MODEL EQUAL 0)
-    set(EEP_MODE_FLAG "EEP_MODE_MIDI_CONTROLLER")
-    set(EEP_MODE_NAME "MIDI Controller")
-elseif(DEEP_TARGET_MODEL EQUAL 1)
-    set(EEP_MODE_FLAG "EEP_MODE_CLASSIC")
-    set(EEP_MODE_NAME "Classic (DeepMind Clone)")
-elseif(DEEP_TARGET_MODEL EQUAL 2)
-    set(EEP_MODE_FLAG "EEP_MODE_ENHANCED")
-    set(EEP_MODE_NAME "Enhanced (Expanded Synthesis)")
+# Formally import JUCE 8 framework
+if(EXISTS "${JUCE_PATH}/CMakeLists.txt")
+    add_subdirectory(${JUCE_PATH} juce)
 else()
-    message(FATAL_ERROR "Invalid DEEP_TARGET_MODEL=${DEEP_TARGET_MODEL}. Must be 0, 1, or 2.")
+    message(FATAL_ERROR "JUCE not found at ${JUCE_PATH}. Please specify JUCE_PATH.")
 endif()
 
-message(STATUS "Build mode: ${EEP_MODE_NAME} (DEEP_TARGET_MODEL=${DEEP_TARGET_MODEL})")
-message(STATUS "Preprocessor define: ${EEP_MODE_FLAG}")
+# ============================================================
+# Source directories
+# ============================================================
+set(SRC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 
-# Definición de símbolos del preprocesador — plugin
-target_compile_definitions(ABDEep PRIVATE
-    JUCE_USE_WIN_WEBVIEW2=1
-    JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING=1
-    JUCE_VST3_CAN_REPLACE_VST2=0
-    ${EEP_MODE_FLAG}=1
-    DEEP_TARGET_MODEL=${DEEP_TARGET_MODEL}
+# ============================================================
+# DeepMind target model: 0=Classic/MIDI, 2=Enhanced/Pro
+# ============================================================
+set(DEEP_TARGET_MODEL 2 CACHE STRING "Build target model: 0=Classic, 2=Enhanced")
+set(EEP_MODE_ENHANCED 1)
+
+# ============================================================
+# Parameter Registry — schema v1 (artefactos generados, Fase 1)
+# ============================================================
+# Regeneración automática cuando cambian las fuentes (esquema declarativo).
+# El generador valida (ids duplicados, rangos incompatibles, NRPNs colisionados)
+# antes de emitir .gen.js / .gen.h / .gen.cpp / data.json.
+set(REGISTRY_SCHEMA  "${CMAKE_CURRENT_SOURCE_DIR}/schemas/parameter-registry.json")
+set(REGISTRY_SPEC    "${CMAKE_CURRENT_SOURCE_DIR}/resources/parameters_spec.json")
+set(REGISTRY_BRIDGE  "${CMAKE_CURRENT_SOURCE_DIR}/WebUI/js/bridge-param-maps.js")
+set(REGISTRY_BYTEMAP "${CMAKE_CURRENT_SOURCE_DIR}/WebUI/js/byte_map_data.js")
+set(REGISTRY_GEN     "${CMAKE_CURRENT_SOURCE_DIR}/scripts/registry_generator.js")
+
+set(REGISTRY_OUT_DATA "${CMAKE_CURRENT_SOURCE_DIR}/schemas/parameter-registry.data.json")
+set(REGISTRY_OUT_JS   "${CMAKE_CURRENT_SOURCE_DIR}/WebUI/js/registry.gen.js")
+set(REGISTRY_OUT_H    "${CMAKE_CURRENT_SOURCE_DIR}/Source/Core/ParameterRegistry.gen.h")
+set(REGISTRY_OUT_CPP  "${CMAKE_CURRENT_SOURCE_DIR}/Source/Core/ParameterRegistry.gen.cpp")
+
+find_program(ABDEEP_NODE_EXECUTABLE node)
+if(ABDEEP_NODE_EXECUTABLE)
+    add_custom_command(
+        OUTPUT ${REGISTRY_OUT_DATA} ${REGISTRY_OUT_JS} ${REGISTRY_OUT_H} ${REGISTRY_OUT_CPP}
+        COMMAND ${ABDEEP_NODE_EXECUTABLE} ${REGISTRY_GEN}
+        DEPENDS
+            ${REGISTRY_SCHEMA}
+            ${REGISTRY_SPEC}
+            ${REGISTRY_BRIDGE}
+            ${REGISTRY_BYTEMAP}
+            ${REGISTRY_GEN}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Generando ParameterRegistry (schema v1)..."
+        VERBATIM
+    )
+else()
+    message(WARNING "node no encontrado — se usarán los artefactos .gen commiteados (schema v1)")
+endif()
+
+# ============================================================
+# ABDEEP_CORE_SOURCES — DSP + Core + Calibration Source Files
+# ============================================================
+set(ABDEEP_CORE_SOURCES
+
+    # ── Core ──
+    ${SRC_ROOT}/Core/ParameterRegistry.gen.h
+    ${SRC_ROOT}/Core/ParameterRegistry.gen.cpp
+    ${SRC_ROOT}/Core/ParametersSpec.cpp
+    ${SRC_ROOT}/Core/ParametersSpec_Synth.cpp
+    ${SRC_ROOT}/Core/ParametersSpec_Voice.cpp
+    ${SRC_ROOT}/Core/ParametersSpec_ModMatrix.cpp
+    ${SRC_ROOT}/Core/ParametersSpec_SeqArp.cpp
+    ${SRC_ROOT}/Core/ParametersSpec_FX.cpp
+    ${SRC_ROOT}/Core/CalibrationSpec.cpp
+    ${SRC_ROOT}/Core/CalibrationSpec_Serialization.cpp
+    ${SRC_ROOT}/Core/RoundTripValidator.cpp
+
+    # ── Oscillators ──
+    ${SRC_ROOT}/DSP/OSC1.cpp
+    ${SRC_ROOT}/DSP/OSC2.cpp
+
+    # ── Filters ──
+    ${SRC_ROOT}/DSP/Filter.cpp
+    ${SRC_ROOT}/DSP/MoogLadderVCF.cpp
+    ${SRC_ROOT}/DSP/KorgMS20VCF.cpp
+    ${SRC_ROOT}/DSP/JunoVCF_ZDF.cpp
+    ${SRC_ROOT}/DSP/JunoVCF_ZDF_Process.cpp
+
+    # ── Modulators ──
+    ${SRC_ROOT}/DSP/Envelope.cpp
+    ${SRC_ROOT}/DSP/LFO.cpp
+    ${SRC_ROOT}/DSP/ModulationMatrix.cpp
+    ${SRC_ROOT}/DSP/DriftEngine.cpp
+
+    # ── Voice & Engine ──
+    ${SRC_ROOT}/DSP/SynthVoice.cpp
+    ${SRC_ROOT}/DSP/SynthVoice_Lifecycle.cpp
+    ${SRC_ROOT}/DSP/SynthVoice_Diagnostics.cpp
+    ${SRC_ROOT}/DSP/SynthVoice_Pitch.cpp
+    ${SRC_ROOT}/DSP/SynthVoice_Process.cpp
+    ${SRC_ROOT}/DSP/SynthVoice_Filter.cpp
+    ${SRC_ROOT}/DSP/SynthVoice_VCA.cpp
+    ${SRC_ROOT}/DSP/SynthEngine.cpp
+    ${SRC_ROOT}/DSP/SynthEngine_VoiceManager.cpp
+    ${SRC_ROOT}/DSP/SynthEngine_Parameters.cpp
+    ${SRC_ROOT}/DSP/SynthEngine_MIDI.cpp
+    ${SRC_ROOT}/DSP/SynthEngine_Snapshot.cpp
+
+    # ── FX Slots ──
+    ${SRC_ROOT}/DSP/FX/FXSlot.cpp
+    ${SRC_ROOT}/DSP/FX/FXSlot_Factory.cpp
+    ${SRC_ROOT}/DSP/FX/FXEngine.cpp
+    ${SRC_ROOT}/DSP/FX/FXEngine_Routing.cpp
+
+    # ── FX Effects (Standard) ──
+    ${SRC_ROOT}/DSP/FX/FXDelay.cpp
+    ${SRC_ROOT}/DSP/FX/FXChorus.cpp
+    ${SRC_ROOT}/DSP/FX/FXSimpleReverb.cpp
+    ${SRC_ROOT}/DSP/FX/FXSimpleReverb_Process.cpp
+    ${SRC_ROOT}/DSP/FX/FXFlanger.cpp
+    ${SRC_ROOT}/DSP/FX/FXPhaser.cpp
+    ${SRC_ROOT}/DSP/FX/FXRotarySpeaker.cpp
+    ${SRC_ROOT}/DSP/FX/FXAutoPan.cpp
+    ${SRC_ROOT}/DSP/FX/FXRackAmp.cpp
+    ${SRC_ROOT}/DSP/FX/FXMultiBandDist.cpp
+    ${SRC_ROOT}/DSP/FX/FXEdison.cpp
+    ${SRC_ROOT}/DSP/FX/FXMoodFilter.cpp
+    ${SRC_ROOT}/DSP/FX/FXEnhancer.cpp
+    ${SRC_ROOT}/DSP/FX/FXSimpleComp.cpp
+    ${SRC_ROOT}/DSP/FX/FXNoiseGate.cpp
+    ${SRC_ROOT}/DSP/FX/FXPitchShifter.cpp
+    ${SRC_ROOT}/DSP/FX/FXDecimDelay.cpp
+    ${SRC_ROOT}/DSP/FX/FXTapeDelay.cpp
+    ${SRC_ROOT}/DSP/FX/FXModDelayRev.cpp
+    ${SRC_ROOT}/DSP/FX/FXMidasEQ.cpp
+    ${SRC_ROOT}/DSP/FX/FXHybridReverb.cpp
+    ${SRC_ROOT}/DSP/FX/FXMultiTapDelay.cpp
+    ${SRC_ROOT}/DSP/FX/FXChorusD.cpp
+    ${SRC_ROOT}/DSP/FX/FXFairComp.cpp
+
+    # ── FX Effects (Advanced — IDs 36..56) ──
+    ${SRC_ROOT}/DSP/FX/FXRolandBBDChorus.cpp
+    ${SRC_ROOT}/DSP/FX/FXSolinaEnsemble.cpp
+    ${SRC_ROOT}/DSP/FX/FXRingModulator.cpp
+    ${SRC_ROOT}/DSP/FX/FXSpaceEchoRE201.cpp
+    ${SRC_ROOT}/DSP/FX/FXAnalogTapeDelay.cpp
+    ${SRC_ROOT}/DSP/FX/FXShimmerDelay.cpp
+    ${SRC_ROOT}/DSP/FX/FXGranularDelay.cpp
+    ${SRC_ROOT}/DSP/FX/FXPatternFreeze.cpp
+    ${SRC_ROOT}/DSP/FX/FXDuckingDelay.cpp
+    ${SRC_ROOT}/DSP/FX/FXSpectralDelay.cpp
+    ${SRC_ROOT}/DSP/FX/FXFrequencyShifter.cpp
+    ${SRC_ROOT}/DSP/FX/FXResonator.cpp
+    ${SRC_ROOT}/DSP/FX/FXCombulator.cpp
+    ${SRC_ROOT}/DSP/FX/FXVocoder.cpp
+    ${SRC_ROOT}/DSP/FX/FXVocoder_Filter.cpp
+    ${SRC_ROOT}/DSP/FX/FXVocoder_Process.cpp
+    ${SRC_ROOT}/DSP/FX/FXOversamplingDistortion.cpp
+    ${SRC_ROOT}/DSP/FX/FXWaveShaper.cpp
+    ${SRC_ROOT}/DSP/FX/FXFDNReverb.cpp
+    ${SRC_ROOT}/DSP/FX/FXZitaReverb.cpp
+    ${SRC_ROOT}/DSP/FX/FXNimbus.cpp
+    ${SRC_ROOT}/DSP/FX/FXBonsai.cpp
+    ${SRC_ROOT}/DSP/FX/FXTreemonster.cpp
+
+    # ── Calibration ──
+    ${SRC_ROOT}/Calibration/AudioABComparator.cpp
+    ${SRC_ROOT}/Calibration/AudioABComparator_Alignment.cpp
+    ${SRC_ROOT}/Calibration/AudioABComparator_Spectral.cpp
+    ${SRC_ROOT}/Calibration/AudioABRecorder.cpp
+    ${SRC_ROOT}/Calibration/AudioABRecorder_Process.cpp
+    ${SRC_ROOT}/Calibration/AudioABVerdictEngine.cpp
 )
 
-target_compile_definitions(abdeep_core PRIVATE
-    ${EEP_MODE_FLAG}=1
-    DEEP_TARGET_MODEL=${DEEP_TARGET_MODEL}
+# Configuration for abdeep_core has been removed since it is now merged into ABDEep_rc_lib
+
+# ============================================================
+# ABDEEP_RC_LIB_SOURCES — Shared Code Source Files
+# ============================================================
+set(ABDEEP_RC_LIB_SOURCES
+    # ── Core & DSP (Merged) ──
+    ${ABDEEP_CORE_SOURCES}
+
+    # ── Plugin Sources ──
+    ${SRC_ROOT}/Plugin/PluginProcessor.cpp
+    ${SRC_ROOT}/Plugin/PluginEditor.cpp
+    ${SRC_ROOT}/Plugin/PluginEditor_NativeFunctions.cpp
+    ${SRC_ROOT}/Plugin/PluginEditor_ResourceProvider.cpp
+
+    # ── Bridge Actions ──
+    ${SRC_ROOT}/Plugin/BridgeActions.cpp
+    ${SRC_ROOT}/Plugin/BridgeActions_Params.cpp
+    ${SRC_ROOT}/Plugin/BridgeActions_MIDI.cpp
+    ${SRC_ROOT}/Plugin/BridgeActions_State.cpp
+    ${SRC_ROOT}/Plugin/BridgeActions_File.cpp
+    ${SRC_ROOT}/Plugin/BridgeActions_Calibration.cpp
+    ${SRC_ROOT}/Plugin/BridgeActions_Calibration_Compare.cpp
 )
 
-# =============================================================================
-# Headless Unit Test Runner
-# =============================================================================
-# Compila y enlaza los mismos archivos FX que el plugin, pero como una
-# aplicación de consola que ejecuta juce::UnitTestRunner::runAllTests()
-# sin inicializar audio ni UI.
-
-juce_add_console_app(ABDEep_UnitTests
-    PRODUCT_NAME "ABD Eep Unit Tests"
+# ============================================================
+# WebUI Binary Data Target (Recursively gathered)
+# ============================================================
+file(GLOB_RECURSE WEBUI_FILES 
+    "WebUI/*.html"
+    "WebUI/*.css"
+    "WebUI/*.js"
+    "WebUI/*.png"
+    "WebUI/*.jpg"
+    "WebUI/*.ttf"
+    "WebUI/*.json"
 )
 
-# Agregar las mismas fuentes FX + el runner + ParametersSpec
-# (necesario para que los UnitTest estáticos se registren y linkeen)
-target_sources(ABDEep_UnitTests PRIVATE
-    Source/Tools/UnitTests/FXUnitTestsRunner.cpp
-    Source/Tools/UnitTests/SynthEngineUnitTests.cpp
-    Source/Tools/UnitTests/AudioABComparatorUnitTests.cpp
-    Source/DSP/FX/FXUnitTests.cpp
+juce_add_binary_data(ABDEep_WebUI SOURCES
+    ${WEBUI_FILES}
 )
 
-target_link_libraries(ABDEep_UnitTests PRIVATE
-    abdeep_core
-    juce::juce_audio_utils
-    juce::juce_audio_processors
-    juce::juce_gui_extra
-    juce::juce_dsp
-    juce::juce_recommended_config_flags
-    juce::juce_recommended_warning_flags
-)
+# ============================================================
+# Plugin Targets (Standalone + VST3)
+# ============================================================
+if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
 
-target_include_directories(ABDEep_UnitTests PRIVATE
-    Source
-    "${CMAKE_CURRENT_BINARY_DIR}/ABDEep_artefacts/JuceLibraryCode"
-)
+    juce_add_plugin(ABDEep_Standalone
+        PRODUCT_NAME "ABD Eep"
+        PLUGIN_MANUFACTURER_CODE "Abda"
+        PLUGIN_CODE "Deep"
+        PLUGIN_MANUFACTURER "ABDSynths"
+        PLUGIN_MANUFACTURER_WEBSITE ""
+        PLUGIN_MANUFACTURER_EMAIL ""
+        PLUGIN_IS_SYNTH TRUE
+        PLUGIN_PRODUCES_MIDI_OUTPUT TRUE
+        PLUGIN_WANTS_MIDI_INPUT TRUE
+        PLUGIN_EDITOR_REQUIRES_KEYBOARD_FOCUS TRUE
+        VERSION "0.1.0"
+        VERSION_STRING "0.1.0"
+        FORMATS Standalone VST3
+        PLUGIN_CATEGORY "Instrument|Synth"
+        NEEDS_WEBVIEW2 TRUE
+    )
 
-# Unit tests always compile with DEEP_TARGET_MODEL=2 (Enhanced) for full coverage
-target_compile_definitions(ABDEep_UnitTests PRIVATE
-    EEP_MODE_ENHANCED=1
-    DEEP_TARGET_MODEL=2
-)
+    # Generate JuceHeader.h BEFORE target_sources (required by AGENTS.md §1.2)
+    juce_generate_juce_header(ABDEep_Standalone)
 
-juce_generate_juce_header(ABDEep_UnitTests)
+    # Inject all common sources directly into the target
+    target_sources(ABDEep_Standalone PRIVATE ${ABDEEP_RC_LIB_SOURCES})
 
-# =============================================================================
-# Standalone Calibration Lab App (Enhanced mode only)
-# =============================================================================
-if(DEEP_TARGET_MODEL EQUAL 2)
+    # Include all needed folders for Standalone
+    target_include_directories(ABDEep_Standalone PRIVATE
+        ${SRC_ROOT}
+        ${SRC_ROOT}/Plugin
+        ${SRC_ROOT}/Core
+        ${SRC_ROOT}/DSP
+        ${SRC_ROOT}/Calibration
+    )
+
+    # Link DSP, Devices, Utils, and WebUI binary data modules
+    target_link_libraries(ABDEep_Standalone PRIVATE
+        juce::juce_dsp
+        juce::juce_audio_devices
+        juce::juce_audio_utils
+        ABDEep_WebUI
+    )
+
+    # Also configure VST3 target (created by juce_add_plugin FORMATS)
+    if(TARGET ABDEep_VST3)
+        juce_generate_juce_header(ABDEep_VST3)
+        target_sources(ABDEep_VST3 PRIVATE ${ABDEEP_RC_LIB_SOURCES})
+        target_include_directories(ABDEep_VST3 PRIVATE
+            ${SRC_ROOT}
+            ${SRC_ROOT}/Plugin
+            ${SRC_ROOT}/Core
+            ${SRC_ROOT}/DSP
+            ${SRC_ROOT}/Calibration
+        )
+        target_link_libraries(ABDEep_VST3 PRIVATE
+            juce::juce_dsp
+            juce::juce_audio_devices
+            juce::juce_audio_utils
+            ABDEep_WebUI
+        )
+    endif()
+
+endif()
+
+# ============================================================
+# Calibration Lab — Standalone GUI App
+# ============================================================
+if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
+
     juce_add_gui_app(ABDEepCalibrationLab
         PRODUCT_NAME "ABD Eep Calibration Lab"
-        BUNDLE_ID com.abd.abdeep.calibrationlab
-    )
-
-    target_sources(ABDEepCalibrationLab PRIVATE
-        Source/Tools/CalibrationLab/CalibrationLabMain.cpp
-        Source/Tools/CalibrationLab/CalibrationLabWindow.h
-        Source/Tools/CalibrationLab/CalibrationLabWindow.cpp
-        Source/Tools/CalibrationLab/CalibrationLabContentComponent.h
-        Source/Tools/CalibrationLab/CalibrationLabContentComponent.cpp
-        Source/Tools/CalibrationLab/ParamTraceTableModel.h
-        Source/Tools/CalibrationLab/ParamTraceTableModel.cpp
-        Source/Tools/CalibrationLab/ParamTraceViewComponent.h
-        Source/Tools/CalibrationLab/ParamTraceViewComponent.cpp
-        Source/Tools/CalibrationLab/PatchDiffViewComponent.h
-        Source/Tools/CalibrationLab/PatchDiffViewComponent.cpp
-        Source/Tools/CalibrationLab/RoundTripViewComponent.h
-        Source/Tools/CalibrationLab/RoundTripViewComponent.cpp
-        Source/Tools/CalibrationLab/LiveValidationViewComponent.h
-        Source/Tools/CalibrationLab/LiveValidationViewComponent.cpp
-        Source/Tools/CalibrationLab/AudioABValidationViewComponent.h
-        Source/Tools/CalibrationLab/AudioABValidationViewComponent.cpp
-        Source/Tools/CalibrationLab/CalibrationEditorViewComponent.h
-        Source/Tools/CalibrationLab/CalibrationEditorViewComponent.cpp
-    )
-
-    target_include_directories(ABDEepCalibrationLab PRIVATE
-        Source
-        "${CMAKE_CURRENT_BINARY_DIR}/ABDEepCalibrationLab_artefacts/JuceLibraryCode"
-    )
-
-    target_link_libraries(ABDEepCalibrationLab PRIVATE
-        abdeep_core
-        juce::juce_audio_utils
-        juce::juce_audio_processors
-        juce::juce_gui_extra
-        juce::juce_dsp
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_warning_flags
-    )
-
-    target_compile_definitions(ABDEepCalibrationLab PRIVATE
-        EEP_MODE_ENHANCED=1
-        DEEP_TARGET_MODEL=2
+        VERSION "0.1.0"
+        NEEDS_WEBVIEW2 TRUE
     )
 
     juce_generate_juce_header(ABDEepCalibrationLab)
+
+    target_sources(ABDEepCalibrationLab PRIVATE
+        ${ABDEEP_CORE_SOURCES}
+        ${SRC_ROOT}/Tools/CalibrationLab/CalibrationLabMain.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/CalibrationLabContentComponent.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/CalibrationLabWindow.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/CalibrationEditorViewComponent.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/CalibrationEditorViewComponent_IO.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/CalibrationEditorViewComponent_Meta.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/AudioABValidationViewComponent.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/AudioABValidationViewComponent_Audio.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/AudioABValidationViewComponent_Comparison.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/AudioABValidationViewComponent_SysEx.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/LiveValidationViewComponent.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/LiveValidationViewComponent_Table.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/LiveValidationViewComponent_Validation.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/PatchDiffViewComponent.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/PatchDiffViewComponent_File.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/PatchDiffViewComponent_Table.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/RoundTripViewComponent.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/ParamTraceViewComponent.cpp
+        ${SRC_ROOT}/Tools/CalibrationLab/ParamTraceTableModel.cpp
+    )
+
+    target_link_libraries(ABDEepCalibrationLab PRIVATE
+        juce::juce_dsp
+        juce::juce_gui_basics
+        juce::juce_gui_extra
+        juce::juce_events
+        juce::juce_graphics
+        juce::juce_data_structures
+        juce::juce_audio_basics
+        juce::juce_audio_formats
+        juce::juce_audio_devices
+        juce::juce_audio_utils
+        juce::juce_audio_processors
+    )
+
+    target_include_directories(ABDEepCalibrationLab PRIVATE
+        ${SRC_ROOT}
+        ${SRC_ROOT}/Tools/CalibrationLab
+        ${SRC_ROOT}/Core
+        ${SRC_ROOT}/DSP
+        ${SRC_ROOT}/Calibration
+        ${CMAKE_CURRENT_BINARY_DIR}/ABDEepCalibrationLab_artefacts/JuceLibraryCode
+    )
+
 endif()
+
+# ============================================================
+# Unit Tests — Catch2 Console App
+# ============================================================
+if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
+
+    juce_add_console_app(ABDEep_UnitTests
+         PRODUCT_NAME "ABD Eep Unit Tests"
+         VERSION "0.1.0"
+    )
+
+    juce_generate_juce_header(ABDEep_UnitTests)
+
+    target_sources(ABDEep_UnitTests PRIVATE
+        ${ABDEEP_CORE_SOURCES}
+        # ── Test Runners ──
+        ${SRC_ROOT}/Tools/UnitTests/FXUnitTestsRunner.cpp
+
+        # ── Engine Tests ──
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_Voice.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_Drift.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_Pitch.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_VCF.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_CalSpec.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_Panic.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_Transfer.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_RapidSweep.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_MIDITiming.cpp
+
+        # ── Fast-math tolerance tests (Tier 3 candidates) ──
+        ${SRC_ROOT}/Tools/UnitTests/FastMathUnitTests.cpp
+
+        # ── FX Tests ──
+        ${SRC_ROOT}/DSP/FX/FXUnitTests.cpp
+        ${SRC_ROOT}/DSP/FX/FXUnitTests_Standard.cpp
+        ${SRC_ROOT}/DSP/FX/FXUnitTests_Advanced.cpp
+        ${SRC_ROOT}/DSP/FX/FXUnitTests_Fidelity.cpp
+
+        # ── AudioAB Tests ──
+        ${SRC_ROOT}/Tools/UnitTests/AudioABComparatorUnitTests.cpp
+    )
+
+    target_link_libraries(ABDEep_UnitTests PRIVATE
+        juce::juce_dsp
+        juce::juce_gui_basics
+        juce::juce_gui_extra
+        juce::juce_events
+        juce::juce_graphics
+        juce::juce_data_structures
+        juce::juce_audio_basics
+        juce::juce_audio_formats
+        juce::juce_audio_devices
+        juce::juce_audio_utils
+        juce::juce_audio_processors
+    )
+
+    target_include_directories(ABDEep_UnitTests PRIVATE
+        ${SRC_ROOT}
+        ${SRC_ROOT}/DSP
+        ${SRC_ROOT}/DSP/FX
+        ${SRC_ROOT}/Tools/UnitTests
+        ${SRC_ROOT}/Core
+        ${SRC_ROOT}/Calibration
+        ${CMAKE_CURRENT_BINARY_DIR}/ABDEep_UnitTests_artefacts/JuceLibraryCode
+    )
+
+endif()
+
+# ============================================================
+# Benchmarks — Headless console app (processBlock timing + allocation audit)
+# ============================================================
+if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
+
+    juce_add_console_app(ABDEep_Benchmarks
+        PRODUCT_NAME "ABD Eep Benchmarks"
+        VERSION "0.1.0"
+    )
+
+    juce_generate_juce_header(ABDEep_Benchmarks)
+
+    target_sources(ABDEep_Benchmarks PRIVATE
+        ${ABDEEP_CORE_SOURCES}
+        ${SRC_ROOT}/Tools/Benchmarks/ProcessBlockBenchmark.cpp
+    )
+
+    target_link_libraries(ABDEep_Benchmarks PRIVATE
+        juce::juce_dsp
+        juce::juce_gui_basics
+        juce::juce_gui_extra
+        juce::juce_events
+        juce::juce_graphics
+        juce::juce_data_structures
+        juce::juce_audio_basics
+        juce::juce_audio_formats
+        juce::juce_audio_devices
+        juce::juce_audio_utils
+        juce::juce_audio_processors
+    )
+
+    target_include_directories(ABDEep_Benchmarks PRIVATE
+        ${SRC_ROOT}
+        ${SRC_ROOT}/DSP
+        ${SRC_ROOT}/DSP/FX
+        ${SRC_ROOT}/Core
+        ${SRC_ROOT}/Calibration
+        ${CMAKE_CURRENT_BINARY_DIR}/ABDEep_Benchmarks_artefacts/JuceLibraryCode
+    )
+
+endif()
+
+# ============================================================
+# Global compile definitions
+# ============================================================
+add_compile_definitions(
+    JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1
+    DEEP_TARGET_MODEL=${DEEP_TARGET_MODEL}
+    EEP_MODE_ENHANCED=${EEP_MODE_ENHANCED}
+    JUCE_VST3_CAN_REPLACE_VST2=0
+)
+
+# WebView2 SOLO en los targets que usan el editor web. Un define global
+# (JUCE_USE_WIN_WEBVIEW2) haría que juce_gui_extra.cpp incluyera WebView2.h
+# en TODOS los targets — los de consola (UnitTests/Benchmarks) no lo usan
+# y CI no tiene instalado el SDK.
+foreach(WEBVIEW2_TARGET IN ITEMS ABDEep_Standalone ABDEep_VST3 ABDEepCalibrationLab)
+    if(TARGET ${WEBVIEW2_TARGET})
+        target_compile_definitions(${WEBVIEW2_TARGET} PRIVATE
+            JUCE_USE_WIN_WEBVIEW2=1
+            JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING=1
+            JUCE_WEB_BROWSER=1
+        )
+    endif()
+endforeach()

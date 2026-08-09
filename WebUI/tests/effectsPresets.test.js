@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/effects_presets.js — FX preset CRUD in localStorage
  *
@@ -15,16 +16,67 @@ const mockLS = {
 };
 globalThis.localStorage = mockLS;
 globalThis.window = globalThis.window || {};
+globalThis.window.FX_TYPE_NAMES = globalThis.window.FX_TYPE_NAMES || [];
+globalThis.window._fxPresetFilterMode = 'active';
 globalThis.document = globalThis.document || { getElementById: function() { return null; } };
 
 // ===== Extracted Source =====
 
 const DEFAULT_FX_PRESETS = [
-    { name: 'Lush Chorus-D',    slot: 1, type: 29/35.0, gain: 1.0, params: [0.35,0.40,0.50,0.20,0.80,0.10,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000000 },
-    { name: 'Stereo Delay PingPong', slot: 1, type: 22/35.0, gain: 0.8, params: [0.50,0.75,0.45,0.30,0.50,0.50,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000001 },
-    { name: 'TC Deep Reverb Hall',  slot: 1, type: 2/35.0,  gain: 0.9, params: [0.15,0.70,0.80,0.50,0.35,0.60,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000002 },
-    { name: 'Vintage Room Ambience', slot: 1, type: 4/35.0, gain: 1.0, params: [0.05,0.35,0.40,0.60,0.50,0.50,0.10,0.90,0.50,0.50,0.50,0.50], created: 1720000000003 },
-    { name: 'Lush Stereo Phaser',  slot: 1, type: 31/35.0, gain: 1.0, params: [0.20,0.65,0.40,0.50,0.50,0.50,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000004 }
+    // ── Existing presets (types 0–35) ──────────────────────────────────────
+    { name: 'Lush Chorus-D',    slot: 1, type: 29/56.0, gain: 1.0, params: [0.35,0.40,0.50,0.20,0.80,0.10,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000000 },
+    { name: 'Stereo Delay PingPong', slot: 1, type: 22/56.0, gain: 0.8, params: [0.50,0.75,0.45,0.30,0.50,0.50,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000001 },
+    { name: 'TC Deep Reverb Hall',  slot: 1, type: 2/56.0,  gain: 0.9, params: [0.15,0.70,0.80,0.50,0.35,0.60,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000002 },
+    { name: 'Vintage Room Ambience', slot: 1, type: 4/56.0, gain: 1.0, params: [0.05,0.35,0.40,0.60,0.50,0.50,0.10,0.90,0.50,0.50,0.50,0.50], created: 1720000000003 },
+    { name: 'Lush Stereo Phaser',  slot: 1, type: 31/56.0, gain: 1.0, params: [0.20,0.65,0.40,0.50,0.50,0.50,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000004 },
+    // ── Advanced FX presets (types 36–56) ──────────────────────────────────
+    { name: 'Juno-106 Chorus I',    slot: 1, type: 36/56.0, gain: 1.0,  params: [0.05,0.00,0.00,0.00,0.65,0.80,0.45,0.50,0.50,0.50,0.50,0.50], created: 1720000000010 },
+    { name: 'Slow BBD Swirl',       slot: 1, type: 36/56.0, gain: 0.95, params: [0.10,0.00,0.00,0.00,0.55,0.75,0.35,0.25,0.50,0.50,0.50,0.50], created: 1720000000011 },
+    { name: 'Ensemble Triple',      slot: 1, type: 36/56.0, gain: 0.85, params: [0.08,0.00,0.00,0.00,0.70,0.85,0.60,0.70,0.50,0.50,0.50,0.50], created: 1720000000012 },
+    { name: 'Solina String Pad',    slot: 1, type: 37/56.0, gain: 1.0,  params: [0.00,0.00,0.00,0.00,0.60,0.90,0.40,0.60,0.50,0.50,0.50,0.50], created: 1720000000020 },
+    { name: 'Orchestral Warmth',    slot: 1, type: 37/56.0, gain: 0.9,  params: [0.00,0.00,0.00,0.00,0.55,0.80,0.30,0.40,0.50,0.50,0.50,0.50], created: 1720000000021 },
+    { name: 'Bell Tone Metallic',   slot: 1, type: 38/56.0, gain: 0.75, params: [0.00,0.00,0.00,0.00,0.50,0.70,0.80,0.20,0.50,0.50,0.50,0.50], created: 1720000000030 },
+    { name: 'Alien Texture',        slot: 1, type: 38/56.0, gain: 0.70, params: [0.00,0.00,0.00,0.00,0.50,0.65,0.30,0.90,0.50,0.50,0.50,0.50], created: 1720000000031 },
+    { name: 'RE-201 Dub Echo',      slot: 1, type: 39/56.0, gain: 0.85, params: [0.10,0.60,0.50,0.30,0.50,0.70,0.40,0.80,0.50,0.50,0.50,0.50], created: 1720000000040 },
+    { name: 'Tape Slap-Back',       slot: 1, type: 39/56.0, gain: 0.90, params: [0.02,0.25,0.15,0.20,0.50,0.65,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000041 },
+    { name: 'Self-Oscillate Trips', slot: 1, type: 39/56.0, gain: 0.80, params: [0.15,0.80,0.60,0.40,0.50,0.90,0.60,0.95,0.50,0.50,0.50,0.50], created: 1720000000042 },
+    { name: 'Warm Tape Echo',       slot: 1, type: 40/56.0, gain: 0.85, params: [0.05,0.50,0.35,0.25,0.50,0.70,0.45,0.60,0.50,0.50,0.50,0.50], created: 1720000000050 },
+    { name: 'Lo-Fi Degraded Tape',  slot: 1, type: 40/56.0, gain: 0.80, params: [0.05,0.40,0.30,0.15,0.50,0.60,0.80,0.70,0.50,0.50,0.50,0.50], created: 1720000000051 },
+    { name: 'Precision Tape',       slot: 1, type: 40/56.0, gain: 0.90, params: [0.03,0.35,0.25,0.10,0.50,0.60,0.20,0.30,0.50,0.50,0.50,0.50], created: 1720000000052 },
+    { name: 'Space Shimmer Cath.',  slot: 1, type: 41/56.0, gain: 0.80, params: [0.10,0.85,0.80,0.50,0.50,0.75,0.50,0.40,0.50,0.50,0.50,0.50], created: 1720000000060 },
+    { name: 'Ethereal Float',       slot: 1, type: 41/56.0, gain: 0.75, params: [0.20,0.90,0.90,0.60,0.50,0.70,0.35,0.30,0.50,0.50,0.50,0.50], created: 1720000000061 },
+    { name: 'Dark Shimmer',         slot: 1, type: 41/56.0, gain: 0.85, params: [0.15,0.80,0.75,0.80,0.50,0.80,0.55,0.45,0.50,0.50,0.50,0.50], created: 1720000000062 },
+    { name: 'Granular Frozen Sky',  slot: 1, type: 42/56.0, gain: 0.80, params: [0.10,0.70,0.85,0.40,0.50,0.75,0.70,0.60,0.50,0.50,0.50,0.50], created: 1720000000070 },
+    { name: 'Micro Grain Rain',     slot: 1, type: 42/56.0, gain: 0.85, params: [0.05,0.60,0.50,0.30,0.50,0.65,0.90,0.80,0.50,0.50,0.50,0.50], created: 1720000000071 },
+    { name: 'Pitch Scatter',        slot: 1, type: 42/56.0, gain: 0.75, params: [0.15,0.65,0.70,0.35,0.50,0.70,0.50,0.90,0.50,0.50,0.50,0.50], created: 1720000000072 },
+    { name: 'Rhythmic Stutter',     slot: 1, type: 43/56.0, gain: 0.80, params: [0.05,0.30,0.00,0.00,0.50,0.60,0.70,0.50,0.50,0.50,0.50,0.50], created: 1720000000080 },
+    { name: 'Evolving Texture',     slot: 1, type: 43/56.0, gain: 0.75, params: [0.20,0.80,0.50,0.40,0.50,0.55,0.60,0.70,0.50,0.50,0.50,0.50], created: 1720000000081 },
+    { name: 'Vocal Clarity Delay',  slot: 1, type: 44/56.0, gain: 0.85, params: [0.05,0.40,0.30,0.25,0.50,0.65,0.80,0.40,0.50,0.50,0.50,0.50], created: 1720000000090 },
+    { name: 'Pluck Duck Echo',      slot: 1, type: 44/56.0, gain: 0.90, params: [0.03,0.30,0.20,0.15,0.50,0.60,0.90,0.30,0.50,0.50,0.50,0.50], created: 1720000000091 },
+    { name: 'Ambient Duck',         slot: 1, type: 44/56.0, gain: 0.80, params: [0.15,0.65,0.55,0.40,0.50,0.70,0.70,0.50,0.50,0.50,0.50,0.50], created: 1720000000092 },
+    { name: 'Spectral Blur',        slot: 1, type: 45/56.0, gain: 0.80, params: [0.10,0.70,0.60,0.45,0.80,0.65,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000100 },
+    { name: 'Freq Split Echo',      slot: 1, type: 45/56.0, gain: 0.85, params: [0.08,0.55,0.45,0.30,0.70,0.60,0.40,0.70,0.50,0.50,0.50,0.50], created: 1720000000101 },
+    { name: 'Metallic Ring',        slot: 1, type: 46/56.0, gain: 0.75, params: [0.00,0.00,0.00,0.00,0.50,0.70,0.65,0.30,0.50,0.50,0.50,0.50], created: 1720000000110 },
+    { name: 'Alien Sweep',          slot: 1, type: 46/56.0, gain: 0.70, params: [0.00,0.00,0.00,0.00,0.50,0.65,0.20,0.85,0.50,0.50,0.50,0.50], created: 1720000000111 },
+    { name: 'Acoustic Body',        slot: 1, type: 47/56.0, gain: 0.85, params: [0.00,0.35,0.45,0.20,0.50,0.60,0.55,0.40,0.50,0.50,0.50,0.50], created: 1720000000120 },
+    { name: 'Harmonic Bloom',       slot: 1, type: 47/56.0, gain: 0.80, params: [0.10,0.50,0.60,0.35,0.50,0.55,0.40,0.60,0.50,0.50,0.50,0.50], created: 1720000000121 },
+    { name: 'Metallic Comb',        slot: 1, type: 48/56.0, gain: 0.80, params: [0.02,0.30,0.40,0.15,0.50,0.65,0.60,0.70,0.50,0.50,0.50,0.50], created: 1720000000130 },
+    { name: 'Resonant Modal',       slot: 1, type: 48/56.0, gain: 0.85, params: [0.05,0.40,0.50,0.25,0.50,0.70,0.45,0.55,0.50,0.50,0.50,0.50], created: 1720000000131 },
+    { name: 'Classic Robot Voice',  slot: 1, type: 49/56.0, gain: 0.80, params: [0.00,0.00,0.00,0.00,0.50,0.75,0.80,0.20,0.50,0.50,0.50,0.50], created: 1720000000140 },
+    { name: 'Whisper Synth',        slot: 1, type: 49/56.0, gain: 0.85, params: [0.00,0.00,0.00,0.00,0.50,0.70,0.50,0.50,0.50,0.50,0.50,0.50], created: 1720000000141 },
+    { name: 'Metallic Vocoder',     slot: 1, type: 49/56.0, gain: 0.75, params: [0.00,0.00,0.00,0.00,0.50,0.65,0.90,0.35,0.50,0.50,0.50,0.50], created: 1720000000142 },
+    { name: 'Warm Saturation',      slot: 1, type: 50/56.0, gain: 0.75, params: [0.00,0.00,0.00,0.00,0.50,0.60,0.35,0.40,0.50,0.50,0.50,0.50], created: 1720000000150 },
+    { name: 'Crunch Guitar Amp',    slot: 1, type: 50/56.0, gain: 0.70, params: [0.00,0.00,0.00,0.00,0.50,0.55,0.70,0.60,0.50,0.50,0.50,0.50], created: 1720000000151 },
+    { name: 'Brickwall Limiter',    slot: 1, type: 50/56.0, gain: 0.80, params: [0.00,0.00,0.00,0.00,0.50,0.65,0.90,0.25,0.50,0.50,0.50,0.50], created: 1720000000152 },
+    { name: 'Soft Tanh Clip',       slot: 1, type: 51/56.0, gain: 0.80, params: [0.00,0.00,0.00,0.00,0.50,0.70,0.30,0.30,0.50,0.50,0.50,0.50], created: 1720000000160 },
+    { name: 'Hard Bit Crush',       slot: 1, type: 51/56.0, gain: 0.70, params: [0.00,0.00,0.00,0.00,0.50,0.60,0.85,0.75,0.50,0.50,0.50,0.50], created: 1720000000161 },
+    { name: 'Dense Hall FDN',       slot: 1, type: 52/56.0, gain: 0.85, params: [0.10,0.85,0.90,0.50,0.75,0.70,0.45,0.40,0.50,0.50,0.50,0.50], created: 1720000000170 },
+    { name: 'Plate Diffuse',        slot: 1, type: 52/56.0, gain: 0.90, params: [0.05,0.60,0.50,0.35,0.90,0.65,0.35,0.30,0.50,0.50,0.50,0.50], created: 1720000000171 },
+    { name: 'Clean Hall Zita',      slot: 1, type: 53/56.0, gain: 0.90, params: [0.05,0.80,0.85,0.40,0.50,0.75,0.40,0.35,0.50,0.50,0.50,0.50], created: 1720000000180 },
+    { name: 'Cathedral Long Tail',  slot: 1, type: 53/56.0, gain: 0.85, params: [0.15,0.95,0.95,0.60,0.50,0.80,0.50,0.45,0.50,0.50,0.50,0.50], created: 1720000000181 },
+    { name: 'Nimbus Freeze',        slot: 1, type: 54/56.0, gain: 0.80, params: [0.15,0.70,0.80,0.50,0.50,0.70,0.60,0.50,0.50,0.50,0.50,0.50], created: 1720000000190 },
+    { name: 'Lo-Fi Bonsai',         slot: 1, type: 55/56.0, gain: 0.80, params: [0.05,0.40,0.35,0.20,0.50,0.60,0.75,0.80,0.50,0.50,0.50,0.50], created: 1720000000200 },
+    { name: 'Treemonster Drift',    slot: 1, type: 56/56.0, gain: 0.75, params: [0.10,0.50,0.60,0.30,0.50,0.55,0.50,0.70,0.50,0.50,0.50,0.50], created: 1720000000210 }
 ];
 
 function loadAllFxPresets(storage) {
@@ -120,7 +172,7 @@ function findMatchingFxPresetName(type, gain, params, storage, factoryPresets) {
     const searchPresets = function(presets) {
         for (let i = 0; i < presets.length; i++) {
             const p = presets[i];
-            if (Math.round(p.type * 35) === Math.round(type * 35)) {
+            if (Math.round(p.type * 56) === Math.round(type * 56)) {
                 let match = true;
                 if (Math.abs(p.gain - gain) > 0.03) {match = false;}
                 for (let j = 0; j < 12 && j < p.params.length; j++) {
@@ -174,7 +226,7 @@ function extractAndSaveNewPresetsFromBank(bankName, patches, storage, factoryFxP
             const typeVal = b[slot.typeByte];
             if (typeVal > 0 && typeVal < 36) {
                 const typeName = FX_TYPE_NAMES_MOCK[typeVal];
-                const typeValNorm = typeVal / 35.0;
+                const typeValNorm = typeVal / 56.0;
                 const gain = b[slot.gainByte] / 255.0;
                 const params = [];
                 for (let p = 0; p < 12; p++) {
@@ -183,12 +235,12 @@ function extractAndSaveNewPresetsFromBank(bankName, patches, storage, factoryFxP
 
                 let alreadyExists = false;
                 if (factoryFxPresets) {
-                    for (var i = 0; i < factoryFxPresets.length; i++) {
+                    for (let i = 0; i < factoryFxPresets.length; i++) {
                         const fp = factoryFxPresets[i];
-                        if (Math.round(fp.type * 35) === typeVal) {
-                            var match = true;
+                        if (Math.round(fp.type * 56) === typeVal) {
+let match = true;
                             if (Math.abs(fp.gain - gain) > 0.03) {match = false;}
-                            for (var j = 0; j < 12; j++) {
+                            for (let j = 0; j < 12; j++) {
                                 if (Math.abs(fp.params[j] - params[j]) > 0.03) {
                                     match = false;
                                     break;
@@ -199,12 +251,12 @@ function extractAndSaveNewPresetsFromBank(bankName, patches, storage, factoryFxP
                     }
                 }
                 if (!alreadyExists) {
-                    for (var i = 0; i < userFxPresets.length; i++) {
+                    for (let i = 0; i < userFxPresets.length; i++) {
                         const up = userFxPresets[i];
-                        if (Math.round(up.type * 35) === typeVal) {
-                            var match = true;
+                        if (Math.round(up.type * 56) === typeVal) {
+let match = true;
                             if (Math.abs(up.gain - gain) > 0.03) {match = false;}
-                            for (var j = 0; j < 12; j++) {
+                            for (let j = 0; j < 12; j++) {
                                 if (Math.abs(up.params[j] - params[j]) > 0.03) {
                                     match = false;
                                     break;
@@ -245,10 +297,10 @@ function extractAndSaveNewPresetsFromBank(bankName, patches, storage, factoryFxP
         if (!isZero && (max - min) >= 15) {
             let alreadyExists = false;
             if (factorySeqPresets) {
-                for (var i = 0; i < factorySeqPresets.length; i++) {
+                for (let i = 0; i < factorySeqPresets.length; i++) {
                     const fp = factorySeqPresets[i];
-                    var match = true;
-                    for (var j = 0; j < 32; j++) {
+let match = true;
+                    for (let j = 0; j < 32; j++) {
                         if (Math.abs(fp.steps[j] - steps[j]) > 5) {
                             match = false;
                             break;
@@ -258,10 +310,10 @@ function extractAndSaveNewPresetsFromBank(bankName, patches, storage, factoryFxP
                 }
             }
             if (!alreadyExists) {
-                for (var i = 0; i < userSeqPresets.length; i++) {
+                for (let i = 0; i < userSeqPresets.length; i++) {
                     const up = userSeqPresets[i];
-                    var match = true;
-                    for (var j = 0; j < 32; j++) {
+let match = true;
+                    for (let j = 0; j < 32; j++) {
                         if (Math.abs(up.steps[j] - steps[j]) > 5) {
                             match = false;
                             break;
@@ -292,11 +344,23 @@ function extractAndSaveNewPresetsFromBank(bankName, patches, storage, factoryFxP
     return { fxCount: newFxCount, seqCount: newSeqCount };
 }
 
+function getFilteredPresetIndices(allPresets, filterMode, activeType) {
+    const displayIndices = [];
+    if (filterMode === 'active' && activeType >= 0) {
+        for (let i = allPresets.length - 1; i >= 0; i--) {
+            if (Math.round(allPresets[i].type * 56) === activeType) {displayIndices.push(i);}
+        }
+    } else {
+        for (let i = allPresets.length - 1; i >= 0; i--) {displayIndices.push(i);}
+    }
+    return displayIndices;
+}
+
 // ===== Tests =====
 
 describe('DEFAULT_FX_PRESETS — built-in presets', function() {
-    it('has 5 default presets', function() {
-        expect(DEFAULT_FX_PRESETS.length).toBe(5);
+    it('has 52 default presets', function() {
+        expect(DEFAULT_FX_PRESETS.length).toBe(52);
     });
 
     it('each preset has name, slot, type, gain, params, created', function() {
@@ -351,7 +415,7 @@ describe('loadAllFxPresets — localStorage loading', function() {
 
     it('returns DEFAULT_FX_PRESETS when storage is empty (first run)', function() {
         const result = loadAllFxPresets(mockLS);
-        expect(result.length).toBe(5);
+        expect(result.length).toBe(52);
         expect(result[0].name).toBe('Lush Chorus-D');
         // Also saves defaults to storage
         expect(mockLS.getItem('abd-eep-fx-presets')).toBeDefined();
@@ -409,8 +473,8 @@ describe('saveFxPreset — saving with CRUD', function() {
         saveFxPreset('My Preset', 1, readFn, mockLS);
         saveFxPreset('My Preset', 2, readFn, mockLS);
         const allPresets = loadAllFxPresets(mockLS);
-        // Should be 6 total (5 defaults + 1 unique, updated in-place)
-        expect(allPresets.length).toBe(6);
+        // Should be 53 total (52 defaults + 1 unique, updated in-place)
+        expect(allPresets.length).toBe(53);
         let found = false;
         for (let i = 0; i < allPresets.length; i++) {
             if (allPresets[i].name === 'My Preset') {
@@ -468,16 +532,16 @@ describe('deleteFxPreset', function() {
     it('deletes a preset by name', function() {
         const result = deleteFxPreset('Lush Chorus-D', mockLS);
         expect(result.deleted).toBe(true);
-        expect(result.remaining).toBe(4);
+        expect(result.remaining).toBe(51);
         const presets = loadAllFxPresets(mockLS);
-        expect(presets.length).toBe(4);
+        expect(presets.length).toBe(51);
         expect(presets[0].name).toBe('Stereo Delay PingPong');
     });
 
     it('returns deleted=false for non-existent name', function() {
         const result = deleteFxPreset('NonExistent', mockLS);
         expect(result.deleted).toBe(false);
-        expect(result.remaining).toBe(5);
+        expect(result.remaining).toBe(52);
     });
 });
 
@@ -523,8 +587,8 @@ describe('findMatchingFxPresetName', function() {
     });
 
     it('matches a default preset by type, gain, and params', function() {
-        // Lush Chorus-D: type=29/35≈0.8286, gain=1.0, params=[0.35,0.40,0.50,...]
-        const matchType = 29 / 35.0;
+        // Lush Chorus-D: type=29/56≈0.5179, gain=1.0, params=[0.35,0.40,0.50,...]
+        const matchType = 29 / 56.0;
         const matchParams = [0.35, 0.40, 0.50, 0.20, 0.80, 0.10, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50];
         // Need to load defaults first
         loadAllFxPresets(mockLS);
@@ -540,7 +604,7 @@ describe('findMatchingFxPresetName', function() {
 
     it('filters by gain tolerance (±0.03)', function() {
         loadAllFxPresets(mockLS);
-        const matchType = 29 / 35.0;
+        const matchType = 29 / 56.0;
         const matchParams = [0.35, 0.40, 0.50, 0.20, 0.80, 0.10, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50];
         // gain 0.9 doesn't match 1.0 within ±0.03
         const result = findMatchingFxPresetName(matchType, 0.9, matchParams, mockLS, []);
@@ -549,10 +613,10 @@ describe('findMatchingFxPresetName', function() {
 
     it('searches factory presets after user presets', function() {
         const factoryPresets = [
-            { name: 'Factory Reverb', type: 10/35.0, gain: 0.8, params: [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5] }
+            { name: 'Factory Reverb', type: 10/56.0, gain: 0.8, params: [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5] }
         ];
         loadAllFxPresets(mockLS);
-        const result = findMatchingFxPresetName(10/35.0, 0.8,
+        const result = findMatchingFxPresetName(10/56.0, 0.8,
             [0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
             mockLS, factoryPresets);
         expect(result).toBe('Factory Reverb');
@@ -624,5 +688,60 @@ describe('extractAndSaveNewPresetsFromBank', function() {
         // 2. Second run detects it already exists in user presets
         const result2 = extractAndSaveNewPresetsFromBank('Bank Test', patches, mockStorage, [], [], loadUserSeqFn, saveUserSeqFn);
         expect(result2.fxCount).toBe(0);
+    });
+});
+
+describe('getFilteredPresetIndices — filter logic', function() {
+    it('returns all 52 presets in reverse order when filterMode is "all"', function() {
+        const indices = getFilteredPresetIndices(DEFAULT_FX_PRESETS, 'all', -1);
+        expect(indices.length).toBe(52);
+        expect(indices[0]).toBe(51);
+        expect(indices[51]).toBe(0);
+    });
+
+    it('returns only type-29 presets (Lush Chorus-D) when activeType=29', function() {
+        const indices = getFilteredPresetIndices(DEFAULT_FX_PRESETS, 'active', 29);
+        expect(indices.length).toBe(1);
+        expect(DEFAULT_FX_PRESETS[indices[0]].name).toBe('Lush Chorus-D');
+    });
+
+    it('returns only type-36 presets (Juno-106 Chorus I, Slow BBD Swirl, Ensemble Triple)', function() {
+        const indices = getFilteredPresetIndices(DEFAULT_FX_PRESETS, 'active', 36);
+        expect(indices.length).toBe(3);
+        const names = indices.map(function(i) { return DEFAULT_FX_PRESETS[i].name; });
+        expect(names).toContain('Juno-106 Chorus I');
+        expect(names).toContain('Slow BBD Swirl');
+        expect(names).toContain('Ensemble Triple');
+    });
+
+    it('returns empty when activeType has no matching presets', function() {
+        const indices = getFilteredPresetIndices(DEFAULT_FX_PRESETS, 'active', 99);
+        expect(indices.length).toBe(0);
+    });
+
+    it('returns all when filterMode is "all" regardless of activeType', function() {
+        const indices = getFilteredPresetIndices(DEFAULT_FX_PRESETS, 'all', 29);
+        expect(indices.length).toBe(52);
+    });
+
+    it('returns all when filterMode is "active" but activeType is -1', function() {
+        const indices = getFilteredPresetIndices(DEFAULT_FX_PRESETS, 'active', -1);
+        expect(indices.length).toBe(52);
+    });
+
+    it('returns only type-53 presets (Clean Hall Zita, Cathedral Long Tail)', function() {
+        const indices = getFilteredPresetIndices(DEFAULT_FX_PRESETS, 'active', 53);
+        expect(indices.length).toBe(2);
+        const names = indices.map(function(i) { return DEFAULT_FX_PRESETS[i].name; });
+        expect(names).toContain('Clean Hall Zita');
+        expect(names).toContain('Cathedral Long Tail');
+    });
+
+    it('preserves reverse order within filtered results', function() {
+        const indices = getFilteredPresetIndices(DEFAULT_FX_PRESETS, 'active', 39);
+        expect(indices.length).toBe(3);
+        expect(DEFAULT_FX_PRESETS[indices[0]].name).toBe('Self-Oscillate Trips');
+        expect(DEFAULT_FX_PRESETS[indices[1]].name).toBe('Tape Slap-Back');
+        expect(DEFAULT_FX_PRESETS[indices[2]].name).toBe('RE-201 Dub Echo');
     });
 });

@@ -1,3 +1,4 @@
+import { describe, it, expect} from 'vitest';
 /**
  * Tests for WebUI/js/sequencer_editor.js — 32-step control sequencer grid editor
  *

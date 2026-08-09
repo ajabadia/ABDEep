@@ -38,10 +38,17 @@ namespace ABD
         switch (index)
         {
             case 0: mix = value; break;
-            case 1: delayTimeL = value; updateDelaySamples(); break;
-            case 2: delayTimeR = value; updateDelaySamples(); break;
-            case 3: feedback = value * 0.99f; break;
-            case 4: lpfCutoff = value; updateLPFCoeff(); break;
+            case 1: timeParam = value; updateDelaySamples(); break;
+            case 2: mode = std::clamp((int)(value * 3.99f), 0, 3); break;
+            case 3: factorL = value; updateDelaySamples(); break;
+            case 4: factorR = value; updateDelaySamples(); break;
+            case 5: offsetParam = value; updateDelaySamples(); break;
+            case 6: break; // LoCut almacenado (sin equivalente DSP)
+            case 7: lpfCutoff = value; updateLPFCoeff(); break;
+            case 8: break; // FeedLC almacenado (sin equivalente DSP)
+            case 9: feedbackL = value; break;
+            case 10: feedbackR = value; break;
+            case 11: lpfCutoff = value; updateLPFCoeff(); break;
         }
     }
 
@@ -55,15 +62,32 @@ namespace ABD
         lpfStateR = 0.0f;
     }
 
+    float FXDelay::factorToScale(float normalized) const
+    {
+        static const float scales[] = { 0.25f, 0.375f, 0.5f, 0.6667f, 1.0f, 1.3333f, 1.5f, 2.0f, 3.0f };
+        int idx = std::clamp((int)(normalized * 8.99f), 0, 8);
+        return scales[idx];
+    }
+
     void FXDelay::updateDelaySamples()
     {
-        // Mapeo: 0-1 → 1ms - 2000ms (logarítmico para mejor respuesta musical)
-        float timeMs = 1.0f + 1999.0f * std::pow(delayTimeL, 2.0f);
-        delaySamplesL = (int)(sampleRate * timeMs / 1000.0);
+        // Time: 0-1 → 1ms - 2000ms (logarítmico para mejor respuesta musical)
+        float masterMs = 1.0f + 1999.0f * std::pow(timeParam, 2.0f);
+
+        // FactorL/FactorR: fracción rítmica del tiempo maestro
+        float leftMs = masterMs * factorToScale(factorL);
+
+        // Offset: -100ms..+100ms diferencia entre L y R (añadido al derecho)
+        float offsetMs = (offsetParam - 0.5f) * 2.0f * 100.0f;
+        float rightMs = masterMs * factorToScale(factorR) + offsetMs;
+
+        leftMs = std::clamp(leftMs, 1.0f, 2000.0f);
+        rightMs = std::clamp(rightMs, 1.0f, 2000.0f);
+
+        delaySamplesL = (int)(sampleRate * leftMs / 1000.0);
         delaySamplesL = std::max(1, delaySamplesL);
         
-        timeMs = 1.0f + 1999.0f * std::pow(delayTimeR, 2.0f);
-        delaySamplesR = (int)(sampleRate * timeMs / 1000.0);
+        delaySamplesR = (int)(sampleRate * rightMs / 1000.0);
         delaySamplesR = std::max(1, delaySamplesR);
     }
 
@@ -87,6 +111,9 @@ namespace ABD
         float* delayDataL = delayBufferL.getWritePointer(0);
         float* delayDataR = delayBufferR.getWritePointer(0);
         
+        float fbL = feedbackL * 0.99f;
+        float fbR = feedbackR * 0.99f;
+        
         for (int s = 0; s < numSamples; ++s)
         {
             // Leer muestra seca
@@ -107,9 +134,34 @@ namespace ABD
             lpfStateL = lpfStateL + lpfCoeff * (delayedL - lpfStateL);
             lpfStateR = lpfStateR + lpfCoeff * (delayedR - lpfStateR);
             
-            // Escribir en el buffer de delay (entrada + feedback)
-            delayDataL[writePositionL] = dryL + lpfStateL * feedback;
-            delayDataR[writePositionR] = dryR + lpfStateR * feedback;
+            // Escritura del buffer según el modo de ruteo
+            float writeL, writeR;
+            switch (mode)
+            {
+                case 1: // X — feedback cruzado entre canales
+                    writeL = dryL + lpfStateR * fbR;
+                    writeR = dryR + lpfStateL * fbL;
+                    break;
+                case 2: // M — mezcla mono en la cadena de feedback
+                    {
+                        float mono = (lpfStateL + lpfStateR) * 0.5f;
+                        float fb = (fbL + fbR) * 0.5f;
+                        writeL = dryL + mono * fb;
+                        writeR = dryR + mono * fb;
+                    }
+                    break;
+                case 3: // P-P — ping pong (feedback derecho desactivado)
+                    writeL = dryL + lpfStateL * fbL;
+                    writeR = dryR;
+                    break;
+                default: // ST — feedback estéreo independiente
+                    writeL = dryL + lpfStateL * fbL;
+                    writeR = dryR + lpfStateR * fbR;
+                    break;
+            }
+            
+            delayDataL[writePositionL] = writeL;
+            delayDataR[writePositionR] = writeR;
             
             // Incrementar posiciones de escritura
             writePositionL = (writePositionL + 1) % bufferSizeL;

@@ -12,14 +12,19 @@ namespace ABD
      * modulando la frecuencia de corte para crear el característico
      * barrido espectral con nulos.
      *
-     * Parámetros:
-     *   0: Rate    (0-1, 0.05Hz - 5.0Hz)
-     *   1: Depth   (0-1, 0-100%)
-     *   2: Reso    (0-1, 0-100%, feedback de la cascada)
-     *   3: Base    (0-1, 20Hz - 15000Hz, frecuencia central)
-     *   4: Stages  (0-1, mapeado a 2,4,6,8,10,12 etapas)
-     *   5: Wave    (0-1, -50 a +50, simetría del LFO)
-     *   6: Phase   (0-1, 0-180°, offset estéreo del LFO)
+     * Parámetros (orden hardware, docs/deepmind_fx.md FX Type 9):
+     *   0: Speed    (0-1, 0.05Hz - 5.0Hz)
+     *   1: Depth    (0-1, 0-100%)
+     *   2: Reso     (0-1, 0-100%, feedback de la cascada)
+     *   3: Base     (0-1, 20Hz - 15000Hz, frecuencia central)
+     *   4: Stages   (0-1, mapeado a 2,4,6,8,10,12 etapas)
+     *   5: Mix      (0-1, wet/dry — aplicado por FXSlot)
+     *   6: Wave     (0-1, -50 a +50, simetría del LFO)
+     *   7: Phase    (0-1, 0-180°, offset estéreo del LFO)
+     *   8: EnvMod   (0-1, -100..+100%, envelope modula la profundidad)
+     *   9: Attack   (0-1, 10ms - 1000ms, tiempo del envelope follower)
+     *   10: Hold    (0-1, almacenado — sin equivalente DSP)
+     *   11: Release (0-1, 10ms - 1000ms, tiempo del envelope follower)
      */
     class FXPhaser : public FXBase
     {
@@ -33,14 +38,14 @@ namespace ABD
                       int numSamples) override;
         void setParameter(int index, float value) override;
         void reset() override;
-        int getNumParameters() const override { return 7; }
+        int getNumParameters() const override { return 12; }
         juce::String getEffectName() const override { return "Phaser"; }
 
     private:
         static constexpr int kMaxStages = 12;
         double sampleRate = 44100.0;
 
-        // Parámetros
+        // Parámetros (orden hardware)
         float rate   = 0.2f;  // 0.05-5 Hz
         float depth  = 0.5f;  // 0-100%
         float reso   = 0.3f;  // 0-100%
@@ -48,6 +53,16 @@ namespace ABD
         int   stages = 6;     // número activo de etapas allpass
         float wave   = 0.0f;  // -50 a +50 simetría
         float phase  = 0.0f;  // 0-180° offset estéreo
+        float envMod = 0.5f;  // 0-1 → -100..+100%
+        float hold   = 0.5f;  // almacenado
+        float attackParam  = 0.02f;  // 0-1 → 10ms-1000ms
+        float releaseParam = 0.002f; // 0-1 → 10ms-1000ms
+
+        // Envelope follower
+        float envAttack  = 0.01f; // coeficiente de 1-polo (computado)
+        float envRelease = 0.001f;
+        float envStateL = 0.0f;
+        float envStateR = 0.0f;
 
         // LFO state
         double lfoPhaseL = 0.0;
@@ -71,6 +86,7 @@ namespace ABD
 
         void updateLFOIncrement();
         void updateFreqRange();
+        void updateEnvCoeffs();
         float calcAllpassCoeff(float cutoffHz);
         float getLFOWave(double phase);
     };

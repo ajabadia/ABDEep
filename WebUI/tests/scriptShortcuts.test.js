@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach} from 'vitest';
 /**
  * Tests for WebUI/js/script_shortcuts.js — ShortcutConfig CRUD, matching, formatCombo
  *
@@ -22,7 +23,7 @@ globalThis.document = globalThis.document || { getElementById: function() { retu
 
 // ===== Extracted Source =====
 
-var ShortcutConfig = {
+const ShortcutConfig = {
     STORAGE_KEY: 'abd-eep-keyboard-shortcuts',
 
     _defaults: {
@@ -124,7 +125,7 @@ var ShortcutConfig = {
 
         if (ShortcutConfig.matches(e, shortcuts['midi-learn'])) {
             e.preventDefault();
-            var bridge = window.dualMidiBridge;
+const bridge = window.dualMidiBridge;
             if (bridge && typeof bridge.toggleMidiLearn === 'function') {
                 bridge.toggleMidiLearn();
             }
@@ -133,7 +134,7 @@ var ShortcutConfig = {
 
         if (ShortcutConfig.matches(e, shortcuts['seq-quickstart'])) {
             e.preventDefault();
-            var bridge = window.dualMidiBridge;
+const bridge = window.dualMidiBridge;
             if (!bridge) {return;}
             const seqBtn = document.getElementById('programmer-seq-btn');
             if (seqBtn) {seqBtn.click();}
