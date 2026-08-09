@@ -18,6 +18,87 @@ const RT_AB_CLASS_META = {
   'no_match':        { label: 'NO MATCH',        cls: 'cal-rt-ab-nomatch',   color: 'var(--accent-red,#e74c3c)' },
 };
 
+// ────────────────────────────────────────────────────────────────
+// Known exceptions — registro desde la UI (por bankName/patchIndex)
+// Persistencia: localStorage (clave versionada) con fallback en memoria
+// (tests/entornos sin storage). Entrada: { bank: 'A'-'H', prog: 0-127, reason, createdAt }
+// ────────────────────────────────────────────────────────────────
+
+const RT_EX_STORAGE_KEY = 'abdeep.calibration.knownExceptions.v1';
+let _rtExCache = null; // lazy: se carga de localStorage en el primer acceso
+
+function rtExKey(bank, prog) {
+  return String(bank).toUpperCase() + '/' + Number(prog);
+}
+
+function loadKnownExceptions() {
+  if (_rtExCache !== null) { return _rtExCache; }
+  let list = [];
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem(RT_EX_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) { list = parsed; }
+      }
+    }
+  } catch (e) { /* storage no disponible — memoria */ }
+  _rtExCache = list;
+  return list;
+}
+
+function persistKnownExceptions() {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(RT_EX_STORAGE_KEY, JSON.stringify(loadKnownExceptions()));
+    }
+  } catch (e) { /* sin storage — solo memoria */ }
+}
+
+function getKnownException(bank, prog) {
+  const key = rtExKey(bank, prog);
+  return loadKnownExceptions().find((ex) => rtExKey(ex.bank, ex.prog) === key) || null;
+}
+
+/**
+ * Registra (o actualiza la razón de) una excepción conocida por posición
+ * (bankName 'A'-'H' / patchIndex). Devuelve la entrada registrada.
+ */
+function addKnownException(bank, prog, reason) {
+  const list = loadKnownExceptions();
+  const key = rtExKey(bank, prog);
+  const existing = list.find((ex) => rtExKey(ex.bank, ex.prog) === key);
+  if (existing) {
+    if (reason) { existing.reason = reason; }
+    persistKnownExceptions(); // la actualización de razón también persiste
+    return existing;
+  }
+  const entry = {
+    bank: String(bank).toUpperCase(),
+    prog: Number(prog),
+    reason: reason || '',
+    createdAt: new Date().toISOString(),
+  };
+  list.push(entry);
+  persistKnownExceptions();
+  return entry;
+}
+
+function removeKnownException(bank, prog) {
+  const key = rtExKey(bank, prog);
+  _rtExCache = loadKnownExceptions().filter((ex) => rtExKey(ex.bank, ex.prog) !== key);
+  persistKnownExceptions();
+}
+
+function resetKnownExceptions() {
+  _rtExCache = [];
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(RT_EX_STORAGE_KEY);
+    }
+  } catch (e) { /* noop */ }
+}
+
 /**
  * Normaliza unpackedBytes del store: deepClone (JSON) convierte los Uint8Array en
  * objetos {0:.., 1:..} sin .length — se reconstruye un Uint8Array cuando el objeto
@@ -43,9 +124,10 @@ function coerceBytes(value) {
  * Las posiciones (bankName 'A'-'H', patchIndex) de los patches alimentan la
  * clasificación exact vs canonical.
  *
+ * @param {object} [opts] — { knownExceptions?: Array<{bank, prog, reason}> }
  * @returns {{raw:object, sem:object, cls:object, registryAvailable:boolean, error?:string}|null}
  */
-function runABCompareReport(patchA, patchB) {
+function runABCompareReport(patchA, patchB, opts) {
   const RTE = window.RoundTripEquality;
   if (!RTE) { return { error: 'RoundTripEquality not loaded' }; }
 
@@ -69,13 +151,20 @@ function runABCompareReport(patchA, patchB) {
   }
 
   const corpus = [{
-    bank: (patchB && patchB.bankName) || null,
+    // Banco normalizado a MAYÚSCULAS: el matching de known_exceptions en
+    // classifyCorpusMatch es estricto (ex.bank === entry.bank) y el registro
+    // desde la UI guarda el banco en mayúscula.
+    bank: (patchB && patchB.bankName) ? String(patchB.bankName).toUpperCase() : null,
     prog: (patchB && Number.isFinite(patchB.patchIndex)) ? patchB.patchIndex : null,
     unpacked: b,
     packed: RTE.pack8to7(b),
   }];
 
-  const cls = RTE.hardwareCanonicalEqual(target, corpus, { registry });
+  // Excepciones conocidas: las registradas desde la UI (persistidas) o las
+  // inyectadas por el llamador (tests/scripts). Tienen prioridad sobre exact.
+  const knownExceptions = (opts && opts.knownExceptions) || loadKnownExceptions();
+
+  const cls = RTE.hardwareCanonicalEqual(target, corpus, { registry, knownExceptions });
 
   return { raw, sem, cls, registryAvailable: !!registry };
 }
@@ -209,6 +298,30 @@ CalibrationLabPage.prototype._renderRTABTab = function (store, state, modeSwitch
   let bannerHtml = '';
   let tableHtml = '';
   let factsHtml = '';
+  let exceptionsHtml = '';
+
+  // Sección de known exceptions — solo cuando el Patch B tiene posición (bankName/patchIndex)
+  const patchB = state.selectedPatchB;
+  if (patchB && patchB.bankName && Number.isFinite(patchB.patchIndex)) {
+    const existing = getKnownException(patchB.bankName, patchB.patchIndex);
+    if (existing) {
+      exceptionsHtml = `
+        <div class="cal-rt-ab-exceptions">
+          <span class="cal-rt-ab-ex-title">Known exception</span>
+          <span class="cal-rt-ab-ex-badge" title="${escapeHtml(existing.reason || '')}">${escapeHtml(String(existing.bank))}/${existing.prog}${existing.reason ? ` · ${escapeHtml(existing.reason)}` : ''}</span>
+          <button id="rt-ex-remove" class="manager-btn" type="button">Remove exception</button>
+        </div>
+      `;
+    } else {
+      exceptionsHtml = `
+        <div class="cal-rt-ab-exceptions">
+          <span class="cal-rt-ab-ex-title">Register as known exception (Patch B position)</span>
+          <input id="rt-ex-reason" class="cal-rt-ex-reason" type="text" placeholder="reason (optional)" maxlength="80" />
+          <button id="rt-ex-add" class="manager-btn btn-solid" type="button">Register</button>
+        </div>
+      `;
+    }
+  }
 
   if (report && report.error) {
     bannerHtml = `
@@ -287,6 +400,7 @@ CalibrationLabPage.prototype._renderRTABTab = function (store, state, modeSwitch
 
       ${bannerHtml}
       ${factsHtml}
+      ${exceptionsHtml}
       ${tableHtml}
     </div>
   `;
@@ -351,20 +465,46 @@ CalibrationLabPage.prototype.bindRoundTripEvents = function () {
   if (loadA) {loadA.onclick = () => loadFromPatch('A');}
   if (loadB) {loadB.onclick = () => loadFromPatch('B');}
 
+  const rerunAbCompare = () => {
+    const store = window.calibrationStore;
+    const state = store ? store.getState() : { selectedPatchA: null, selectedPatchB: null };
+    const patchA = this._rtPatchA || state.selectedPatchA;
+    const patchB = this._rtPatchB || state.selectedPatchB;
+    const report = runABCompareReport(patchA, patchB);
+    if (report && report.error && sourceInfo) {sourceInfo.textContent = report.error;}
+    this._abReport = report;
+    this.render();
+  };
+
+  // Known exceptions — registro/eliminación por bankName/patchIndex del Patch B
+  const exAdd = this.querySelector('#rt-ex-add');
+  const exRemove = this.querySelector('#rt-ex-remove');
+  const exReason = this.querySelector('#rt-ex-reason');
+  if (exAdd) {
+    exAdd.onclick = () => {
+      const store = window.calibrationStore;
+      const state = store ? store.getState() : {};
+      const patchB = this._rtPatchB || state.selectedPatchB;
+      if (!patchB || !patchB.bankName || !Number.isFinite(patchB.patchIndex)) { return; }
+      addKnownException(patchB.bankName, patchB.patchIndex, exReason ? exReason.value : '');
+      rerunAbCompare(); // re-clasifica con la excepción activa (known_exception gana)
+    };
+  }
+  if (exRemove) {
+    exRemove.onclick = () => {
+      const store = window.calibrationStore;
+      const state = store ? store.getState() : {};
+      const patchB = this._rtPatchB || state.selectedPatchB;
+      if (!patchB || !patchB.bankName || !Number.isFinite(patchB.patchIndex)) { return; }
+      removeKnownException(patchB.bankName, patchB.patchIndex);
+      rerunAbCompare(); // vuelve a la clasificación natural
+    };
+  }
+
   if (runBtn) {
     runBtn.onclick = async () => {
       if (currentMode() === 'ab') {
-        // A/B Compare — usa los patches cargados o los del store directamente
-        const store = window.calibrationStore;
-        const state = store ? store.getState() : { selectedPatchA: null, selectedPatchB: null };
-        const patchA = this._rtPatchA || state.selectedPatchA;
-        const patchB = this._rtPatchB || state.selectedPatchB;
-        const report = runABCompareReport(patchA, patchB);
-        if (report && report.error) {
-          if (sourceInfo) {sourceInfo.textContent = report.error;}
-        }
-        this._abReport = report;
-        this.render();
+        rerunAbCompare();
         return;
       }
 
@@ -398,3 +538,7 @@ CalibrationLabPage.prototype.bindRoundTripEvents = function () {
 
 globalThis.RT_AB_CLASS_META = RT_AB_CLASS_META;
 globalThis.runABCompareReport = runABCompareReport;
+globalThis.getKnownException = getKnownException;
+globalThis.addKnownException = addKnownException;
+globalThis.removeKnownException = removeKnownException;
+globalThis.resetKnownExceptions = resetKnownExceptions;

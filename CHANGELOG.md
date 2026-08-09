@@ -4,6 +4,67 @@
 
 ---
 
+## [0.2.24] — 2026-08-09
+
+### 🔬 Fase 4/7 — Batería de fuzzing ampliada: 16 seeds × 500 casos = 8.000 casos en CI
+
+- **`scripts/fuzz_roundtrip.js`**: batería por defecto **5× más grande**:
+  - **`DEFAULT_SEEDS` 8 → 16**: los 8 originales + **8 de casos límite** que ejercitan
+    el PRNG `mulberry32` y el codec 7/8 — mínimo (`0x1`), máscaras de byte
+    (`0x7F`/`0xFF`), máscaras de 16 bits (`0x7FFF`/`0xFFFF`), bits alternados
+    (`0x55555555`/`0xAAAAAAAA`) y máximo uint32 (`0xFFFFFFFF`).
+  - **`DEFAULT_ITERATIONS` 200 → 500**: 16 × 500 = **8.000 casos** por corrida CI
+    (antes 8 × 200 = 1.600). Coste medido <1s total (máx 1ms/caso) — la cobertura
+    ampliada no penaliza el tiempo del job.
+- **`WebUI/tests/fuzzRoundtripScript.test.js` (8 tests, +2)**: nuevo test de la
+  **batería por defecto completa** (16 seeds × 500 = 8.000 casos, exit 0, 0
+  violaciones/timeouts) y test de **cobertura de seeds límite** (los 8 nuevos
+  presentes, sin duplicados tras el parseo).
+- **Docs**: `docs/fase4_roundtrip_equality.md` §5 (batería CI ampliada + seeds límite
+  listados) y nota de Fase 7 del plan actualizada (16 × 500 = 8.000).
+- **Verificación**: Vitest **94 files / 4588 tests / 0 fallos** (+2); ESLint 0;
+  `node --check` OK; script local 8.000 casos → 0 violaciones / 0 timeouts.
+
+---
+
+## [0.2.23] — 2026-08-09
+
+### 🏷️ Known exceptions desde la UI del A/B Compare (por bankName/patchIndex)
+
+- **`calibration_lab_tab_roundtrip.js`** — registro de excepciones conocidas en el
+  modo A/B Compare de la pestaña Round-Trip:
+  - **Helpers** `getKnownException`/`addKnownException`/`removeKnownException`/
+    `resetKnownExceptions` (globalThis): entradas `{bank: 'A'-'H', prog, reason,
+    createdAt}` persistidas en `localStorage` (clave versionada
+    `abdeep.calibration.knownExceptions.v1`) con cache lazy y fallback en memoria
+    (entornos sin storage — tests). Ban-co normalizado a MAYÚSCULAS.
+  - **`runABCompareReport(patchA, patchB, opts)`**: nuevo `opts.knownExceptions`
+    (por defecto la lista persistida) → `hardwareCanonicalEqual` aplica la
+    **prioridad `known_exception > exact/canonical/semantic`** (orden documentado
+    de `classifyCorpusMatch`).
+  - **UI**: cuando Patch B tiene posición, se muestra el formulario «Register as
+    known exception» (input de razón + botón) o, si ya está registrado, un badge
+    `BANCO/PROG · razón` con botón «Remove exception». Al registrar/eliminar se
+    re-ejecuta la comparación (re-clasificación inmediata).
+  - **CSS**: `.cal-rt-ab-exceptions`, `.cal-rt-ab-ex-badge` y `.cal-rt-ex-reason`
+    (tokens del tema, badge amarillo de excepción).
+- **Post-reviewer (3 fixes)**: (1) la actualización de razón en una excepción
+  existente ahora **persiste** (antes solo persistía la rama de entrada nueva);
+  (2) el banco del **corpus** de `runABCompareReport` se normaliza a mayúscula
+  (`patchB.bankName` podía llegar en minúscula y el matching estricto de
+  `classifyCorpusMatch` fallaba — la UI mostraba el badge pero no aplicaba la
+  excepción); (3) aislamiento de tests con `beforeEach/afterEach` reset en los
+  describes de render y eventos.
+- **`calibrationRoundtripAB.test.js` (28 tests, +10)**: helpers (add/get/remove,
+  case-insensitive del banco, actualización de razón), `opts.knownExceptions`
+  (prioridad sobre exact + posición no coincidente no afecta), render (formulario
+  vs badge/remove) y eventos (Register → `known_exception`, Remove → vuelve a
+  `canonical_match`, y **regresión del case**: bankName minúscula matchea).
+- **Verificación**: Vitest **92 files / 4586 tests / 0 fallos** (+10); ESLint 0;
+  `scripts/security_scan.js` → **0 violaciones**; `node --check` OK.
+
+---
+
 ## [0.2.22] — 2026-08-09
 
 ### 🧪 Nivel 3b (Hardware-in-the-Loop) — procedimiento documentado + checklist pre-release

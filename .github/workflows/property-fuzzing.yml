@@ -1,11 +1,13 @@
 name: Property Fuzzing CI
 
 # property-fuzzing (Fase 7 del plan v3.2 §5) — Property-Based Testing / Fuzzing
-# acotado en CI. Ejecuta fuzzRoundTrip (WebUI/js/roundtrip_equality.js) con varios
-# seeds deterministas y el registro canónico real (registry.gen.js), y FALLA si hay
-# violaciones de propiedad (codec_invariance / codec_payload_bound / codec_throws /
-# decode_encode_stability). Los timeouts (dependientes del reloj de pared, no
-# deterministas) se reportan como warning y no rompen el job.
+# acotado en CI. Ejecuta fuzzRoundTrip (WebUI/js/roundtrip_equality.js) con la
+# batería ampliada de seeds deterministas (16 seeds × 500 casos = 8.000 casos,
+# ver DEFAULT_SEEDS/DEFAULT_ITERATIONS en scripts/fuzz_roundtrip.js) y el registro
+# canónico real (registry.gen.js), y FALLA si hay violaciones de propiedad
+# (codec_invariance / codec_payload_bound / codec_throws / decode_encode_stability).
+# Los timeouts (dependientes del reloj de pared, no deterministas) se reportan como
+# warning y no rompen el job.
 
 on:
   workflow_dispatch:

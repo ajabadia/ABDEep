@@ -33,9 +33,18 @@ const fs = require('fs');
 const RTE = require('../WebUI/js/roundtrip_equality.js');
 const REGISTRY = require('../WebUI/js/registry.gen.js');
 
-// Seeds deterministas de la batería (los mismos que el test unitario + más).
-const DEFAULT_SEEDS = [0xC0FFEE, 0xBEEF, 0x1234, 0xDEAD, 0xF00D, 0xABCDEF, 0x13579, 0x2468A];
-const DEFAULT_ITERATIONS = 200;
+// Seeds deterministas de la batería (los mismos que el test unitario + casos límite).
+// 16 seeds: los 8 originales + valores frontera/patrones que ejercitan el PRNG
+// mulberry32 y el codec 7/8 (mínimo, máscaras de byte/16 bits, bits alternados,
+// máximo uint32) para ampliar la cobertura de propiedades en CI.
+const DEFAULT_SEEDS = [
+  0xC0FFEE, 0xBEEF, 0x1234, 0xDEAD, 0xF00D, 0xABCDEF, 0x13579, 0x2468A,
+  0x1, 0x7F, 0xFF, 0x7FFF, 0xFFFF, 0x55555555, 0xAAAAAAAA, 0xFFFFFFFF,
+];
+// 16 seeds × 500 casos = 8.000 casos por corrida CI (5× la batería original de
+// 8×200=1.600). El coste medido es <1s en total (máx 1ms/caso), así que ampliar
+// la cobertura no penaliza el tiempo del job.
+const DEFAULT_ITERATIONS = 500;
 
 // Acepta decimal (48879) y hex (0xBEEF) — parseInt('0xBEEF', 10) devolvería 0.
 function parseSeed(str) {

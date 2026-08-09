@@ -52,13 +52,46 @@ describe('fuzz_roundtrip.js — property-based testing multi-seed', () => {
     expect(stdout).toContain('Sin violaciones de propiedad');
   });
 
+  it('batería por defecto: 16 seeds × 500 casos = 8.000 casos sin violaciones', () => {
+    // Corre la batería CI completa (sin --iterations) para blindar la cobertura
+    // ampliada: DEFAULT_SEEDS (16) × DEFAULT_ITERATIONS (500). Coste local <1s.
+    const { status, stdout } = runScript(['--json', '--budget-ms', '60000']);
+    expect(status, stdout).toBe(0);
+    const r = extractJson(stdout);
+    expect(r.seeds).toHaveLength(16);
+    expect(r.iterations).toBe(500);
+    // Todos los casos por defecto pasan (equivalente a 16 × 500 = 8.000) —
+    // calculado del reporte para sobrevivir a futuros cambios de batería.
+    expect(r.totals.passed).toBe(r.seeds.length * r.iterations);
+    expect(r.totals.failed).toBe(0);
+    expect(r.totals.violations).toBe(0);
+    expect(r.totals.timeouts).toBe(0);
+  });
+
+  it('la batería cubre seeds de casos límite (frontera, máscaras, patrones)', () => {
+    const { status, stdout } = runScript(['--json', '--budget-ms', '60000', '--iterations', '1']);
+    expect(status).toBe(0);
+    const r = extractJson(stdout);
+    // Los 8 seeds originales + 8 de casos límite (mínimo, máscaras de byte/16-bit,
+    // bits alternados y máximo uint32) que ejercitan el PRNG y el codec.
+    expect(r.seeds).toContain(0x1);
+    expect(r.seeds).toContain(0x7F);
+    expect(r.seeds).toContain(0xFF);
+    expect(r.seeds).toContain(0x7FFF);
+    expect(r.seeds).toContain(0xFFFF);
+    expect(r.seeds).toContain(0x55555555);
+    expect(r.seeds).toContain(0xAAAAAAAA);
+    expect(r.seeds).toContain(0xFFFFFFFF);
+    expect(new Set(r.seeds).size).toBe(16); // sin duplicados tras el parseo
+  });
+
   it('--json emite un reporte estructurado con runs por seed, totals y fatal:false', () => {
     const { status, stdout } = runScript(['--json', '--budget-ms', '60000', '--iterations', '10']);
     expect(status).toBe(0);
     const r = extractJson(stdout);
     expect(r).not.toBeNull();
     expect(r.tool).toBe('fuzz_roundtrip');
-    expect(r.seeds.length).toBeGreaterThanOrEqual(8);
+    expect(r.seeds.length).toBeGreaterThanOrEqual(16);
     expect(r.runs.length).toBe(r.seeds.length);
     expect(r.planLimits.maxPayload).toBe(500);
     expect(r.planLimits.maxTimeoutMs).toBe(100);

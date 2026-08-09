@@ -889,6 +889,51 @@
   border-radius: 8px;
 }
 
+/* Known exceptions — registro desde la UI del A/B Compare (Fase 4) */
+.cal-rt-ab-exceptions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-dim, #2c2c2c);
+  border-radius: 8px;
+  background: var(--bg-header, #171717);
+  font-size: 11px;
+}
+.cal-rt-ab-ex-title {
+  color: var(--text-dim, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 9px;
+}
+.cal-rt-ab-ex-badge {
+  color: var(--accent-yellow, #f1c40f);
+  font-weight: bold;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-yellow, #f1c40f) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-yellow, #f1c40f) 12%, transparent);
+}
+.cal-rt-ex-reason {
+  flex: 1;
+  min-width: 140px;
+  max-width: 280px;
+  background: var(--bg-deepest, #0d0d0d);
+  border: 1px solid var(--border-dim, #333);
+  border-radius: 6px;
+  color: var(--text-primary, #ddd);
+  font-size: 10.5px;
+  padding: 4px 8px;
+}
+.cal-rt-ex-reason:focus {
+  outline: none;
+  border-color: var(--brand-accent, #ff9900);
+}
+
 /* Dynamic color helpers: values are injected via inline CSS custom properties */
 .cal-audio-verdict-badge { background: var(--cal-badge-bg, var(--bg-header, #1a1a1a)); }
 .cal-rt-status { color: var(--cal-rt-status-color, inherit); }

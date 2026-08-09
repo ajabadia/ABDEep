@@ -154,6 +154,14 @@ Propiedades verificadas por caso:
 **Determinismo**: PRNG `mulberry32(seed)` — mismo seed ⇒ misma secuencia ⇒ `violations`
 idénticas (cuando no hay timeouts). Reproducible en CI.
 
+**Batería CI (`scripts/fuzz_roundtrip.js` — job `property-fuzzing`)**: 16 seeds
+deterministas × 500 casos = **8.000 casos** por corrida (5× la batería original de
+8×200=1.600). Los seeds incluyen los 8 originales más 8 de casos límite que ejercitan
+el PRNG y el codec: mínimo (`0x1`), máscaras de byte (`0x7F`/`0xFF`), máscaras de 16 bits
+(`0x7FFF`/`0xFFFF`), bits alternados (`0x55555555`/`0xAAAAAAAA`) y máximo uint32
+(`0xFFFFFFFF`). Coste medido <1s total (máx 1ms/caso) — ampliar la cobertura no
+penaliza el tiempo del job.
+
 **Inyección de fallos**: las funciones internas invocan el codec a través del holder mutable
 `api` (la API exportada) — permite a los tests romper `RTE.pack8to7`/`RTE.unpack7to8` y
 verificar que el invariante se detecta (`codec_invariance`) y que el presupuesto temporal se

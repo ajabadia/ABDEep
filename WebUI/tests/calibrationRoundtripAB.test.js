@@ -30,6 +30,9 @@ if (typeof global.HTMLElement === 'undefined') {
         '#rt-source-info': '_elInfo',
         '#rt-mode-single': '_elModeSingle',
         '#rt-mode-ab': '_elModeAb',
+        '#rt-ex-add': '_elExAdd',
+        '#rt-ex-remove': '_elExRemove',
+        '#rt-ex-reason': '_elExReason',
       };
       if (map[sel]) {
         if (!this[map[sel]]) {
@@ -200,6 +203,64 @@ describe('runABCompareReport — clasificación A/B (Fase 4)', () => {
       window.ParameterRegistry = saved;
     }
   });
+
+  it('opts.knownExceptions: una excepción de la posición de B → known_exception (prioridad sobre exact)', () => {
+    const A = mkPatch(7);
+    const B = mkPatch(7, { bankName: 'C', patchIndex: 42 });
+    const known = [{ bank: 'C', prog: 42, reason: 'preset 42 del banco C divergente' }];
+    const r = abCompare()(A, B, { knownExceptions: known });
+    expect(r.cls.best).toBe('known_exception');
+    expect(r.cls.knownExceptionApplied).toBe(true);
+    expect(r.cls.bestMatch.reason).toContain('preset 42');
+  });
+
+  it('opts.knownExceptions: una excepción de OTRA posición no afecta la clasificación', () => {
+    const A = mkPatch(8);
+    const B = mkPatch(8);
+    const known = [{ bank: 'H', prog: 1, reason: 'otra posición' }];
+    const r = abCompare()(A, B, { knownExceptions: known });
+    expect(r.cls.best).toBe('exact_match');
+  });
+});
+
+// ════════════════════════════════════════════════════════════════
+// Known exceptions — helpers (localStorage absent → fallback memoria)
+// ════════════════════════════════════════════════════════════════
+
+describe('known exceptions — helpers de registro por bankName/patchIndex', () => {
+  const addEx = () => globalThis.addKnownException;
+  const getEx = () => globalThis.getKnownException;
+  const removeEx = () => globalThis.removeKnownException;
+  const resetEx = () => globalThis.resetKnownExceptions;
+
+  beforeEach(() => resetEx()());
+  afterEach(() => resetEx()());
+
+  it('add + get: registra por posición y devuelve la entrada con razón y fecha', () => {
+    const ex = addEx()('C', 42, 'divergente');
+    expect(ex.bank).toBe('C');
+    expect(ex.prog).toBe(42);
+    expect(ex.reason).toBe('divergente');
+    expect(ex.createdAt).toBeTruthy();
+    const got = getEx()('c', 42); // case-insensitive en el banco
+    expect(got).not.toBeNull();
+    expect(got.reason).toBe('divergente');
+  });
+
+  it('add sin razón y actualización de razón', () => {
+    addEx()('A', 7, '');
+    expect(getEx()('A', 7).reason).toBe('');
+    addEx()('A', 7, 'ahora con razón');
+    expect(getEx()('A', 7).reason).toBe('ahora con razón');
+  });
+
+  it('remove: elimina solo la posición indicada', () => {
+    addEx()('A', 1, 'x');
+    addEx()('B', 2, 'y');
+    removeEx()('A', 1);
+    expect(getEx()('A', 1)).toBeNull();
+    expect(getEx()('B', 2)).not.toBeNull();
+  });
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -210,10 +271,12 @@ describe('renderRoundTripTab — modo single/ab y banner de clasificación', () 
   let store;
 
   beforeEach(() => {
+    globalThis.resetKnownExceptions();
     store = newStore();
   });
 
   afterEach(() => {
+    globalThis.resetKnownExceptions();
     delete window.calibrationStore;
   });
 
@@ -277,6 +340,32 @@ describe('renderRoundTripTab — modo single/ab y banner de clasificación', () 
     el._abReport = { error: 'RoundTripEquality not loaded' };
     expect(el.renderRoundTripTab(store)).toContain('ERROR');
   });
+
+  it('con Patch B posicionado y sin excepción → muestra el formulario de registro', () => {
+    const B = mkPatch(30, { bankName: 'C', patchIndex: 42 });
+    store.setSelectedPatchB(B);
+    const el = newPageEl();
+    el._roundTripMode = 'ab';
+    const html = el.renderRoundTripTab(store);
+    expect(html).toContain('rt-ex-add');
+    expect(html).toContain('Register as known exception');
+    expect(html).toContain('rt-ex-reason');
+    expect(html).not.toContain('rt-ex-remove');
+  });
+
+  it('con Patch B registrado como excepción → badge + botón Remove, sin formulario', () => {
+    globalThis.addKnownException('C', 42, 'divergente');
+    const B = mkPatch(31, { bankName: 'C', patchIndex: 42 });
+    store.setSelectedPatchB(B);
+    const el = newPageEl();
+    el._roundTripMode = 'ab';
+    const html = el.renderRoundTripTab(store);
+    expect(html).toContain('rt-ex-remove');
+    expect(html).toContain('Known exception');
+    expect(html).toContain('C/42');
+    expect(html).toContain('divergente');
+    expect(html).not.toContain('rt-ex-add');
+  });
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -287,10 +376,12 @@ describe('bindRoundTripEvents — modo ab', () => {
   let store;
 
   beforeEach(() => {
+    globalThis.resetKnownExceptions();
     store = newStore();
   });
 
   afterEach(() => {
+    globalThis.resetKnownExceptions();
     delete window.calibrationStore;
   });
 
@@ -349,5 +440,63 @@ describe('bindRoundTripEvents — modo ab', () => {
     el.bindRoundTripEvents();
     el.querySelector('#rt-run').onclick();
     expect(el._abReport.error).toBe('invalid_patch_bytes');
+  });
+
+  it('Register: añade la excepción por bankName/patchIndex y re-clasifica a known_exception', () => {
+    const A = mkPatch(40);
+    const B = mkPatch(40, { bankName: 'C', patchIndex: 42 });
+    store.setSelectedPatchA(A);
+    store.setSelectedPatchB(B);
+
+    const el = newPageEl();
+    el._roundTripMode = 'ab';
+    el.bindRoundTripEvents();
+    el.querySelector('#rt-run').onclick();
+    // A en A/0, B en C/42 con bytes idénticos → canonical_match (posición distinta)
+    expect(el._abReport.cls.best).toBe('canonical_match');
+
+    el.querySelector('#rt-ex-reason').value = 'divergente conocido';
+    el.querySelector('#rt-ex-add').onclick();
+
+    expect(globalThis.getKnownException('C', 42)).not.toBeNull();
+    expect(globalThis.getKnownException('C', 42).reason).toBe('divergente conocido');
+    expect(el._abReport.cls.best).toBe('known_exception'); // re-clasificado (gana sobre canonical)
+    expect(el.render).toHaveBeenCalled();
+  });
+
+  it('Register con bankName en minúscula: el corpus normaliza a mayúscula y matchea la excepción', () => {
+    const A = mkPatch(42);
+    const B = mkPatch(42, { bankName: 'c', patchIndex: 42 }); // minúscula
+    store.setSelectedPatchA(A);
+    store.setSelectedPatchB(B);
+
+    const el = newPageEl();
+    el._roundTripMode = 'ab';
+    el.bindRoundTripEvents();
+    el.querySelector('#rt-ex-add').onclick(); // sin reporte previo — registra C/42
+
+    expect(globalThis.getKnownException('C', 42)).not.toBeNull(); // normalizado a mayúscula
+    const report = globalThis.runABCompareReport(A, B);
+    expect(report.cls.best).toBe('known_exception'); // el corpus usa C mayúscula
+  });
+
+  it('Remove: elimina la excepción y vuelve a la clasificación natural', () => {
+    globalThis.addKnownException('C', 42, 'divergente');
+    const A = mkPatch(41);
+    const B = mkPatch(41, { bankName: 'C', patchIndex: 42 });
+    store.setSelectedPatchA(A);
+    store.setSelectedPatchB(B);
+
+    const el = newPageEl();
+    el._roundTripMode = 'ab';
+    el.bindRoundTripEvents();
+    el.querySelector('#rt-run').onclick();
+    expect(el._abReport.cls.best).toBe('known_exception');
+
+    el.querySelector('#rt-ex-remove').onclick();
+
+    expect(globalThis.getKnownException('C', 42)).toBeNull();
+    expect(el._abReport.cls.best).toBe('canonical_match'); // vuelve a la clasificación natural
+    expect(el.render).toHaveBeenCalled();
   });
 });
