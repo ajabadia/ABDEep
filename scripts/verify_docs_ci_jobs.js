@@ -16,8 +16,10 @@
  *      está ANCLADA al prefijo de bullet: menciones narrativas sueltas de
  *      `Job \`x\`` (fuera de un bullet) NO se cuentan.
  *   2. Existencia del workflow real asociado a cada job (tabla JOB_WORKFLOWS).
- *      Caveat: solo comprueba que el ARCHIVO existe, no que implemente el job
- *      (p. ej. `cpp-unit-tests` vive en dsp-ci.yml como job `build-and-test`).
+ *   3. El workflow contiene un job definido en su sección `jobs:`: cada job del
+ *      contrato debe aparecer como JOB ID dentro de su workflow (tabla
+ *      JOB_WORKFLOW_JOBS — el nombre del job puede diferir del nombre documentado,
+ *      p. ej. `cpp-unit-tests` vive en dsp-ci.yml como job `build-and-test`).
  *
  * Uso:
  *   node scripts/verify_docs_ci_jobs.js [--plan-file implementation_plan\ architecture.md]
@@ -68,6 +70,24 @@ const JOB_WORKFLOWS = {
   'wasm-build': 'wasm-build.yml',
 };
 
+// Job IDs que DEBEN existir en la sección `jobs:` de cada workflow, por job del
+// contrato (el nombre del job real puede diferir del nombre documentado,
+// p. ej. `cpp-unit-tests` → job `build-and-test` en dsp-ci.yml).
+const JOB_WORKFLOW_JOBS = {
+  'allocation-audit': ['allocation-audit'],
+  benchmark: ['benchmark'],
+  'cpp-unit-tests': ['build-and-test'],
+  'fase4-corpus': ['fase4-corpus'],
+  pluginval: ['pluginval'],
+  'property-fuzzing': ['property-fuzzing'],
+  'registry-generation': ['registry-generation'],
+  'roundtrip-corpus': ['roundtrip-corpus'],
+  'schema-validation': ['schema-validation'],
+  'security-scan': ['security-scan'],
+  vitest: ['test-and-export'],
+  'wasm-build': ['wasm-build'],
+};
+
 // Rutas por defecto — relativas al REPO (resueltas contra __dirname para que el
 // script funcione desde cualquier cwd). Override con --plan-file/--baseline-file/
 // --workflows-dir (usados por los tests negativos).
@@ -103,6 +123,30 @@ function extractJobNames(section, jobRe) {
   let m;
   while ((m = re.exec(section)) !== null) { names.add(m[1]); }
   return names;
+}
+
+/**
+ * Extrae los JOB IDs de la sección `jobs:` de un workflow YAML (formato GitHub
+ * Actions: `jobs:` en columna 0 y cada job con indentación de 2 espacios).
+ * Parser ligero y determinista — suficiente para el subconjunto de YAML que usa
+ * este repo (sin bloques multilínea, sin anclas). Devuelve un Set de nombres.
+ */
+function extractJobsFromWorkflow(yamlText) {
+  const jobs = new Set();
+  const lines = String(yamlText).split(/\r?\n/);
+  let inJobs = false;
+  for (const line of lines) {
+    if (!inJobs) {
+      if (/^jobs:\s*$/.test(line)) { inJobs = true; }
+      continue;
+    }
+    // Fin del bloque jobs: primera línea con indentación 0 que no sea comentario/blank.
+    if (/^[^\s]/.test(line) && !/^#/.test(line) && line.trim() !== '') { break; }
+    // Job ID: exactamente 2 espacios de indentación + `name:`.
+    const m = /^  ([a-zA-Z0-9_-]+):\s*$/.exec(line);
+    if (m) { jobs.add(m[1]); }
+  }
+  return jobs;
 }
 
 function setDifference(a, b) {
@@ -154,6 +198,7 @@ function main() {
     missingInBaseline: [],
     extraInBaseline: [],
     missingWorkflows: [],
+    missingJobDefs: [],
     problems: [],
   };
 
@@ -210,13 +255,23 @@ function main() {
     }
   }
 
-  // 3. Workflows reales
+  // 3. Workflows reales: el archivo existe Y contiene un job con el ID esperado
   for (const job of EXPECTED_JOBS) {
     const wf = JOB_WORKFLOWS[job];
     const wfPath = path.join(opts.workflowsDir, wf);
     if (!fs.existsSync(wfPath)) {
       report.missingWorkflows.push(job + ' → ' + wf);
       report.problems.push('workflow faltante para ' + job + ' (' + wf + ')');
+      continue;
+    }
+    const expectedJobIds = JOB_WORKFLOW_JOBS[job];
+    const actualJobs = extractJobsFromWorkflow(fs.readFileSync(wfPath, 'utf8'));
+    const missing = (expectedJobIds || []).filter((jid) => !actualJobs.has(jid));
+    if (missing.length > 0) {
+      report.missingJobDefs.push(job + ' → ' + wf + ' (job ' + missing.join(', ') + ')');
+      report.problems.push(
+        'workflow ' + wf + ' no define el job esperado para ' + job + ' (' + missing.join(', ') + ')',
+      );
     }
   }
 
@@ -254,7 +309,7 @@ function finish(report, wantJson, exitCode) {
 // Los tests (webui-ci) importan las constantes sin ejecutar el script: main()
 // solo corre cuando se invoca como CLI (node scripts/verify_docs_ci_jobs.js).
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { EXPECTED_JOBS, JOB_WORKFLOWS, PLAN_JOB_RE, BASELINE_JOB_RE, extractSection, extractJobNames, setEquals };
+  module.exports = { EXPECTED_JOBS, JOB_WORKFLOWS, JOB_WORKFLOW_JOBS, PLAN_JOB_RE, BASELINE_JOB_RE, extractSection, extractJobNames, extractJobsFromWorkflow, setEquals };
   if (require.main === module) {
     main();
   }

@@ -614,6 +614,26 @@
 
 ---
 
+## [0.2.36] — 2026-08-09
+
+### 🔎 docs-verification — validación de que cada workflow define su job
+
+- `scripts/verify_docs_ci_jobs.js`: nueva validación **nivel 3** — cada job del
+  contrato (12) debe existir como **job ID real en la sección `jobs:` de su workflow**
+  (tabla `JOB_WORKFLOW_JOBS`; el nombre real puede diferir del documentado, p. ej.
+  `cpp-unit-tests` → `build-and-test` en dsp-ci.yml, `vitest` → `test-and-export` en
+  webui-ci.yml). Antes solo se comprobaba que el archivo existiera.
+- `extractJobsFromWorkflow()`: parser ligero Node (sin dependencias) de la sección
+  `jobs:` del YAML de GitHub Actions — robusto a CRLF, ignora `on:`/`permissions:`/
+  `concurrency:` y jobs anidados.
+- Tests ampliados 14 → 25: unit de `extractJobsFromWorkflow` (6: básico, no-jobs,
+  CRLF, `jobs:` como última clave, comentarios/blanks), contrato `JOB_WORKFLOW_JOBS`
+  (derivado del mapa real — sin duplicar el contrato en el test) + validación en vivo
+  de los 12 workflows reales, y negativos (workflow sin `jobs:`, job de nombre
+  distinto, job real renombrado sin actualizar el mapeo). Baseline: 102 files / 4675 tests.
+
+---
+
 ## [0.2.35] — 2026-08-09
 
 ### 🔄 Fase 6 — Retirada progresiva de compatibilidad legacy

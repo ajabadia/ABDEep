@@ -23,7 +23,23 @@ const SCRIPT = path.join(ROOT, 'scripts', 'verify_docs_ci_jobs.js');
 const REAL_WORKFLOWS = path.join(ROOT, '.github', 'workflows');
 
 const require = createRequire(import.meta.url);
-const { EXPECTED_JOBS, JOB_WORKFLOWS, PLAN_JOB_RE, BASELINE_JOB_RE, extractSection, extractJobNames, setEquals } = require(SCRIPT);
+const {
+  EXPECTED_JOBS, JOB_WORKFLOWS, JOB_WORKFLOW_JOBS, PLAN_JOB_RE, BASELINE_JOB_RE,
+  extractSection, extractJobNames, extractJobsFromWorkflow, setEquals,
+} = require(SCRIPT);
+
+// Jobs por defecto para cada workflow sintético — DERIVADO de JOB_WORKFLOW_JOBS
+// (fuente de verdad) para que el test no duplique el contrato: workflow → [job IDs]
+// es el inverso de job → workflow (JOB_WORKFLOWS) + job → job IDs.
+function buildDefaultWorkflowJobs() {
+  const byWf = {};
+  for (const job of EXPECTED_JOBS) {
+    const wf = JOB_WORKFLOWS[job];
+    (byWf[wf] = byWf[wf] || []).push(...JOB_WORKFLOW_JOBS[job]);
+  }
+  return byWf;
+}
+const DEFAULT_WORKFLOW_JOBS = buildDefaultWorkflowJobs();
 
 // ────────────────────────────────────────────────────────────────────────────
 // Helpers: docs sintéticos mínimos con las secciones que el script parsea.
@@ -39,6 +55,16 @@ function buildBaseline(jobs) {
   return '## 7. CI — estado de Fase 7\n' + bullets + '\n\n## 8. Estado y próximos pasos\n';
 }
 
+function buildWorkflowContent(jobs) {
+  const jobLines = (jobs || []).map((j) => `  ${j}:\n    runs-on: ubuntu-latest\n`).join('');
+  return 'name: test\n\njobs:\n' + jobLines;
+}
+
+/**
+ * Crea un temp dir con docs y workflows. `workflows` puede ser:
+ *   - array de nombres: cada uno recibe sus jobs por defecto (DEFAULT_WORKFLOW_JOBS);
+ *   - objeto { nombre: [jobIds] | [] }: jobs explícitos ([] = workflow sin jobs).
+ */
 function writeTemp({ plan, baseline, workflows }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docsci-'));
   const planFile = path.join(dir, 'plan.md');
@@ -48,7 +74,12 @@ function writeTemp({ plan, baseline, workflows }) {
   fs.writeFileSync(baselineFile, baseline);
   if (workflows) {
     fs.mkdirSync(workflowsDir, { recursive: true });
-    for (const wf of workflows) { fs.writeFileSync(path.join(workflowsDir, wf), 'name: test\n'); }
+    const list = Array.isArray(workflows)
+      ? workflows.map((w) => [w, DEFAULT_WORKFLOW_JOBS[w] || []])
+      : Object.entries(workflows);
+    for (const [wf, jobs] of list) {
+      fs.writeFileSync(path.join(workflowsDir, wf), buildWorkflowContent(jobs));
+    }
   }
   return { dir, planFile, baselineFile, workflowsDir };
 }
@@ -88,9 +119,29 @@ describe('verify_docs_ci_jobs.js — contrato de Fase 7', () => {
     expect(Object.keys(JOB_WORKFLOWS).sort()).toEqual([...EXPECTED_JOBS].sort());
   });
 
+  it('JOB_WORKFLOW_JOBS cubre exactamente EXPECTED_JOBS y cada job tiene al menos 1 job ID', () => {
+    expect(Object.keys(JOB_WORKFLOW_JOBS).sort()).toEqual([...EXPECTED_JOBS].sort());
+    for (const [job, ids] of Object.entries(JOB_WORKFLOW_JOBS)) {
+      expect(ids.length, job + ' sin job ID mapeado').toBeGreaterThan(0);
+      // El workflow referenciado por el job debe existir en el repo
+      expect(fs.existsSync(path.join(REAL_WORKFLOWS, JOB_WORKFLOWS[job])), JOB_WORKFLOWS[job]).toBe(true);
+    }
+  });
+
   it('cada workflow del contrato existe en .github/workflows/', () => {
     for (const wf of Object.values(JOB_WORKFLOWS)) {
       expect(fs.existsSync(path.join(REAL_WORKFLOWS, wf)), 'falta ' + wf).toBe(true);
+    }
+  });
+
+  it('todos los workflows reales definen un job con el ID esperado (validación en vivo)', () => {
+    for (const [job, ids] of Object.entries(JOB_WORKFLOW_JOBS)) {
+      const wf = JOB_WORKFLOWS[job];
+      const content = fs.readFileSync(path.join(REAL_WORKFLOWS, wf), 'utf8');
+      const actual = extractJobsFromWorkflow(content);
+      for (const jid of ids) {
+        expect(actual.has(jid), job + ' → ' + wf + ' debería definir job ' + jid).toBe(true);
+      }
     }
   });
 });
@@ -126,6 +177,41 @@ describe('verify_docs_ci_jobs.js — extracción de secciones', () => {
   it('setEquals compara conjuntos por contenido', () => {
     expect(setEquals(new Set(['a', 'b']), new Set(['b', 'a']))).toBe(true);
     expect(setEquals(new Set(['a']), new Set(['a', 'b']))).toBe(false);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// extractJobsFromWorkflow (unit)
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('verify_docs_ci_jobs.js — extractJobsFromWorkflow', () => {
+  it('extrae los job IDs de la sección jobs:', () => {
+    const yaml = 'name: test\non:\n  push:\n    branches: [main]\n\njobs:\n  build-and-test:\n    runs-on: ubuntu-latest\n  allocation-audit:\n    runs-on: ubuntu-latest\n';
+    expect(extractJobsFromWorkflow(yaml)).toEqual(new Set(['build-and-test', 'allocation-audit']));
+  });
+
+  it('ignora claves fuera de jobs: (on, permissions, concurrency) y jobs anidados', () => {
+    const yaml = 'on:\n  push:\n    branches: [main]\npermissions:\n  contents: read\njobs:\n  security-scan:\n    runs-on: ubuntu-latest\n';
+    expect(extractJobsFromWorkflow(yaml)).toEqual(new Set(['security-scan']));
+  });
+
+  it('devuelve Set vacío si no hay sección jobs:', () => {
+    expect(extractJobsFromWorkflow('name: solo\n')).toEqual(new Set());
+  });
+
+  it('maneja CRLF (Windows) sin romperse', () => {
+    const yaml = 'name: test\r\njobs:\r\n  pluginval:\r\n    runs-on: windows-2022\r\n';
+    expect(extractJobsFromWorkflow(yaml)).toEqual(new Set(['pluginval']));
+  });
+
+  it('jobs: como ÚLTIMA clave top-level (sin texto posterior) extrae igual', () => {
+    const yaml = 'name: test\non:\n  push:\njobs:\n  wasm-build:\n    runs-on: ubuntu-latest\n';
+    expect(extractJobsFromWorkflow(yaml)).toEqual(new Set(['wasm-build']));
+  });
+
+  it('comentarios y líneas en blanco dentro de jobs: no se confunden con job IDs', () => {
+    const yaml = 'jobs:\n  # primer job\n  security-scan:\n    runs-on: ubuntu-latest\n\n  # segundo\n  schema-validation:\n    runs-on: ubuntu-latest\n';
+    expect(extractJobsFromWorkflow(yaml)).toEqual(new Set(['security-scan', 'schema-validation']));
   });
 });
 
@@ -215,6 +301,72 @@ describe('verify_docs_ci_jobs.js — divergencias plan ↔ baseline', () => {
       expect(stderr).toContain('::error::docs-verification');
       expect(stderr).toContain('pluginval.yml');
       expect(extractJson(stdout).missingWorkflows[0]).toContain('pluginval.yml');
+    } finally {
+      fs.rmSync(tmp.dir, { recursive: true, force: true });
+    }
+  });
+
+  it('workflow sin sección jobs: (archivo vacío) falla', () => {
+    const tmp = writeTemp({
+      plan: buildPlan(EXPECTED_JOBS),
+      baseline: buildBaseline(EXPECTED_JOBS),
+      workflows: Object.fromEntries(
+        Object.keys(DEFAULT_WORKFLOW_JOBS).map((w) => [w, []]),
+      ),
+    });
+    try {
+      const { status, stderr, stdout } = runScript([
+        '--plan-file', tmp.planFile, '--baseline-file', tmp.baselineFile,
+        '--workflows-dir', tmp.workflowsDir, '--json',
+      ]);
+      expect(status).toBe(1);
+      expect(stderr).toContain('::error::docs-verification');
+      expect(extractJson(stdout).missingJobDefs.length).toBe(EXPECTED_JOBS.length);
+    } finally {
+      fs.rmSync(tmp.dir, { recursive: true, force: true });
+    }
+  });
+
+  it('workflow con job de nombre distinto al esperado falla (anti-drift de job IDs)', () => {
+    // pluginval.yml existe pero define el job 'validacion' en vez de 'pluginval'
+    const workflows = { ...DEFAULT_WORKFLOW_JOBS, 'pluginval.yml': ['validacion'] };
+    const tmp = writeTemp({
+      plan: buildPlan(EXPECTED_JOBS),
+      baseline: buildBaseline(EXPECTED_JOBS),
+      workflows,
+    });
+    try {
+      const { status, stderr, stdout } = runScript([
+        '--plan-file', tmp.planFile, '--baseline-file', tmp.baselineFile,
+        '--workflows-dir', tmp.workflowsDir, '--json',
+      ]);
+      expect(status).toBe(1);
+      expect(stderr).toContain('::error::docs-verification');
+      expect(stderr).toContain('pluginval');
+      expect(extractJson(stdout).missingJobDefs[0]).toContain('pluginval');
+    } finally {
+      fs.rmSync(tmp.dir, { recursive: true, force: true });
+    }
+  });
+
+  it('renombrar un job real sin actualizar JOB_WORKFLOW_JOBS falla (p.ej. cpp-unit-tests→build-and-test)', () => {
+    // dsp-ci.yml sin el job 'build-and-test' (el que implementa cpp-unit-tests)
+    const workflows = {
+      ...DEFAULT_WORKFLOW_JOBS,
+      'dsp-ci.yml': ['allocation-audit', 'benchmark'],
+    };
+    const tmp = writeTemp({
+      plan: buildPlan(EXPECTED_JOBS),
+      baseline: buildBaseline(EXPECTED_JOBS),
+      workflows,
+    });
+    try {
+      const { status, stderr, stdout } = runScript([
+        '--plan-file', tmp.planFile, '--baseline-file', tmp.baselineFile,
+        '--workflows-dir', tmp.workflowsDir, '--json',
+      ]);
+      expect(status).toBe(1);
+      expect(extractJson(stdout).missingJobDefs.some((x) => x.includes('build-and-test'))).toBe(true);
     } finally {
       fs.rmSync(tmp.dir, { recursive: true, force: true });
     }

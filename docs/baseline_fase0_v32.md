@@ -27,7 +27,7 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 
 ## 2. Baseline WebUI (Vitest + ESLint)
 
-> **2026-08-09 — actualizado a los números vigentes** (102 files / 4664 tests,
+> **2026-08-09 — actualizado a los números vigentes** (102 files / 4675 tests,
 > ESLint 0 warnings). El count de test files/tests lo verifica en cada `npm test` el
 > **guard `WebUI/tests/baselineGuard.test.js`** (anti-drift: corre la suite en un
 > subproceso excluyéndose y reconcilia con esta sección).
@@ -35,7 +35,7 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 | Métrica | Valor |
 |---|---|
 | Test files | **102** (102 passed) |
-| Tests | **4664** (4662 passed, 2 skipped, 0 failed) |
+| Tests | **4675** (4673 passed, 2 skipped, 0 failed) |
 | Duración | ~16 s |
 | ESLint | **0 errores, 0 warnings** (`curly` limpios con `--fix`; `npm run lint`
   ahora es `--max-warnings 0` → CI falla ante cualquier warning) |
@@ -262,7 +262,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   0 fallos**. Nota: **3 fallos FX preexistentes documentados** (refactor FX en curso:
   fidelidad delay + full-gain wet) — el paso usa `continue-on-error` (no bloquean CI).
 - ✅ **Job `vitest` + lint** en `.github/workflows/webui-ci.yml` (ubuntu-latest): suite
-  completa de WebUI (**102 files / 4664 tests, 0 fallos**) y ESLint **0 errores / 0
+  completa de WebUI (**102 files / 4675 tests, 0 fallos**) y ESLint **0 errores / 0
   warnings** (`npm run lint` con `--max-warnings 0`). El guard `baselineGuard.test.js`
   incluido en la suite verifica que los counts de esta sección no deriven.
   `package-lock.json` commiteado; `patchwork-deepmind` eliminado de `dependencies`
