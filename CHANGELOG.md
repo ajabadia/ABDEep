@@ -30,6 +30,13 @@
   Actions (el `node`/`git diff --exit-code` fallaba antes del bloque `if`, y `$?` dentro del
   `echo` se sobrescribía con el exit del propio `[`). Ahora los `::error::` y el `::group::`
   con el diff se imprimen de verdad en los fallos (simulado con `bash -e` local: 5/5 modos).
+- **Guardia anti-minificación ampliada (ambos workflows, `registry-generation` y
+  `schema-validation`)**: el check de línea única protege ahora `data.json` **y**
+  `registry.gen.js` (ambos contienen `generatedAt`; si se emitieran minificados, el
+  `--ignore-matching-lines` enmascararía el archivo entero y el job pasaría en falso).
+  La guardia distingue además el caso `AUSENTE` (explicitud antes del `wc -l`, evita el
+  quirk `[ "" -lt 2 ]` en bash). Verificado: `git ls-files --eol` confirma los 4 `.gen`
+  con `eol=lf` en el repo (sin ruido CRLF en ubuntu-latest).
 
 ---
 

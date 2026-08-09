@@ -86,12 +86,19 @@ jobs:
             'Source/Core/ParameterRegistry.gen.cpp'
           )
           # Guardia: --ignore-matching-lines ignora LÍNEAS completas; si data.json
-          # se emitiera en una sola línea (JSON sin indentar), el ignore enmascararía
-          # TODO el archivo y el job pasaría en falso con artefactos stale.
-          if [ "$(wc -l < schemas/parameter-registry.data.json)" -lt 2 ]; then
-            echo "::error::schemas/parameter-registry.data.json es de una sola línea — el diff por líneas no es fiable. Regenera con indentación (JSON.stringify(..., 2))."
-            exit 1
-          fi
+          # o registry.gen.js se emitieran en una sola línea (JSON minificado), el
+          # ignore enmascararía TODO el archivo y el job pasaría en falso con
+          # artefactos stale. (Los .h/.cpp se emiten multi-línea via join('\n').)
+          for f in schemas/parameter-registry.data.json WebUI/js/registry.gen.js; do
+            if [ ! -f "$f" ]; then
+              echo "::error::$f está AUSENTE — no se puede verificar la sincronía de los artefactos .gen."
+              exit 1
+            fi
+            if [ "$(wc -l < "$f")" -lt 2 ]; then
+              echo "::error::$f es de una sola línea — el diff por líneas no es fiable. Regenera con indentación (JSON.stringify(..., 2))."
+              exit 1
+            fi
+          done
           # generatedAt cambia en cada corrida: se ignora. Cualquier otra
           # diferencia = los artefactos commiteados están stale.
           # `if ! git diff --exit-code` captura el exit 1 (hay diffs) SIN que set -e

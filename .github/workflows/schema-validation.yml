@@ -84,11 +84,19 @@ jobs:
             'Source/Core/ParameterRegistry.gen.cpp'
           )
           # Guardia: --ignore-matching-lines ignora LÍNEAS completas; si data.json
-          # se emitiera en una sola línea (JSON sin indentar), el ignore enmascararía
-          # TODO el archivo y el job pasaría en falso con artefactos stale.
-          if ((Get-Content 'schemas/parameter-registry.data.json').Count -lt 2) {
-            Write-Host '::error::schemas/parameter-registry.data.json es de una sola línea — el diff por líneas no es fiable. Regenera con indentación (JSON.stringify(..., 2)).'
-            exit 1
+          # o registry.gen.js se emitieran en una sola línea (JSON minificado), el
+          # ignore enmascararía TODO el archivo y el job pasaría en falso con
+          # artefactos stale. (Los .h/.cpp se emiten multi-línea via join('\n').)
+          $guarded = @('schemas/parameter-registry.data.json', 'WebUI/js/registry.gen.js')
+          foreach ($f in $guarded) {
+            if (-not (Test-Path $f)) {
+              Write-Host "::error::$f está AUSENTE — no se puede verificar la sincronía de los artefactos .gen."
+              exit 1
+            }
+            if ((Get-Content $f).Count -lt 2) {
+              Write-Host "::error::$f es de una sola línea — el diff por líneas no es fiable. Regenera con indentación (JSON.stringify(..., 2))."
+              exit 1
+            }
           }
           # generatedAt cambia en cada corrida: se ignora. Cualquier otra
           # diferencia = los artefactos commiteados están stale.
