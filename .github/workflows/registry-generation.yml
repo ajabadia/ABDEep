@@ -67,9 +67,13 @@ jobs:
 
       - name: Run registry_generator.js (regenerate the 4 .gen artifacts from sources)
         run: |
-          node scripts/registry_generator.js
-          if [ $? -ne 0 ]; then
-            echo "::error::registry_generator.js falló (exit $?) — esquema inválido o fuentes corruptas. No se regeneraron artefactos."
+          # GH Actions bash usa `set -e`: `if ! cmd` NO dispara la salida inmediata
+          # (los comandos en condiciones están exentos), así que el ::error:: sí se
+          # imprime. No usar `if [ $? -ne 0 ]`: $? se sobrescribe con el exit del
+          # propio `[` (0) antes del echo, y como statement suelto `node` moriría
+          # por set -e sin llegar al mensaje.
+          if ! node scripts/registry_generator.js; then
+            echo "::error::registry_generator.js falló — esquema inválido o fuentes corruptas. No se regeneraron artefactos."
             exit 1
           fi
 
@@ -90,11 +94,13 @@ jobs:
           fi
           # generatedAt cambia en cada corrida: se ignora. Cualquier otra
           # diferencia = los artefactos commiteados están stale.
-          git diff --exit-code --ignore-matching-lines='generatedAt' -- "${artifacts[@]}"
-          if [ $? -ne 0 ]; then
+          # `if ! git diff --exit-code` captura el exit 1 (hay diffs) SIN que set -e
+          # mate el script antes del mensaje. El diff interno lleva `|| true` para
+          # que el ::group:: se cierre y el `exit 1` explícito marque el fallo.
+          if ! git diff --exit-code --ignore-matching-lines='generatedAt' -- "${artifacts[@]}"; then
             echo "::error::Los artefactos .gen COMMITEADOS no coinciden con la regeneración. Ejecuta localmente: node scripts/registry_generator.js (o powershell -ExecutionPolicy Bypass -File scripts/validate_and_generate.ps1) y haz commit de los 4 artefactos regenerados."
             echo "::group::Diff de artefactos .gen vs regeneración"
-            git diff --ignore-matching-lines='generatedAt' -- "${artifacts[@]}"
+            git diff --ignore-matching-lines='generatedAt' -- "${artifacts[@]}" || true
             echo "::endgroup::"
             exit 1
           fi

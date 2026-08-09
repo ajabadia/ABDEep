@@ -25,6 +25,11 @@
   `git diff --exit-code --ignore-matching-lines='generatedAt'` → **0 diffs de contenido**.
   Checkbox de Fase 7 marcado (queda pendiente `pluginval`, `wasm-build`, `security-scan`,
   `property-fuzzing`).
+- **Fix post-reviewer**: los `run: |` bash de los pasos 3 y 4 usan ahora `if ! cmd` en vez de
+  `if [ $? -ne 0 ]` — el patrón anterior era código muerto bajo el `set -e` por defecto de GH
+  Actions (el `node`/`git diff --exit-code` fallaba antes del bloque `if`, y `$?` dentro del
+  `echo` se sobrescribía con el exit del propio `[`). Ahora los `::error::` y el `::group::`
+  con el diff se imprimen de verdad en los fallos (simulado con `bash -e` local: 5/5 modos).
 
 ---
 
