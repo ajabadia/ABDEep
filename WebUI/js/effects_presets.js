@@ -54,7 +54,9 @@ window.saveFxPreset = function (presetName, slotNumber) {
   if (typeof window.syncFxPresetDropdowns === 'function') { window.syncFxPresetDropdowns(); }
   if (typeof window.lcdSafeUpdate === 'function') {
     const lcd = document.getElementById('lcd-screen-main');
-    if (lcd) { window.lcdSafeUpdate(lcd, 'FX Preset Saved: ' + preset.name, null, { useQueue: false }); }
+    // Fase 3 §4.1: preset.name viene de localStorage (dato externo) → escapar antes del sink
+    const safeName = (typeof globalThis.escapeHtml === 'function') ? globalThis.escapeHtml(preset.name) : preset.name;
+    if (lcd) { window.lcdSafeUpdate(lcd, 'FX Preset Saved: ' + safeName, null, { useQueue: false }); }
   }
 };
 

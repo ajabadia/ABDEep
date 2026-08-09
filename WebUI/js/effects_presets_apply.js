@@ -41,8 +41,10 @@ window.applyFxPreset = function (presetData, slotNumber) {
 
   if (typeof window.lcdSafeUpdate === 'function') {
     const lcd = document.getElementById('lcd-screen-main');
+    // Fase 3 §4.1: presetData.name viene de localStorage (dato externo) → escapar antes del sink
+    const safeName = (typeof globalThis.escapeHtml === 'function') ? globalThis.escapeHtml(presetData.name) : presetData.name;
     if (lcd) {
-      window.lcdSafeUpdate(lcd, 'FX Preset Loaded: ' + presetData.name + ' \u2192 FX' + slotNumber, null, { useQueue: false });
+      window.lcdSafeUpdate(lcd, 'FX Preset Loaded: ' + safeName + ' \u2192 FX' + slotNumber, null, { useQueue: false });
     }
   }
 };

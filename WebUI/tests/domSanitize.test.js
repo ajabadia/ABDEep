@@ -30,6 +30,9 @@ function loadJsGlobal(relPath) {
 }
 
 const { escapeHtml } = require(path.join(JS_DIR, 'dom_sanitize.js'));
+// Fuente de verdad única del audit (Fase 3 §4.1 + job CI security-scan):
+// scripts/security_scan.js exporta los patrones y el detector reutilizado aquí.
+const { auditSource, scanDir } = require(path.join(ROOT, 'scripts', 'security_scan.js'));
 
 // ════════════════════════════════════════════════════════════════
 // 1. Unit tests — escapeHtml canónico
@@ -91,49 +94,45 @@ const MIGRATED_FILES = [
   'script_bar_generators.js',
 ];
 
-// Patrones de datos externos que NO deben aparecer interpolados en sinks sin escape.
-// El audit es por LÍNEA de sink: solo se inspeccionan las líneas que escriben en
-// innerHTML / lcdSafeUpdate / insertAdjacentHTML / outerHTML (los sinks del §4.1).
-// Las asignaciones a innerText/textContent son seguras (no parsean HTML) y se ignoran.
-const FORBIDDEN_INTERPOLATIONS = [
-  /\$\{patch\.name/,
-  /\$\{patchRef\.name/,
-  /\+ patch\.name\.toUpperCase/,
-  /\+ patchRef\.name\.toUpperCase/,
-  /\$\{p\.name\}/,
-  /\$\{newName/,
-  /\$\{bankName\}/,
-  /\$\{window\.currentActiveBank\}/,
-  /\$\{saveAsSelectedBank\}/,
-  /\+ String\(p\.name\)\.replace/,
-];
-
-const SINK_RE = /(innerHTML|insertAdjacentHTML|outerHTML|lcdSafeUpdate)/;
-
-function hasForbiddenSinkInterpolation(src) {
-  const lines = src.split(/\r?\n/);
-  for (const line of lines) {
-    if (!SINK_RE.test(line)) {continue;}      // no es línea de sink
-    if (/innerText|textContent/.test(line)) {continue;} // asignación segura
-    for (const pattern of FORBIDDEN_INTERPOLATIONS) {
-      if (pattern.test(line)) {return { line, pattern };}
-    }
-  }
-  return null;
-}
+// NOTA: los patrones y el detector viven en scripts/security_scan.js (auditSource),
+// compartidos con el job CI security-scan. Este test los reutiliza para verificar
+// los archivos migrados en Fase 3 y el escaneo COMPLETO de WebUI/js.
 
 describe('Audit estático Fase 3 — sinks de parches/visores sin escape', () => {
   for (const file of MIGRATED_FILES) {
     it(`${file} usa escapeHtml y no interpola datos externos en sinks sin escapar`, () => {
       const src = fs.readFileSync(path.join(JS_DIR, file), 'utf8');
       expect(src, `${file} debe referenciar escapeHtml (canónico o global)`).toContain('escapeHtml');
-      const hit = hasForbiddenSinkInterpolation(src);
+      const hits = auditSource(src);
       expect(
-        hit,
-        `${file} tiene una línea de sink con interpolación de datos sin escape: ${hit ? hit.line.trim() : ''}`
-      ).toBeNull();
+        hits,
+        `${file} tiene una línea de sink con interpolación de datos sin escape: ${hits.length ? hits[0].text : ''}`
+      ).toEqual([]);
     });
   }
+
+  it('scan COMPLETO de WebUI/js: 0 datos externos sin escapar en sinks (job CI security-scan)', () => {
+    const violations = scanDir();
+    expect(violations).toEqual([]);
+  });
+
+  it('auditSource ignora líneas que ya escapan (sin falsos positivos en `+ preset.name` escapado)', () => {
+    // Usos LEGÍTIMOS con escape en la misma línea no deben marcarse aunque matcheen
+    // el patrón genérico `+ preset.name` / `+ patch.name`.
+    const escapedSrc = [
+      "lcdSafeUpdate(lcd, 'Loaded: ' + escapeHtml(preset.name) + ' ok', null, { useQueue: false });",
+      "el.innerHTML = '<b>' + window.escapeHtml(patch.name) + '</b>';",
+      "el.innerHTML = '<b>' + _escapeHtml(text) + '</b>';",
+      "el.textContent = 'Safe ' + patch.name; // no es sink HTML",
+    ].join('\n');
+    expect(auditSource(escapedSrc)).toEqual([]);
+
+    // Uso SIN escapar sigue detectándose
+    const vulnerableSrc = "lcdSafeUpdate(lcd, 'Saved: ' + preset.name, null, { useQueue: false });";
+    const hits = auditSource(vulnerableSrc);
+    expect(hits.length).toBe(1);
+    expect(hits[0].code).toBe('UNESCAPED_DATA_IN_SINK');
+  });
 
   it('settings_midi_learn.js usa textContent para valores dinámicos (ya migrado en Fase 3)', () => {
     const src = fs.readFileSync(path.join(JS_DIR, 'settings_midi_learn.js'), 'utf8');

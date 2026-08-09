@@ -4,6 +4,46 @@
 
 ---
 
+## [0.2.15] — 2026-08-09
+
+### 🛡️ Fase 7 — Job CI `security-scan` (workflow `security-scan.yml`) + 2 XSS reales corregidos
+
+- **Nuevo `scripts/security_scan.js`**: audit estático XSS (plan v3.2 §4.1) que aplica la
+  MISMA lógica de detección de `domSanitize.test.js` sobre **TODO `WebUI/js`** (236 archivos),
+  no solo los 13 migrados en Fase 3. CLI (`--json`, `--dir`, exit 0/1/2) + módulo
+  reutilizable (`auditSource`/`auditFile`/`scanDir`) — **fuente de verdad única** del audit.
+- **`WebUI/tests/domSanitize.test.js` refactorizado** para importar los helpers del script
+  (eliminados los patrones duplicados en el test) + **nuevo test del scan COMPLETO**
+  (`scanDir()` → 0 violaciones) que valida en local lo que el job verifica en CI.
+- **2 XSS reales encontrados por el scan ampliado y corregidos**: `effects_presets.js`
+  ("FX Preset Saved") y `effects_presets_apply.js` ("FX Preset Loaded") interpolaban
+  `preset.name`/`presetData.name` (localStorage — dato externo) en `lcdSafeUpdate` SIN
+  escapar; ahora pasan por `globalThis.escapeHtml`. Patrones `preset.name`/`presetData.name`
+  añadidos a `FORBIDDEN_INTERPOLATIONS` para prevenir la regresión.
+- **9 falsos positivos de la heurística general verificados como seguros** (datos estáticos
+  de la propia app o ya escapados): `browser_render.js` (emptyMsg ya escapa),
+  `arpeggiator_controls(.ui).js` (arrays estáticos), `panel_controls_env_voice.js`
+  (labels del DOM propio), `panel_controls_seq.js`/`sequencer_modal_state.js`
+  (badges/colores estáticos) — el scan específico no los marca.
+- **Workflow `security-scan.yml`** (ubuntu-latest, Node 20): ejecuta el script con `--json`,
+  imprime el reporte en `::group::`, **falla si hay violaciones** y sube el reporte como
+  artefacto (`security-scan-report.json`) en caso de fallo. Triggers: push main, PR, manual.
+- **Post-reviewer (2 fixes)**:
+  1. **Falsos positivos**: los patrones genéricos `+ preset.name`/`+ presetData.name`
+     marcaban también usos YA escapados en la misma línea; `auditSource` ahora descarta
+     líneas que invocan `escapeHtml`/`_escapeHtml` (`ESCAPED_LINE_RE`, mismo criterio que
+     el skip de textContent) + test de regresión que verifica ambos casos (escaped → 0,
+     vulnerable → 1 violación).
+  2. **`set -e` en el workflow**: el script con violaciones (exit 1) mataba el step ANTES
+     de imprimir el reporte (mismo bug corregido en `registry-generation`/`schema-validation`);
+     ahora se captura el rc con `if !`, se renderiza el `::group::` SIEMPRE y se `exit $scan_rc`.
+     Verificado: scan de un dir malicioso → RC=1 + violación detectada en el JSON.
+- **Verificación**: Vitest **90 files / 4514 tests / 0 fallos** (+2: scan completo + falsos
+  positivos); ESLint 0; `node scripts/security_scan.js --json` → 236 archivos /
+  **0 violaciones**; YAML de los 7 workflows válido.
+
+---
+
 ## [0.2.14] — 2026-08-09
 
 ### 🧹 Consolidación de escapeHtml (4 fuentes → 1 canónica) — prep Fase 6

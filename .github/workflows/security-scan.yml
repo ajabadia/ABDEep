@@ -1,0 +1,59 @@
+name: security-scan
+
+# Fase 7 — security-scan: audit estático XSS (plan v3.2 §4.1) sobre WebUI/js COMPLETO.
+# Ejecuta scripts/security_scan.js (misma lógica que domSanitize.test.js) y falla si
+# cualquier .js de WebUI/js interpola datos externos (patch.name, bank names, preset
+# names de localStorage, newName…) en sinks innerHTML/lcdSafeUpdate SIN pasar por
+# escapeHtml(). Protege los 13 archivos migrados en Fase 3 Y cualquier archivo nuevo.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    name: XSS static audit (all WebUI/js)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run XSS static audit
+        # NOTA (set -e): los comandos en condiciones (`if !`) están exentos de set -e, así
+        # que el script con violaciones (exit 1) NO mata el step antes de imprimir el
+        # reporte. Se captura el rc, se renderiza el ::group:: SIEMPRE y se sale con él.
+        run: |
+          if ! node scripts/security_scan.js --json > /tmp/security-scan-report.json; then
+            scan_rc=1
+          else
+            scan_rc=0
+          fi
+          echo "::group::Security scan report"
+          node -e "
+            const r = require('/tmp/security-scan-report.json');
+            console.log('Archivos auditados:', r.filesChecked);
+            console.log('Violaciones:', r.violations.length);
+            for (const v of r.violations) {
+              console.log('  ' + v.file + ':' + v.line + ' [' + v.code + ']');
+              console.log('      ' + v.text);
+            }
+          " || true
+          echo "::endgroup::"
+          exit $scan_rc
+
+      - name: Upload report artifact (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-report
+          path: /tmp/security-scan-report.json
+          retention-days: 30
