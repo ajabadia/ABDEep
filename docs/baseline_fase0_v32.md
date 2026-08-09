@@ -169,6 +169,17 @@ configuración: sr=48 kHz, block=512, warmup=200, measured=3000, **3 repeticione
 - **0 overruns y 0 asignaciones en TODOS los escenarios**, incluida la configuración
   máxima del plan → §3.3 satisfecho con margen **~2.4× en p999**.
 
+**Confirmación de reproducibilidad:** el run de publicación de artefactos (commit
+`84eb25f`, mismo runner windows-2022, `GitHub Actions 1000000407 cpus=4`) repitió
+los 18 escenarios con resultados dentro del ruido (idle p95 27.6 vs 27.5 µs;
+`max_all` p95 3204 vs 3211 µs; modmatrix32 p95 4021 vs 4029 µs; 0 allocs y 0
+overruns en todos). Los números de esta tabla son por tanto estables entre corridas
+independientes en el runner dedicado.
+
+**Publicación de resultados:** el job sube `bench_results.txt` + `bench_full.log` +
+`bench_meta.txt` como artefacto de Actions (`benchmark-results-<run_id>`), accesible
+en la página del run sin permisos de escritura de rama.
+
 **Conclusiones definitivas (§3.3):**
 
 - El presupuesto de **10.667 µs/bloque se cumple con holgura** en runner dedicado: el

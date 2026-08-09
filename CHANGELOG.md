@@ -10,8 +10,7 @@
 
 - **Job `benchmark` en `.github/workflows/dsp-ci.yml`**: 18 escenarios de carga máxima ×
   3 repeticiones (mejor p95) en runner dedicado windows-2022; publica resultados como
-  artefacto de Actions (`benchmark-results-<run_id>`, 90 días).
-- **Job `allocation-audit` ampliado** a `idle` + `poly12` (+`poly12_fx4`) + `max_all`:
+  artefacto de Actions (`benchmark-results-<run_id>`, 90 días).- **Job `allocation-audit` ampliado** a `idle` + `poly12` (+`poly12_fx4`) + `max_all`:
   verificado en CI con **0 allocs en todos los escenarios auditados** (invariante §3.1).
 - **Fix de builds C++ en CI**: fetch de JUCE 8.0.12 (no había submódulo) + SDK WebView2
   vía NuGet (`JUCE_WEBVIEW2_PACKAGE_LOCATION`) — el configure fallaba en runners limpios
@@ -26,6 +25,11 @@
   `max_all` p95=**3211.5** µs (30% del presupuesto de 10.667 µs), p99=**3384.7** µs,
   p999=**3474.2** µs; peor-caso de los 18 escenarios: p95=4029.5 / p99=4100.3 /
   p999=4392.2 µs (modmatrix32, 41%); **0 overruns y 0 allocs en los 18 escenarios**.
+- **Reproducibilidad verificada end-to-end** (commit `84eb25f`): workflow aceptado por
+  GitHub (permisos de publicación como artefacto), los 3 jobs verdes (allocation-audit
+  idle/poly12/max_all, benchmark 18 escenarios, unit tests) y artefacto
+  `benchmark-results-31302200219` publicado; números estables entre corridas
+  independientes (idle p95 27.6 vs 27.5 µs; `max_all` p95 3204 vs 3211 µs).
 - **Docs**: `docs/baseline_fase0_v32.md` §5.3 (tabla definitiva + envuelta peor-caso) y
   §7 (estado de CI).
 
