@@ -4,6 +4,35 @@
 
 ---
 
+## [0.2.21] — 2026-08-09
+
+### 🏷️ `roundtrip_corpus.js` — registro explícito de clasificación por preset (`--classify`)
+
+- **Nuevo modo `--classify`** en `scripts/roundtrip_corpus.js`: emite la tabla por preset
+  `{bank, prog, level1, level2, classification, matchedWith}` para los 1024 presets A–H:
+  - `classification`: `exact_match` (único en el corpus) | `canonical_match` (duplicado
+    byte-idéntico en otra posición, `matchedWith` = la otra posición) | `semantic_match`
+    (mismos parámetros que otro preset, difieren solo en región reservada/padding).
+  - **canonical > semantic por construcción**: los pares de duplicados y de hermanos no se
+    solapan (el early-continue de `bytesEqual` en el bucle de grupos lo garantiza) —
+    comentado en el código para no romper los conteos.
+  - `level1`/`level2` = estado de VALIDACIÓN del preset (cacheado en los bucles Nivel 1/2
+    originales — sin re-ejecutar las 3 funciones por preset, coste O(n) extra con el hash).
+  - Resumen de conteos en consola y `counts` en el JSON.
+- **Resultado del corpus de fábrica**: `804 exact · 210 canonical (105 pares) · 10 semantic
+  (5 hermanos)` · `0 no_match` — 1024/1024 validados en los 3 niveles, 0 errores.
+- **Tests** (`roundtripCorpusScript.test.js`, 9 total — +3): tabla de 1024 filas,
+  conteos exactos fijados (804/210/10/0), invariantes por fila (`level1`&&`level2` true,
+  `matchedWith` `^[A-H]/\d+$` ≠ self, exact → null) y ausencia de `classify` sin `--classify`.
+- **Docs**: `docs/fase4_roundtrip_equality.md` §6b (script de corpus + `--classify`) y nota
+  de Fase 4 del plan actualizada.
+- **Post-reviewer (3 comentarios aplicados)**: prioridad canonical>semantic comentada,
+  semántica de `level1`/`level2` documentada y conteos ligados a los pares en el código.
+- **Verificación**: Vitest **92 files / 4576 tests / 0 fallos** (+3); ESLint 0;
+  `node --check` OK. CI `fase4-corpus` intacto (corre con `--json`, sin `--classify`).
+
+---
+
 ## [0.2.20] — 2026-08-09
 
 ### 🔬 Fase 7 — Job CI `property-fuzzing` (workflow `property-fuzzing.yml`) + fuzzing multi-seed

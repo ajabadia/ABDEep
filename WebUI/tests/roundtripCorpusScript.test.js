@@ -101,4 +101,49 @@ describe.skipIf(!hasCorpus)('roundtrip_corpus.js — batería Fase 4 sobre el co
     expect(r.corpusSize).toBe(256);
     expect(r.ok).toBe(true);
   });
+
+  it('--classify emite la tabla por preset (1024 filas, clasificación consistente)', () => {
+    const { status, stdout } = runScript(['--classify', '--json']);
+    expect(status).toBe(0);
+    const r = extractJson(stdout);
+    expect(r.classify).not.toBeNull();
+    expect(r.classify.byPreset.length).toBe(1024);
+    const C = r.classify.counts;
+    // Los 105 duplicados byte-idénticos cubren 210 posiciones canonical; el resto
+    // self-match exact (5 hermanos semánticos = 10 posiciones semantic).
+    expect(C.canonical_match).toBe(210);
+    expect(C.semantic_match).toBe(10);
+    expect(C.exact_match).toBe(1024 - 210 - 10);
+    expect(C.no_match).toBe(0);
+  });
+
+  it('--classify: cada fila tiene level1/level2 verdaderos y matchedWith coherente', () => {
+    const { status, stdout } = runScript(['--classify', '--json']);
+    expect(status).toBe(0);
+    const r = extractJson(stdout);
+    const byPreset = r.classify.byPreset;
+    for (const p of byPreset) {
+      expect(p.level1, `${p.bank}/${p.prog}`).toBe(true);
+      expect(p.level2, `${p.bank}/${p.prog}`).toBe(true);
+      expect(['exact_match', 'canonical_match', 'semantic_match']).toContain(p.classification);
+      if (p.classification === 'exact_match') {
+        expect(p.matchedWith).toBeNull();
+      } else {
+        expect(p.matchedWith).toMatch(/^[A-H]\/\d+$/);
+        expect(p.matchedWith).not.toBe(`${p.bank}/${p.prog}`);
+      }
+    }
+    // Al menos un canonical y un semantic referencian otra posición
+    const canonical = byPreset.find((p) => p.classification === 'canonical_match');
+    const semantic = byPreset.find((p) => p.classification === 'semantic_match');
+    expect(canonical).toBeDefined();
+    expect(semantic).toBeDefined();
+  });
+
+  it('sin --classify el reporte no incluye la tabla por preset', () => {
+    const { status, stdout } = runScript(['--json']);
+    expect(status).toBe(0);
+    const r = extractJson(stdout);
+    expect(r.classify).toBeNull();
+  });
 });

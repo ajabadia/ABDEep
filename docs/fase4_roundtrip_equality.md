@@ -188,6 +188,37 @@ runABCompareReport(patchA, patchB) → {
 - **Seguridad**: todos los valores dinámicos del render pasan por `escapeHtml`
   (verificado con `scripts/security_scan.js` → 0 violaciones).
 
+## 6b. Script de corpus — `scripts/roundtrip_corpus.js`
+
+Batería de los 3 niveles sobre el **corpus de fábrica completo A–H (1024 presets)**,
+reutilizando `roundtrip_equality.js` + `registry.gen.js` (job CI `fase4-corpus` en
+`.github/workflows/roundtrip-corpus.yml`):
+
+```
+node scripts/roundtrip_corpus.js [--banks A,B] [--json] [--classify] [--out f.json]
+```
+
+- **Nivel 1** (`rawCodecEqual` por preset): invariante `unpack7to8(pack8to7(x)) === x`
+  **y** `pack8to7(unpack7to8(packed)) === packed`.
+- **Nivel 2** (`semanticEqual` por preset): re-encode estable (±1 raw, rango válido de
+  enums) + detección de **hermanos semánticos** vía hash O(n) de los bytes con parámetro
+  (excluye región reservada 223-241 y padding). Los pares byte-idénticos se reportan como
+  duplicados (Nivel 3a).
+- **Nivel 3a** (`hardwareCanonicalEqual`): self-match de cada preset contra el corpus
+  **completo** con `skipSemantic: true` — debe hallarse `exact_match` en su posición de
+  cabecera; verifica además que `msg[9]` coincide con el índice secuencial del archivo.
+- **`--classify`**: emite la tabla por preset
+  `{bank, prog, level1, level2, classification, matchedWith}` —
+  `level1`/`level2` = estado de validación del preset; `classification` =
+  `exact_match` (único) | `canonical_match` (duplicado byte-idéntico, `matchedWith` =
+  la otra posición) | `semantic_match` (hermano de parámetros) con **canonical > semantic
+  por construcción** (los pares de duplicados y de hermanos no se solapan). Coste O(n)
+  (reutiliza los grupos hash), sin escaneos O(n²) extra.
+
+**Resultado del corpus de fábrica** (verificado en CI `fase4-corpus`): 1024/1024 en los
+3 niveles, **0 errores**; clasificación `804 exact · 210 canonical (105 pares) · 10 semantic
+(5 hermanos)` · `0 no_match`. ~0.7s los 8 bancos.
+
 ## 7. Verificación
 
 - **Vitest**: 92 test files · **4560 tests · 0 fallos**.
@@ -217,5 +248,7 @@ runABCompareReport(patchA, patchB) → {
 - [ ] **Nivel 3b — Hardware-in-the-loop**: dumps reales en hardware físico (obligatorio previo
   a cualquier release que modifique el protocolo SysEx o NRPN — §5). Requiere hardware DM12.
 
-Pendiente de Fases posteriores: WASM/capabilities (Fase 5), retirada legacy +
-`Logger.deprecation` (Fase 6), y los jobs CI `property-fuzzing` (Fase 7).
+Pendiente de Fases posteriores: WASM/capabilities (Fase 5) y retirada legacy +
+`Logger.deprecation` (Fase 6). Jobs CI de Fase 7 relacionados: `roundtrip-corpus`
+(`fase4-corpus` — batería sobre los 1024 presets) y `property-fuzzing`
+(`scripts/fuzz_roundtrip.js` — multi-seed determinista) — ambos completados.

@@ -20,6 +20,7 @@
  *   node scripts/roundtrip_corpus.js                 # 8 bancos, resumen en consola
  *   node scripts/roundtrip_corpus.js --banks A,B     # solo bancos indicados
  *   node scripts/roundtrip_corpus.js --json          # reporte JSON en stdout
+ *   node scripts/roundtrip_corpus.js --classify      # + tabla por preset (exact/canonical/semantic)
  *   node scripts/roundtrip_corpus.js --out report.json
  *
  * Exit code: 0 = OK · 1 = errores (invariante roto, self-match fallido, banco ausente).
@@ -70,8 +71,9 @@ function parseArgs() {
     ? args[args.indexOf('--banks') + 1].split(',').map((s) => s.trim().toUpperCase())
     : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
   const wantJson = args.includes('--json');
+  const wantClassify = args.includes('--classify');
   const outFile = args.includes('--out') ? args[args.indexOf('--out') + 1] : null;
-  return { banks, wantJson, outFile };
+  return { banks, wantJson, wantClassify, outFile };
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -79,7 +81,7 @@ function parseArgs() {
 // ────────────────────────────────────────────────────────────────
 
 function main() {
-  const { banks, wantJson, outFile } = parseArgs();
+  const { banks, wantJson, wantClassify, outFile } = parseArgs();
 
   const report = {
     schemaVersion: 1,
@@ -96,7 +98,12 @@ function main() {
     errors: [],
     duplicates: [],       // pares de presets byte-idénticos en posiciones distintas
     semanticSiblings: [], // pares con mismos parámetros (difieren solo en región reservada)
+    classify: null,       // { byPreset: [...], counts: {...} } — solo con --classify
   };
+
+  // Los pares (hash → grupo de presets) alimentan la clasificación por preset:
+  // presets con los mismos parámetros (mismo hash semántico).
+  const bySemHash = new Map();
 
   // 1. Cargar corpus (Node require → loadCorpusFromBanks)
   const corpus = RTE.loadCorpusFromBanks(BANKS_DIR, banks);
@@ -110,31 +117,33 @@ function main() {
   }
 
   // 2. Nivel 1 — invariante de codec (rawCodecEqual + lado empaquetado)
+  //    (los resultados por preset se cachean para --classify)
   const level1 = report.levels.nivel1;
+  const level1ByPos = new Map();
   for (const e of corpus) {
     level1.checked++;
     const rt = RTE.rawCodecEqual(e.unpacked, e.unpacked);
-    if (!rt.roundTripExact.a) {
+    const repacked = RTE.pack8to7(RTE.unpack7to8(e.packed));
+    const pass = rt.roundTripExact.a && bytesEqual(repacked, e.packed);
+    level1ByPos.set(posKey(e), pass);
+    if (!pass) {
       level1.failed++;
       report.errors.push(`N1 codec_invariance [${posKey(e)}]: unpack7to8(pack8to7(x)) !== x`);
-      continue;
-    }
-    const repacked = RTE.pack8to7(RTE.unpack7to8(e.packed));
-    if (!bytesEqual(repacked, e.packed)) {
-      level1.failed++;
-      report.errors.push(`N1 packed_roundtrip [${posKey(e)}]: pack8to7(unpack7to8(packed)) !== packed`);
       continue;
     }
     level1.passed++;
   }
 
   // 3. Nivel 2 — estabilidad de re-encode + hermanos semánticos (hash O(n))
+  //    (los resultados por preset se cachean para --classify)
   const level2 = report.levels.nivel2;
-  const bySemHash = new Map();
+  const level2ByPos = new Map();
   for (const e of corpus) {
     level2.checked++;
     const sem = RTE.semanticEqual(e.unpacked, e.unpacked, { registry: REGISTRY });
-    if (!sem.reencodeStable) {
+    const stable = sem.reencodeStable;
+    level2ByPos.set(posKey(e), stable);
+    if (!stable) {
       level2.failed++;
       report.errors.push(`N2 reencode_unstable [${posKey(e)}]: normalizedToRaw(rawToNormalized) fuera de ±1`);
       continue;
@@ -204,7 +213,55 @@ function main() {
   }
   level3a.duplicates = report.duplicates.length;
 
-  // 5. Resumen
+  // 5. Clasificación por preset (solo con --classify) — reutiliza bySemHash
+  //    (clasificación O(n), sin escaneos O(n²) extra). Por preset:
+  //      canonical_match → tiene duplicado byte-idéntico en otra posición (matchedWith)
+  //      semantic_match  → mismos parámetros que otro preset, sin ser duplicado
+  //      exact_match     → único en el corpus (solo se self-matchea)
+  //    (no_match no puede darse: todo preset se self-matchea con exact en Nivel 3a.)
+  //    Prioridad: canonical gana sobre semantic POR CONSTRUCCIÓN — dupPos se
+  //    comprueba antes que siblingPos y los pares duplicados nunca solapan los de
+  //    hermanos (bytesEqual hace early-continue en el bucle de grupos). No romper
+  //    ese orden: los conteos del corpus (804/210/10) dependen de él.
+  //    level1/level2 de cada fila = estado de VALIDACIÓN del preset (true si pasó
+  //    el invariante de codec / re-encode en los bucles Nivel 1/2, false si falló).
+  if (wantClassify) {
+    const dupPos = new Set();
+    const siblingPos = new Set();
+    for (const d of report.duplicates) { dupPos.add(d.a); dupPos.add(d.b); }
+    for (const s of report.semanticSiblings) { siblingPos.add(s.a); siblingPos.add(s.b); }
+
+    const byPreset = [];
+    for (const e of corpus) {
+      const key = posKey(e);
+      let classification = 'exact_match';
+      let matchedWith = null;
+      if (dupPos.has(key)) {
+        classification = 'canonical_match';
+        matchedWith = report.duplicates.find((d) => d.a === key || d.b === key);
+      } else if (siblingPos.has(key)) {
+        classification = 'semantic_match';
+        matchedWith = report.semanticSiblings.find((s) => s.a === key || s.b === key);
+      }
+      byPreset.push({
+        bank: e.bank,
+        prog: e.prog,
+        level1: level1ByPos.get(key),
+        level2: level2ByPos.get(key),
+        classification,
+        // Posición del preset con el que comparte bytes (dup) o parámetros (sibling)
+        matchedWith: matchedWith ? (matchedWith.a === key ? matchedWith.b : matchedWith.a) : null,
+      });
+    }
+
+    // Los conteos del corpus de fábrica (105 pares duplicados ×2 + 5 hermanos ×2)
+    // están fijados en el test: canonical 210, semantic 10, exact 804, no_match 0.
+    const counts = { exact_match: 0, canonical_match: 0, semantic_match: 0, no_match: 0 };
+    for (const p of byPreset) { counts[p.classification] = (counts[p.classification] || 0) + 1; }
+    report.classify = { byPreset, counts };
+  }
+
+  // 6. Resumen
   const ok = report.errors.length === 0;
   report.ok = ok;
   finish(report, wantJson, outFile, ok ? 0 : 1);
@@ -229,6 +286,11 @@ function finish(report, wantJson, outFile, exitCode) {
   if (report.semanticSiblings.length > 0) {
     lines.push('\nHermanos semánticos (mismos parámetros, difieren solo en región reservada):');
     for (const s of report.semanticSiblings) { lines.push(`  ${s.a} ~ ${s.b}`); }
+  }
+  if (report.classify) {
+    const C = report.classify.counts;
+    lines.push('\nClasificación por preset (--classify):');
+    lines.push(`  exact_match: ${C.exact_match} · canonical_match: ${C.canonical_match} · semantic_match: ${C.semantic_match}`);
   }
   if (report.errors.length > 0) {
     lines.push(`\n❌ ${report.errors.length} error(es):`);
