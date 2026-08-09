@@ -247,16 +247,19 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   publica `bench_results.txt` + `bench_full.log` como **artefacto de Actions**
   (`benchmark-results-<run_id>`, 90 días) — se descarga vía API o UI. Presupuesto
   definitivo en la sección 5.3.
+- ✅ **Job `cpp-unit-tests`** en `.github/workflows/dsp-ci.yml` (job `build-and-test`,
+  windows-2022): build Release + `ABDEep_UnitTests.exe` — **3.689.164 assertions,
+  0 fallos**. Nota: **3 fallos FX preexistentes documentados** (refactor FX en curso:
+  fidelidad delay + full-gain wet) — el paso usa `continue-on-error` (no bloquean CI).
+- ✅ **Job `vitest` + lint** en `.github/workflows/webui-ci.yml` (ubuntu-latest): suite
+  completa de WebUI (**96 files / 4605 tests, 0 fallos**) y ESLint 0 errores.
+  `package-lock.json` commiteado; `patchwork-deepmind` eliminado de `dependencies`
+  (arrastra `node-midi`, bindings nativos que rompían `npm install` en ubuntu — se usa
+  vía `npx -y` en `.agents/mcp.json`); el export de calibración se omite cuando no hay
+  inputs en el checkout.
 - ✅ **Fix de builds C++ en CI**: fetch de JUCE 8.0.12 (no hay submódulo) y SDK
   WebView2 vía paquete NuGet (`JUCE_WEBVIEW2_PACKAGE_LOCATION`) — sin esto,
   `juce_add_plugin(NEEDS_WEBVIEW2)` falla el configure en runners limpios.
-- ✅ **WebUI CI verde**: `package-lock.json` commiteado; `patchwork-deepmind`
-  eliminado de `dependencies` (arrastra `node-midi`, bindings nativos que rompían
-  `npm install` en ubuntu — se usa via `npx -y` en `.agents/mcp.json`); el export de
-  calibración se omite cuando no hay inputs en el checkout.
-- ✅ **3 fallos FX preexistentes documentados** en el working tree (refactor FX en
-  curso: fidelidad delay + full-gain wet) — el job de unit tests usa
-  `continue-on-error` (no bloquean la CI).
 - ✅ **Job `roundtrip-corpus`** en `.github/workflows/roundtrip-corpus.yml` (ubuntu-latest):
   ejecuta `node scripts/validate_sysex_mapping.js --check-hashes` sobre los 8 factory
   banks A-H (1024 presets) y **falla si algún preset viola el mapeo** (byte map vs datos
@@ -296,6 +299,13 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   - **Límites del plan (§5)**: Max Payload 500 B / Max Timeout 100 ms por caso — leídos de
     `RTE.FUZZ_MAX_PAYLOAD`/`FUZZ_MAX_TIMEOUT_MS` (fuente única). Exit codes 0/1/2.
   - **Resultado verificado**: 8.000 casos → 0 violaciones / 0 timeouts (máx 1ms/caso).
+- ✅ **Job `security-scan`** en `.github/workflows/security-scan.yml` (ubuntu-latest,
+  timeout 10 min): **audit XSS estático sobre TODO `WebUI/js`** (236 archivos) vía
+  `node scripts/security_scan.js --json` (misma lógica que `domSanitize.test.js`) —
+  detecta datos externos en sinks HTML dinámicos no escapados (`innerHTML`,
+  `insertAdjacentHTML`, `outerHTML`, `DOMParser`) y **falla si hay violaciones**
+  (exit 1 con `::error::security-scan`), publicando `security-scan-report.json` como
+  artefacto en fallo. Verificado: 0 violaciones en todo `WebUI/js` (Fase 3, §4.1).
 - ✅ **Job `registry-generation`** en `.github/workflows/registry-generation.yml`
   (ubuntu-latest, timeout 10 min, job DEDICADO complementario de `schema-validation`):
   - Ejecuta el generador **puro** `node scripts/registry_generator.js` y **falla si los 4
@@ -310,6 +320,14 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
     generador (Linux en vez de Windows) y cobertura del generador sin el wrapper PS1.
   - **Verificado**: regeneración → exit 0, 0 diffs de contenido (solo timestamp).
     Registro: 235 parámetros (226 físicos · 3 extendidos · 6 virtuales).
+- ✅ **Job `schema-validation`** en `.github/workflows/schema-validation.yml`
+  (windows-latest, timeout 15 min): ejecuta `scripts/validate_and_generate.ps1`
+  (PowerShell) que **valida `schemas/parameter-registry.json` (schemaVersion 1) y
+  regenera los 4 artefactos `.gen`**, fallando con `::error::validate_and_generate.ps1`
+  si el esquema es inválido o los artefactos commiteados divergen de las fuentes
+  (IDs duplicados, rangos incompatibles, NRPNs colisionados, regiones reservadas
+  223-241, guardia anti-minificación). Complementario multiplataforma de
+  `registry-generation` (Windows + PS1 vs Linux + generador puro).
 - ✅ **Job `wasm-build`** en `.github/workflows/wasm-build.yml` (ubuntu-latest,
   Emscripten **pinneda a 3.1.64**): compila el DSP a WebAssembly
   (`emcmake cmake -S wasm -B wasm/build` con shim `juce_core` gitignored copiado

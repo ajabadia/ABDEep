@@ -4,6 +4,18 @@
 
 ---
 
+## [0.2.30] — 2026-08-09
+
+### 📋 Sección 7 de `docs/baseline_fase0_v32.md` — Fase 7 documentada al completo
+
+- Añadidos los bullets que faltaban en §7: **`security-scan`** (audit XSS estático sobre
+  TODO `WebUI/js` vía `scripts/security_scan.js --json`, 0 violaciones),
+  **`schema-validation`** (`validate_and_generate.ps1` en windows-latest, complementario
+  multiplataforma de `registry-generation`), **`cpp-unit-tests`** (dsp-ci.yml, 3.689.164
+  assertions) y **`vitest` + lint** (webui-ci.yml, 96 files / 4605 tests).
+- Nota: `wasm-build` ya estaba documentado en §7 (desde el commit de pluginval).
+- Resultado: **los 12 jobs de Fase 7 quedan documentados en §7** (13 bullets ✅).
+
 ## [0.2.29] — 2026-08-09
 
 ### 📋 Sección 8 de `docs/baseline_fase0_v32.md` — estado actualizado (Fases 1/2/4 completadas)
