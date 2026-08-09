@@ -87,7 +87,8 @@ function renderPatchesForBank(bankName, searchTerm) {
         if (patchIdx === _currentPatchIdx && bankName === _currentBank) {el.classList.add('active');}
 
         const isFactory = FACTORY_BANKS_LIST.includes(bankName);
-        const labelText = (patchIdx + 1).toString().padStart(3, '0') + ': ' + patch.name;
+        // Fase 3 (§4.1): patch.name es dato externo (SysEx/import/rename) → escapar antes de innerHTML
+        const labelText = (patchIdx + 1).toString().padStart(3, '0') + ': ' + escapeHtml(patch.name);
 
         const isFav = patch.meta && patch.meta.favorite;
         const starPrefix = isFav ? '<span class="color-star mr-4">★</span>' : '';
@@ -141,7 +142,7 @@ function renderPatchesForBank(bankName, searchTerm) {
                     window.triggerMidiDump(patch);
                     const lcdText = document.getElementById('lcd-text');
                     if (lcdText) {
-                        lcdText.innerHTML = `<span class=\"lcd-label\">LOADED FROM LIBRARY</span><br><strong>${patch.name.toUpperCase()}</strong>`;
+                        lcdText.innerHTML = `<span class=\"lcd-label\">LOADED FROM LIBRARY</span><br><strong>${escapeHtml(patch.name).toUpperCase()}</strong>`;
                     }
                     const modal = document.getElementById('browser-modal-backdrop');
                     if (modal) {modal.style.display = 'none';}
@@ -178,7 +179,8 @@ function renderPatchesForBank(bankName, searchTerm) {
     }
 
     if (visibleCount === 0 && (searchFilter || categoryFilter)) {
-        const emptyMsg = searchFilter ? 'No patches match \"' + searchTerm + '\"' : 'No patches in this category';
+        // Fase 3 (§4.1): searchTerm es entrada de usuario → escapar antes de innerHTML
+        const emptyMsg = searchFilter ? 'No patches match \"' + escapeHtml(searchTerm) + '\"' : 'No patches in this category';
         grid.innerHTML = '<div class=\"empty-state-msg\">🔍 ' + emptyMsg + '</div>';
     }
 }

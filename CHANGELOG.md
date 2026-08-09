@@ -4,6 +4,39 @@
 
 ---
 
+## [0.2.12] — 2026-08-09
+
+### 🛡️ Fase 3 — Auditoría de sinks DOM y sanitización de nombres de patch (Plan v3.2 §4)
+
+- **Nuevo módulo canónico `WebUI/js/dom_sanitize.js`** (`escapeHtml`): escapa los 5
+  caracteres HTML sensibles (`& < > " '`), maneja null/undefined/números y se expone en
+  `window`/`globalThis`. Registrado en `index.html` ANTES de los módulos de render
+  (`browser_render.js` y posteriores).
+- **Migrados 13 archivos** (visores de parches, LCD, MIDI Learn, dump viewer):
+  - `browser_render.js`, `browser_render_hw.js` (labels de grid + LCD de carga HW/library),
+  - `browser_events.js`, `browser_io_export.js` (LCDs de import/load), `edit_actions.js`
+    (COPIED), `edit_persistence.js` (SAVED/SAVED AS + ítem de factory bank),
+  - `script_controllers_lcd.js` (`_buildPatchNameLcdHtml`) y `script_controllers.js`
+    (typewriter del LCD) — nombre de patch Y banco escapados,
+  - `sequencer_presets.js` (ítems user/factory + presetName en LCD),
+  - `arpeggiator_presets.js` (strip frágil → escapeHtml canónico),
+  - `bridge-midi-learn.js` (LCD prompt con param names de mapping importado),
+  - `settings_dump_viewer.js` (tooltip en atributo `title`, defensa en profundidad),
+  - `script_bar_generators.js` (`_genLcdBarHtml` — nombres de preset de localStorage).
+- **Política aplicada**: sinks dinámicos no confiables → `escapeHtml()`; valores simples →
+  `textContent` (ya seguro en `settings_midi_learn.js` y `sysex_monitor_render.js`;
+  `browser_modals_templates.js` conserva su `_escapeHtml` propio para menús contextuales).
+- **`WebUI/tests/domSanitize.test.js` (22 tests)**: unit tests del escaper + **audit estático
+  por línea de sink** sobre los 13 archivos migrados (prohíbe interpolaciones de
+  `patch.name`/`patchRef.name`/`newName`/`bankName`/`searchTerm` en
+  innerHTML/lcdSafeUpdate/insertAdjacentHTML/outerHTML sin pasar por escapeHtml),
+  + checks de `settings_midi_learn.js`, `sysex_monitor_render.js`,
+  `browser_modals_templates.js` y orden de carga en `index.html`.
+- **Verificación**: Vitest **89 files / 4492 tests / 0 fallos** (+22); ESLint 0 errores en
+  los 14 archivos tocados.
+
+---
+
 ## [0.2.11] — 2026-08-09
 
 ### 🔁 Test de paridad C++ ↔ JS del Program Dump de 291 bytes

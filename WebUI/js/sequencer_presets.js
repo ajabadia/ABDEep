@@ -63,7 +63,8 @@ window.initSequencerPresets = function() {
         userPresets.forEach((p, _idx) => {
             const item = document.createElement('div');
             item.className = 'preset-item seq-preset-list-item text-sm text-primary';
-            item.innerHTML = `<span style="font-weight:bold;color:var(--accent-pink)">${p.name}</span>` +
+            // Fase 3 (§4.1): p.name proviene de localStorage (dato externo) → escapar
+            item.innerHTML = `<span style="font-weight:bold;color:var(--accent-pink)">${escapeHtml(p.name)}</span>` +
                              '<span class="delete-seq-preset-btn" style="color:var(--text-faint);font-size:10px;cursor:pointer;padding:0 4px;">✕</span>';
             
             item.addEventListener('click', (e) => {
@@ -92,7 +93,7 @@ window.initSequencerPresets = function() {
             window.FACTORY_SEQ_PRESETS.forEach(p => {
                 const item = document.createElement('div');
                 item.className = 'preset-item seq-preset-list-item text-sm text-primary';
-                item.innerHTML = `<span style="color:var(--text-dim)">${p.name}</span> <span style="font-size:8px;color:var(--text-faint)">Factory</span>`;
+                item.innerHTML = `<span style="color:var(--text-dim)">${escapeHtml(p.name)}</span> <span style="font-size:8px;color:var(--text-faint)">Factory</span>`;
                 
                 item.addEventListener('click', () => {
                     selectItem(item, p);

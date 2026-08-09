@@ -61,11 +61,13 @@ function renderDumpView(bytes) {
         ? '•' + val.toString(16).toUpperCase().padStart(2,'0')
         : val.toString(16).toUpperCase().padStart(2,'0');
 
+      // Fase 3 (§4.1): tooltip entra en un atributo title → escapar contexto de atributo
+      const safeTooltip = escapeHtml(tooltip);
       if (searchTerm && !matchesSearch) {
-        html += '<span style="opacity:0.15;color:' + colors.fg + ';background:' + colors.bg + ';padding:1px 3px;margin:1px;border-radius:2px;cursor:default;font-size:9px' + reservedStyle + '" title="' + tooltip + '">' + displayVal + '</span>';
+        html += '<span style="opacity:0.15;color:' + colors.fg + ';background:' + colors.bg + ';padding:1px 3px;margin:1px;border-radius:2px;cursor:default;font-size:9px' + reservedStyle + '" title="' + safeTooltip + '">' + displayVal + '</span>';
       } else {
         const highlight = searchTerm && matchesSearch ? ';outline:1px solid var(--accent-primary);outline-offset:0px' : '';
-        html += '<span class="dump-byte" data-idx="' + i + '" style="color:' + colors.fg + ';background:' + colors.bg + ';padding:1px 3px;margin:1px;border-radius:2px;cursor:help;font-size:9px' + highlight + reservedStyle + '" title="' + tooltip + '">' + displayVal + '</span>';
+        html += '<span class="dump-byte" data-idx="' + i + '" style="color:' + colors.fg + ';background:' + colors.bg + ';padding:1px 3px;margin:1px;border-radius:2px;cursor:help;font-size:9px' + highlight + reservedStyle + '" title="' + safeTooltip + '">' + displayVal + '</span>';
       }
     }
     html += '<br>\n';

@@ -81,7 +81,8 @@ function renderArpPresetsList(containerEl, selectedCallback, deleteCallback) {
     presets.forEach(p => {
         const item = document.createElement('div');
         item.className = 'seq-preset-list-item text-sm text-primary';
-        item.innerHTML = '<span class="arp-preset-name">' + String(p.name).replace(/[<>"'&]/g, '') + '</span>' +
+        // Fase 3 (§4.1): p.name proviene de localStorage (dato externo) → escapar (antes se hacía strip parcial)
+        item.innerHTML = '<span class="arp-preset-name">' + escapeHtml(p.name) + '</span>' +
                          '<span class="delete-arp-preset-btn">\u2715</span>';
 
         item.addEventListener('click', function(e) {

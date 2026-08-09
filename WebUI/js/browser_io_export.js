@@ -149,17 +149,19 @@ window._wireBrowserIOEvents = function() {
                     onPatchImported: function(patch) {
                         const lcdText = document.getElementById('lcd-text');
                         if (lcdText) {
+                            // Fase 3 (§4.1): patch.name y currentActiveBank son datos externos → escapar
                             lcdText.innerHTML = '<span class="lcd-label">IMPORTED SINGLE PATCH</span><br>'
-                                + '<strong class="lcd-color-green">' + patch.name.toUpperCase() + '</strong><br>'
-                                + '<span class="lcd-sub-sm">' + (window.currentActivePatchIndex + 1) + ' of ' + window.currentActiveBank + '</span>';
+                                + '<strong class="lcd-color-green">' + escapeHtml(patch.name).toUpperCase() + '</strong><br>'
+                                + '<span class="lcd-sub-sm">' + (window.currentActivePatchIndex + 1) + ' of ' + escapeHtml(window.currentActiveBank) + '</span>';
                         }
                     },
                     onBankCreated: function(name) {
                         const lcdText = document.getElementById('lcd-text');
                         if (lcdText) {
+                            // Fase 3 (§4.1): name es el nombre de archivo del banco (externo) → escapar
                             lcdText.innerHTML = '<span class="lcd-label">IMPORTED BANK</span><br>'
                                 + '<strong class="lcd-color-green">' + parsed.patches.length + ' PATCHES</strong><br>'
-                                + '<span class="lcd-sub-sm">' + name.toUpperCase() + '</span>';
+                                + '<span class="lcd-sub-sm">' + escapeHtml(name).toUpperCase() + '</span>';
                         }
                     }
                 });

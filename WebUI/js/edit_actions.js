@@ -41,7 +41,8 @@ function initEditActions() {
                 globalClipboardBytes = new Uint8Array(patch.unpackedBytes);
                 globalClipboardName = patch.name;
                 const lcdText = document.getElementById('lcd-text');
-                if (lcdText) {lcdText.innerHTML = `<strong>COPIED</strong><br><span style="font-size:11px;">${patch.name.toUpperCase()}</span>`;}
+                // Fase 3 (§4.1): patch.name es dato externo → escapar antes de innerHTML
+                if (lcdText) {lcdText.innerHTML = `<strong>COPIED</strong><br><span style="font-size:11px;">${escapeHtml(patch.name).toUpperCase()}</span>`;}
             }
         }
 

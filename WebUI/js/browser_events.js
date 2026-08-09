@@ -72,7 +72,7 @@ window._handleHWLoad = function(browserModal) {
     if (patch && patch.unpackedBytes) {
         if (typeof window.triggerMidiDump === 'function') {window.triggerMidiDump(patch);}
         const lcdText = document.getElementById('lcd-text');
-        if (lcdText) {lcdText.innerHTML = '<span class="lcd-label">LOADED FROM SYNTH</span><br><strong>' + patch.name.toUpperCase() + '</strong>';}
+        if (lcdText) {lcdText.innerHTML = '<span class="lcd-label">LOADED FROM SYNTH</span><br><strong>' + escapeHtml(patch.name).toUpperCase() + '</strong>';}
         if (browserModal) {browserModal.style.display = 'none';}
     }
 };
@@ -83,7 +83,7 @@ window._handleLocalLoad = function(browserModal) {
     if (patch && patch.unpackedBytes) {
         if (typeof window.triggerMidiDump === 'function') {window.triggerMidiDump(patch);}
         const lcdText = document.getElementById('lcd-text');
-        if (lcdText) {lcdText.innerHTML = '<span class="lcd-label">LOADED FROM LIBRARY</span><br><strong>' + patch.name.toUpperCase() + '</strong>';}
+        if (lcdText) {lcdText.innerHTML = '<span class="lcd-label">LOADED FROM LIBRARY</span><br><strong>' + escapeHtml(patch.name).toUpperCase() + '</strong>';}
         if (browserModal) {browserModal.style.display = 'none';}
     }
 };

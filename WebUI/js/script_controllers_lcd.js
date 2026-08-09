@@ -86,15 +86,16 @@ window._buildPatchNameLcdHtml = function(seqDebugMode) {
     if (window._twText) {
         return { type: 'typewriter', html: '', twText: window._twText, twBank: window._twBank, debugBadge: debugBadge_ };
     } else {
+        // Fase 3 (§4.1): patch name y bank name son datos externos → escapar antes de innerHTML
         let _pnHtml_;
-        const _pnUpper_ = basePatchName_.toUpperCase();
+        const _pnUpper_ = escapeHtml(basePatchName_).toUpperCase();
         if (basePatchName_.length > 10) {
             const _scrollDur_ = Math.max(4, basePatchName_.length * 0.5);
             _pnHtml_ = '<div class="lcd-scroll-container"><span class="lcd-scroll-text animate" style="animation-duration:' + _scrollDur_.toFixed(1) + 's;">' + _pnUpper_ + '</span></div>';
         } else {
             _pnHtml_ = '<span class="lcd-text-xl">' + _pnUpper_ + '</span>';
         }
-        return { type: 'static', html: _pnHtml_ + debugBadge_ + '<br><span class="lcd-text-sub">' + baseBankName_.toUpperCase() + '</span>' };
+        return { type: 'static', html: _pnHtml_ + debugBadge_ + '<br><span class="lcd-text-sub">' + escapeHtml(baseBankName_).toUpperCase() + '</span>' };
     }
 };
 

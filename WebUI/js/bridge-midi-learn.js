@@ -136,11 +136,14 @@ var Logger = globalThis.Logger || console;
         const lcd = document.getElementById('lcd-text');
         if (!lcd) {return;}
         lcd._midiLearnLcd = true;
-        const parts = msg.split('\\n');
+        // Fase 3 (§4.1): msg puede contener nombres de parámetro importados desde JSON
+        // (mappings de MIDI Learn) → dato externo, escapar cada línea antes del sink.
+        const parts = String(msg).split('\\n');
         const html = '<span class=\"midi-learn-label\">🎯 MIDI LEARN</span><br>' +
             parts.map(function(p, i) {
-                if (i === 0) {return '<span class=\"midi-learn-title\">' + p + '</span>';}
-                return '<span class=\"midi-learn-line\">' + p + '</span>';
+                const safe = escapeHtml(p);
+                if (i === 0) {return '<span class=\"midi-learn-title\">' + safe + '</span>';}
+                return '<span class=\"midi-learn-line\">' + safe + '</span>';
             }).join('<br>');
         window.lcdSafeUpdate(lcd, html);
     };

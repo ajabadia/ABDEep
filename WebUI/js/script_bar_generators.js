@@ -53,19 +53,24 @@ window._genBarHtml = function(bar, opts) {
 window._genLcdBarHtml = function(type, opts) {
     const barColor = (type === 'seq' || type === 'seq_preset') ? 'var(--accent-pink)' : 'var(--accent-primary)';
     const bar = opts.bar || '';
+    // Fase 3 (§4.1): presetName/header/stepInfo/meta pueden contener nombres de usuario → escapar
+    const presetName = escapeHtml(opts.presetName || '');
+    const header = escapeHtml(opts.header || '');
+    const stepInfo = escapeHtml(opts.stepInfo || '');
+    const meta = escapeHtml(opts.meta || '');
     
     if (type === 'seq_preset') {
-        return '<span style="font-size:9px; opacity:0.6;">' + opts.header + '</span><br>'
-            + '<strong style="color:' + barColor + ';font-size:9px;">' + opts.presetName + '</strong><br>'
+        return '<span style="font-size:9px; opacity:0.6;">' + header + '</span><br>'
+            + '<strong style="color:' + barColor + ';font-size:9px;">' + presetName + '</strong><br>'
             + '<span style="font-size:7px; letter-spacing:1px; color:var(--text-faint);">' + bar + '</span><br>'
-            + '<span style="font-size:7px; color:var(--text-dim);">' + opts.meta + '</span>';
+            + '<span style="font-size:7px; color:var(--text-dim);">' + meta + '</span>';
     }
     
     const headerStyle = opts.decorated
         ? 'font-size:7px; opacity:0.6; color:' + barColor + ';'
         : 'font-size:9px; opacity:0.6;';
     
-    return '<span style="' + headerStyle + '">' + opts.header + '</span><br>'
-        + '<span style="font-size:9px; color:' + barColor + '; font-weight:bold;">' + opts.stepInfo + '</span><br>'
+    return '<span style="' + headerStyle + '">' + header + '</span><br>'
+        + '<span style="font-size:9px; color:' + barColor + '; font-weight:bold;">' + stepInfo + '</span><br>'
         + '<span style="font-size:7px; letter-spacing:1px; color:var(--text-faint);">' + bar + '</span>';
 };

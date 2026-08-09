@@ -37,7 +37,8 @@ window.initEditPersistence = function() {
                 
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
-                    const html = `<span class="lcd-label">SAVED</span><br><strong style="color:var(--accent-green);">${patch.name.toUpperCase()}</strong><br><span style="font-size:9px; color:var(--text-dim);">${window.currentActiveBank} › Slot ${window.currentActivePatchIndex + 1}</span>`;
+                    // Fase 3 (§4.1): patch.name y bank name son datos externos → escapar
+                    const html = `<span class="lcd-label">SAVED</span><br><strong style="color:var(--accent-green);">${escapeHtml(patch.name).toUpperCase()}</strong><br><span style="font-size:9px; color:var(--text-dim);">${escapeHtml(window.currentActiveBank)} › Slot ${window.currentActivePatchIndex + 1}</span>`;
                     window.lcdSafeUpdate(lcdText, html);
                 }
                 if (typeof window.renderPatchesForBank === 'function') {window.renderPatchesForBank(window.currentActiveBank);}
@@ -88,7 +89,8 @@ window.initEditPersistence = function() {
                 item.className = 'saveas-bank-item' + (isFactory ? ' is-factory' : ' is-user');
 
                 if (isFactory) {
-                    item.innerHTML = `<span>${bankName}</span><span class="saveas-lock-badge">Lock</span>`;
+                    // Fase 3 (§4.1): bankName puede venir del rename de usuario → escapar
+                    item.innerHTML = `<span>${escapeHtml(bankName)}</span><span class="saveas-lock-badge">Lock</span>`;
                 } else {
                     const isSelected = bankName === saveAsSelectedBank;
                     if (isSelected) {item.classList.add('is-selected');}
@@ -190,7 +192,8 @@ window.initEditPersistence = function() {
 
                 const lcdText = document.getElementById('lcd-text');
                 if (lcdText) {
-                    const html = `<span class="lcd-label">SAVED AS</span><br><strong style="color:var(--accent-green);">${newName.toUpperCase()}</strong><br><span style="font-size:9px; color:var(--text-dim);">${saveAsSelectedBank} › Slot ${saveAsSelectedSlotIdx + 1}</span>`;
+                    // Fase 3 (§4.1): newName y bank name son datos de usuario → escapar
+                    const html = `<span class="lcd-label">SAVED AS</span><br><strong style="color:var(--accent-green);">${escapeHtml(newName).toUpperCase()}</strong><br><span style="font-size:9px; color:var(--text-dim);">${escapeHtml(saveAsSelectedBank)} › Slot ${saveAsSelectedSlotIdx + 1}</span>`;
                     window.lcdSafeUpdate(lcdText, html);
                 }
                 closeSaveAs();

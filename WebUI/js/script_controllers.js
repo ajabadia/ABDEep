@@ -194,7 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
 
                             const cursor_ = isDone_ ? '' : '<span class="lcd-cursor">_</span>';
-                            lcdText.innerHTML = '<span class="lcd-text-xl">' + revealed_ + cursor_ + '</span>' + pnResult.debugBadge + '<br><span class="lcd-text-sub">' + pnResult.twBank.toUpperCase() + '</span>';
+                            // Fase 3 (§4.1): twText/twBank provienen del nombre del patch (dato externo) → escapar
+                            lcdText.innerHTML = '<span class="lcd-text-xl">' + escapeHtml(revealed_) + cursor_ + '</span>' + pnResult.debugBadge + '<br><span class="lcd-text-sub">' + escapeHtml(pnResult.twBank).toUpperCase() + '</span>';
                         } else {
                             lcdText.innerHTML = pnResult.html;
                         }

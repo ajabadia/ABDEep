@@ -21,7 +21,8 @@ const el = document.createElement('div');
         el.className = 'patch-item';
         el.draggable = true;
         if (i === hwPatchIdx) {el.classList.add('active');}
-        const labelText = hwBankLetter + '-' + (i + 1).toString().padStart(3, '0') + ': ' + patch.name;
+        // Fase 3 (§4.1): patch.name es dato externo (dump hardware) → escapar antes de innerHTML
+        const labelText = hwBankLetter + '-' + (i + 1).toString().padStart(3, '0') + ': ' + escapeHtml(patch.name);
 
         let htmlContent = '<span class=\"patch-name-text text-ellipsis\">' + labelText + '</span>';
         htmlContent += '<div class=\"patch-actions-group flex-row gap-3 items-center ml-auto shrink-0\">';
@@ -64,7 +65,7 @@ const el = document.createElement('div');
                         window.triggerMidiDump(patchRef);
                         const lcdText = document.getElementById('lcd-text');
                         if (lcdText) {
-                            lcdText.innerHTML = '<span class=\"lcd-label\">HW PATCH LOADED</span><br><strong>' + patchRef.name.toUpperCase() + '</strong>';
+                            lcdText.innerHTML = '<span class=\"lcd-label\">HW PATCH LOADED</span><br><strong>' + escapeHtml(patchRef.name).toUpperCase() + '</strong>';
                         }
                         const modal = document.getElementById('browser-modal-backdrop');
                         if (modal) {modal.style.display = 'none';}
@@ -90,7 +91,7 @@ const el = document.createElement('div');
                     window.triggerMidiDump(patchRef);
                     const lcdText = document.getElementById('lcd-text');
                     if (lcdText) {
-                        lcdText.innerHTML = '<span class=\"lcd-label\">HW PATCH LOADED</span><br><strong>' + patchRef.name.toUpperCase() + '</strong>';
+                        lcdText.innerHTML = '<span class=\"lcd-label\">HW PATCH LOADED</span><br><strong>' + escapeHtml(patchRef.name).toUpperCase() + '</strong>';
                     }
                     const modal = document.getElementById('browser-modal-backdrop');
                     if (modal) {modal.style.display = 'none';}

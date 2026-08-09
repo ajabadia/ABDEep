@@ -1,0 +1,169 @@
+/**
+ * domSanitize.test.js — Fase 3 (plan v3.2 §4.1) · saneamiento DOM y XSS.
+ *
+ * 1) Unit tests del escaper canónico (WebUI/js/dom_sanitize.js).
+ * 2) Audit estático de los archivos migrados: ninguno puede interpolar datos
+ *    externos (patch.name, patchRef.name, bank names, preset names, newName,
+ *    searchTerm) en sinks innerHTML/lcdSafeUpdate SIN pasar por escapeHtml.
+ *
+ * Regla de la política:
+ *   - sinks dinámicos NO confiables → prohibido sin escape (innerHTML, +=,
+ *     insertAdjacentHTML, outerHTML, DOMParser).
+ *   - valores dinámicos simples → textContent.
+ *   - HTML estructurado con datos dinámicos → escapeHtml() obligatorio.
+ */
+
+import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, '..', '..');
+const JS_DIR = path.join(ROOT, 'WebUI', 'js');
+
+function loadJsGlobal(relPath) {
+  const code = fs.readFileSync(path.join(ROOT, relPath), 'utf8');
+  const sandbox = { window: {} };
+  const fn = new Function('window', code + '\n;return window;');
+  return fn(sandbox.window);
+}
+
+const { escapeHtml } = require(path.join(JS_DIR, 'dom_sanitize.js'));
+
+// ════════════════════════════════════════════════════════════════
+// 1. Unit tests — escapeHtml canónico
+// ════════════════════════════════════════════════════════════════
+
+describe('dom_sanitize.js — escapeHtml', () => {
+  it('escapa los 5 caracteres HTML sensibles', () => {
+    expect(escapeHtml('<script>alert("x")</script>')).toBe('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;');
+    expect(escapeHtml("it's & <b>")).toBe('it&#039;s &amp; &lt;b&gt;');
+  });
+
+  it('no escapa texto plano', () => {
+    expect(escapeHtml('BASS PATCH 01')).toBe('BASS PATCH 01');
+  });
+
+  it('maneja null/undefined/números sin romper', () => {
+    expect(escapeHtml(null)).toBe('');
+    expect(escapeHtml(undefined)).toBe('');
+    expect(escapeHtml(42)).toBe('42');
+    expect(escapeHtml(0)).toBe('0');
+  });
+
+  it('escapa nombres de patch maliciosos (payload SysEx)', () => {
+    const malicious = '<img src=x onerror=alert(1)>';
+    const out = escapeHtml(malicious);
+    expect(out).not.toContain('<img');
+    expect(out).toContain('&lt;img');
+    // insertado en un span NO crea un atributo onerror real: los `<`/`>` son entidades,
+    // así que un navegador lo trata como texto plano y no ejecuta el handler.
+    expect(out).not.toMatch(/<\/?[a-z]/i); // sin etiquetas reales en el output escapado
+  });
+
+  it('se expone en window (sink global para módulos navegador)', () => {
+    const win = loadJsGlobal('WebUI/js/dom_sanitize.js');
+    expect(typeof win.escapeHtml).toBe('function');
+    expect(win.escapeHtml('<a href="javascript:void(0)">x</a>')).toBe(
+      '&lt;a href=&quot;javascript:void(0)&quot;&gt;x&lt;/a&gt;'
+    );
+  });
+});
+
+// ════════════════════════════════════════════════════════════════
+// 2. Audit estático — sinks migrados en Fase 3
+// ════════════════════════════════════════════════════════════════
+
+const MIGRATED_FILES = [
+  'browser_render.js',
+  'browser_render_hw.js',
+  'browser_events.js',
+  'browser_io_export.js',
+  'edit_actions.js',
+  'edit_persistence.js',
+  'script_controllers_lcd.js',
+  'script_controllers.js',
+  'sequencer_presets.js',
+  'arpeggiator_presets.js',
+  'bridge-midi-learn.js',
+  'settings_dump_viewer.js',
+  'script_bar_generators.js',
+];
+
+// Patrones de datos externos que NO deben aparecer interpolados en sinks sin escape.
+// El audit es por LÍNEA de sink: solo se inspeccionan las líneas que escriben en
+// innerHTML / lcdSafeUpdate / insertAdjacentHTML / outerHTML (los sinks del §4.1).
+// Las asignaciones a innerText/textContent son seguras (no parsean HTML) y se ignoran.
+const FORBIDDEN_INTERPOLATIONS = [
+  /\$\{patch\.name/,
+  /\$\{patchRef\.name/,
+  /\+ patch\.name\.toUpperCase/,
+  /\+ patchRef\.name\.toUpperCase/,
+  /\$\{p\.name\}/,
+  /\$\{newName/,
+  /\$\{bankName\}/,
+  /\$\{window\.currentActiveBank\}/,
+  /\$\{saveAsSelectedBank\}/,
+  /\+ String\(p\.name\)\.replace/,
+];
+
+const SINK_RE = /(innerHTML|insertAdjacentHTML|outerHTML|lcdSafeUpdate)/;
+
+function hasForbiddenSinkInterpolation(src) {
+  const lines = src.split(/\r?\n/);
+  for (const line of lines) {
+    if (!SINK_RE.test(line)) {continue;}      // no es línea de sink
+    if (/innerText|textContent/.test(line)) {continue;} // asignación segura
+    for (const pattern of FORBIDDEN_INTERPOLATIONS) {
+      if (pattern.test(line)) {return { line, pattern };}
+    }
+  }
+  return null;
+}
+
+describe('Audit estático Fase 3 — sinks de parches/visores sin escape', () => {
+  for (const file of MIGRATED_FILES) {
+    it(`${file} usa escapeHtml y no interpola datos externos en sinks sin escapar`, () => {
+      const src = fs.readFileSync(path.join(JS_DIR, file), 'utf8');
+      expect(src, `${file} debe referenciar escapeHtml (canónico o global)`).toContain('escapeHtml');
+      const hit = hasForbiddenSinkInterpolation(src);
+      expect(
+        hit,
+        `${file} tiene una línea de sink con interpolación de datos sin escape: ${hit ? hit.line.trim() : ''}`
+      ).toBeNull();
+    });
+  }
+
+  it('settings_midi_learn.js usa textContent para valores dinámicos (ya migrado en Fase 3)', () => {
+    const src = fs.readFileSync(path.join(JS_DIR, 'settings_midi_learn.js'), 'utf8');
+    // La lista de mappings se construye con createElement + textContent, no innerHTML con datos
+    expect(src).toContain('textContent');
+    // sin interpolación de paramName/displayKey en innerHTML
+    expect(src).not.toMatch(/innerHTML[^]*\$\{/);
+    expect(src).not.toMatch(/innerHTML[^]*\+ (paramName|displayKey)/);
+  });
+
+  it('sysex_monitor_render.js usa innerText/textContent para el nombre de patch (hex es seguro)', () => {
+    const src = fs.readFileSync(path.join(JS_DIR, 'sysex_monitor_render.js'), 'utf8');
+    expect(src).toMatch(/patchLabel\.innerText|patchLabel\.textContent/);
+    // los bytes se renderizan como hex [0-9A-F] — no hay interpolación de nombres en el grid
+    expect(src).not.toMatch(/\$\{.*name/);
+  });
+
+  it('browser_modals_templates.js mantiene su escaper propio para menús contextuales', () => {
+    const src = fs.readFileSync(path.join(JS_DIR, 'browser_modals_templates.js'), 'utf8');
+    expect(src).toContain('function _escapeHtml');
+    expect(src).toContain('_escapeHtml(patchName)');
+    expect(src).toContain('_escapeHtml(text)');
+  });
+
+  it('dom_sanitize.js está registrado en index.html antes que los módulos de render', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'WebUI', 'index.html'), 'utf8');
+    const idxSanitize = html.indexOf('js/dom_sanitize.js');
+    const idxRender = html.indexOf('js/browser_render.js');
+    expect(idxSanitize).toBeGreaterThan(-1);
+    expect(idxRender).toBeGreaterThan(-1);
+    expect(idxSanitize).toBeLessThan(idxRender);
+  });
+});
