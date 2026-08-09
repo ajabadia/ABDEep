@@ -4,6 +4,38 @@
 
 ---
 
+## [0.2.32] — 2026-08-09
+
+### ⚡ Fase 5 COMPLETADA — Tiempo real, capabilities y bridge WASM (§3.2/§1.1)
+
+- **`WASMBridge.cpp` sin búsquedas dinámicas:** el mock de `AudioProcessorValueTreeState`
+  ya no usa `std::map<string, value>`; almacena en `std::array` indexado por el enum
+  `ParameterIndex` generado en build-time (`ParameterRegistry.gen.h`), con slots fijos
+  adicionales para los 10 parámetros internos del motor que no están en el registro
+  (`global_tune`, `global_volume`, `sub_level`, `vca_mode`, `vcf_oversample`, etc.).
+  Resolución id→slot solo en hilo de control (`wasm_set_parameter`) — cero asignaciones.
+- **Dirty-gate en `wasm_process_audio`:** `updateParameters()` solo corre cuando un
+  `wasm_set_parameter*` escribió desde el último bloque (`gParamsDirty` atómico) → cero
+  lookups por string en el hilo de audio en estado estable (invariante §3.2).
+- **Exports nuevos (O(1) por índice + modelo):** `wasm_set_parameter_index` /
+  `wasm_get_parameter_index` (acceso directo al array por `ParameterIndex`) y
+  `wasm_set_model` / `wasm_get_model` (ModelCapabilities: 0=dm12_hardware, 1=abyssmind_pro).
+  Añadidos a `EXPORTED_FUNCTIONS` (wasm/CMakeLists.txt) y a `REQUIRED_EXPORTS` del job
+  `wasm-build` (9 → 13). `ParameterRegistry.gen.cpp` (datos puros) se compila en el WASM.
+- **`WebUI/js/model_capabilities.js` (nuevo, UMD):** matriz formal `ModelCapabilities`
+  (§1.1) — `dm12_hardware` (35 FX estándar, 0 avanzados, 8 slots mod) vs `abyssmind_pro`
+  (35+21, sequencer extendido, params AbyssMind) — con `resolveModel`, `getCapabilitiesForMode`
+  e `isValidModelCapabilities`. Integrado en `wasm_bridge.js` (`getCapabilities()`, actualizado
+  en `setMode`), cargado en index.html antes de los scripts wasm, y cableado al DSP WASM:
+  `setMode` postea `{type:'set_model', model}` al worklet (`wasm_audio_processor.js` /
+  `dsp-processor.js`, con guard para builds antiguos) → `wasm_set_model` mantiene el modelo
+  del motor C++ alineado con el bridge JS.
+- **Tests:** `modelCapabilities.test.js` (8) + tests de capabilities en `wasmBridge.test.js`;
+  `checkWasmBuild.test.js` actualizado a 13 exports (glue sintético + skip de artefactos
+  locales obsoletos vía `REQUIRED_EXPORTS` exportado por el script con guard `require.main`).
+
+---
+
 ## [0.2.31] — 2026-08-09
 
 ### 🔒 Fase 3 COMPLETADA — errores tipados SysEx/MIDI/JSON (§4.3)

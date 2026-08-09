@@ -11,6 +11,8 @@
  *                     funciones exportadas en EXPORTED_FUNCTIONS.
  *   2. Exports      — el binario .wasm exporta las funciones C del bridge:
  *                     wasm_init_engine, wasm_process_audio, wasm_set_parameter,
+ *                     wasm_set_parameter_index, wasm_get_parameter_index,
+ *                     wasm_set_model, wasm_get_model (Fase 5 §3.2/§1.1),
  *                     wasm_note_on, wasm_note_off, wasm_pitch_bend, wasm_panic
  *                     (+ _malloc/_free de la runtime).
  *   3. Preasignación— la sección Memory del .wasm declara `initial >= 512`
@@ -36,6 +38,10 @@ const REQUIRED_EXPORTS = [
   'wasm_init_engine',
   'wasm_process_audio',
   'wasm_set_parameter',
+  'wasm_set_parameter_index',
+  'wasm_get_parameter_index',
+  'wasm_set_model',
+  'wasm_get_model',
   'wasm_note_on',
   'wasm_note_off',
   'wasm_pitch_bend',
@@ -333,4 +339,17 @@ function finish(report, wantJson, outFile, exitCode) {
   process.exitCode = exitCode;
 }
 
-main();
+// Los tests (webui-ci) importan las constantes sin ejecutar el script: main()
+// solo corre cuando se invoca como CLI (node scripts/check_wasm_build.js).
+if (typeof module !== 'undefined' && module.exports)
+{
+    module.exports = { REQUIRED_EXPORTS, MIN_INITIAL_PAGES, SOURCE_INVARIANT };
+    if (require.main === module)
+    {
+        main();
+    }
+}
+else
+{
+    main();
+}

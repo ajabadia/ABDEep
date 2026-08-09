@@ -28,6 +28,32 @@
             this.currentMode = localStorage.getItem('abd-eep-operating-mode') || 'abyssmind_pro';
             this.activeVoices = {};
             this._scopeLoopId = null;
+            // Fase 5 (§1.1): capabilities del modelo vigente (dm12_hardware | abyssmind_pro).
+            this.capabilities = this._resolveCapabilities(this.currentMode);
+        }
+
+        /** Resuelve las ModelCapabilities para un modo (null si el módulo no está cargado). */
+        _resolveCapabilities(mode) {
+            if (typeof window !== 'undefined' && window.ModelCapabilities
+                    && typeof window.ModelCapabilities.getCapabilitiesForMode === 'function') {
+                return window.ModelCapabilities.getCapabilitiesForMode(mode);
+            }
+            return null;
+        }
+
+        /** Devuelve las capabilities del modelo vigente (objeto congelado o null). */
+        getCapabilities() {
+            return this.capabilities;
+        }
+
+        /** Índice ModelCapabilities del modo (0=dm12_hardware, 1=abyssmind_pro). */
+        _modelIndexForMode(mode) {
+            if (typeof window !== 'undefined' && window.ModelCapabilities
+                    && typeof window.ModelCapabilities.resolveModel === 'function') {
+                return window.ModelCapabilities.resolveModel(mode) === 'dm12_hardware' ? 0 : 1;
+            }
+            // Fallback sin el módulo: todo lo que no sea abyssmind_pro es hardware DM12.
+            return (mode === 'abyssmind_pro') ? 1 : 0;
         }
 
         getMode() {
@@ -39,9 +65,17 @@
                 newMode = 'abyssmind_pro';
             }
             this.currentMode = newMode;
+            this.capabilities = this._resolveCapabilities(newMode);
             localStorage.setItem('abd-eep-operating-mode', newMode);
             window.appMode = (newMode === 'deepmind_hw_controller') ? 'standard' : 'advanced';
             localStorage.setItem('abd-eep-app-mode', window.appMode);
+
+            // Fase 5 (§1.1): notifica el modelo al DSP WASM (wasm_set_model) para
+            // que bridge JS y motor C++ no diverjan. Si el worklet no maneja el
+            // mensaje (build antiguo), lo ignora sin error.
+            if (this.workletNode && this.workletNode.port) {
+                this.workletNode.port.postMessage({ type: 'set_model', model: this._modelIndexForMode(newMode) });
+            }
 
             this._updateModeUI();
 

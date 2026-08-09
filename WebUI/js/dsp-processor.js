@@ -48,6 +48,11 @@ class ABDEepWasmProcessor extends AudioWorkletProcessor {
                 init: module.cwrap('wasm_init_engine', 'void', ['number', 'number']),
                 process: module.cwrap('wasm_process_audio', 'void', ['number', 'number', 'number']),
                 setParameter: module.cwrap('wasm_set_parameter', 'void', ['string', 'number']),
+                // Fase 5 (§1.1): wasm_set_model (0=dm12_hardware, 1=abyssmind_pro).
+                // Guard: builds antiguos sin el export dejan setModel en null.
+                setModel: (typeof module._wasm_set_model === 'function')
+                    ? module.cwrap('wasm_set_model', 'void', ['number'])
+                    : null,
                 noteOn: module.cwrap('wasm_note_on', 'void', ['number', 'number']),
                 noteOff: module.cwrap('wasm_note_off', 'void', ['number']),
                 pitchBend: module.cwrap('wasm_pitch_bend', 'void', ['number']),
@@ -87,6 +92,11 @@ class ABDEepWasmProcessor extends AudioWorkletProcessor {
                 break;
             case 'set_param':
                 this.dsp.setParameter(data.paramId, data.value);
+                break;
+            case 'set_model':
+                if (this.dsp.setModel) {
+                    this.dsp.setModel(data.model === 0 ? 0 : 1);
+                }
                 break;
             case 'pitch_bend':
                 this.dsp.pitchBend(data.value);

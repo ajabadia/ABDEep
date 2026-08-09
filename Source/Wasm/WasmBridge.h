@@ -20,6 +20,18 @@ extern "C" {
     /** Set a parameter by ID (0.0 to 1.0 normalized value). */
     WASM_EXPORT void wasm_set_parameter(const char* paramId, float value);
 
+    /** Set a parameter by registry index — O(1) hot path (Fase 5 §3.2). */
+    WASM_EXPORT void wasm_set_parameter_index(int paramIndex, float value);
+
+    /** Read back a normalized parameter by registry index (tests/round-trip). */
+    WASM_EXPORT float wasm_get_parameter_index(int paramIndex);
+
+    /** Set the ModelCapabilities index (0 = dm12_hardware, 1 = abyssmind_pro). */
+    WASM_EXPORT void wasm_set_model(int model);
+
+    /** Get the current ModelCapabilities index. */
+    WASM_EXPORT int wasm_get_model();
+
     /** MIDI Note On event. */
     WASM_EXPORT void wasm_note_on(int midiNote, float velocity);
 

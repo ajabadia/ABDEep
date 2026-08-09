@@ -49,4 +49,40 @@ describe('WasmBridge Operating Modes & AudioWorklet Manager', () => {
         expect(() => window.wasmBridge.noteOff(60)).not.toThrow();
         expect(() => window.wasmBridge.panic()).not.toThrow();
     });
+
+    it('exposes ModelCapabilities resolved per mode when module is loaded', () => {
+        // Fase 5 §1.1: con model_capabilities.js cargado, wasmBridge expone las
+        // capabilities del modelo vigente y las actualiza al cambiar de modo.
+        const mcCode = fs.readFileSync(path.resolve(__dirname, '../js/model_capabilities.js'), 'utf-8');
+        eval(mcCode);
+        const code = fs.readFileSync(path.resolve(__dirname, '../js/wasm_bridge.js'), 'utf-8');
+        eval(code);
+
+        expect(window.wasmBridge.getCapabilities()).not.toBeNull();
+        expect(window.wasmBridge.getCapabilities().model).toBe('abyssmind_pro');
+        expect(window.wasmBridge.getCapabilities().supportsAbyssMindParameters).toBe(true);
+
+        window.wasmBridge.setMode('deepmind_hw_controller');
+        expect(window.wasmBridge.getCapabilities().model).toBe('dm12_hardware');
+        expect(window.wasmBridge.getCapabilities().advancedFxCount).toBe(0);
+        expect(window.wasmBridge.getCapabilities().supportsExtendedSequencer).toBe(false);
+    });
+
+    it('notifies the worklet with set_model (0 dm12 / 1 abyssmind) on mode change', () => {
+        // Fase 5 §1.1: setMode postea {type:'set_model', model} al worklet para que
+        // el bridge JS y el motor C++ (wasm_set_model) no diverjan.
+        const sent = [];
+        window.wasmBridge.workletNode = { port: { postMessage: (m) => sent.push(m) } };
+
+        window.wasmBridge.setMode('deepmind_hw_controller');
+        expect(sent.some((m) => m.type === 'set_model' && m.model === 0)).toBe(true);
+
+        window.wasmBridge.setMode('abyssmind_pro');
+        expect(sent.some((m) => m.type === 'set_model' && m.model === 1)).toBe(true);
+    });
+
+    it('capabilities stay null (sin lanzar) cuando ModelCapabilities no está cargado', () => {
+        // El mock window de beforeEach NO tiene ModelCapabilities → null sin error.
+        expect(window.wasmBridge.getCapabilities()).toBeNull();
+    });
 });

@@ -55,6 +55,7 @@ add_executable(abdeep_dsp
     ${SRC_ROOT}/Core/CalibrationSpec.cpp
     ${SRC_ROOT}/Core/CalibrationSpec_Serialization.cpp
     ${SRC_ROOT}/Core/RoundTripValidator.cpp
+    ${SRC_ROOT}/Core/ParameterRegistry.gen.cpp
 
     # --- Oscillators ---
     ${SRC_ROOT}/DSP/OSC1.cpp
@@ -238,7 +239,7 @@ set_target_properties(abdeep_dsp PROPERTIES
         -s MODULARIZE=1 \
         -s EXPORT_ES6=1 \
         -s EXPORT_NAME=ABDEepDSP \
-        -s EXPORTED_FUNCTIONS=[\"_wasm_init_engine\",\"_wasm_process_audio\",\"_wasm_set_parameter\",\"_wasm_note_on\",\"_wasm_note_off\",\"_wasm_pitch_bend\",\"_wasm_panic\",\"_malloc\",\"_free\"] \
+        -s EXPORTED_FUNCTIONS=[\"_wasm_init_engine\",\"_wasm_process_audio\",\"_wasm_set_parameter\",\"_wasm_set_parameter_index\",\"_wasm_get_parameter_index\",\"_wasm_set_model\",\"_wasm_get_model\",\"_wasm_note_on\",\"_wasm_note_off\",\"_wasm_pitch_bend\",\"_wasm_panic\",\"_malloc\",\"_free\"] \
         -s EXPORTED_RUNTIME_METHODS=[\"ccall\",\"cwrap\",\"setValue\",\"getValue\"] \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s INITIAL_MEMORY=33554432 \

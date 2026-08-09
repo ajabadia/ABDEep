@@ -1,20 +1,71 @@
 #include "WasmBridge.h"
+#include "ParameterRegistry.gen.h"
+
+#include <array>
+#include <atomic>
 #include <cmath>
+#include <string_view>
+
+// ============================================================================
+// Fase 5 (plan v3.2 §3.2) — Lookup por índice, cero búsquedas dinámicas.
+//
+// El mock de AudioProcessorValueTreeState ya NO almacena los valores en mapas
+// string→value: usa un std::array plano cuyo índice es el enum ParameterIndex
+// generado en build-time (ParameterRegistry.gen.h). La resolución id→slot solo
+// ocurre en hilo de control (wasm_set_parameter) o bajo cambio de parámetro;
+// el hot path (wasm_process_audio) NO resuelve cadenas en estado estable.
+// ============================================================================
+namespace
+{
+    // Parámetros internos del motor que SynthEngine::updateParameters lee por id
+    // pero que NO forman parte del registro de presets (los 235 del registry).
+    // Se les asignan slots fijos justo después del registro para mantener el
+    // acceso O(1) por índice. (Ver SynthEngine_Parameters.cpp / FXEngine.cpp.)
+    constexpr std::size_t kInternalParamCount = 10;
+    constexpr const char* kInternalParamIds[kInternalParamCount] = {
+        "global_tune", "global_volume", "hpf_bass_boost_gain", "master_softclip_bypass",
+        "master_softclip_headroom", "sub_level", "transpose", "vca_mode",
+        "vcf_oversample", "vcf_voicing_mode"
+    };
+
+    constexpr std::size_t kValueStoreSize = ABD::Registry::kParameterCount + kInternalParamCount;
+    constexpr std::size_t kNoSlot = static_cast<std::size_t>(-1);
+
+    std::array<std::atomic<float>, kValueStoreSize> gValueStore{};
+    std::array<juce::AudioParameterChoice, kValueStoreSize> gChoiceStore{};
+
+    // Resuelve id → slot del store (registro primero, luego parámetros internos).
+    // Cero asignaciones: compara string_view sobre el UTF-8 de la juce::String.
+    std::size_t resolveSlot(const juce::String& id) noexcept
+    {
+        const char* utf8 = id.toRawUTF8();
+        const std::string_view sv(utf8 != nullptr ? utf8 : "");
+        if (const auto* entry = ABD::Registry::findParameterById(sv))
+            return static_cast<std::size_t>(entry->index);
+        for (std::size_t i = 0; i < kInternalParamCount; ++i)
+            if (sv == kInternalParamIds[i])
+                return ABD::Registry::kParameterCount + i;
+        return kNoSlot;
+    }
+}
 
 namespace juce
 {
-    // Define the methods declared in wasm_compat.h
+    // Define the methods declared in wasm_compat.h — storage respaldado por el
+    // registro (std::array + ParameterIndex), sin mapas dinámicos (Fase 5 §3.2).
     std::atomic<float>* AudioProcessorValueTreeState::getRawParameterValue(const juce::String& id) noexcept
     {
-        auto stdStr = id.toStdString();
-        return &values[stdStr];
+        const std::size_t slot = resolveSlot(id);
+        return (slot != kNoSlot) ? &gValueStore[slot] : nullptr;
     }
 
     RangedAudioParameter* AudioProcessorValueTreeState::getParameter(const juce::String& id) noexcept
     {
-        auto stdStr = id.toStdString();
-        choices[stdStr].value.store(values[stdStr].load());
-        return &choices[stdStr];
+        const std::size_t slot = resolveSlot(id);
+        if (slot == kNoSlot)
+            return nullptr;
+        gChoiceStore[slot].value.store(gValueStore[slot].load(std::memory_order_relaxed));
+        return &gChoiceStore[slot];
     }
 }
 
@@ -27,6 +78,15 @@ namespace
     static double gSampleRate = 44100.0;
     static int gBlockSize = 512;
     static bool gInitialized = false;
+
+    // true cuando un wasm_set_parameter* escribió desde el último bloque: permite
+    // saltar updateParameters() (y sus resoluciones id→slot) en estado estable.
+    static std::atomic<bool> gParamsDirty{false};
+
+    // ModelCapabilities (Fase 5 §1.1): 0 = dm12_hardware, 1 = abyssmind_pro.
+    // El DSP WASM compila con EEP_MODE_ENHANCED/DEEP_TARGET_MODEL=2, así que el
+    // modelo por defecto es abyssmind_pro.
+    static std::atomic<int> gModelIndex{1};
 
     void ensureEngineInitialized()
     {
@@ -41,6 +101,13 @@ namespace
             gInitialized = true;
         }
     }
+
+    void resetParameterStore()
+    {
+        for (auto& v : gValueStore) v.store(0.0f, std::memory_order_release);
+        for (auto& c : gChoiceStore) c.value.store(0.0f, std::memory_order_release);
+        gParamsDirty.store(false, std::memory_order_release);
+    }
 }
 
 extern "C" {
@@ -50,6 +117,7 @@ WASM_EXPORT void wasm_init_engine(double sampleRate, int blockSize)
     gSampleRate = sampleRate > 0.0 ? sampleRate : 44100.0;
     gBlockSize = blockSize > 0 ? blockSize : 512;
     gInitialized = false;
+    resetParameterStore();   // reserva fija: estado limpio en cada init
     ensureEngineInitialized();
 }
 
@@ -64,9 +132,13 @@ WASM_EXPORT void wasm_process_audio(float* outL, float* outR, int numSamples)
     }
 
     gAudioBuffer.clear();
-    
-    // Sync parameters from APVTS mock to SynthEngine before processing the block
-    if (gSynthEngine && gAPVTS)
+
+    // Sincronizar parámetros SOLO si un wasm_set_parameter* escribió desde el
+    // último bloque — cero lookups por string en el hilo de audio en estado
+    // estable (Fase 5 §3.2: acceso por índice, no por cadena). El exchange con
+    // memory_order_acquire hace happens-before con los stores release de los
+    // setters: los valores escritos en hilo de control son visibles aquí.
+    if (gSynthEngine && gAPVTS && gParamsDirty.exchange(false, std::memory_order_acquire))
     {
         gSynthEngine->updateParameters(*gAPVTS);
     }
@@ -84,13 +156,42 @@ WASM_EXPORT void wasm_process_audio(float* outL, float* outR, int numSamples)
 WASM_EXPORT void wasm_set_parameter(const char* paramId, float value)
 {
     ensureEngineInitialized();
-    if (!paramId || !gAPVTS) return;
+    if (!paramId) return;
 
-    // Direct parameter sync via our mock APVTS raw parameter values map
-    if (auto* param = gAPVTS->getRawParameterValue(paramId))
-    {
-        param->store(value);
-    }
+    // Resolución id→slot en hilo de control (nunca en el audio). El hot path
+    // indexado es wasm_set_parameter_index (Fase 5 §3.2).
+    const juce::String id(paramId);
+    const std::size_t slot = resolveSlot(id);
+    if (slot == kNoSlot)
+        return;
+    gValueStore[slot].store(value, std::memory_order_release);
+    gParamsDirty.store(true, std::memory_order_release);
+}
+
+WASM_EXPORT void wasm_set_parameter_index(int paramIndex, float value)
+{
+    ensureEngineInitialized();
+    if (paramIndex < 0 || paramIndex >= static_cast<int>(ABD::Registry::kParameterCount))
+        return;
+    gValueStore[static_cast<std::size_t>(paramIndex)].store(value, std::memory_order_release);
+    gParamsDirty.store(true, std::memory_order_release);
+}
+
+WASM_EXPORT float wasm_get_parameter_index(int paramIndex)
+{
+    if (paramIndex < 0 || paramIndex >= static_cast<int>(ABD::Registry::kParameterCount))
+        return 0.0f;
+    return gValueStore[static_cast<std::size_t>(paramIndex)].load(std::memory_order_relaxed);
+}
+
+WASM_EXPORT void wasm_set_model(int model)
+{
+    gModelIndex.store((model == 0) ? 0 : 1, std::memory_order_relaxed);
+}
+
+WASM_EXPORT int wasm_get_model()
+{
+    return gModelIndex.load(std::memory_order_relaxed);
 }
 
 WASM_EXPORT void wasm_note_on(int midiNote, float velocity)

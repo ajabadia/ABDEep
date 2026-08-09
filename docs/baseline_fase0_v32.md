@@ -361,7 +361,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
 
 ## 8. Estado y próximos pasos
 
-> **2026-08-09 — actualizado:** Fases 1/2/4 completadas (verificadas con suites verdes y
+> **2026-08-09 — actualizado:** Fases 1/2/3/4/5 completadas (verificadas con suites verdes y
 > jobs CI dedicados); el punto 1 quedó resuelto en la sección 6.
 
 ### ✅ Completadas
@@ -389,12 +389,17 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
    canónico + job `security-scan`, 0 violaciones), §4.2 ASCII hardware (`patch_name.js`:
    `PatchNameValidator`/`PatchNameRenderer`/`HardwareExporter`, integrados en bridge-sysex y
    modales) y §4.3 errores tipados (`typed_errors.js`: `SysExError`/`MidiError`/
-   `PatchImportError`, integrados en los flujos SysEx/MIDI/importación JSON).
+   `PatchImportError`, integrados en los   flujos SysEx/MIDI/importación JSON).
+6. **Fase 5 — Tiempo real, capabilities y bridge WASM:** `WASMBridge.cpp` sin búsquedas dinámicas
+   (mock APVTS sobre `std::array` indexado por `ParameterIndex`, slots fijos para los 10
+   parámetros internos fuera del registro, `updateParameters` solo bajo cambio vía dirty-flag →
+   cero lookups por string en el hilo de audio en estado estable) + 4 exports nuevos
+   (`wasm_set/get_parameter_index` O(1), `wasm_set/get_model`) verificados por el job `wasm-build`;
+   `ModelCapabilities` (`model_capabilities.js`, matriz §1.1 dm12_hardware/abyssmind_pro)
+   integrado en `wasm_bridge.js` (`getCapabilities()`) y expuesto al bridge WASM.
 
 ### ⏳ Pendientes
 
-- **Fase 5:** sustituir búsquedas dinámicas en `WASMBridge.cpp` por `std::array` + `ParameterIndex`
-  e integrar `ModelCapabilities` (`dm12_hardware` vs `abyssmind_pro`).
 - **Fase 6:** retirada progresiva de compatibilidad legacy (`Logger.deprecation()`, aliases de
   `window.dualMidiBridge`).
 - **Nivel 3b (Fase 4, §5):** hardware-in-the-loop con DM12 físico — procedimiento en

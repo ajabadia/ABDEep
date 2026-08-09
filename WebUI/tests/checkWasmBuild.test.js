@@ -18,6 +18,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -25,11 +26,29 @@ const SCRIPT = path.join(ROOT, 'scripts', 'check_wasm_build.js');
 const WASM_DIR = path.join(ROOT, 'WebUI', 'wasm');
 const hasArtifacts = fs.existsSync(path.join(WASM_DIR, 'abdeep_dsp.wasm'));
 
-// Glue mínimo con las 9 funciones de EXPORTED_FUNCTIONS (mismo formato que el
-// glue real de Emscripten: nombres con prefijo '_').
+// Las constantes canónicas las exporta el propio script (main() no se ejecuta
+// al requerirlo gracias al guard `require.main === module`).
+const require = createRequire(import.meta.url);
+const { REQUIRED_EXPORTS } = require(SCRIPT);
+
+// Glue mínimo con las 13 funciones de EXPORTED_FUNCTIONS (mismo formato que el
+// glue real de Emscripten: nombres con prefijo '_'). Debe incluir las 4 añadidas
+// en Fase 5 (wasm_set/get_parameter_index, wasm_set/get_model).
 const FULL_GLUE =
   'ABDEepDSP _wasm_init_engine _wasm_process_audio _wasm_set_parameter ' +
-  '_wasm_note_on _wasm_note_off _wasm_pitch_bend _wasm_panic _malloc _free';
+  '_wasm_set_parameter_index _wasm_get_parameter_index _wasm_set_model ' +
+  '_wasm_get_model _wasm_note_on _wasm_note_off _wasm_pitch_bend ' +
+  '_wasm_panic _malloc _free';
+
+// El describe de integración valida artefactos COMMITEADOS/build-CI. Los
+// artefactos locales (gitignored) pueden ser de un build previo sin los exports
+// nuevos: si el glue no contiene TODOS los exports requeridos, se considera
+// obsoleto y el describe se salta (el job wasm-build de CI lo valida tras
+// reconstruir).
+const glueJs = fs.existsSync(path.join(WASM_DIR, 'abdeep_dsp.js'))
+  ? fs.readFileSync(path.join(WASM_DIR, 'abdeep_dsp.js'), 'utf8')
+  : '';
+const hasCurrentArtifacts = hasArtifacts && REQUIRED_EXPORTS.every((fn) => glueJs.includes('_' + fn));
 
 // ────────────────────────────────────────────────────────────────────────────
 // Helpers: construye un binario WASM sintético mínimo con las secciones dadas.
@@ -77,9 +96,9 @@ function buildWasm({ memInitial, memMax, exports }) {
 describe('check_wasm_build.js — parser de secciones WASM', () => {
   it('parsea la sección Memory (initial + maximum) y la sección Export', () => {
     // Con -O3 --strip-all Emscripten minifica los nombres de export del .wasm
-    // (i, j, k...) — el check exige el CONTEO (>= 9), no los nombres (que viven
-    // en el glue .js). El sintético usa 9 exports de función con nombres cortos.
-    const minified = 'abcdefghi'.split('');
+    // (i, j, k...) — el check exige el CONTEO (>= 13), no los nombres (que viven
+    // en el glue .js). El sintético usa 13 exports de función con nombres cortos.
+    const minified = 'abcdefghijklm'.split('');
     const bin = buildWasm({ memInitial: 512, memMax: 32768, exports: minified });
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wasmcheck-'));
     fs.writeFileSync(path.join(tmpDir, 'abdeep_dsp.wasm'), bin);
@@ -92,7 +111,7 @@ describe('check_wasm_build.js — parser de secciones WASM', () => {
       expect(r.memory.initialPages).toBe(512);
       expect(r.memory.ok).toBe(true);
       expect(r.exports.ok).toBe(true);
-      expect(r.exports.count).toBe(9);
+      expect(r.exports.count).toBe(13);
       expect(r.artifacts.wasmExists).toBe(true);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -100,9 +119,9 @@ describe('check_wasm_build.js — parser de secciones WASM', () => {
   });
 
   it('Memory initial por debajo de la reserva fija (512) falla', () => {
-    // Glue COMPLETO de 9 funciones para aislar el check de Memory (el fallo debe
+    // Glue COMPLETO de 13 funciones para aislar el check de Memory (el fallo debe
     // venir solo de la reserva fija, no del glue).
-    const bin = buildWasm({ memInitial: 256, memMax: 32768, exports: 'abcdefghi'.split('') });
+    const bin = buildWasm({ memInitial: 256, memMax: 32768, exports: 'abcdefghijklm'.split('') });
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wasmcheck-'));
     fs.writeFileSync(path.join(tmpDir, 'abdeep_dsp.wasm'), bin);
     fs.writeFileSync(path.join(tmpDir, 'abdeep_dsp.js'), FULL_GLUE);
@@ -114,7 +133,7 @@ describe('check_wasm_build.js — parser de secciones WASM', () => {
       expect(stderr).toContain('reserva fija');
       // El glue completo no debe generar problemas de exports/glue
       expect(stderr).not.toContain('glue .js no exporta');
-      expect(stdout).toContain('Exports (.wasm): 9 exports');
+      expect(stdout).toContain('Exports (.wasm): 13 exports');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -143,7 +162,7 @@ describe('check_wasm_build.js — parser de secciones WASM', () => {
 
   it('invariante fuente roto (sin preasignación en init) falla con --src-file', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wasmcheck-'));
-    fs.writeFileSync(path.join(tmpDir, 'abdeep_dsp.wasm'), buildWasm({ memInitial: 512, exports: 'abcdefghi'.split('') }));
+    fs.writeFileSync(path.join(tmpDir, 'abdeep_dsp.wasm'), buildWasm({ memInitial: 512, exports: 'abcdefghijklm'.split('') }));
     fs.writeFileSync(path.join(tmpDir, 'abdeep_dsp.js'), FULL_GLUE);
     const brokenSrc = path.join(tmpDir, 'WasmBridge_broken2.cpp');
     fs.writeFileSync(brokenSrc,
@@ -206,7 +225,7 @@ describe('check_wasm_build.js — parser de secciones WASM', () => {
 // (WebUI/wasm) — se salta si el build WASM no se ha hecho en local.
 // ────────────────────────────────────────────────────────────────────────────
 
-describe.skipIf(!hasArtifacts)('check_wasm_build.js — artefactos WASM commiteados', () => {
+describe.skipIf(!hasCurrentArtifacts)('check_wasm_build.js — artefactos WASM commiteados', () => {
   it('exit 0: artefactos, exports, preasignación e invariante fuente OK', () => {
     const { status, stdout } = runScript([]);
     expect(status, stdout).toBe(0);

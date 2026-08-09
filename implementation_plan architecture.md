@@ -197,8 +197,15 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > Vitest: 92 files / 4576 tests / 0 fallos.
 
 ### Fase 5: Rendimiento Tiempo Real, Capabilities y Bridge WASM
-- [ ] Sustituir búsquedas dinámicas en `WASMBridge.cpp` por `std::array` e índices `ParameterIndex`.
-- [ ] Integrar `ModelCapabilities` para `dm12_hardware` vs `abyssmind_pro`.
+- [x] Sustituir búsquedas dinámicas en `WASMBridge.cpp` por `std::array` e índices `ParameterIndex`.
+- [x] Integrar `ModelCapabilities` para `dm12_hardware` vs `abyssmind_pro`.
+
+> **Cierre (0.2.32):** mock APVTS sobre `std::array` indexado por `ParameterIndex` (slots fijos
+> para los 10 parámetros internos fuera del registro), `updateParameters` solo bajo cambio
+> (dirty-flag → cero lookups por string en el hilo de audio en estado estable), exports nuevos
+> `wasm_set_parameter_index`/`wasm_get_parameter_index` (O(1)) y `wasm_set_model`/`wasm_get_model`
+> (ModelCapabilities), verificados por el job `wasm-build`. `model_capabilities.js` (matriz §1.1)
+> integrado en `wasm_bridge.js` (`getCapabilities()`).
 
 ### Fase 6: Retirada Progresiva de Compatibilidad Legacy
 - [ ] Registrar desusos con `Logger.deprecation()` fuera de audio y retirar aliases de `window.dualMidiBridge` tras confirmar estabilidad en producción.

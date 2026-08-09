@@ -26,6 +26,12 @@ class WasmAudioProcessor extends AudioWorkletProcessor {
             if (globalThis._wasm_set_parameter) {
                 globalThis._wasm_set_parameter(data.paramId, data.value);
             }
+        } else if (data.type === 'set_model') {
+            // Fase 5 (§1.1): ModelCapabilities — 0=dm12_hardware, 1=abyssmind_pro.
+            // Guard: builds antiguos sin wasm_set_model lo ignoran sin error.
+            if (globalThis._wasm_set_model) {
+                globalThis._wasm_set_model(data.model === 0 ? 0 : 1);
+            }
         } else if (data.type === 'pitch_bend') {
             if (globalThis._wasm_pitch_bend) {
                 globalThis._wasm_pitch_bend(data.value);

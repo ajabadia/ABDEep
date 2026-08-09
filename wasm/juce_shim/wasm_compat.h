@@ -69,11 +69,13 @@ namespace juce
         AudioProcessorValueTreeState() = default;
         ~AudioProcessorValueTreeState() = default;
 
+        // Fase 5 (plan v3.2 §3.2): el almacenamiento ya NO son mapas dinámicos
+        // string→value. Los métodos se implementan en WasmBridge.cpp contra un
+        // std::array plano indexado por ParameterIndex (generado en build-time),
+        // con slots fijos extra para los ~10 parámetros internos del motor que
+        // no forman parte del registro de presets.
         std::atomic<float>* getRawParameterValue(const juce::String& id) noexcept;
         RangedAudioParameter* getParameter(const juce::String& id) noexcept;
-
-        std::map<std::string, std::atomic<float>> values;
-        std::map<std::string, AudioParameterChoice> choices;
     };
 
     using uint32 = unsigned int;
