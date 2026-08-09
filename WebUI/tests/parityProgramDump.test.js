@@ -85,6 +85,22 @@ describe('Parity C++ ↔ JS — buildSingleSysex vs createProgramDumpSysex (291 
     // el resto del mensaje (payload+cola) es idéntico al de cabecera explícita
     const syxExplicit = PACKER.buildSingleSysex(patch, 0, 0, 0x7F);
     expect(toHex(syx)).toBe(toHex(syxExplicit));
+    // NOTA: el default de deviceId en C++ (createProgramDumpSysex) es 0 (dispositivo
+    // específico), mientras que el de JS es 0x7F (broadcast) — divergencia INTENCIONAL
+    // de defaults; la paridad garantizada es SIEMPRE con argumentos explícitos.
+  });
+
+  it('el golden embebido en el test C++ coincide con el fixture (paridad end-to-end)', () => {
+    // Cierra el bucle de paridad: si alguien regenera el fixture (cambio en
+    // buildSingleSysex) pero NO re-embebe el golden en SynthEngineUnitTests_CalSpec.cpp,
+    // este test falla y evita que C++ y JS queden desincronizados silenciosamente.
+    const cppSrc = fs.readFileSync(
+      path.join(ROOT, 'Source', 'Tools', 'UnitTests', 'SynthEngineUnitTests_CalSpec.cpp'),
+      'utf8'
+    );
+    const m = cppSrc.match(/goldenHex\s*=\s*"([0-9a-f]+)"/);
+    expect(m, 'no se encontró el golden embebido (goldenHex) en SynthEngineUnitTests_CalSpec.cpp').toBeTruthy();
+    expect(m[1]).toBe(FIXTURE.expected291Hex);
   });
 
   it('estructura canónica: cabecera 10 + payload 278 + cola 00 00 F7 = 291 bytes', () => {
