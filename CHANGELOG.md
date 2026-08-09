@@ -4,6 +4,30 @@
 
 ---
 
+## [0.2.10] — 2026-08-09
+
+### 🏭 Fase 7 — Job CI dedicado `registry-generation` (workflow `registry-generation.yml`)
+
+- **Nuevo job dedicado** (ubuntu-latest, complementario de `schema-validation` que usa el
+  orquestador PS1 en Windows): ejecuta el **generador puro** `node scripts/registry_generator.js`
+  y **falla si los 4 artefactos `.gen` commiteados no se regeneran sin diffs de contenido**
+  (`schemas/parameter-registry.data.json`, `WebUI/js/registry.gen.js`,
+  `Source/Core/ParameterRegistry.gen.{h,cpp}` vs `bridge-param-maps.js`,
+  `byte_map_data.js`, `parameters_spec.json`).
+- **Diff ignora `generatedAt`** (`--ignore-matching-lines`) — timestamp por corrida; el job
+  solo falla por divergencias de CONTENIDO (registro stale o edición manual de `.gen`).
+  Guardia anti-regresión de una sola línea en `data.json` (mismo criterio que
+  `schema-validation`).
+- **Valor añadido vs `schema-validation`**: verificación **multiplataforma** del generador
+  (Linux en vez de Windows) y cobertura del generador sin el wrapper PS1.
+- **Verificado localmente end-to-end**: `node scripts/registry_generator.js` → exit 0
+  (235 parámetros: 226 físicos · 3 extendidos · 6 virtuales); `data.json` 7091 líneas;
+  `git diff --exit-code --ignore-matching-lines='generatedAt'` → **0 diffs de contenido**.
+  Checkbox de Fase 7 marcado (queda pendiente `pluginval`, `wasm-build`, `security-scan`,
+  `property-fuzzing`).
+
+---
+
 ## [0.2.9] — 2026-08-09
 
 ### 📊 Baseline Fase 0 + Plan Fase 7 — `roundtrip-corpus` en 0 errores con cabecera corregida

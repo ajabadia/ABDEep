@@ -1,0 +1,101 @@
+name: Registry Generation CI
+
+# registry-generation (Fase 7 del plan v3.2) — job DEDICADO, complementario de
+# schema-validation.yml (que usa el orquestador validate_and_generate.ps1 en
+# Windows). Este job ejecuta el GENERADOR PURO (node scripts/registry_generator.js)
+# directamente en ubuntu-latest y verifica que los 4 artefactos .gen commiteados
+# se regeneran SIN diffs de contenido (registro stale / edición manual de .gen).
+# Correr en Linux confirma además que el generador es multiplataforma.
+#
+# Nota: registry_generator.js emite `generatedAt` (timestamp por corrida) tanto en
+# data.json como en registry.gen.js — el diff ignora esa línea (--ignore-matching-lines)
+# para que el job solo falle por divergencias de CONTENIDO reales.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "schemas/**"
+      - "scripts/registry_generator.js"
+      - "scripts/validate_and_generate.ps1"
+      - "WebUI/js/bridge-param-maps.js"
+      - "WebUI/js/byte_map_data.js"
+      - "resources/parameters_spec.json"
+      - "WebUI/js/registry.gen.js"
+      - "Source/Core/ParameterRegistry.gen.h"
+      - "Source/Core/ParameterRegistry.gen.cpp"
+      - ".github/workflows/registry-generation.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "schemas/**"
+      - "scripts/registry_generator.js"
+      - "scripts/validate_and_generate.ps1"
+      - "WebUI/js/bridge-param-maps.js"
+      - "WebUI/js/byte_map_data.js"
+      - "resources/parameters_spec.json"
+      - "WebUI/js/registry.gen.js"
+      - "Source/Core/ParameterRegistry.gen.h"
+      - "Source/Core/ParameterRegistry.gen.cpp"
+      - ".github/workflows/registry-generation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: registry-generation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  registry-generation:
+    name: Run registry_generator.js and verify .gen artifacts regenerate without content diffs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (requerido por registry_generator.js)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run registry_generator.js (regenerate the 4 .gen artifacts from sources)
+        run: |
+          node scripts/registry_generator.js
+          if [ $? -ne 0 ]; then
+            echo "::error::registry_generator.js falló (exit $?) — esquema inválido o fuentes corruptas. No se regeneraron artefactos."
+            exit 1
+          fi
+
+      - name: Fail if committed .gen artifacts diverge from regenerated ones
+        run: |
+          artifacts=(
+            'schemas/parameter-registry.data.json'
+            'WebUI/js/registry.gen.js'
+            'Source/Core/ParameterRegistry.gen.h'
+            'Source/Core/ParameterRegistry.gen.cpp'
+          )
+          # Guardia: --ignore-matching-lines ignora LÍNEAS completas; si data.json
+          # se emitiera en una sola línea (JSON sin indentar), el ignore enmascararía
+          # TODO el archivo y el job pasaría en falso con artefactos stale.
+          if [ "$(wc -l < schemas/parameter-registry.data.json)" -lt 2 ]; then
+            echo "::error::schemas/parameter-registry.data.json es de una sola línea — el diff por líneas no es fiable. Regenera con indentación (JSON.stringify(..., 2))."
+            exit 1
+          fi
+          # generatedAt cambia en cada corrida: se ignora. Cualquier otra
+          # diferencia = los artefactos commiteados están stale.
+          git diff --exit-code --ignore-matching-lines='generatedAt' -- "${artifacts[@]}"
+          if [ $? -ne 0 ]; then
+            echo "::error::Los artefactos .gen COMMITEADOS no coinciden con la regeneración. Ejecuta localmente: node scripts/registry_generator.js (o powershell -ExecutionPolicy Bypass -File scripts/validate_and_generate.ps1) y haz commit de los 4 artefactos regenerados."
+            echo "::group::Diff de artefactos .gen vs regeneración"
+            git diff --ignore-matching-lines='generatedAt' -- "${artifacts[@]}"
+            echo "::endgroup::"
+            exit 1
+          fi
+          echo "OK — los 4 artefactos .gen commiteados se regeneran sin diffs de contenido (schemaVersion 1)."
