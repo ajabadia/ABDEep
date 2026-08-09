@@ -27,21 +27,23 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 
 ## 2. Baseline WebUI (Vitest + ESLint)
 
+> **2026-08-09 — actualizado a los números vigentes** (96 files / 4605 tests).
+
 | Métrica | Valor |
 |---|---|
-| Test files | **81** (81 passed) |
-| Tests | **4351** (4351 passed, 0 failed) |
-| Duración | 21.08 s |
-| ESLint | **0 errores, 6 warnings** (todos `no-var`, en 6 ficheros) |
+| Test files | **96** (96 passed) |
+| Tests | **4605** (4605 passed, 0 failed) |
+| Duración | ~9.5 s |
+| ESLint | **0 errores, 27 warnings** (curly, sin `--fix` aplicado — no bloquean) |
 
 ### Cobertura (`npx vitest run --coverage`)
 
 | Métrica | % |
 |---|---|
-| Statements | 50.98 |
-| Branches | 39.49 |
-| Functions | 46.59 |
-| Lines | 53.32 |
+| Statements | 62.53 |
+| Branches | 50.19 |
+| Functions | 58.21 |
+| Lines | 64.74 |
 
 ---
 
@@ -49,10 +51,14 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 
 Ejecutado con `build/ABDEep_UnitTests_artefacts/Release/ABDEep_UnitTests.exe`.
 
+> **2026-08-09 — actualizado a los números vigentes** (126 suites / 3.689.168
+> assertions). El job `cpp-unit-tests` de CI reporta valores equivalentes
+> (3.689.164 assertions, 0 fallos) con el mismo binario.
+
 | Métrica | Valor |
 |---|---|
-| Suites | **122** |
-| Assertions pasadas | **3,689,097** |
+| Suites | **126** |
+| Assertions pasadas | **3,689,168** |
 | Assertions fallidas | **0** |
 
 ---
@@ -107,7 +113,7 @@ Presupuesto de bloque @48 kHz = **10,667 µs**.
 - **allocs/bloque: 66 → 0** en todos los escenarios (invariante §3.1 cumplido).
 - idle: p50 **-60%** (66.9 → 26.9 µs), p95 **-71%** (173.4 → 50.1 µs).
 - poly12: p50 -20%, p99 **-41%** (11409 → 6744 µs), overruns 40 → 3.
-- Suite C++ completa re-ejecutada tras el fix: **122 suites, 3.689.097 assertions, 0 fallos**.
+- Suite C++ completa re-ejecutada tras el fix: **126 suites, 3.689.168 assertions, 0 fallos** (números vigentes, sección 3).
 
 ### 5.2 Escenarios de carga máxima real (3 repeticiones, mejor p95 por escenario)
 

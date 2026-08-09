@@ -4,6 +4,18 @@
 
 ---
 
+## [0.2.28] — 2026-08-09
+
+### 📊 Baseline Fase 0 — números vigentes en secciones 2-3 de `docs/baseline_fase0_v32.md`
+
+- **Sección 2 (Baseline WebUI)**: actualizada a los números reales actuales —
+  **96 files / 4605 tests / 0 fallos** (~9.5 s; antes: 81 / 4351). ESLint: 0
+  errores, 27 warnings (curly). Cobertura re-ejecutada: Statements 62.53,
+  Branches 50.19, Functions 58.21, Lines 64.74 (antes 50.98/39.49/46.59/53.32).
+- **Sección 3 (Baseline C++)**: **126 suites / 3.689.168 assertions / 0 fallos**
+  (antes 122 / 3.689.097); nota de equivalencia con el job `cpp-unit-tests` de CI
+  (3.689.164 assertions). También actualizada la referencia de la sección 5.1.
+
 ## [0.2.27] — 2026-08-09
 
 ### 🏁 Fase 7 COMPLETADA — Job CI `pluginval` (último pendiente)
