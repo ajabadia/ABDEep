@@ -12,6 +12,8 @@ on:
     paths:
       - "scripts/validate_sysex_mapping.js"
       - "WebUI/js/byte_map_data.js"
+      - "WebUI/js/browser_packer.js"
+      - "docs/sysex_format.md"
       - "schemas/corpus-hashes.json"
       - "schemas/parameter-registry.data.json"
       - "resources/banks/**"
@@ -22,6 +24,8 @@ on:
     paths:
       - "scripts/validate_sysex_mapping.js"
       - "WebUI/js/byte_map_data.js"
+      - "WebUI/js/browser_packer.js"
+      - "docs/sysex_format.md"
       - "schemas/corpus-hashes.json"
       - "schemas/parameter-registry.data.json"
       - "resources/banks/**"

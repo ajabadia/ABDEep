@@ -61,6 +61,12 @@ Ejecutado con `build/ABDEep_UnitTests_artefacts/Release/ABDEep_UnitTests.exe`.
 
 `resources/banks/Factory Banks V1.1.2/Synth Bank {A..H}.syx` — hashes SHA-256:
 
+> **Estado del validador (2026-08-09):** `scripts/validate_sysex_mapping.js`
+> valida los 8 bancos contra el byte map con la **cabecera corregida de 10 bytes**
+> (0.2.4): **0 errores / 0 warnings en los 1024 presets** (antes: 146 errores FX
+> falsos por la desalineación de cabecera de 8→10 bytes). Los hashes SHA-256 de
+> referencia se verifican en CI con `--check-hashes` (corpus INMUTABLE).
+
 | Banco | SHA-256 |
 |---|---|
 | A | `21ed77a43687fcbe2dd509eb71f55ba02a9b9b70d0f0a15d1f883e62e0621f60` |
@@ -245,8 +251,15 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
 - ✅ **3 fallos FX preexistentes documentados** en el working tree (refactor FX en
   curso: fidelidad delay + full-gain wet) — el job de unit tests usa
   `continue-on-error` (no bloquean la CI).
-- Job **`roundtrip-corpus`** (pendiente): fijar los hashes A–H de la sección 4 como
-  referencia (`schemas/corpus-hashes.json` + `--check-hashes` ya listos).
+- ✅ **Job `roundtrip-corpus`** en `.github/workflows/roundtrip-corpus.yml` (ubuntu-latest):
+  ejecuta `node scripts/validate_sysex_mapping.js --check-hashes` sobre los 8 factory
+  banks A-H (1024 presets) y **falla si algún preset viola el mapeo** (byte map vs datos
+  reales) **o si un banco .syx fue alterado** (hashes SHA-256 contra
+  `schemas/corpus-hashes.json`, corpus INMUTABLE). Estado actual con la cabecera
+  corregida de 10 bytes (0.2.4): **0 errores / 0 warnings en los 1024 presets y los 8
+  hashes coinciden con la referencia**. Se dispara ante cambios en el validador, el byte
+  map, los esquemas, el formato documentado (`docs/sysex_format.md`), el constructor
+  canónico (`browser_packer.js`) o los bancos.
 - Local: el benchmark requiere `cmake` del VS (el del PATH mezcla versiones 4.2/4.4 y
   rompe la re-configuración) — usar `build.bat` o el cmake de VS explícitamente.
 
