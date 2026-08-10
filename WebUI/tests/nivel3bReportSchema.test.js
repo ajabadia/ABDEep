@@ -11,12 +11,14 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const REPORTS_DIR = path.join(ROOT, 'docs', 'reports');
 const NIVEL3B_DOC = path.join(ROOT, 'docs', 'fase4_nivel3b_hardware_in_the_loop.md');
+const DUMPS_ROOT = path.join(ROOT, 'resources', 'hardware_dumps');
 
 /** Lista los reportes nivel3b-*.json con su fecha YYYYMMDD extraída del nombre. */
 function listNivel3bReports() {
@@ -30,25 +32,41 @@ function listNivel3bReports() {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-describe('docs/reports/nivel3b-*.json — esquema del reporte hardware-in-the-loop', () => {
-  const reports = listNivel3bReports();
+/** Lista los directorios de dumps con su fecha (YYYYMMDD o YYYY-MM-DD), más reciente al final. */
+function listDumpDirs() {
+  if (!fs.existsSync(DUMPS_ROOT)) { return []; }
+  return fs.readdirSync(DUMPS_ROOT)
+    .filter((d) => /^\d{8}$/.test(d) || /^\d{4}-\d{2}-\d{2}$/.test(d))
+    .map((d) => ({ dir: d, date: d.replace(/-/g, '') }))
+    .filter((x) => fs.statSync(path.join(DUMPS_ROOT, x.dir)).isDirectory())
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
 
+function sha256Hex(buf) {
+  return crypto.createHash('sha256').update(buf).digest('hex');
+}
+
+// Carga compartida: el reporte más reciente (necesario en ambos describes — el de
+// docs/reports y el de resources/hardware_dumps para cruzar fechas).
+const reports = listNivel3bReports();
+
+/** Carga el reporte más reciente (helper lazy para mensajes de error claros). */
+function loadLatestReport() {
+  if (reports.length === 0) {
+    throw new Error('no hay reportes nivel3b-*.json en docs/reports/');
+  }
+  const latest = reports[reports.length - 1];
+  return JSON.parse(fs.readFileSync(path.join(REPORTS_DIR, latest.file), 'utf8'));
+}
+
+const report = loadLatestReport();
+const latest = reports[reports.length - 1];
+const docText = fs.existsSync(NIVEL3B_DOC) ? fs.readFileSync(NIVEL3B_DOC, 'utf8') : '';
+
+describe('docs/reports/nivel3b-*.json — esquema del reporte hardware-in-the-loop', () => {
   it('existe al menos un reporte nivel3b-YYYYMMDD.json', () => {
     expect(reports.length).toBeGreaterThan(0);
   });
-
-  /** Carga el reporte más reciente (helper lazy para mensajes de error claros). */
-  function loadLatestReport() {
-    if (reports.length === 0) {
-      throw new Error('no hay reportes nivel3b-*.json en docs/reports/');
-    }
-    const latest = reports[reports.length - 1];
-    return JSON.parse(fs.readFileSync(path.join(REPORTS_DIR, latest.file), 'utf8'));
-  }
-
-  const report = loadLatestReport();
-  const latest = reports[reports.length - 1];
-  const docText = fs.existsSync(NIVEL3B_DOC) ? fs.readFileSync(NIVEL3B_DOC, 'utf8') : '';
 
   describe('raíz del reporte', () => {
     it('tiene schema="nivel3b-report" y schemaVersion numérico', () => {
@@ -171,5 +189,86 @@ describe('docs/reports/nivel3b-*.json — esquema del reporte hardware-in-the-lo
       expect(docRunDate).toBe(report.corrida);
       expect(docRunDate.replace(/-/g, '')).toBe(latest.date);
     });
+  });
+});
+
+describe('resources/hardware_dumps/ — manifest.json y SHA-256 por banco', () => {
+  const dumpDirs = listDumpDirs();
+
+  it('existe al menos un directorio de dumps YYYY-MM-DD', () => {
+    expect(dumpDirs.length).toBeGreaterThan(0);
+  });
+
+  // Guard con mensaje claro (patrón de loadLatestReport): un fallo por ausencia
+  // de directorios produce un error descriptivo, no un TypeError en cascada.
+  if (dumpDirs.length === 0) {
+    throw new Error('no hay directorios de dumps en resources/hardware_dumps/ (YYYY-MM-DD)');
+  }
+  const latestDump = dumpDirs[dumpDirs.length - 1];
+  const manifestPath = path.join(DUMPS_ROOT, latestDump.dir, 'manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(`manifest.json no encontrado en ${manifestPath}`);
+  }
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+
+  it('el manifest.json del directorio más reciente existe y parsea', () => {
+    expect(manifest).not.toBeNull();
+  });
+
+  it('esquema raíz: schemaVersion, kind hardware-bank-dumps y fecha coherente con el dir', () => {
+    expect(manifest.schemaVersion).toBeGreaterThanOrEqual(1);
+    expect(manifest.kind).toBe('hardware-bank-dumps');
+    expect(manifest.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(manifest.fecha.replace(/-/g, '')).toBe(latestDump.date);
+  });
+
+  it('declara hardware y procedimiento', () => {
+    expect(typeof manifest.hardware).toBe('object');
+    expect(typeof manifest.hardware.modelo).toBe('string');
+    expect(manifest.hardware.modelo.length).toBeGreaterThan(0);
+    expect(typeof manifest.procedimiento).toBe('string');
+    expect(manifest.procedimiento).toContain('hw_bank_dump.js');
+  });
+
+  it('resumen declara bancos=8, presets=1024 y divergencias con known_exception', () => {
+    expect(manifest.resumen.bancos).toBe(8);
+    expect(manifest.resumen.presets).toBe(1024);
+    expect(Array.isArray(manifest.resumen.divergencias)).toBe(true);
+    const b1 = manifest.resumen.divergencias.find((d) => d.banco === 'B' && d.prog === 1);
+    expect(b1).toBeDefined();
+    expect(b1.clasificacion).toBe('known_exception');
+    expect(b1.diffBytes).toBe(2);
+  });
+
+  it('banks cubre A–H con rawSha256/normalizedSha256/size/payloadDiffPrograms', () => {
+    expect(Object.keys(manifest.banks).sort().join('')).toBe('ABCDEFGH');
+    for (const L of 'ABCDEFGH') {
+      const b = manifest.banks[L];
+      expect(b).toBeDefined();
+      expect(b.rawSha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(b.normalizedSha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(b.size).toBe(37248);
+      expect(Array.isArray(b.payloadDiffPrograms)).toBe(true);
+    }
+  });
+
+  it('los SHA-256 reales de los 8 .syx coinciden con manifest.banks (dumps no alterados)', () => {
+    for (const L of 'ABCDEFGH') {
+      const file = path.join(DUMPS_ROOT, latestDump.dir, `Synth Bank ${L}.syx`);
+      expect(fs.existsSync(file), `falta ${file}`).toBe(true);
+      const actual = sha256Hex(fs.readFileSync(file));
+      expect(actual, `SHA-256 del banco ${L} no coincide con manifest.json`).toBe(manifest.banks[L].rawSha256);
+    }
+  });
+
+  it('solo B/1 registra la divergencia de 2 bytes (known_exception); el resto no tiene diffs', () => {
+    for (const L of 'ABCDEFGH') {
+      const expected = L === 'B' ? [{ prog: 1, diffBytes: 2 }] : [];
+      expect(manifest.banks[L].payloadDiffPrograms).toEqual(expected);
+    }
+  });
+
+  it('el directorio de dumps más reciente coincide con la corrida del reporte más reciente', () => {
+    expect(manifest.fecha).toBe(report.corrida);
   });
 });

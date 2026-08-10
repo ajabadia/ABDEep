@@ -4,6 +4,20 @@
 
 ---
 
+## 0.2.46 — Test de esquema ampliado: manifest.json de hardware_dumps (SHA-256 por banco)
+
+- **`WebUI/tests/nivel3bReportSchema.test.js`** (34 tests): nuevo bloque
+  `resources/hardware_dumps/ — manifest.json y SHA-256 por banco` que valida el
+  esquema del manifest del directorio de dumps MÁS RECIENTE: raíz (schemaVersion,
+  kind hardware-bank-dumps, fecha coherente con el dir), hardware/procedimiento,
+  resumen (8 bancos, 1024 presets, divergencias con B/1 known_exception),
+  banks A–H (rawSha256/normalizedSha256 hex-64, size 37248, payloadDiffPrograms) y
+  los **SHA-256 reales de los 8 .syx** == manifest (dumps no alterados) + cruce de
+  fecha con el reporte más reciente (manifest.fecha == report.corrida).
+- Baseline WebUI actualizada a 105 files / 4733 tests.
+
+---
+
 ## 0.2.45 — Nivel 3b: cierre de checkboxes sin hardware (--classify dump + --check-hashes + D)
 
 - **`scripts/roundtrip_corpus.js`**: nuevo modo `--dumps-dir <dir> [--classify]`

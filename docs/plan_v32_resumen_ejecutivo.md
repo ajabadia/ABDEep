@@ -13,7 +13,7 @@
 | Fases 0–7 del plan | ✅ **Todas completadas** (27/27 checkboxes `[x]`) |
 | Fase 7 — Pipeline CI/CD | ✅ **13 jobs implementados y documentados** (anti-drift `docs-verification`) |
 | Nivel 3b (hardware-in-the-loop) | 🟡 Fases A–D + **dumps completos A–H** (1024 presets, 1023/1024 payload-identicos; B/1 known_exception); cierre A–E pendiente |
-| Suites WebUI | ✅ **105 files / 4724 tests** (4721 passed, 2 skipped, 0 fallos) · ESLint 0/0 |
+| Suites WebUI | ✅ **105 files / 4733 tests** (4730 passed, 2 skipped, 0 fallos) · ESLint 0/0 |
 | Suite C++ | ✅ **126 suites / 3.689.168 assertions / 0 fallos** |
 | Invariantes tiempo real | ✅ 0 allocs/bloque · 0 overruns · p95/p99/p999 bajo presupuesto |
 
@@ -40,7 +40,7 @@
 |-----|----------|-----------|
 | `schema-validation` | schema-validation.yml | `.gen` commiteados == fuentes (validate_and_generate.ps1) |
 | `registry-generation` | registry-generation.yml | generador puro, 4 artefactos regenerados sin diffs |
-| `vitest` + lint | webui-ci.yml | 105 files / 4724 tests + ESLint 0/0 |
+| `vitest` + lint | webui-ci.yml | 105 files / 4733 tests + ESLint 0/0 |
 | `cpp-unit-tests` | dsp-ci.yml (job `build-and-test`) | 126 suites / 3.689.168 assertions |
 | `roundtrip-corpus` | roundtrip-corpus.yml | 8 bancos A–H (1024 presets) + SHA-256 (`--check-hashes`) |
 | `hw-dump-validate` | hardware-dump-validate.yml | dumps commiteados == manifest + corpus (offline, B/1 known_exception) |
@@ -72,7 +72,7 @@
 ## 5. Validación local (comandos)
 
 ```bash
-npm test                                  # WebUI: 105 files / 4724 tests
+npm test                                  # WebUI: 105 files / 4733 tests
 npx eslint . --max-warnings 0             # 0 errores / 0 warnings
 node scripts/verify_docs_ci_jobs.js       # plan ↔ baseline ↔ workflows (exit 0)
 node scripts/roundtrip_corpus.js          # batería round-trip A–H (1024 presets)
