@@ -228,7 +228,7 @@ Para que los DAWs registren correctamente la automatización y permitan Undo/Red
 - [x] **El Resource Provider tiene fallback a BinaryData** cuando los archivos no se encuentran en disco (modo Release/distribución).
 - [x] **El name-mangling de BinaryData** (`/` → `_`, `.` → `_`, `-` → `_`, dígito inicial → `_` + nombre) coincide con el que genera JUCE automáticamente — generado por `juce_add_binary_data()` (JUCE 8).
 - [x] **Los tipos MIME están correctamente mapeados** — `PluginEditor_ResourceProvider.cpp::getMimeTypeForFilename()` cubre todos los formatos.
-- [ ] **No quedan rutas de desarrollo hardcodeadas** en el Resource Provider en modo Release.
+- [x] **No quedan rutas de desarrollo hardcodeadas** en el Resource Provider en modo Release — `PluginEditor_ResourceProvider.cpp` deriva el path del proyecto desde `__FILE__` (3 niveles arriba). Todos los paths de archivos usan `juce::File::getSpecialLocation()` portátil.
 
 > [!NOTE]
 > **Hallazgo real (ABDEep):** El `pluginResourceProvider` busca primero en disco (`d:\desarrollos\...`) y luego en BinaryData. En Release, los archivos de disco no existirán y se cargará desde BinaryData. Esto funciona, pero las rutas hardcodeadas podrían causar confusión si el directorio de desarrollo se mueve.
