@@ -4,6 +4,46 @@
 
 ---
 
+## 0.2.48 — ✅ Cierre definitivo del plan v3.2 (Fases 0–7 completadas)
+
+> **Hito:** Refactorización de Arquitectura e Integración v3.2 cerrada al 100%.
+> 28/28 checkboxes del plan marcados · 13 jobs CI · suite 105 files / 4733 tests.
+
+- **Fase 0 — Baseline y perfiledo:** `docs/baseline_fase0_v32.md` con baseline
+  exacta (test suites, corpus A–H, percentiles p95/p99/p999, audit de asignaciones),
+  `Source/Tools/Benchmarks/ProcessBlockBenchmark.cpp` (18 escenarios incl.
+  `poly12`, `poly12_fx4`, `max_all` = Uni12 + mod matrix 32 + Moog 4x + routing FX
+  9) y `WebUI/tests/baselineGuard.test.js` (guard de counts).
+- **Fase 1 — Esquema declarativo + generador:** `schemas/parameter-registry.json`
+  (schemaVersion 1) + `scripts/registry_generator.js` + `validate_and_generate.ps1`
+  → artefactos `registry.gen.js` / `ParameterRegistry.gen.{h,cpp}`, vinculados a CMake
+  via `add_custom_command`.
+- **Fase 2 — Transaccional + FSM:** `WebUI/js/parameter_store.js` (PendingTransaction
+  TTL 300 ms, rollback tipado, `transportStatus`, `comparisonMode`),
+  `hardware_midi_service.js` (FSM de puerto) y `sysex_assembler.js` (FSM de mensajes).
+- **Fase 3 — Sanitización DOM/ASCII:** `dom_sanitize.js` + `scripts/security_scan.js`
+  (audit XSS sobre todo WebUI/js), `patch_name.js` (PatchNameValidator/Renderer/
+  HardwareExporter, 15 chars ASCII) y `typed_errors.js` (SysEx/MIDI/JSON).
+- **Fase 4 — Round-trip 3 niveles + fuzzing:** `roundtrip_equality.js`
+  (`rawCodecEqual`/`semanticEqual`/`hardwareCanonicalEqual`), `fuzz_roundtrip.js`
+  (16 seeds × 500 casos) y `roundtrip_corpus.js` (1024 presets A–H).
+- **Fase 5 — WASM + Capabilities:** `Source/Wasm/WasmBridge.cpp` con `std::array`
+  indexado por `ParameterIndex` (0 mapas dinámicos) + preasignación fija en
+  `wasminitengine()`; `model_capabilities.js` (dm12_hardware 35 fx / abyssmind_pro 21 fx).
+- **Fase 6 — Retirada legacy:** `logger.js` con `Logger.deprecation()` fuera de audio
+  y retirada completa de `window.dualMidiBridge` (0 residuos).
+- **Fase 7 — CI/CD (13 jobs):** schema-validation, registry-generation, vitest,
+  cpp-unit-tests, roundtrip-corpus, fase4-corpus, hw-dump-validate, allocation-audit,
+  benchmark, security-scan, property-fuzzing, wasm-build y pluginval.
+- **Nivel 3b (hardware-in-the-loop):** COMPLETADO — 8 bancos capturados del DM12
+  físico (`resources/hardware_dumps/2026-08-10/`), manifest + SHA-256 validados,
+  divergencia B/1 registrada como known_exception, reporte `docs/reports/nivel3b-20260810.json`.
+- **Verificación §8 (corrida local):** 0 allocs en idle/poly12/poly12_fx4/max_all ·
+  fuzzing 8000/8000 sin violaciones · round-trip corpus 1024/1024 en los 3 niveles ·
+  suite 105/105 (4731 passed + 2 skipped) · ESLint 0 errores · docs-verification exit 0.
+
+---
+
 ## 0.2.47 — Cierre del Nivel 3b (hardware-in-the-loop) en el plan + resumen ejecutivo final
 
 - **`implementation_plan architecture.md`**: Nivel 3b marcado como COMPLETADO en
