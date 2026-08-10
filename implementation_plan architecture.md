@@ -135,7 +135,7 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 
 > **2026-08-10 — Completado.** Baseline exacta registrada y custodiada en
 > `docs/baseline_fase0_v32.md` (referencia de Fase 0):
-> - **Suites:** WebUI 102 files / 4681 tests (0 fallos, 2 skipped) + guard
+> - **Suites:** WebUI 103 files / 4688 tests (0 fallos, 2 skipped) + guard
 >   `baselineGuard.test.js` anti-drift; C++ 126 suites / 3.689.164 assertions.
 > - **Cobertura:** sección 2 (`npx vitest run --coverage`).
 > - **Hashes A–H:** sección 4 + `schemas/corpus-hashes.json` — verificados en CI por el
@@ -206,10 +206,16 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > `runABCompareReport`, banco en letra 'A'-'H', `coerceBytes` para patches clonados por deepClone).
 > `scripts/roundtrip_corpus.js` corre la batería sobre los 8 bancos A-H (1024 presets) con
 > `--classify` (tabla por preset exact/canonical/semantic → 804/210/10 en el corpus de fábrica).
-> Queda pendiente el Nivel 3b (hardware-in-the-loop, §5 — requiere hardware físico);
-> procedimiento (4 fases) + checklist pre-release en `docs/fase4_nivel3b_hardware_in_the_loop.md`.
+> **2026-08-10 — Nivel 3b (hardware-in-the-loop): Fases A–D ejecutadas con DM12 real.**
+> Snapshot del edit buffer == preset A/0 de fábrica (**242/242 bytes, `exact_match`**);
+> round-trip NRPN `filter.cutoff` → 100 leído de vuelta 100 (delta 0); virtuales ≥300
+> rechazados sin emitir MIDI; nombre límite `Hi<>&"'ABCDEFGHI` (16 chars) round-trip
+> idéntico en 223–238. Restauración del A/0 verificada. Reporte:
+> `docs/reports/nivel3b-20260810.json`. **Cierre ✅ pendiente**: dumps completos de los
+> 8 bancos + SHA-256 vs `schemas/corpus-hashes.json` y validación vía WebUI real
+> (checklist A–E en `docs/fase4_nivel3b_hardware_in_the_loop.md`).
 > Ver `docs/fase4_roundtrip_equality.md`.
-> Vitest: 92 files / 4576 tests / 0 fallos.
+> Vitest (2026-08-10): 103 files / 4688 tests / 0 fallos.
 
 ### Fase 5: Rendimiento Tiempo Real, Capabilities y Bridge WASM
 - [x] Sustituir búsquedas dinámicas en `WASMBridge.cpp` por `std::array` e índices `ParameterIndex`.

@@ -4,6 +4,27 @@
 
 ---
 
+## [0.2.40] — 2026-08-10
+
+### 🧪 Paridad CI + auditoría de subprocesos + validación act end-to-end + cierre documental
+
+- **Test de paridad de workflows** (`verifyDocsCiJobs.test.js`, +3 tests): verifica que
+  `docs-verification.yml` y `webui-ci.yml` ejecutan EXACTAMENTE el mismo script
+  (`scripts/verify_docs_ci_jobs.js`) con los mismos args (sin flags), vía node directo
+  vs `npm test` → vitest → runScript([]).
+- **Auditoría de tests con subprocesos** (`ciSubprocessTests.test.js`, nuevo, 4 tests):
+  detecta automáticamente todos los tests que dependen de scripts externos
+  (child_process / scripts/*.js), verifica que cada script existe (scripts/ o
+  WebUI/scripts/), que TODOS se recogen en `vitest list` (colección de `npm test`) y
+  que webui-ci no filtra includes.
+- **Validación `act` end-to-end**: workflow `webui-ci` ejecutado localmente con
+  `act 0.2.89` (Docker Desktop) — checkout, node 20, npm install, lint, vitest, serve
+  check y steps de audio A/B: todos verdes tras actualizar la baseline.
+- **Baseline actualizada**: 103 files / 4688 tests (4686 passed, 2 skipped).
+- **Cierre documental Nivel 3b**: plan Fase 4 + `fase4_roundtrip_equality.md` actualizados
+  (Fases A–D ejecutadas con DM12 real); doc del Nivel 3b con camino MCP reproducible
+  (§3.5). Nuevo `docs/plan_v32_resumen_ejecutivo.md` (fases 0–7, 12 jobs CI, métricas).
+
 ## [0.2.39] — 2026-08-10
 
 ### 🎛️ Nivel 3b — primera corrida hardware-in-the-loop con DM12 físico (Fases A–D)

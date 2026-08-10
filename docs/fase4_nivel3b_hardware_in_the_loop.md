@@ -113,6 +113,28 @@ con caracteres ASCII límite):
 2. Confirmar que los bytes 239–241 (cola) y el payload empaquetado 10–287 no se ven
    alterados por el nombre (dumps de fábrica verificados: "Blue Dolphin BC " en A/0).
 
+### 3.5 Ejecución reproducible vía cliente MCP `deepmind12` (Web MIDI)
+
+Camino verificado el 2026-08-10 (reporte `docs/reports/nivel3b-20260810.json`). Es la
+forma más rápida de re-ejecutar la batería con el hardware conectado al navegador:
+
+1. **Fase A** — `deepmind12__snapshot_state`: captura el edit buffer; comparar los 242
+   bytes contra el corpus (`loadCorpusFromBanks`) → esperar `exact_match` si el patch
+   cargado es de fábrica (p. ej. A/0 "Blue Dolphin BC ").
+2. **Fase B** — `deepmind12__set_param` con `{ name: "filter.cutoff", rawValue: 100 }`
+   (NRPN 39) y de nuevo `snapshot_state`: byte[39] debe leerse 100 (delta 0).
+3. **Fase C** — `deepmind12__set_param` con un parámetro **virtual** (p. ej.
+   `fx_feedback_gain`, byteOffset 304 — sin NRPN físico): el cliente debe RECHAZARLO
+   sin emitir MIDI; `snapshot_state` posterior debe ser idéntico (salvo ediciones
+   intencionales).
+4. **Fase D** — `deepmind12__patch_edit_buffer` escribiendo 16 bytes en 223–238 con
+   caracteres límite (`Hi<>&"'ABCDEFGHI`); `snapshot_state` → round-trip idéntico.
+5. **Restauración** — `patch_edit_buffer` con los bytes originales (p. ej. nombre
+   "Blue Dolphin BC " + cutoff 42) y `snapshot_state` final de verificación.
+
+> Seguridad: el cliente MCP trabaja sobre el **edit buffer** (no memoria persistente);
+> siempre restaurar el patch original y verificar con un snapshot final.
+
 ---
 
 ## 4. Checklist de validación previa a release

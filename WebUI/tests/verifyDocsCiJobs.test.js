@@ -511,6 +511,47 @@ describe('verify_docs_ci_jobs.js — divergencias plan ↔ baseline', () => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
+// Paridad de invocación en CI: docs-verification.yml ↔ webui-ci.yml
+// ────────────────────────────────────────────────────────────────────────────
+// El job docs-verification corre el script DIRECTAMENTE con
+// `node scripts/verify_docs_ci_jobs.js` (sin args). El job vitest de webui-ci
+// llega al script por `npm test` → vitest → ESTE archivo → runScript([]) (también
+// sin args). Ambos caminos deben ejecutar exactamente el mismo script con los
+// mismos args contra los mismos paths por defecto — si docs-verification añade
+// flags o webui-ci deja de recoger el test, este describe lo detecta.
+
+describe('verify_docs_ci_jobs.js — paridad de invocación en CI (docs-verification ↔ webui-ci)', () => {
+  const DOCS_WF = path.join(ROOT, '.github', 'workflows', 'docs-verification.yml');
+  const WEBUI_WF = path.join(ROOT, '.github', 'workflows', 'webui-ci.yml');
+
+  it('docs-verification.yml invoca el script con `node scripts/verify_docs_ci_jobs.js` sin flags ni args', () => {
+    const yml = fs.readFileSync(DOCS_WF, 'utf8');
+    const m = yml.match(/node scripts\/verify_docs_ci_jobs\.js([^\n]*)/);
+    expect(m, 'docs-verification.yml debería invocar el script con node').not.toBeNull();
+    // Hasta el `;` del `if ! cmd; then` no debe haber args ni flags extra
+    const rest = m[1].split(';')[0].trim();
+    expect(rest, 'la invocación del script no debe llevar args/flags extra').toBe('');
+    // Refuerzo anti-drift: ningún token de flag conocido en la línea de invocación
+    for (const flag of ['--json', '--plan-file', '--baseline-file', '--workflows-dir']) {
+      expect(m[0].includes(flag), 'docs-verification.yml no debe usar ' + flag).toBe(false);
+    }
+  });
+
+  it('webui-ci.yml ejecuta `npm test` (suite vitest sin filtros) que incluye este test', () => {
+    const yml = fs.readFileSync(WEBUI_WF, 'utf8');
+    expect(yml).toMatch(/run:\s*npm test/);
+  });
+
+  it('la ruta de webui-ci invoca el MISMO script con los MISMOS args ([]) que docs-verification', () => {
+    // webui-ci llega al script vía vitest → este archivo → runScript([]) (sin args,
+    // paths reales por defecto) — idéntico contrato que `node scripts/verify_docs_ci_jobs.js`.
+    const { status, stdout } = runScript([]);
+    expect(status, stdout).toBe(0);
+    expect(stdout).toContain('✅ OK');
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────────────────────────────────────
 
