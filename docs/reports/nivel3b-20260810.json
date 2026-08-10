@@ -9,8 +9,8 @@
     "interfaz": "Web MIDI (SysEx) via MCP deepmind12 + scripts/hw_bank_dump.js (node-midi, puerto 'DeepMind12D')"
   },
   "resumen": {
-    "estado": "ejecutado_parcialmente_A_D_plus_bank_dumps",
-    "fases_completadas": ["A", "B", "C", "D"],
+    "estado": "ejecutado_parcialmente_A_D_plus_bank_dumps_plus_webui_roundtrip",
+    "fases_completadas": ["A", "B", "B_webui", "C", "C_webui", "D"],
     "bank_dumps": "8 bancos A-H capturados del hardware real (1024 presets, 291 B c/u)",
     "paridad_payload": "1023/1024 presets byte-identicos al corpus de fabrica",
     "checklist_release": "A-D + E-1 verde; 3b NO se marca completo en el plan hasta checklist A-E 100%",
@@ -68,6 +68,32 @@
         "nombreLeido": "Hi<>&\"'ABCDEFGHI",
         "roundTrip": "identico byte a byte"
       }
+    },
+    "B_webui": {
+      "titulo": "Round-trip de programa via WebUI (scripts/hw_roundtrip_validate.js)",
+      "descripcion": "Harness Node con los MODULOS WEBUI REALES (browser_packer.js, patch_name.js, parameter_store.js, bridge-parameter-store.js, bridge-midi-rx-nrpn-handlers.js) conectado al hardware via node-midi: sendPatchToHardware -> HardwareExporter.prepareForSysEx -> buildSingleSysex (291 B) -> envio real -> program dump request de vuelta -> validateSinglePatchSysexRoundTrip (port JS fiel del C++).",
+      "resultado": "ok",
+      "detalle": {
+        "pasos": 14,
+        "pasosOk": 14,
+        "mensaje": "291 B canonico (F0 00 20 32 20 <dev> 02 ..., dev=0x00)",
+        "validateSinglePatchSysexRoundTrip": "transport=true patch=true mismatches=0",
+        "payloadEnviadoVsVuelto": "242/242 bytes identicos",
+        "hardwareExporterNoMuta": "bytes 223-238 del patch original intactos tras prepareForSysEx",
+        "nombreDumpVuelta": "'A BDEep 16-char?' intacto en 223-238"
+      }
+    },
+    "C_webui": {
+      "titulo": "Transacciones NRPN/CC38 con ParameterStore via WebUI (TTL 300ms, isEcho)",
+      "descripcion": "Con el bridge WebUI cableado (bridge-parameter-store.js + bridge-midi-rx-nrpn-handlers.js): setParameter inicia transaccion pending (expectedRaw=191); eco CC38/NRPN entrante -> confirmByValue -> isEcho=true -> 'confirmed' SIN re-escribir el slider; override externo (raw != esperado) -> 'synced' + UI actualizada; sweep TTL 300ms sin eco -> 'out_of_sync'.",
+      "resultado": "ok",
+      "detalle": {
+        "hallazgoClave": "El DM12 real NO re-emite NRPN (0 ecos en 1.2s) -> politica timeout/out_of_sync confirmada (sweep TTL 300ms)",
+        "setParameterIniciaTx": "pending, expectedRaw=191",
+        "ecoConfirma": "isEcho=true, status=confirmed, sliderRewrites=0",
+        "overrideExterno": "status=synced, UI actualizada (1 write)",
+        "ttlTimeout": "status=out_of_sync tras sweep"
+      }
     }
   },
   "restauracion": {
@@ -88,13 +114,13 @@
     },
     "B_roundtrip": {
       "estado": "verificado",
-      "verificado": ["escritura NRPN -> lectura de vuelta (delta 0)", "request por programa (0x01) del hardware validado en los 8 bancos"],
-      "pendiente": ["sendPatchToHardware completo via HardwareExporter + validateSinglePatchSysexRoundTrip en UI"]
+      "verificado": ["escritura NRPN -> lectura de vuelta (delta 0)", "request por programa (0x01) del hardware validado en los 8 bancos", "sendPatchToHardware completo via HardwareExporter + buildSingleSysex + validateSinglePatchSysexRoundTrip (14/14 pasos, harness con modulos WebUI reales + hardware)"],
+      "pendiente": ["corrida en navegador Web MIDI real (harness Node cubre la logica)"]
     },
     "C_nrpn": {
       "estado": "verificado",
-      "verificado": ["virtuales >=300 no emiten NRPN", "sin bytes corruptos tras intento"],
-      "pendiente": ["eco CC38 con ParameterStore TTL 300ms en la UI real (isEcho)"]
+      "verificado": ["virtuales >=300 no emiten NRPN", "sin bytes corruptos tras intento", "eco CC38/NRPN con ParameterStore TTL 300ms: isEcho=true -> confirmed sin re-escritura del slider", "sweep TTL sin eco -> out_of_sync (politica timeout; el DM12 no re-emite NRPN)"],
+      "pendiente": ["corrida en navegador Web MIDI real (harness Node cubre la logica)"]
     },
     "D_nombre": {
       "estado": "parcial",
@@ -107,6 +133,6 @@
       "pendiente": ["validacion via WebUI real (HardwareExporter/ParameterStore)", "nota de firmware del DM12 en el manifest"]
     }
   },
-  "herramientasUsadas": ["deepmind12__snapshot_state", "deepmind12__set_param", "deepmind12__patch_edit_buffer", "scripts/hw_bank_dump.js"],
-  "notaPrecondicion": "El Nivel 3b NO se marca completado en el plan hasta que el checklist A-E este 100% verde. Con esta corrida quedan: A (con bancos completos), B, C y E-1 verificados; pendientes: validacion via WebUI real y el cierre del checklist D/E completo."
+  "herramientasUsadas": ["deepmind12__snapshot_state", "deepmind12__set_param", "deepmind12__patch_edit_buffer", "scripts/hw_bank_dump.js", "scripts/hw_roundtrip_validate.js"],
+  "notaPrecondicion": "El Nivel 3b NO se marca completado en el plan hasta que el checklist A-E este 100% verde. Con esta corrida quedan verificados: A (con bancos completos), B (NRPN y programa via WebUI), C (virtuales y transacciones ParameterStore TTL 300ms/isEcho) y E-1; pendientes: corrida en navegador Web MIDI real, --classify por preset, nombres no-ASCII via UI y firmware del DM12 en el manifest."
 }

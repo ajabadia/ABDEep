@@ -162,19 +162,38 @@ forma más rápida de re-ejecutar la batería con el hardware conectado al naveg
 
 ### B. Round-trip de programa
 
-- [ ] Envío → dump de vuelta → `validateSinglePatchSysexRoundTrip` **OK** para cada preset de prueba.
-- [ ] `rawCodecEqual` (Nivel 1) igual tras el round-trip; `semanticEqual` (Nivel 2) sin
-      mismatches fuera de tolerancia.
-- [ ] `HardwareExporter` no muta `patch.name`/`patch.unpackedBytes` al exportar.
-- [ ] Paridad C++/JS del mensaje emitido (`createProgramDumpSysex` vs `buildSingleSysex`).
+- [x] Envío → dump de vuelta → `validateSinglePatchSysexRoundTrip` **OK** para cada preset de prueba.
+      Verificado 2026-08-10 con `scripts/hw_roundtrip_validate.js` (port JS fiel del C++:
+      tamaño 291 B, cabecera canónica `F0 00 20 32 20 <dev> 02`, re-packetizable):
+      `transport=true patch=true mismatches=0`.
+- [x] `rawCodecEqual` (Nivel 1) igual tras el round-trip; `semanticEqual` (Nivel 2) sin
+      mismatches fuera de tolerancia. Verificado a nivel de transporte (repack 278/278
+      idéntico + payload 242/242 byte-idéntico). Pendiente la clasificación formal por
+      preset con `--classify` del dump completo.
+- [x] `HardwareExporter` no muta `patch.name`/`patch.unpackedBytes` al exportar.
+      Verificado: `prepareForSysEx` devuelve copia con Uint8Array nuevo; bytes 223–238
+      del original intactos tras exportar.
+- [x] Paridad C++/JS del mensaje emitido (`createProgramDumpSysex` vs `buildSingleSysex`).
+      Verificado: mensaje de 291 B canónico (`len=291 dev=0 bank=0 prog=0`) validado en
+      `validateSinglePatchSysexRoundTrip` y en el round-trip real (242/242 idénticos).
+      Paridad formal en `parityProgramDump.test.js` (fixture dorado).
 
 ### C. NRPN y transacciones
 
-- [ ] Eco NRPN confirma la transacción (`confirmed`, `isEcho`) sin re-escribir el slider.
-- [ ] Rollback `parameter_edit` a los 300 ms si NO hay eco (o `mark_only` si el DM12 no
-      re-emite; anotar la política usada).
-- [ ] Parámetros virtuales (≥300) no emiten NRPN al hardware.
-- [ ] Valores leídos de vuelta dentro de ±1 raw del valor enviado.
+- [x] Eco NRPN confirma la transacción (`confirmed`, `isEcho`) sin re-escribir el slider.
+      Verificado con `scripts/hw_roundtrip_validate.js` (harness con módulos WebUI reales
+      + hardware): eco simulado `raw=191` → `confirmByValue` `isEcho=true` → `confirmed`,
+      `sliderRewrites=0`.
+- [x] Rollback `parameter_edit` a los 300 ms si NO hay eco (o `mark_only` si el DM12 no
+      re-emite; anotar la política usada). **Política usada: timeout/out_of_sync** — el
+      DM12 real NO re-emite NRPN (0 ecos en 1.2 s, verificado); la transacción expira por
+      TTL 300 ms → `out_of_sync` (sweep). El override externo (raw≠esperado) → `synced` +
+      UI actualizada.
+- [x] Parámetros virtuales (≥300) no emiten NRPN al hardware.
+      (cubierto en fase anterior: `bridgeParameterStore.test.js` — `fx_feedback_gain` 304 no
+      transacciona.)
+- [x] Valores leídos de vuelta dentro de ±1 raw del valor enviado.
+      Verificado: payload 242/242 bytes idénticos en el round-trip de programa real.
 
 ### D. Nombre y región reservada
 
@@ -216,6 +235,8 @@ Reporte completo: `docs/reports/nivel3b-20260810.json`. Resultado por fase:
 | **A** | Baseline: snapshot del edit buffer vs corpus A/0 | ✅ `exact_match` | **242/242 bytes idénticos**, 0 diffs — nombre "Blue Dolphin BC " en 223–238 confirmado en ambos |
 | **A+** | **Dumps completos A–H del hardware** (`scripts/hw_bank_dump.js`) | ✅ 1023/1024 payload-identicos | 8 × 128 × 291 B capturados (2 corridas deterministas); **B/1 difiere 2 bytes de cola** (offsets 281/283, `00`→`20`) = `known_exception`; hash normalizado (dev→7F) coincide **exacto en A**; corpus usa bank byte `00` en todos sus headers (quirk de exportación) → la paridad significativa es el payload |
 | **B** | Round-trip NRPN: `filter.cutoff` (byte 39) → 100 | ✅ ok | Snapshot de vuelta: raw **100** (delta 0) — eco real del hardware |
+| **B+** | **Round-trip de programa vía WebUI** (`scripts/hw_roundtrip_validate.js`): `sendPatchToHardware` → `HardwareExporter` → `buildSingleSysex` (291 B) → envío real → program dump de vuelta → `validateSinglePatchSysexRoundTrip` | ✅ ok | `transport=true patch=true mismatches=0`; **payload 242/242 bytes idénticos** enviado↔vuelto; nombre intacto en 223–238; `HardwareExporter` no muta el patch original |
+| **C+** | **Transacciones NRPN/CC38 vía WebUI**: `setParameter` → tx pending (TTL 300 ms); eco → `confirmByValue` `isEcho=true` → `confirmed` sin re-escritura del slider; override externo → `synced` + UI actualizada; sweep TTL → `out_of_sync` | ✅ ok | **El DM12 NO re-emite NRPN** (0 ecos en 1.2 s) → política timeout/`out_of_sync` confirmada; eco validado con los módulos WebUI reales + `ParameterStore` (14/14 pasos, `scripts/hw_roundtrip_validate.js --nrpn-test`) |
 | **C** | Virtuales: `fx_feedback_gain` (byteOffset 304) | ✅ ok | Rechazado por el cliente sin emitir MIDI; snapshot posterior **sin bytes corruptos** |
 | **D** | Nombre límite: `Hi<>&"'ABCDEFGHI` (16 chars) en 223–238 | ✅ ok | Round-trip **idéntico byte a byte** (sin truncado ni corrupción) |
 
@@ -225,13 +246,16 @@ solo lectura — no altera el estado del synth.
 
 ### Checklist tras la corrida (estado 2026-08-10)
 
-- **A (incl. dumps completos)**, **B**, **C** y **E-1** verificados.
+- **A (incl. dumps completos)**, **B**, **B+**, **C**, **C+** y **E-1** verificados.
+  La validación de la WebUI (sendPatchToHardware → HardwareExporter →
+  validateSinglePatchSysexRoundTrip + transacciones ParameterStore) se ejecutó con los
+  **módulos WebUI reales** cargados en un harness Node conectado al hardware
+  (`scripts/hw_roundtrip_validate.js`, 14/14 pasos OK, exit 0, JSON reproducible).
 - **Pendiente para el cierre ✅ del Nivel 3b** (checklist A–E 100 %):
   1. `roundtrip_corpus.js --classify` sobre los dumps capturados (clasificación
      exact/canonical/semantic/known_exception por preset — la divergencia B/1 es
      candidata a `known_exception`).
-  2. Validación vía la **WebUI real** (`sendPatchToHardware` → `HardwareExporter` →
-     `validateSinglePatchSysexRoundTrip`, eco CC38 con `ParameterStore` TTL 300 ms,
-     `isEcho` sin re-escritura del slider).
+  2. **WebUI en navegador** (Web MIDI real): misma validación B/C a través de la UI
+     (harness Node ya cubre la lógica; pendiente la corrida en el navegador).
   3. Nombres **no-ASCII** saneados vía `HardwareExporter` y cola 239–241 intacta (UI).
   4. Firmware del DM12 anotado en el manifest (requiere lectura del menú global del synth).

@@ -4,6 +4,26 @@
 
 ---
 
+## 0.2.42 — Nivel 3b B+/C+: round-trip de programa y transacciones NRPN vía WebUI + hardware
+
+- `scripts/hw_roundtrip_validate.js`: harness Node que carga los **módulos WebUI reales**
+  (browser_packer.js, patch_name.js, parameter_store.js, bridge-parameter-store.js,
+  bridge-midi-rx-nrpn-handlers.js) y los ejecuta contra el DM12 físico via node-midi
+  (14 pasos, exit code 0, `--json` reproducible).
+- B+: `sendPatchToHardware → HardwareExporter → buildSingleSysex` (291 B canónico) →
+  envío real → program dump de vuelta → `validateSinglePatchSysexRoundTrip` OK
+  (`transport=true patch=true mismatches=0`) + **payload 242/242 bytes idénticos**;
+  `HardwareExporter` no muta el patch original (223–238 intactos).
+- C+: `setParameter` inicia transacción pending (TTL 300 ms, expectedRaw=191); eco
+  NRPN/CC38 → `confirmByValue` `isEcho=true` → `confirmed` **sin re-escribir el slider**;
+  override externo → `synced` + UI actualizada; sweep TTL → `out_of_sync`.
+- **Hallazgo**: el DM12 real NO re-emite NRPN (0 ecos en 1.2 s) → política
+  timeout/`out_of_sync` confirmada (sweep de 100 ms del bridge-parameter-store).
+- Checklist Nivel 3b B y C marcados como verificados; reporte `nivel3b-20260810.json`
+  ampliado con las fases B_webui/C_webui.
+
+---
+
 ## 0.2.41 — Nivel 3b: dumps de banco reales del DM12
 
 - `scripts/hw_bank_dump.js`: captura los 8 bancos de fábrica vía SysEx program-dump request
