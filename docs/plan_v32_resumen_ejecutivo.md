@@ -1,7 +1,7 @@
 # Resumen Ejecutivo — Plan de Refactorización v3.2 (ABDEep)
 
-> Estado: **Fases 0–7 completadas** · Único pendiente: **cierre del Nivel 3b** (checklist
-> A–E — ver §7) · Fecha: 2026-08-10 · Fuentes: `implementation_plan architecture.md` +
+> Estado: **Fases 0–7 completadas + Nivel 3b cerrado** · Plan v3.2 100 % ejecutado ·
+> Fecha: 2026-08-10 · Fuentes: `implementation_plan architecture.md` +
 > `docs/baseline_fase0_v32.md`.
 
 ---
@@ -12,7 +12,7 @@
 |------|--------|
 | Fases 0–7 del plan | ✅ **Todas completadas** (27/27 checkboxes `[x]`) |
 | Fase 7 — Pipeline CI/CD | ✅ **13 jobs implementados y documentados** (anti-drift `docs-verification`) |
-| Nivel 3b (hardware-in-the-loop) | 🟡 Fases A–D + **dumps completos A–H** (1024 presets, 1023/1024 payload-identicos; B/1 known_exception); cierre A–E pendiente |
+| Nivel 3b (hardware-in-the-loop) | ✅ **Cerrado** — checklist A–E 100 % verde: dumps A–H (1024 presets, 1023/1024 payload-identicos; B/1 known_exception), `--classify` del dump completo (1023 exact + 1 known_exception + 0 no_match), `--check-hashes` (0 errores), round-trip WebUI real (15/15 pasos) |
 | Suites WebUI | ✅ **105 files / 4733 tests** (4730 passed, 2 skipped, 0 fallos) · ESLint 0/0 |
 | Suite C++ | ✅ **126 suites / 3.689.168 assertions / 0 fallos** |
 | Invariantes tiempo real | ✅ 0 allocs/bloque · 0 overruns · p95/p99/p999 bajo presupuesto |
@@ -27,7 +27,7 @@
 | **1 — Esquema generador** | `schemas/parameter-registry.json` (schemaVersion 1) + `scripts/registry_generator.js` + `validate_and_generate.ps1` → `WebUI/js/registry.gen.js` + `Source/Core/ParameterRegistry.gen.{h,cpp}` | Jobs `schema-validation` + `registry-generation` (0 diffs de contenido) |
 | **2 — Transaccional** | `parameter_store.js` (PendingTransaction TTL 300 ms, rollback tipado) + `hardware_midi_service.js` (FSM) + `SysExAssembler` + `comparisonMode` | Tests dedicados (ParityStore, FSM, echo NRPN) |
 | **3 — Sanitización** | `dom_sanitize.js` (escaper único), `patch_name.js` (PatchNameValidator/HardwareExporter), `typed_errors.js` | Job `security-scan` (0 violaciones sobre 236 archivos) |
-| **4 — Batería round-trip** | `roundtrip_equality.js` (Nivel 1/2/3a + `fuzzRoundTrip` acotado) + `scripts/roundtrip_corpus.js` + `scripts/fuzz_roundtrip.js` | Jobs `fase4-corpus` (1024/1024) + `property-fuzzing` (8.000 casos) + **Nivel 3b en curso** |
+| **4 — Batería round-trip** | `roundtrip_equality.js` (Nivel 1/2/3a + `fuzzRoundTrip` acotado) + `scripts/roundtrip_corpus.js` (modo `--dumps-dir` para Nivel 3b) + `scripts/fuzz_roundtrip.js` | Jobs `fase4-corpus` (1024/1024) + `property-fuzzing` (8.000 casos) + **Nivel 3b completado** |
 | **5 — Tiempo real WASM** | `WasmBridge.cpp` con `std::array` + `ParameterIndex` (0 lookup por string) + `ModelCapabilities` (dm12_hardware vs abyssmind_pro) | Job `wasm-build` (Memory ≥32 MiB, ≥9 exports, preasignación) |
 | **6 — Retirada legacy** | `Logger.deprecation()` (fuera de audio) + `getBridge()` canónico (93 fuentes migradas, 0 refs a `window.dualMidiBridge`) | `bridgeAliasDeprecation.test.js` + `logger.test.js` |
 | **7 — Pipeline CI/CD** | 13 workflows (`dsp-ci`, `webui-ci`, `roundtrip-corpus`, `property-fuzzing`, `registry-generation`, `schema-validation`, `security-scan`, `wasm-build`, `pluginval`, `hardware-dump-validate`, `docs-verification`, + auxiliares) | Job `docs-verification` (plan ↔ baseline ↔ workflows) |
@@ -65,7 +65,7 @@
 | Corpus A–H | 1.024 presets · hashes SHA-256 fijados · 804/210/10 (exact/canonical/semantic) |
 | Fuzzing | 8.000 casos (16 seeds × 500) · **0 violaciones** · límites 500 B / 100 ms |
 | Security scan | 0 violaciones · 236 archivos |
-| Nivel 3b (hardware real) | Baseline `exact_match` (242/242 bytes) · round-trip NRPN delta 0 · virtuales inertes · nombre límite OK |
+| Nivel 3b (hardware real) | ✅ **Checklist A–E 100 % verde**: dumps A–H (1023/1024 payload-identicos) · `--classify` dump completo 1023 exact + B/1 known_exception + 0 no_match · `--check-hashes` 0 errores · round-trip WebUI 15/15 pasos |
 
 ---
 
@@ -94,14 +94,23 @@ node scripts/fuzz_roundtrip.js            # fuzzing multi-seed (8.000 casos)
 
 ---
 
-## 7. Pendiente único — cierre del Nivel 3b
+## 7. Nivel 3b — cerrado (checklist A–E 100 % verde)
 
-Fases A–D + **dumps completos de los 8 bancos** ejecutadas (2026-08-10; reporte
-`docs/reports/nivel3b-20260810.json`; dumps en `resources/hardware_dumps/2026-08-10/`).
-Para el cierre ✅ (checklist A–E de `docs/fase4_nivel3b_hardware_in_the_loop.md`):
+Corrida con DM12 físico el 2026-08-10 (reporte `docs/reports/nivel3b-20260810.json`;
+dumps en `resources/hardware_dumps/2026-08-10/`). Checklist `docs/fase4_nivel3b_hardware_in_the_loop.md`:
 
-1. `roundtrip_corpus.js --classify` por preset sobre los dumps capturados (la divergencia
-   B/1 es candidata a `known_exception`).
-2. Validación vía la **WebUI real** (HardwareExporter → validateSinglePatchSysexRoundTrip,
-   eco CC38 con ParameterStore TTL 300 ms).
-3. Firmware del DM12 anotado en el manifest.
+1. ✅ Baseline + dumps A–H (1024 presets, 1023/1024 payload-identicos; **B/1 known_exception**).
+2. ✅ `roundtrip_corpus.js --dumps-dir --classify` por preset → **1023 exact_match + 1
+   known_exception + 0 no_match** (fast-path O(n) por posición declarada).
+3. ✅ `validate_sysex_mapping.js --check-hashes` → **0 errores / 0 warnings**.
+4. ✅ Round-trip de programa vía módulos WebUI reales en hardware real
+   (`scripts/hw_roundtrip_validate.js`, **15/15 pasos**): sendPatchToHardware →
+   HardwareExporter → buildSingleSysex (291 B) → validateSinglePatchSysexRoundTrip
+   (`transport=true patch=true mismatches=0`); eco CC38/NRPN con ParameterStore
+   (TTL 300 ms, `isEcho`, `out_of_sync` por timeout — DM12 no re-emite NRPN).
+5. ✅ Paridad C++/JS (`parityProgramDump.test.js`), nombres no-ASCII/cola 239–241
+   (`patchNameValidator.test.js`), hashes por banco (`nivel3bReportSchema.test.js`).
+
+> Única recomendación **no bloqueante** para releases futuros que toquen el protocolo:
+> corrida de refuerzo en navegador Web MIDI real (el harness Node ya cubre la lógica con
+> los mismos módulos WebUI) y anotar el firmware del DM12 en el manifest.

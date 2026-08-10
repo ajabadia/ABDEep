@@ -2,8 +2,8 @@
 
 > Plan de Refactorización v3.2 congelado · Sección §5 «Matriz de Pruebas de 3 Niveles,
 > Property-Based Testing y Fuzzing con Recurso Acotado».
-> Estado: **completado (Niveles 1/2/3a + fuzzing)** · Nivel 3b: **Fases A–D ejecutadas con
-> DM12 real el 2026-08-10** (`exact_match` en baseline; cierre pendiente del checklist A–E)
+> Estado: **completado (Niveles 1/2/3a/3b + fuzzing)** · Nivel 3b: **cerrado con DM12 real
+> el 2026-08-10** (checklist A–E 100 % verde; dumps A–H + --classify + --check-hashes)
 > · Fecha: 2026-08-09
 
 ---
@@ -254,11 +254,15 @@ node scripts/roundtrip_corpus.js [--banks A,B] [--json] [--classify] [--out f.js
 - [x] Nivel 3a — `hardwareCanonicalEqual`: corpus A–H con `exact_match | canonical_match |
   semantic_match | known_exception`.
 - [x] Property-Based Testing / Fuzzing acotado: invariantes + límites `500 B` / `100 ms`.
-- [ ] **Nivel 3b — Hardware-in-the-loop** (en curso): primera corrida con DM12 real el
-  2026-08-10 — Fases A–D ✅ (`exact_match` contra A/0, round-trip NRPN delta 0, virtuales
-  sin emitir MIDI, nombre límite idéntico; reporte `docs/reports/nivel3b-20260810.json`).
-  Falta el cierre ✅: dumps de los 8 bancos + SHA-256 vs `schemas/corpus-hashes.json` y
-  validación vía WebUI real. Procedimiento (4 fases) + checklist pre-release en
+- [x] **Nivel 3b — Hardware-in-the-loop** (completado 2026-08-10): corrida con DM12 real —
+  Fases A–D ✅ (`exact_match` contra A/0 242/242, round-trip NRPN delta 0, virtuales sin
+  emitir MIDI, nombre límite idéntico) + **dumps completos de los 8 bancos** (1024 presets,
+  1023/1024 payload-identicos; B/1 known_exception) con SHA-256 en `manifest.json`;
+  `--classify` del dump completo (1023 exact + 1 known_exception + 0 no_match),
+  `--check-hashes` (0 errores) y sendPatchToHardware → validateSinglePatchSysexRoundTrip +
+  ParameterStore (TTL 300ms/isEcho) con módulos WebUI reales en hardware real (15/15 pasos).
+  Reporte `docs/reports/nivel3b-20260810.json`; dumps en `resources/hardware_dumps/2026-08-10/`.
+  Procedimiento (4 fases) + checklist pre-release en
   `docs/fase4_nivel3b_hardware_in_the_loop.md`.
 
 Fases posteriores ya completadas: WASM/capabilities (Fase 5) y retirada legacy +

@@ -215,9 +215,15 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > **1023/1024 presets byte-idénticos en payload** al corpus de fábrica; B/1 difiere
 > 2 bytes de cola = `known_exception` estable. Referencia de regresión:
 > `resources/hardware_dumps/2026-08-10/` (raw + normalized + manifest). Reporte:
-> `docs/reports/nivel3b-20260810.json`. **Cierre ✅ pendiente**: `--classify` por preset
-> y validación vía WebUI real (checklist A–E en `docs/fase4_nivel3b_hardware_in_the_loop.md`).
-> Ver `docs/fase4_roundtrip_equality.md`.
+> `docs/reports/nivel3b-20260810.json`. **Cierre ✅ COMPLETADO (2026-08-10)**: checklist
+> A–E 100 % verde — `--classify` del dump completo (`roundtrip_corpus.js --dumps-dir
+> --classify`: 1023 exact_match + B/1 known_exception + 0 no_match), `validate_sysex_mapping
+> --check-hashes` (0 errores), nombres no-ASCII/cola 239–241 vía HardwareExporter (tests),
+> sendPatchToHardware → validateSinglePatchSysexRoundTrip + transacciones ParameterStore
+> (TTL 300ms/isEcho) con módulos WebUI reales en hardware real (`scripts/hw_roundtrip_validate.js`,
+> 15/15 pasos). Única recomendación no bloqueante: corrida de refuerzo en navegador Web MIDI
+> real (el harness Node cubre la lógica). Procedimiento + checklist en
+> `docs/fase4_nivel3b_hardware_in_the_loop.md`. Ver `docs/fase4_roundtrip_equality.md`.
 > Vitest (2026-08-10): 105 files / 4733 tests / 0 fallos.
 
 ### Fase 5: Rendimiento Tiempo Real, Capabilities y Bridge WASM

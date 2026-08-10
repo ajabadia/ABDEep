@@ -4,6 +4,20 @@
 
 ---
 
+## 0.2.47 — Cierre del Nivel 3b (hardware-in-the-loop) en el plan + resumen ejecutivo final
+
+- **`implementation_plan architecture.md`**: Nivel 3b marcado como COMPLETADO en
+  la nota de la Fase 4 (checklist A–E 100% verde; la corrida en navegador Web MIDI
+  queda como refuerzo opcional no bloqueante, cubierta por el harness Node con
+  módulos WebUI reales).
+- **`docs/fase4_roundtrip_equality.md`** §8: Nivel 3b `[x]` completado — checklist
+  A (baseline/8 bancos/291 B), B (paridad C++↔JS), C (eco NRPN 15/15), D (nombres
+  no-ASCII/cola 239-241), E (reporte/CHANGELOG) verificados.
+- **`docs/plan_v32_resumen_ejecutivo.md`**: estado global del plan v3.2 a 9.5/10+
+  con las 8 fases cerradas, métricas actualizadas (105 files / 4733 tests, 13 jobs
+  CI, 1023 exact + 1 known_exception B/1) y sección 7 con la matriz de jobs
+  completa.
+
 ## 0.2.46 — Test de esquema ampliado: manifest.json de hardware_dumps (SHA-256 por banco)
 
 - **`WebUI/tests/nivel3bReportSchema.test.js`** (34 tests): nuevo bloque
