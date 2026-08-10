@@ -41,9 +41,12 @@ void PatchDiffViewComponent::loadPatchFromFile (bool isA)
                     const uint8_t* rawData = static_cast<const uint8_t*> (mb.getData());
                     size_t size = mb.getSize();
 
-                    if (size > 8 && rawData[0] == 0xF0)
+                    if (size > 7 && rawData[0] == 0xF0)
                     {
-                        auto unpacked = MidiTranslationEngine::unpackDeepMindSysEx (rawData + 8, size - 8);
+                        // rawData incluye F0 (MemoryBlock). Cabecera física: 10 bytes
+                        // (cmd 0x02, program dump) u 8 (cmd 0x04, edit buffer).
+                        const int headerLen = (size > 7 && rawData[6] == 0x02) ? 10 : 8;
+                        auto unpacked = MidiTranslationEngine::unpackDeepMindSysEx (rawData + headerLen, size - headerLen);
                         if (unpacked.getSize() >= 242)
                         {
                             char nameBuf[17];

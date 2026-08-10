@@ -68,8 +68,9 @@ function initDumpView() {
       requestHwBtn.classList.add('btn-loading');
       try {
         const response = await bridge.requestMidiDump('edit', 4000, 2);
-        if (response && response.length >= 291) {
-          const packedPayload = response.slice(8, 286);
+        if (response && response.length >= 287) {
+          const headerLen = (response[6] === 0x02) ? 10 : 8;
+          const packedPayload = response.slice(headerLen, headerLen + 278);
           if (typeof window.unpack7to8 === 'function') {
             const unpackedBytes = window.unpack7to8(packedPayload);
             const name = (typeof window.extractNameFromRawSysex === 'function'

@@ -4,7 +4,8 @@
  */
 
 /** @type {typeof console} */
-let Logger = globalThis.Logger || console;
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console; // var: los demás scripts usan var (let colisiona en global lexical env)
 
 /**
  * Request a Global Dump from the hardware and update the UI.

@@ -52,11 +52,21 @@ if (-not $SkipBuild) {
     if (Test-Path $buildScript) {
         Push-Location $rootDir
         try {
-            & cmd.exe /c ".\build.bat 2" 2>&1 | Tee-Object -FilePath $logFile -Append
-            if ($LASTEXITCODE -eq 0) {
+            # Mismo aislamiento que en el Paso 3: cmd.exe escribiendo a stderr con
+            # EAP=Stop dispara NativeCommandError en PowerShell 5.1.
+            $savedEAP = $ErrorActionPreference
+            $ErrorActionPreference = "Continue"
+            try {
+                $buildOut = & cmd.exe /c ".\build.bat 2" 2>&1 | ForEach-Object { "$_" }
+                $buildExit = $LASTEXITCODE
+            } finally {
+                $ErrorActionPreference = $savedEAP
+            }
+            $buildOut | Tee-Object -FilePath $logFile -Append | Out-Null
+            if ($buildExit -eq 0) {
                 Write-Pass "Compilación Release completada (exit code: 0)"
             } else {
-                Write-Fail "Compilación Release falló (exit code: $LASTEXITCODE). Revisa $logFile"
+                Write-Fail "Compilación Release falló (exit code: $buildExit). Revisa $logFile"
             }
         } finally {
             Pop-Location
@@ -85,14 +95,27 @@ if (Test-Path $testBin) {
 Write-Step "Paso 3: Tests WebUI (Vitest)"
 Push-Location $rootDir
 try {
-    # PowerShell 2>&1 con stderr mezclado corrompe encoding con Tee-Object.
-    # Convertimos cada objeto ErrorRecord a string con ForEach-Object antes de tee.
-    $npmOut = & npx vitest run --reporter basic 2>&1 | ForEach-Object { "$_" }
-    $npmExit = $LASTEXITCODE
+    # Vitest escribe el progress en stderr. Con $ErrorActionPreference = "Stop",
+    # PowerShell 5.1 convierte ese stderr nativo en un NativeCommandError terminante
+    # y aborta el script. Aislamos la invocación con Continue y convertimos cada
+    # ErrorRecord a string con ForEach-Object antes de volcar al log.
+    $savedEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        # Reporter por defecto (no usar --reporter basic: no existe en Vitest 4).
+        # En modo no-TTY el default imprime las líneas "Test Files" / "Tests".
+        $npmOut = & npx vitest run 2>&1 | ForEach-Object { "$_" }
+        $npmExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $savedEAP
+    }
     $npmOut | Add-Content -Path $logFile
     if ($npmExit -eq 0) {
         # Extraer línea de resumen ("Tests  4731 passed | 2 skipped (4733)")
-        $summaryLine = ($npmOut | Select-String -Pattern "^\s*Tests" | Select-Object -Last 1)
+        # Vitest emite códigos ANSI de color incluso en modo no-TTY; hay que
+        # limpiarlos o rompen el patrón (ESC[32m entre medias).
+        $npmClean = $npmOut | ForEach-Object { $_ -replace "\x1B\[[0-9;]*m", "" }
+        $summaryLine = ($npmClean | Select-String -Pattern "Tests\s+\d+\s+passed" | Select-Object -Last 1)
         if ($summaryLine) {
             Write-Pass "WebUI: $($summaryLine.ToString().Trim())"
         } else {

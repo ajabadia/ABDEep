@@ -4,10 +4,46 @@
 
 ---
 
+## 0.2.49 — 🐛 Fix crítico de runtime: teclado no renderizaba (colisión global `let Logger` + recursión `escapeHtml`)
+
+> **Bug de producción reportado:** en la build de las 11:00 el teclado MIDI no aparecía.
+> Causa raíz: colisión del **global lexical scope** de los scripts clásicos + recursión
+> infinita por hoisting. Verificado en navegador real (48 teclas renderizadas, 0 errores).
+
+- **`let Logger` → `var Logger` (6 archivos):** `calibration_store.js`,
+  `effects_presets_bank_extract.js`, `effects_presets_storage.js`,
+  `settings_global_dump.js`, `sysex_monitor_events.js`, `sysex_monitor_render.js` — en
+  scripts clásicos (no módulos) un `let` top-level envenena el *global lexical
+  environment* y TODOS los scripts posteriores que declaran `Logger` (incluso con `var`)
+  fallan con `SyntaxError: Identifier 'Logger' has already been declared` → su script
+  completo se aborta → `initPanicButton`/`createEmptyBank` no existen → el teclado nunca
+  se renderizaba. Unificado al patrón canónico `var Logger` de los 28+ archivos restantes
+  (+ `// eslint-disable-next-line no-var`).
+- **Recursión infinita `escapeHtml` (2 archivos):** `calibration_lab_format.js` y
+  `effects_presets_data.js` declaraban `function escapeHtml` a nivel top-level → en
+  scripts clásicos el hoisting sobrescribía `globalThis.escapeHtml` (definido por
+  `dom_sanitize.js`) con la propia función local ANTES de evaluar
+  `_canonicalEscapeHtml = globalThis.escapeHtml` → auto-llamada →
+  `RangeError: Maximum call stack size exceeded`. Renombradas a `escapeHtmlCal` /
+  `escapeHtmlFx` (los consumidores internos de ambos módulos actualizados).
+- **Tests de regresión anti-drift** (`domSanitize.test.js`, 26 → 28): scan estático que
+  detecta reintroducciones de colisiones `let`/`const` top-level entre scripts clásicos
+  (los tests no lo detectaban antes porque cargan los módulos en scope de módulo).
+- **`baselineGuard.test.js` rediseñado (elimina el flake de contención de raíz):** el
+  guard ya NO ejecuta la suite completa anidada (CPU-bound → flakes de presupuesto
+  temporal); usa `vitest list` (enumera sin ejecutar, ~21s) para los counts + un run
+  ligero JSON solo sobre los 4 archivos con `skipIf` condicional para capturar los
+  skipped del entorno (2 en `checkWasmBuild`, artefactos WASM locales incompletos).
+- **Baseline actualizada:** suite 105/105 · **4733 passed + 2 skipped (4735)** ·
+  ESLint 0 errores 0 warnings · docs-verification exit 0. Verificado en navegador:
+  teclado de 48 teclas renderizado, sección OSC visible, 0 errores de consola.
+
+---
+
 ## 0.2.48 — ✅ Cierre definitivo del plan v3.2 (Fases 0–7 completadas)
 
 > **Hito:** Refactorización de Arquitectura e Integración v3.2 cerrada al 100%.
-> 28/28 checkboxes del plan marcados · 13 jobs CI · suite 105 files / 4733 tests.
+> 28/28 checkboxes del plan marcados · 13 jobs CI · suite 105 files / 4735 tests.
 
 - **Fase 0 — Baseline y perfiledo:** `docs/baseline_fase0_v32.md` con baseline
   exacta (test suites, corpus A–H, percentiles p95/p99/p999, audit de asignaciones),
@@ -54,7 +90,7 @@
   A (baseline/8 bancos/291 B), B (paridad C++↔JS), C (eco NRPN 15/15), D (nombres
   no-ASCII/cola 239-241), E (reporte/CHANGELOG) verificados.
 - **`docs/plan_v32_resumen_ejecutivo.md`**: estado global del plan v3.2 a 9.5/10+
-  con las 8 fases cerradas, métricas actualizadas (105 files / 4733 tests, 13 jobs
+  con las 8 fases cerradas, métricas actualizadas (105 files / 4735 tests, 13 jobs
   CI, 1023 exact + 1 known_exception B/1) y sección 7 con la matriz de jobs
   completa.
 
@@ -68,7 +104,7 @@
   banks A–H (rawSha256/normalizedSha256 hex-64, size 37248, payloadDiffPrograms) y
   los **SHA-256 reales de los 8 .syx** == manifest (dumps no alterados) + cruce de
   fecha con el reporte más reciente (manifest.fecha == report.corrida).
-- Baseline WebUI actualizada a 105 files / 4733 tests.
+- Baseline WebUI actualizada a 105 files / 4735 tests.
 
 ---
 

@@ -1,4 +1,8 @@
-let Logger = globalThis.Logger || console;
+// var (no let): los scripts clásicos comparten el global lexical env; un `let
+// Logger` top-level colisiona con las declaraciones var Logger de otros scripts
+// (SyntaxError: Identifier 'Logger' has already been declared).
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console;
 
 // WebUI/js/calibration_store.js — Calibration Store factory (reduced)
 // Actions extracted to calibration_store_actions.js

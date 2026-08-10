@@ -4,13 +4,15 @@
 // Consolidación (prep Fase 6): el escaper canónico vive en dom_sanitize.js (cargado primero
 // en index.html). Este módulo DELEGA en él; el fallback solo cubre la carga standalone
 // (tests/Node) sin dom_sanitize.js. Comportamiento unificado: null/undefined → ''.
-// NOTA: prefijo único (_Cal) — los <script> clásicos comparten el global lexical scope,
-// así que un `const` top-level con nombre genérico colisionaría con otros módulos.
+// NOTA IMPORTANTE: la función local se llama `escapeHtmlCal` (NO `escapeHtml`) porque
+// en scripts clásicos una `function escapeHtml` top-level crea un binding global HOISTEADO
+// que sobrescribe el canónico de dom_sanitize.js ANTES de capturar `_canonicalEscapeHtmlCal`,
+// provocando recursión infinita (stack overflow).
 const _canonicalEscapeHtmlCal = (typeof globalThis !== 'undefined' && typeof globalThis.escapeHtml === 'function')
     ? globalThis.escapeHtml
     : null;
 
-function escapeHtml(value) {
+function escapeHtmlCal(value) {
   if (_canonicalEscapeHtmlCal) {return _canonicalEscapeHtmlCal(value);}
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -35,6 +37,6 @@ function fmt(value, digits) {
 // en el navegador dom_sanitize carga primero y esta línea no lo clobberea; en
 // entornos Node/standalone sin dom_sanitize provee el fallback con mismo comportamiento.
 if (typeof globalThis !== 'undefined' && typeof globalThis.escapeHtml !== 'function') {
-    globalThis.escapeHtml = escapeHtml;
+    globalThis.escapeHtml = escapeHtmlCal;
 }
 globalThis.fmt = fmt;

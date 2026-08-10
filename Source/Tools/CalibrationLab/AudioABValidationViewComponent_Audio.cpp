@@ -116,9 +116,13 @@ void AudioABValidationViewComponent::startAutomatedTest()
     const uint8_t* rawData = rxSysEx.getSysExData();
     int dataSize = rxSysEx.getSysExDataSize();
 
-    if (dataSize > 8)
+    if (dataSize > 7)
     {
-        auto hardwareUnpacked = MidiTranslationEngine::unpackDeepMindSysEx(rawData + 8, dataSize - 8);
+        // getSysExData() excluye F0/F7. Respuesta edit buffer (cmd 0x04): cabecera
+        // física de 8 bytes -> payload en offset +7; program dump (cmd 0x02):
+        // cabecera física de 10 bytes -> payload en offset +9.
+        const int headerLen = (dataSize > 6 && rawData[5] == 0x02) ? 9 : 7;
+        auto hardwareUnpacked = MidiTranslationEngine::unpackDeepMindSysEx(rawData + headerLen, dataSize - headerLen);
 
         std::array<uint8_t, 242> dspParams;
         std::array<uint8_t, 242> hardwareParams;

@@ -119,13 +119,15 @@ const DEFAULT_FX_PRESETS = [
 // Consolidación (prep Fase 6): el escaper canónico vive en dom_sanitize.js (cargado primero
 // en index.html). Este módulo DELEGA en él; el fallback solo cubre la carga standalone
 // (tests/Node) sin dom_sanitize.js. Comportamiento unificado: null/undefined → ''.
-// NOTA: prefijo único (_Fx) — los <script> clásicos comparten el global lexical scope,
-// así que un `const` top-level con nombre genérico colisionaría con otros módulos.
+// NOTA IMPORTANTE: la función local se llama `escapeHtmlFx` (NO `escapeHtml`) porque
+// en scripts clásicos una `function escapeHtml` top-level crea un binding global HOISTEADO
+// que sobrescribe el canónico de dom_sanitize.js ANTES de capturar `_canonicalEscapeHtmlFx`,
+// provocando recursión infinita (stack overflow).
 const _canonicalEscapeHtmlFx = (typeof globalThis !== 'undefined' && typeof globalThis.escapeHtml === 'function')
     ? globalThis.escapeHtml
     : null;
 
-function escapeHtml(str) {
+function escapeHtmlFx(str) {
     if (_canonicalEscapeHtmlFx) {return _canonicalEscapeHtmlFx(str);}
     return String(str == null ? '' : str)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -137,10 +139,10 @@ globalThis.DEFAULT_FX_PRESETS = DEFAULT_FX_PRESETS;
 // Exponer escapeHtml SOLO si el canónico (dom_sanitize.js) aún no lo definió:
 // en el navegador dom_sanitize carga primero y esta línea no lo clobberea.
 if (typeof globalThis !== 'undefined' && typeof globalThis.escapeHtml !== 'function') {
-    globalThis.escapeHtml = escapeHtml;
+    globalThis.escapeHtml = escapeHtmlFx;
 }
 
 // Node.js exports for tests
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { DEFAULT_FX_PRESETS, escapeHtml };
+    module.exports = { DEFAULT_FX_PRESETS, escapeHtml: escapeHtmlFx };
 }

@@ -4,7 +4,8 @@
  * @classification Module/Effects/Presets/Storage
  */
 
-let Logger = globalThis.Logger || console;
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console; // var: los demás scripts usan var (let colisiona en global lexical env)
 
 function _loadAllFxPresets() {
   let userPresets = [];

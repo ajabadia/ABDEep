@@ -4,7 +4,8 @@
  * @classification Module/Effects/Presets/BankExtract
  */
 
-let Logger = globalThis.Logger || console;
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console; // var: los demás scripts usan var (let colisiona en global lexical env)
 
 window.extractAndSaveNewPresetsFromBank = function (bankName, patches) {
   if (!Array.isArray(patches)) { return; }

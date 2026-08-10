@@ -73,32 +73,79 @@ export function parseChildSummary(stdoutRaw) {
   return { files: fileCount, tests: passed + skipped };
 }
 
-/** Corre la suite real en subproceso con todos los test files EXCEPTO este guard. */
+/**
+ * Corre la suite real en subproceso con todos los test files EXCEPTO este guard.
+ *
+ * Estrategia anti-contención (flake de CPU documentado):
+ *   1. `vitest list` enumera files + tests SIN ejecutarlos (~20s, sin presupuestos
+ *      temporales que puedan fallar por contención con la suite principal).
+ *   2. `vitest run --reporter=json` SOLO sobre los archivos con `skipIf` condicional
+ *      (4 en la suite: checkWasmBuild/hwDumpValidate/roundtripCorpusScript/roundtripEquality)
+ *      para contar los tests skipped reales del entorno — `vitest list` no los enumera
+ *      y el total documentado de §2 sí los incluye.
+ *
+ * Antes se ejecutaba la suite COMPLETA anidada (vitest run), duplicando la carga de
+ * los 104 archivos mientras la suite principal corría con N workers: eso saturaba la
+ * CPU y los tests con presupuesto temporal (fuzzing 100ms/caso) fallaban por timeout.
+ */
 function runChildSuite() {
   const files = fs.readdirSync(TESTS_DIR)
     .filter((f) => f.endsWith('.test.js') && f !== SELF_FILE)
     .map((f) => 'WebUI/tests/' + f); // rutas relativas con '/' (filtros de vitest)
-  let stdout = '';
-  let status = 0;
+
+  // ── Paso 1: enumerar (sin ejecutar) — files + tests ejecutables ──
+  let listOut = '';
   try {
-    stdout = execFileSync(process.execPath, [VITEST_BIN, 'run', ...files], {
+    listOut = execFileSync(process.execPath, [VITEST_BIN, 'list', ...files], {
       cwd: ROOT,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 180000,
     });
   } catch (err) {
-    // El subproceso termina con exit != 0 si algún test del child falla. NO lo
-    // enmascaramos: el guard debe fallar (la suite real está rota) con el stderr.
-    status = err.status;
-    stdout = (err.stdout || '') + (err.stderr || '');
     throw new Error(
-      'el subproceso de la suite real terminó con exit code ' + status +
-      ' (la suite está rota — no es un problema del guard). Primeras líneas del stderr:\n' +
+      'vitest list falló (exit ' + err.status + '): ' +
       String(err.stderr || '').slice(0, 800),
     );
   }
-  return parseChildSummary(stdout);
+  const lines = String(listOut).split(/\r?\n/).filter((l) => l.trim().length > 0);
+  const fileSet = new Set(lines.map((l) => l.split(' > ')[0].trim()));
+  const listedTests = lines.length;
+
+  // ── Paso 2: contar skipped condicionales (solo archivos con skipIf — ligero) ──
+  const conditionalFiles = files.filter((f) => {
+    const src = fs.readFileSync(path.join(ROOT, 'WebUI', 'tests', path.basename(f)), 'utf8');
+    return /\bskipIf\b/.test(src);
+  });
+  let skippedTests = 0;
+  if (conditionalFiles.length > 0) {
+    let jsonOut = '';
+    try {
+      jsonOut = execFileSync(
+        process.execPath,
+        // --maxWorkers 1: huella mínima mientras la suite principal corre en paralelo.
+        [VITEST_BIN, 'run', '--reporter=json', '--maxWorkers', '1', ...conditionalFiles],
+        {
+          cwd: ROOT,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+          timeout: 180000,
+        },
+      );
+      const report = JSON.parse(jsonOut);
+      // numPendingTests == tests skipped (describe.skipIf / it.skip evaluados en runtime).
+      skippedTests = report.numPendingTests || 0;
+    } catch (err) {
+      // Un fallo real en los archivos condicionales (p.ej. corpus roto) es un fallo
+      // de la suite — no se enmascara.
+      throw new Error(
+        'detección de skipped condicionales falló (exit ' + err.status + '): ' +
+        String(err.stderr || '').slice(0, 800),
+      );
+    }
+  }
+
+  return { files: fileSet.size, tests: listedTests + skippedTests };
 }
 
 describe('Baseline guard (baseline_fase0_v32.md §2 vs suite real)', () => {
@@ -122,7 +169,7 @@ describe('Baseline guard (baseline_fase0_v32.md §2 vs suite real)', () => {
       expect({ files: doc.files, tests: doc.tests }, message)
         .toEqual({ files: projectedFiles, tests: projectedTests });
     },
-    120000); // la suite hija (sin guard) tarda ~15s; el subproceso interno tiene su propio timeout de 180s
+    240000); // vitest list (~20s) + barrido JSON de 4 archivos skipIf; holgado ante máquina cargada
 
   it('parseChildSummary parses ANSI, passed and skipped counts', () => {
     const raw = '\u001b[32m✓\u001b[0m file (1 test)\n\n Test Files  99 passed (99)\n' +

@@ -209,6 +209,39 @@ describe('Audit estático Fase 3 — sinks de parches/visores sin escape', () =>
     expect(evalBoth).not.toThrow(); // colisión → SyntaxError
   });
 
+  it('NINGÚN script declara `let/const Logger` top-level (bug teclado: colisión global lexical env)', () => {
+    // REGRESIÓN 2026-08-10: 6 archivos declaraban `let Logger = ...` a nivel top-level.
+    // En scripts clásicos el global lexical env es COMPARTIDO: el primer `let Logger`
+    // envenena el scope y TODOS los scripts posteriores que declaran Logger (incluso
+    // con `var`) fallan con `SyntaxError: Identifier 'Logger' has already been declared`,
+    // abortando su ejecución (initPanicButton/createEmptyBank/keyboard nunca cargan).
+    // Los tests no lo detectan (scope de módulo); solo el navegador/WebView2 lo sufre.
+    const files = fs.readdirSync(JS_DIR).filter((f) => f.endsWith('.js'));
+    const offenders = [];
+    for (const f of files) {
+      const src = fs.readFileSync(path.join(JS_DIR, f), 'utf8');
+      const m = src.match(/^(let|const)\s+Logger\b/m);
+      if (m) { offenders.push(f + ' (linea: ' + m[0] + ')'); }
+    }
+    expect(offenders, 'top-level let/const Logger encontrados — cambiar a `var` (patrón del proyecto):\n' + offenders.join('\n')).toEqual([]);
+  });
+
+  it('solo dom_sanitize.js define `function escapeHtml` top-level (bug recursión por hoisting)', () => {
+    // REGRESIÓN 2026-08-10: effects_presets_data.js y calibration_lab_format.js
+    // declaraban `function escapeHtml` top-level. En scripts clásicos una declaración
+    // de función crea un binding global HOISTEADO que sobrescribe el canónico de
+    // dom_sanitize.js ANTES de capturar `_canonicalEscapeHtml*` → la función se
+    // llamaba a sí misma → RangeError: Maximum call stack size exceeded (rompía
+    // todos los render con escapeHtml). Renombradas a escapeHtmlFx/escapeHtmlCal.
+    const files = fs.readdirSync(JS_DIR).filter((f) => f.endsWith('.js'));
+    const offenders = [];
+    for (const f of files) {
+      const src = fs.readFileSync(path.join(JS_DIR, f), 'utf8');
+      if (/^function\s+escapeHtml\b/m.test(src)) { offenders.push(f); }
+    }
+    expect(offenders).toEqual(['dom_sanitize.js']);
+  });
+
   it('dom_sanitize.js está registrado en index.html antes que los módulos de render', () => {
     const html = fs.readFileSync(path.join(ROOT, 'WebUI', 'index.html'), 'utf8');
     const idxSanitize = html.indexOf('js/dom_sanitize.js');

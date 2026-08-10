@@ -5,7 +5,8 @@
  */
 
 /** @type {typeof console} */
-let Logger = globalThis.Logger || console;
+// eslint-disable-next-line no-var
+var Logger = globalThis.Logger || console; // var: los demás scripts usan var (let colisiona en global lexical env)
 
 // Registrar eventos de Zoom, Copy, Export, Reset y selección del monitor en el DOM
 document.addEventListener('DOMContentLoaded', () => {
