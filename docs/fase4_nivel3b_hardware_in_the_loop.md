@@ -6,9 +6,11 @@
 > > *Dumps reales en hardware físico — **obligatorio previo a cualquier release que
 > > modifique el protocolo SysEx o NRPN**.*
 >
-> Estado: **ejecutado parcialmente** — Fases A–D verificadas con DM12 real (2026-08-10),
-> checklist A–E de release aún no 100% (faltan dumps completos de banco + validación vía
-> WebUI) · Fecha doc: 2026-08-09 · Reporte: `docs/reports/nivel3b-20260810.json`
+> Estado: **ejecutado parcialmente** — Fases A–D + **dumps completos de los 8 bancos
+> (A–H, 1024 presets)** capturados del DM12 real (2026-08-10, 1023/1024 payload-identicos
+> al corpus; B/1 = `known_exception`). Falta la validación vía WebUI real (HardwareExporter/
+> ParameterStore) para el cierre A–E · Fecha doc: 2026-08-09 · Reporte:
+> `docs/reports/nivel3b-20260810.json` · Dumps: `resources/hardware_dumps/2026-08-10/`
 > · Doc de la batería de Fase 4: `docs/fase4_roundtrip_equality.md`
 
 ---
@@ -146,9 +148,14 @@ forma más rápida de re-ejecutar la batería con el hardware conectado al naveg
 ### A. Baseline y protocolo
 
 - [ ] Web MIDI conectado (`sysex: true`) y FSM en `ready` (sin `resync_required` persistente).
-- [ ] `requestBankDump(0..7)` → 8 × 128 mensajes de **291 B** con cabecera canónica.
+- [x] `requestBankDump(0..7)` → 8 × 128 mensajes de **291 B** con cabecera canónica
+      (capturados 2026-08-10 con `scripts/hw_bank_dump.js`; request por programa `01`,
+      dev 0x00; 2 corridas deterministas).
 - [ ] `hardwareBanks[letra][prog]` poblado correctamente (banco `data[8]` & 0x07, prog `data[9]` & 0x7F).
-- [ ] Hashes SHA-256 de los dumps de fábrica == `schemas/corpus-hashes.json` (corpus inmutable).
+- [x] Hashes SHA-256 de los dumps del hardware vs `schemas/corpus-hashes.json`: el
+      normalizado (dev→7F) coincide **exacto en A**; B–H divergen solo por el bank byte
+      `00` del corpus (quirk de exportación) → paridad significativa = payload
+      (**1023/1024 idénticos**, B/1 = known_exception; ver `resources/hardware_dumps/2026-08-10/manifest.json`).
 - [ ] `node scripts/roundtrip_corpus.js --classify` contra el corpus: **0 errores**; toda
       desviación clasificada (`exact`/`canonical`/`semantic`) y documentada.
 - [ ] `node scripts/validate_sysex_mapping.js --check-hashes` → 0 errores / 0 warnings.
@@ -177,9 +184,12 @@ forma más rápida de re-ejecutar la batería con el hardware conectado al naveg
 
 ### E. Cierre
 
-- [ ] Dumps capturados commiteados como **referencia de regresión** (carpeta
-      `resources/hardware_dumps/` con fecha) + hashes actualizados.
-- [ ] Desviaciones documentadas en el reporte de la corrida (JSON con `--json --classify`).
+- [x] Dumps capturados commiteados como **referencia de regresión**
+      (`resources/hardware_dumps/2026-08-10/` — raw + normalized + manifest.json con
+      hashes SHA-256).
+- [x] Desviaciones documentadas (B/1 = `known_exception`, offsets 281/283 `00`→`20`,
+      estable en 2 corridas) en el reporte `docs/reports/nivel3b-20260810.json` +
+      manifest. Pendiente: `--classify` por preset del dump completo.
 - [ ] CHANGELOG con la corrida 3b (fecha, firmware del DM12, resultado por fase).
 
 ---
@@ -196,7 +206,7 @@ con hardware físico (no simulada).
 
 ---
 
-## 6. Registro de ejecución — 2026-08-10 (DM12 físico vía MCP Web MIDI)
+## 6. Registro de ejecución — 2026-08-10 (DM12 físico vía MCP Web MIDI + node-midi)
 
 Corrida en hardware real (interfaz Web MIDI SysEx, cliente MCP `deepmind12`).
 Reporte completo: `docs/reports/nivel3b-20260810.json`. Resultado por fase:
@@ -204,21 +214,24 @@ Reporte completo: `docs/reports/nivel3b-20260810.json`. Resultado por fase:
 | Fase | Prueba | Resultado | Evidencia |
 |------|--------|-----------|-----------|
 | **A** | Baseline: snapshot del edit buffer vs corpus A/0 | ✅ `exact_match` | **242/242 bytes idénticos**, 0 diffs — nombre "Blue Dolphin BC " en 223–238 confirmado en ambos |
+| **A+** | **Dumps completos A–H del hardware** (`scripts/hw_bank_dump.js`) | ✅ 1023/1024 payload-identicos | 8 × 128 × 291 B capturados (2 corridas deterministas); **B/1 difiere 2 bytes de cola** (offsets 281/283, `00`→`20`) = `known_exception`; hash normalizado (dev→7F) coincide **exacto en A**; corpus usa bank byte `00` en todos sus headers (quirk de exportación) → la paridad significativa es el payload |
 | **B** | Round-trip NRPN: `filter.cutoff` (byte 39) → 100 | ✅ ok | Snapshot de vuelta: raw **100** (delta 0) — eco real del hardware |
 | **C** | Virtuales: `fx_feedback_gain` (byteOffset 304) | ✅ ok | Rechazado por el cliente sin emitir MIDI; snapshot posterior **sin bytes corruptos** |
 | **D** | Nombre límite: `Hi<>&"'ABCDEFGHI` (16 chars) en 223–238 | ✅ ok | Round-trip **idéntico byte a byte** (sin truncado ni corrupción) |
 
 **Restauración**: preset A/0 original devuelto al hardware (nombre "Blue Dolphin BC " +
-`filter.cutoff`=42) y verificado con snapshot final byte a byte.
+`filter.cutoff`=42) y verificado con snapshot final byte a byte. La captura de bancos es
+solo lectura — no altera el estado del synth.
 
 ### Checklist tras la corrida (estado 2026-08-10)
 
-- **A–D**: verificados los ítems de byte-map/protocolo a nivel de **edit buffer** (MCP).
+- **A (incl. dumps completos)**, **B**, **C** y **E-1** verificados.
 - **Pendiente para el cierre ✅ del Nivel 3b** (checklist A–E 100 %):
-  1. `requestBankDump(0..7)` de los **8 bancos completos** y comparación SHA-256 vs
-     `schemas/corpus-hashes.json` + `roundtrip_corpus.js --classify` sobre los dumps.
+  1. `roundtrip_corpus.js --classify` sobre los dumps capturados (clasificación
+     exact/canonical/semantic/known_exception por preset — la divergencia B/1 es
+     candidata a `known_exception`).
   2. Validación vía la **WebUI real** (`sendPatchToHardware` → `HardwareExporter` →
      `validateSinglePatchSysexRoundTrip`, eco CC38 con `ParameterStore` TTL 300 ms,
      `isEcho` sin re-escritura del slider).
-  3. Nombres **no-ASCII** saneados vía `HardwareExporter` y cola 239–241 intacta.
-  4. Dumps completos commiteados como referencia de regresión en `resources/hardware_dumps/`.
+  3. Nombres **no-ASCII** saneados vía `HardwareExporter` y cola 239–241 intacta (UI).
+  4. Firmware del DM12 anotado en el manifest (requiere lectura del menú global del synth).

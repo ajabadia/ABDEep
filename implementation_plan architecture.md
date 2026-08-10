@@ -206,14 +206,17 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > `runABCompareReport`, banco en letra 'A'-'H', `coerceBytes` para patches clonados por deepClone).
 > `scripts/roundtrip_corpus.js` corre la batería sobre los 8 bancos A-H (1024 presets) con
 > `--classify` (tabla por preset exact/canonical/semantic → 804/210/10 en el corpus de fábrica).
-> **2026-08-10 — Nivel 3b (hardware-in-the-loop): Fases A–D ejecutadas con DM12 real.**
+> **2026-08-10 — Nivel 3b (hardware-in-the-loop): Fases A–D + dumps completos A–H.**
 > Snapshot del edit buffer == preset A/0 de fábrica (**242/242 bytes, `exact_match`**);
 > round-trip NRPN `filter.cutoff` → 100 leído de vuelta 100 (delta 0); virtuales ≥300
 > rechazados sin emitir MIDI; nombre límite `Hi<>&"'ABCDEFGHI` (16 chars) round-trip
-> idéntico en 223–238. Restauración del A/0 verificada. Reporte:
-> `docs/reports/nivel3b-20260810.json`. **Cierre ✅ pendiente**: dumps completos de los
-> 8 bancos + SHA-256 vs `schemas/corpus-hashes.json` y validación vía WebUI real
-> (checklist A–E en `docs/fase4_nivel3b_hardware_in_the_loop.md`).
+> idéntico en 223–238; restauración del A/0 verificada. **Dumps reales de los 8 bancos
+> (A–H, 1024 presets)** capturados con `scripts/hw_bank_dump.js` (node-midi):
+> **1023/1024 presets byte-idénticos en payload** al corpus de fábrica; B/1 difiere
+> 2 bytes de cola = `known_exception` estable. Referencia de regresión:
+> `resources/hardware_dumps/2026-08-10/` (raw + normalized + manifest). Reporte:
+> `docs/reports/nivel3b-20260810.json`. **Cierre ✅ pendiente**: `--classify` por preset
+> y validación vía WebUI real (checklist A–E en `docs/fase4_nivel3b_hardware_in_the_loop.md`).
 > Ver `docs/fase4_roundtrip_equality.md`.
 > Vitest (2026-08-10): 103 files / 4688 tests / 0 fallos.
 

@@ -51,6 +51,15 @@ SysEx Crudo (291 bytes)
 | 6 | `0x02` | **Command Type**: `0x01`=Program Dump Request, `0x02`=Program Dump Response, `0x03`=Edit Buffer Dump Request, `0x04`=Edit Buffer Dump Response, `0x05`=Global Parameter Dump Request, `0x06`=Global Dump |
 | 7 | `0x07` | Comms Protocol Version (`0x06` documentado; `0x07` en los archivos de fábrica V1.1.2) |
 | 8 | `0x00` | Bank Number (0–7 = A–H; 0 en los archivos de fábrica exportados) |
+
+> ⚠️ **Quirk del corpus de fábrica (V1.1.2):** en TODOS los archivos `.syx` de los 8 bancos
+> (A–H) el byte 8 (bank number) es `0x00` en cada mensaje de 291 B, aunque el banco sea
+> B–H. El hardware real emite el valor correcto (1–7). Por eso, al comparar dumps de
+> hardware contra el corpus, la comparación de **hash de archivo completo** diverge
+> siempre en el byte 8 de cada mensaje; la comparación **significativa** es el *payload*
+> (bytes 10–287, offset absoluto 10..-3 de cada mensaje). `scripts/hw_bank_dump.js`
+> (`--check-payloads`) aplica esta regla; `--normalize-dev 0x7F` + `--check-hashes` solo
+> da igualdad de hash en el banco A (el único cuyo byte 8 coincide).
 | 9 | `0x00`–`0x7F` | **Program Number (0–127)** |
 
 ### Payload (bytes 10–287)

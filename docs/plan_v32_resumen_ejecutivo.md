@@ -12,7 +12,7 @@
 |------|--------|
 | Fases 0–7 del plan | ✅ **Todas completadas** (27/27 checkboxes `[x]`) |
 | Fase 7 — Pipeline CI/CD | ✅ **12 jobs implementados y documentados** (anti-drift `docs-verification`) |
-| Nivel 3b (hardware-in-the-loop) | 🟡 Fases A–D ejecutadas con DM12 real (2026-08-10); cierre A–E pendiente |
+| Nivel 3b (hardware-in-the-loop) | 🟡 Fases A–D + **dumps completos A–H** (1024 presets, 1023/1024 payload-identicos; B/1 known_exception); cierre A–E pendiente |
 | Suites WebUI | ✅ **103 files / 4688 tests** (4686 passed, 2 skipped, 0 fallos) · ESLint 0/0 |
 | Suite C++ | ✅ **126 suites / 3.689.168 assertions / 0 fallos** |
 | Invariantes tiempo real | ✅ 0 allocs/bloque · 0 overruns · p95/p99/p999 bajo presupuesto |
@@ -95,11 +95,12 @@ node scripts/fuzz_roundtrip.js            # fuzzing multi-seed (8.000 casos)
 
 ## 7. Pendiente único — cierre del Nivel 3b
 
-Fases A–D ejecutadas (2026-08-10, reporte `docs/reports/nivel3b-20260810.json`). Para el
-cierre ✅ (checklist A–E de `docs/fase4_nivel3b_hardware_in_the_loop.md`):
+Fases A–D + **dumps completos de los 8 bancos** ejecutadas (2026-08-10; reporte
+`docs/reports/nivel3b-20260810.json`; dumps en `resources/hardware_dumps/2026-08-10/`).
+Para el cierre ✅ (checklist A–E de `docs/fase4_nivel3b_hardware_in_the_loop.md`):
 
-1. `requestBankDump(0..7)` de los **8 bancos completos** + SHA-256 vs
-   `schemas/corpus-hashes.json` + `roundtrip_corpus.js --classify`.
+1. `roundtrip_corpus.js --classify` por preset sobre los dumps capturados (la divergencia
+   B/1 es candidata a `known_exception`).
 2. Validación vía la **WebUI real** (HardwareExporter → validateSinglePatchSysexRoundTrip,
    eco CC38 con ParameterStore TTL 300 ms).
-3. Dumps commiteados como referencia de regresión en `resources/hardware_dumps/`.
+3. Firmware del DM12 anotado en el manifest.

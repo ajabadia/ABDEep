@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "kind": "hardware-bank-dumps",
+  "fecha": "2026-08-10",
+  "hardware": {
+    "modelo": "Behringer DeepMind 12",
+    "firmware": "no capturado",
+    "deviceId": 0,
+    "puertos": [
+      "DeepMind12D"
+    ]
+  },
+  "procedimiento": "scripts/hw_bank_dump.js --out resources/hardware_dumps/2026-08-10 --check-hashes --normalize-dev 0x7F --check-payloads",
+  "resumen": {
+    "bancos": 8,
+    "presets": 1024,
+    "mensajes": "291B",
+    "payloadIdenticos": "1023/1024",
+    "divergencias": [
+      {
+        "banco": "B",
+        "prog": 1,
+        "diffBytes": 2,
+        "offsets": [
+          281,
+          283
+        ],
+        "factory": "0x00",
+        "hw": "0x20",
+        "clasificacion": "known_exception"
+      }
+    ],
+    "notaHeader": "El corpus de fabrica usa bank byte 0x00 en la cabecera de todos sus mensajes (quirk de exportacion); el hardware emite el bank byte correcto (0-7). Por eso el SHA-256 completo solo coincide en el banco A; la comparacion significativa es el payload (10..-3).",
+    "notaCaptura": "2 corridas identicas (hashes raw iguales) - captura determinista; divergencia B/1 estable."
+  },
+  "banks": {
+    "A": {
+      "rawSha256": "2512dbae181a3b2ca5be54e43da89be50716d641b5ebeb096a65e3bf84863ab1",
+      "normalizedSha256": "21ed77a43687fcbe2dd509eb71f55ba02a9b9b70d0f0a15d1f883e62e0621f60",
+      "size": 37248,
+      "payloadDiffPrograms": []
+    },
+    "B": {
+      "rawSha256": "3aa7d20375e71bb553012244265795e11abef70f6998626c0cfa391f4299fe50",
+      "normalizedSha256": "b0e12a5cd352505baebbf83ea5a758dae591e6cbb87e7edbb99b34972beb5bd2",
+      "size": 37248,
+      "payloadDiffPrograms": [
+        {
+          "prog": 1,
+          "diffBytes": 2
+        }
+      ]
+    },
+    "C": {
+      "rawSha256": "fe2bb2405c95ba8af83ed7caa147aa9777c517395ac4ec7c815e8539fb86ef7b",
+      "normalizedSha256": "976c00e89e654f136b7bdd60e0f0a7ce352a67bb703f3d2d686e00f4d8241ad6",
+      "size": 37248,
+      "payloadDiffPrograms": []
+    },
+    "D": {
+      "rawSha256": "40446dabb6c9f4ad991dc4e4944169a0c6fe7d4700d98260ad5662b25d21c835",
+      "normalizedSha256": "3004bbfbcc21890317373216cb0587e82a54ae7e7048bf454a9379f866a231ff",
+      "size": 37248,
+      "payloadDiffPrograms": []
+    },
+    "E": {
+      "rawSha256": "dcac166450af7bb703e9b3c8a0fee46ef80bde5b8ea16748b72aed9b36c27fc2",
+      "normalizedSha256": "da9b67e477884da0272985dd3aac8b0652fbda0bfa826bfbba89a3c2ef616e23",
+      "size": 37248,
+      "payloadDiffPrograms": []
+    },
+    "F": {
+      "rawSha256": "10507814390de702347a6f058584478c18c24f6788e66a1d52e4695d8d46a011",
+      "normalizedSha256": "1a4266c72fd34e9f847d05a5cb86796b65f8304a7d5b5beb78050916889e1ee2",
+      "size": 37248,
+      "payloadDiffPrograms": []
+    },
+    "G": {
+      "rawSha256": "ed31a27012ce8d60fc3942fa999bbf3512d0c49830f2be25a7362435efaf6310",
+      "normalizedSha256": "b561f176b0f5e47817176b42867f3be8cf166451452142f892d279f527a7c4b9",
+      "size": 37248,
+      "payloadDiffPrograms": []
+    },
+    "H": {
+      "rawSha256": "28b002bbc9ef0597ab1339f44af76a73c2f4dcfcc4282549afadce0dee7b8234",
+      "normalizedSha256": "8df76cd14ff641d3361b39569a9ccf60c5d8ef1256185e241c3c628ed3057622",
+      "size": 37248,
+      "payloadDiffPrograms": []
+    }
+  }
+}

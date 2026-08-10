@@ -4,6 +4,25 @@
 
 ---
 
+## 0.2.41 — Nivel 3b: dumps de banco reales del DM12
+
+- `scripts/hw_bank_dump.js`: captura los 8 bancos de fábrica vía SysEx program-dump request
+  (`F0 00 20 32 20 00 01 <bank> <prog> F7`, device ID 0x00) con el paquete `midi`;
+  verificación `--check-hashes` contra `schemas/corpus-hashes.json` (normalizado dev→0x7F)
+  y `--check-payloads` (payload 10..-3 vs corpus, auto-contenida).
+- Dumps de regresión commiteados: `resources/hardware_dumps/2026-08-10/` (8 raw + 8
+  normalizados + `manifest.json` con SHA-256 raw/normalizado y diff por programa).
+  Dep `midi@^2.0.0` declarada en devDependencies; quirk del byte de banco (0x00 en
+  todos los mensajes del corpus) documentado en `docs/sysex_format.md`.
+- Resultado: **1023/1024 presets byte-idénticos al corpus** en payload; banco A hash
+  normalizado idéntico; única divergencia real **B/1** (2 bytes de cola 00→20) →
+  candidata a `known_exception`. El quirk de bank-byte del corpus (siempre 0x00 en
+  cabecera) queda documentado.
+- Checklist Nivel 3b A–D + captura de banco marcados; `docs/reports/nivel3b-20260810.json`
+  actualizado con la tabla de verificación (8 bancos).
+
+---
+
 ## [0.2.40] — 2026-08-10
 
 ### 🧪 Paridad CI + auditoría de subprocesos + validación act end-to-end + cierre documental

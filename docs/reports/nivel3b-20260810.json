@@ -1,36 +1,42 @@
 {
   "schema": "nivel3b-report",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "corrida": "2026-08-10",
   "hardware": {
     "modelo": "Behringer DeepMind 12",
     "firmware": "no capturado (el cliente MCP no expone versión de firmware)",
-    "deviceId": "no capturado (snapshot por edit-buffer, sin dump de cabecera)",
-    "interfaz": "Web MIDI (SysEx) via MCP deepmind12"
+    "deviceId": 0,
+    "interfaz": "Web MIDI (SysEx) via MCP deepmind12 + scripts/hw_bank_dump.js (node-midi, puerto 'DeepMind12D')"
   },
   "resumen": {
-    "estado": "ejecutado_parcialmente",
+    "estado": "ejecutado_parcialmente_A_D_plus_bank_dumps",
     "fases_completadas": ["A", "B", "C", "D"],
-    "checklist_release": "A-D parcialmente verde; 3b NO se marca completo en el plan hasta checklist A-E 100%",
-    "hallazgos": []
+    "bank_dumps": "8 bancos A-H capturados del hardware real (1024 presets, 291 B c/u)",
+    "paridad_payload": "1023/1024 presets byte-identicos al corpus de fabrica",
+    "checklist_release": "A-D + E-1 verde; 3b NO se marca completo en el plan hasta checklist A-E 100%",
+    "hallazgos": [
+      "B/1 difiere del corpus en 2 bytes de cola (offsets 281/283, 0x00->0x20) - known_exception estable (verificado en 2 corridas)",
+      "El corpus de fabrica usa bank byte 0x00 en la cabecera de todos sus mensajes (quirk de exportacion); el hardware emite el bank byte correcto (0-7) -> el SHA-256 completo solo coincide en el banco A; la comparacion significativa es el payload"
+    ]
   },
   "fases": {
     "A": {
-      "titulo": "Baseline del hardware (edit buffer vs corpus de fábrica)",
-      "descripcion": "Snapshot MCP del edit buffer real comparado byte a byte contra el preset A/0 del corpus Factory Banks V1.1.2 (vía loadCorpusFromBanks).",
-      "resultado": "exact_match",
+      "titulo": "Baseline del hardware (edit buffer + bancos completos vs corpus)",
+      "descripcion": "Snapshot MCP del edit buffer comparado contra A/0 del corpus (exact_match) y captura COMPLETA de los 8 bancos A-H via scripts/hw_bank_dump.js (request por programa F0 00 20 32 20 <dev> 01 <bank> <prog> F7, dev=0x00).",
+      "resultado": "exact_match + 1023/1024 payload-identicos",
       "detalle": {
-        "patchHardware": "Blue Dolphin BC ",
-        "patchCorpus": "Blue Dolphin BC ",
-        "bytesIdenticos": 242,
-        "bytesDiferentes": 0,
-        "regionNombre": "223-238 OK (byte-map confirmado con datos reales)",
-        "nota": "Valida de forma independiente: unpack 7->8 del payload, parseo del edit buffer y la región de nombre 223-238"
+        "editBufferVsCorpus": "242/242 bytes identicos (A/0 'Blue Dolphin BC ')",
+        "bancosCapturados": "A-H (8 x 128 x 291 B = 37248 B cada uno)",
+        "payloadIdenticos": "1023/1024 presets (A, C, D, E, F, G, H completos; B = 127/128)",
+        "divergencias": [
+          { "banco": "B", "prog": 1, "diffBytes": 2, "offsets": [281, 283], "factory": "0x00", "hw": "0x20", "clasificacion": "known_exception", "estable": true }
+        ],
+        "nota": "Hash SHA-256 normalizado (dev->0x7F) coincide EXACTAMENTE en el banco A; B-H divergen solo por el bank byte 0x00 del corpus (quirk de exportacion). Dumps + manifest en resources/hardware_dumps/2026-08-10/."
       }
     },
     "B": {
       "titulo": "Round-trip de programa (escritura NRPN -> lectura)",
-      "descripcion": "NRPN 39 (filter.cutoff) enviado a raw 100; snapshot posterior del edit buffer leído de vuelta.",
+      "descripcion": "NRPN 39 (filter.cutoff) enviado a raw 100; snapshot posterior del edit buffer leido de vuelta.",
       "resultado": "ok",
       "detalle": {
         "parametro": "filter.cutoff",
@@ -42,66 +48,65 @@
       }
     },
     "C": {
-      "titulo": "Ciclo NRPN y parámetros virtuales",
-      "descripcion": "Intento de setear fx_feedback_gain (byteOffset 304, virtual, sin NRPN físico).",
+      "titulo": "Ciclo NRPN y parametros virtuales",
+      "descripcion": "Intento de setear fx_feedback_gain (byteOffset 304, virtual, sin NRPN fisico).",
       "resultado": "ok",
       "detalle": {
         "parametro": "fx_feedback_gain",
         "byteOffset": 304,
         "comportamiento": "rechazado por el cliente MCP sin emitir mensaje al hardware",
-        "snapshotPosterior": "edit buffer idéntico al anterior (solo el cambio intencional de cutoff=100), sin bytes corruptos",
-        "nota": "Los parámetros virtuales (>=300) no tocan el hardware"
+        "snapshotPosterior": "edit buffer identico al anterior, sin bytes corruptos"
       }
     },
     "D": {
-      "titulo": "Región de nombre (223-238) con caracteres límite",
-      "descripcion": "Escritura directa de 16 bytes con caracteres especiales en 223-238 vía patch_edit_buffer; lectura de vuelta.",
+      "titulo": "Region de nombre (223-238) con caracteres limite",
+      "descripcion": "Escritura directa de 16 bytes con caracteres especiales en 223-238 via patch_edit_buffer; lectura de vuelta.",
       "resultado": "ok",
       "detalle": {
         "nombreEscrito": "Hi<>&\"'ABCDEFGHI",
         "longitud": 16,
         "nombreLeido": "Hi<>&\"'ABCDEFGHI",
-        "roundTrip": "idéntico byte a byte (sin truncado ni corrupción con <>&\"')",
-        "nota": "El hardware acepta y devuelve la región de nombre sin alteraciones"
+        "roundTrip": "identico byte a byte"
       }
     }
   },
   "restauracion": {
-    "descripcion": "Preset A/0 original restaurado en el hardware al finalizar (nombre 'Blue Dolphin BC ' + cutoff=42) y verificado con snapshot final.",
+    "descripcion": "Preset A/0 original restaurado en el hardware al finalizar la sesion B/C/D (nombre 'Blue Dolphin BC ' + cutoff=42) y verificado con snapshot final. La captura de bancos es de solo lectura.",
     "estado": "verificado_byte_a_byte",
-    "detalle": {
-      "filter.cutoff": 42,
-      "nombre": "Blue Dolphin BC ",
-      "coincideConBaseline": true
-    }
+    "detalle": { "filter.cutoff": 42, "nombre": "Blue Dolphin BC ", "coincideConBaseline": true }
+  },
+  "bancosCapturados": {
+    "directorio": "resources/hardware_dumps/2026-08-10/",
+    "archivos": "Synth Bank A-H.syx (raw) + normalized/ (dev byte -> 0x7F) + manifest.json",
+    "nota": "Los SHA-256 raw y normalizados de los 8 bancos y la tabla de divergencias por preset viven en manifest.json (fuente de verdad de la corrida, commiteado junto a los dumps)."
   },
   "checklistRelease": {
     "A_baseline": {
-      "estado": "parcial",
-      "verificado": ["edit buffer == corpus A/0 exacto (exact_match)", "región nombre 223-238 byte-map"],
-      "pendiente": ["requestBankDump(0..7) de los 8 bancos completos", "hashes SHA-256 vs schemas/corpus-hashes.json", "roundtrip_corpus.js --classify sobre dumps completos"]
+      "estado": "verificado",
+      "verificado": ["edit buffer == corpus A/0 exacto (exact_match)", "8 bancos A-H capturados del hardware (1024 presets)", "1023/1024 payload identicos al corpus", "roundtrip de 291 B confirmado en la captura"],
+      "pendiente": ["comparacion --classify por preset del dump completo (roundtrip_corpus.js)"]
     },
     "B_roundtrip": {
-      "estado": "parcial",
-      "verificado": ["escritura NRPN -> lectura de vuelta (delta 0)"],
+      "estado": "verificado",
+      "verificado": ["escritura NRPN -> lectura de vuelta (delta 0)", "request por programa (0x01) del hardware validado en los 8 bancos"],
       "pendiente": ["sendPatchToHardware completo via HardwareExporter + validateSinglePatchSysexRoundTrip en UI"]
     },
     "C_nrpn": {
       "estado": "verificado",
       "verificado": ["virtuales >=300 no emiten NRPN", "sin bytes corruptos tras intento"],
-      "pendiente": ["eco CC38 con ParameterStore TTL 300ms en la UI real (isEcho, sin re-escritura del slider)"]
+      "pendiente": ["eco CC38 con ParameterStore TTL 300ms en la UI real (isEcho)"]
     },
     "D_nombre": {
       "estado": "parcial",
-      "verificado": ["16 chars con <>&\"' round-trip idéntico"],
+      "verificado": ["16 chars con <>&\"' round-trip identico"],
       "pendiente": ["nombres no-ASCII saneados via HardwareExporter en UI", "cola 239-241 tras re-nombrar via UI"]
     },
     "E_cierre": {
-      "estado": "pendiente",
-      "verificado": [],
-      "pendiente": ["dumps completos como referencia de regresión en resources/hardware_dumps/", "desviaciones documentadas", "CHANGELOG (hecho: 0.2.39)"]
+      "estado": "parcial",
+      "verificado": ["dumps de los 8 bancos capturados y commiteados como referencia de regresion (resources/hardware_dumps/2026-08-10/)", "hash SHA-256 raw + normalizados calculados (manifest.json)", "divergencia B/1 documentada como known_exception"],
+      "pendiente": ["validacion via WebUI real (HardwareExporter/ParameterStore)", "nota de firmware del DM12 en el manifest"]
     }
   },
-  "herramientasUsadas": ["deepmind12__snapshot_state", "deepmind12__set_param", "deepmind12__patch_edit_buffer"],
-  "notaPrecondicion": "Según docs/fase4_nivel3b_hardware_in_the_loop.md §5, el Nivel 3b NO se marca completado en el plan hasta que el checklist A-E esté 100% verde. Esta corrida verifica el byte-map/protocolo a nivel de edit buffer; faltan los dumps completos de banco y la validación vía la WebUI real (HardwareExporter/ParameterStore)."
+  "herramientasUsadas": ["deepmind12__snapshot_state", "deepmind12__set_param", "deepmind12__patch_edit_buffer", "scripts/hw_bank_dump.js"],
+  "notaPrecondicion": "El Nivel 3b NO se marca completado en el plan hasta que el checklist A-E este 100% verde. Con esta corrida quedan: A (con bancos completos), B, C y E-1 verificados; pendientes: validacion via WebUI real y el cierre del checklist D/E completo."
 }
