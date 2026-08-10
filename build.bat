@@ -22,7 +22,7 @@ if not exist "%CMAKE_PATH%" (
     goto error
 )
 
-set MODEL=0
+set MODEL=2
 if not "%1"=="" set MODEL=%1
 
 if "%2"=="" (
@@ -31,7 +31,7 @@ if "%2"=="" (
     set BUILD_DIR=%2
 )
 
-if %MODEL%==0 set "MODEL_NAME=ABD Eep - Classic (DeepMind Clone)"
+if %MODEL%==0 set "MODEL_NAME=ABD Eep - MIDI Controller"
 if %MODEL%==1 set "MODEL_NAME=ABD Eep - Classic (DeepMind Clone)"
 if %MODEL%==2 set "MODEL_NAME=ABD Eep - Enhanced (Expanded Synthesis)"
 

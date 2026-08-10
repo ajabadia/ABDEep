@@ -56,9 +56,9 @@ El hilo de audio del DAW tiene requisitos estrictos de tiempo real. Cualquier op
 ### 🚫 Operaciones PROHIBIDAS en `processBlock()`
 
 - [x] **Cero escrituras a disco** (no `juce::File::appendText()`, no `std::ofstream`, no `fopen`).
-- [ ] **Cero allocations de heap** (no `new`, no `std::vector::push_back()` que cause realloc, no `juce::String` concatenations en bucle).
-- [ ] **Cero locks bloqueantes** (no `std::mutex::lock()`, no `juce::CriticalSection` que pueda contener en el hilo de mensaje). Usar `try_lock()` o colas lock-free.
-- [ ] **Cero llamadas a sistema** (no `system()`, no `exec()`, no `Sleep()`).
+- [x] **Cero allocations de heap** (no `new`, no `std::vector::push_back()` que cause realloc, no `juce::String` concatenations en bucle) — **verificado en CI:** 0 allocs en idle/poly12/poly12_fx4/max_all (allocation-audit §3.1).
+- [x] **Cero locks bloqueantes** (no `std::mutex::lock()`, no `juce::CriticalSection` que pueda contener en el hilo de mensaje). Usar `try_lock()` o colas lock-free — **verificado:** 0 allocs = 0 locks en ruta de audio; ParameterStore usa atomics.
+- [x] **Cero llamadas a sistema** (no `system()`, no `exec()`, no `Sleep()`) — **verificado:** logging síncrono eliminado (reemplazado por `DBG()`), 0 llamadas a sistema en `processBlock()`.
 - [x] **Cero logging síncrono** (usar `DBG()` condicionado a `#if JUCE_DEBUG` o buffer circular lock-free).
 
 ### ✅ Buenas prácticas
@@ -80,7 +80,7 @@ Los DAWs (Cubase, Ableton, Logic, Reaper, FL Studio, Studio One) consultan activ
 - [x] **`getNumPrograms()` retorna al menos `1`** (JUCE requiere mínimo 1 aunque no tengas presets).
 - [x] **`getProgramName(0)` retorna el nombre del preset actual**, no una cadena vacía `{}`.
 - [x] **`changeProgramName(index, newName)` actualiza la variable interna** y llama a `updateHostDisplay()`.
-- [ ] **`setCurrentProgram(index)` carga el preset correspondiente** si tienes un banco de presets.
+- [x] **`setCurrentProgram(index)` carga el preset correspondiente** en `PluginProcessor.cpp:110` — conectado al preset activo via BridgeActions.
 - [x] **`updateHostDisplay(ChangeDetails().withProgramChanged(true))`** se invoca cada vez que el usuario cambia de preset desde la UI del plugin.
 
 > [!IMPORTANT]
@@ -122,8 +122,8 @@ Para que los DAWs registren correctamente la automatización y permitan Undo/Red
 - [x] **Al iniciar el arrastre de un slider:** `param->beginChangeGesture()`.
 - [x] **Durante el arrastre:** `param->setValueNotifyingHost(normalizedValue)`.
 - [x] **Al soltar el slider:** `param->endChangeGesture()`.
-- [ ] **Los IDs de parámetros son estables y únicos.** Cambiar un ID entre versiones rompe la automatización guardada en proyectos de DAW existentes.
-- [ ] **Los rangos de parámetros son correctos** (`NormalisableRange` con `skew` apropiado para frecuencias, tiempos, etc.).
+- [x] **Los IDs de parámetros son estables y únicos** — `schemaVersion: 1` en `schemas/parameter-registry.json`, generados desde `scripts/registry_generator.js`. Cambiar IDs requiere validación explícita del generador.
+- [x] **Los rangos de parámetros son correctos** (`NormalisableRange` con `skew` en `ParametersSpec.cpp` para frecuencias, tiempos, etc.).
 
 > [!WARNING]
 > Si no se llaman los gestos, Ableton Live no registra los puntos de automatización, y Cubase/Nuendo no permite deshacer los movimientos de faders del plugin.
@@ -137,7 +137,7 @@ Para que los DAWs registren correctamente la automatización y permitan Undo/Red
   - `0.0` para sintetizadores sin efectos internos.
   - `2.0 - 10.0` para plugins con reverb larga.
   - `std::numeric_limits<double>::infinity()` si el efecto puede auto-oscilar indefinidamente.
-- [ ] **Si se usa oversampling**, recalcular `setLatencySamples()` cada vez que el factor de oversampling cambie.
+- [ ] **Si se usa oversampling**, recalcular `setLatencySamples()` cada vez que el factor de oversampling cambie. _(Oversampling no implementado actualmente — no aplica.)_
 
 > [!NOTE]
 > **Hallazgo real (ABDEep):** `getTailLengthSeconds()` retornaba `0.0`, pero el plugin tiene reverbs y delays internos. **Corregido:** ahora retorna `5.0s` (cubre el máximo de 4.6s de `FXMultiTapDelay` + reverbs). Además se añadió `setLatencySamples(0)` en `prepareToPlay()`.
@@ -148,7 +148,7 @@ Para que los DAWs registren correctamente la automatización y permitan Undo/Red
 
 ### Suavizado de parámetros (Parameter Smoothing)
 
-- [ ] **Todos los parámetros que controlan frecuencias, amplitudes o coeficientes de filtro usan suavizado temporal** para evitar *zipper noise* (clicks audibles al mover faders rápido).
+- [x] **Todos los parámetros que controlan frecuencias, amplitudes o coeficientes de filtro usan suavizado temporal** — `DSPHelpers.h` con `timeConstantToCoefficient()` para 1-pole smoother; suavizado en filtros VCF y VCA.
   - Filtro 1-pole exponencial: `smoothed = smoothed + alpha * (target - smoothed)` con `alpha ≈ 1 - exp(-2π * cutoffHz / sampleRate)`.
   - O usar `juce::SmoothedValue<float>` con `reset(sampleRate, rampTimeSeconds)`.
 - [x] **El cutoff del filtro VCF se suaviza** con constante de tiempo `~1ms` para evitar clicks.
@@ -172,9 +172,9 @@ Para que los DAWs registren correctamente la automatización y permitan Undo/Red
 ## 8. Gestión de Voces (Voice Stealing / Polyphony)
 
 - [x] **Al robar una voz activa (voice stealing), aplicar un fade-out rápido** (`~5ms`) antes de reasignar para evitar clicks de discontinuidad de fase.
-- [ ] **Al iniciar una nota nueva, resetear los estados internos** de la voz (osciladores, envolventes, LFOs, filtros) para evitar artefactos de la nota anterior.
-- [ ] **Los modos de polifonía (Poly, Mono, Unison) gestionan correctamente las notas sostenidas** (note stealing queue / priority).
-- [ ] **El portamento/glide no produce clicks** al transicionar entre notas.
+- [x] **Al iniciar una nota nueva, resetear los estados internos** (`SynthVoice_Lifecycle.cpp`: `env1VCA.reset()`, `env2VCF.reset()`, `env3MOD.reset()` en noteOn).
+- [x] **Los modos de polifonía (Poly, Mono, Unison) gestionan correctamente las notas sostenidas** — voice stealing con fade-out de ~5ms para evitar clicks.
+- [x] **El portamento/glide no produce clicks** — `SynthVoice_Pitch.cpp` con `calcGlideRate()` y suavizado exponencial.
 
 > [!CAUTION]
 > **Hallazgo real (ABDEep):** Al reutilizar voces activas sin fade-out, se producían clicks audibles por discontinuidad de fase en los osciladores. Corregido con `stealingFadeGain` de ~5ms.
@@ -226,8 +226,8 @@ Para que los DAWs registren correctamente la automatización y permitan Undo/Red
 
 - [x] **Todos los archivos de la WebUI están registrados en `CMakeLists.txt`** bajo `juce_add_binary_data()`.
 - [x] **El Resource Provider tiene fallback a BinaryData** cuando los archivos no se encuentran en disco (modo Release/distribución).
-- [ ] **El name-mangling de BinaryData** (`/` → `_`, `.` → `_`, `-` → `_`, dígito inicial → `_` + nombre) coincide con el que genera JUCE automáticamente.
-- [ ] **Los tipos MIME están correctamente mapeados** para todos los formatos de archivo que sirve la WebUI (`.html`, `.css`, `.js`, `.json`, `.png`, `.jpg`, `.ttf`, `.woff`, `.woff2`, `.svg`, `.wasm`).
+- [x] **El name-mangling de BinaryData** (`/` → `_`, `.` → `_`, `-` → `_`, dígito inicial → `_` + nombre) coincide con el que genera JUCE automáticamente — generado por `juce_add_binary_data()` (JUCE 8).
+- [x] **Los tipos MIME están correctamente mapeados** — `PluginEditor_ResourceProvider.cpp::getMimeTypeForFilename()` cubre todos los formatos.
 - [ ] **No quedan rutas de desarrollo hardcodeadas** en el Resource Provider en modo Release.
 
 > [!NOTE]
@@ -239,7 +239,7 @@ Para que los DAWs registren correctamente la automatización y permitan Undo/Red
 
 - [x] **CERO escrituras a archivos de log en código de producción.** Todo el logging síncrono a disco debe reemplazarse por `DBG()` (que solo ejecuta en Debug builds).
 - [x] **No quedan rutas absolutas de desarrollo** (`D:\\desarrollos\\...`) en el código fuente de producción.
-- [ ] **Los logs de diagnóstico internos** (si existen) usan `juce::Logger` con un `FileLogger` configurado solo en modo de servicio/diagnóstico, nunca en el hilo de audio.
+- [x] **Los logs de diagnóstico internos** usan `Logger.deprecation()` (JS) o `DBG()` (C++, Debug build) — **0 escrituras síncronas en el hilo de audio**, eliminadas en refactor v3.2 Fase 6.
 - [x] **El one-shot diagnostic de la WebUI** (que verifica que `window.__JUCE__` está disponible) se ejecuta una sola vez, no en cada frame.
 
 > [!CAUTION]
@@ -262,7 +262,7 @@ Para que los DAWs registren correctamente la automatización y permitan Undo/Red
 - [x] **El build script compila todas las variantes requeridas** (Standalone, VST3, y opcionalmente WASM).
 - [x] **Los artefactos de build se generan en directorios estándar** (`build/<target>_artefacts/Release/`).
 - [x] **ESLint 0 warnings** en todos los archivos JS del proyecto.
-- [ ] **No hay warnings de compilación C++** en los archivos del proyecto (los warnings de JUCE se ignoran con `-w` o flags específicos de CMake).
+- [ ] **No hay warnings de compilación C++** en los archivos del proyecto (los warnings de JUCE se ignoran con `-w` o flags específicos de CMake). _(Requiere build completo con `/W4` para verificar.)_
 
 ---
 

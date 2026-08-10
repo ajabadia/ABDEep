@@ -85,19 +85,21 @@ if (Test-Path $testBin) {
 Write-Step "Paso 3: Tests WebUI (Vitest)"
 Push-Location $rootDir
 try {
-    $npmExitCode = 0
-    $npmResult = & npx vitest run --reporter verbose 2>&1 | Tee-Object -FilePath $logFile -Append
-    # npx may exit non-zero even when tests pass due to PowerShell piping, check last line for pass/fail
-    $npmLastLine = ($npmResult | Select-Object -Last 1) 2>$null
-    if ($npmLastLine -match "Tests\s+\d+\s+passed" -or $LASTEXITCODE -eq 0) {
-        $npmExitCode = 0
+    # PowerShell 2>&1 con stderr mezclado corrompe encoding con Tee-Object.
+    # Convertimos cada objeto ErrorRecord a string con ForEach-Object antes de tee.
+    $npmOut = & npx vitest run --reporter basic 2>&1 | ForEach-Object { "$_" }
+    $npmExit = $LASTEXITCODE
+    $npmOut | Add-Content -Path $logFile
+    if ($npmExit -eq 0) {
+        # Extraer línea de resumen ("Tests  4731 passed | 2 skipped (4733)")
+        $summaryLine = ($npmOut | Select-String -Pattern "^\s*Tests" | Select-Object -Last 1)
+        if ($summaryLine) {
+            Write-Pass "WebUI: $($summaryLine.ToString().Trim())"
+        } else {
+            Write-Pass "WebUI tests: 0 fallos"
+        }
     } else {
-        $npmExitCode = $LASTEXITCODE
-    }
-    if ($npmExitCode -eq 0) {
-        Write-Pass "WebUI tests: 0 fallos"
-    } else {
-        Write-Fail "WebUI tests fallaron (exit code: $LASTEXITCODE). Revisa $logFile"
+        Write-Fail "WebUI tests fallaron (exit code: $npmExit). Revisa $logFile"
     }
 } finally {
     Pop-Location
