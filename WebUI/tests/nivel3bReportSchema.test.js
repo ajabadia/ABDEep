@@ -160,5 +160,16 @@ describe('docs/reports/nivel3b-*.json — esquema del reporte hardware-in-the-lo
       const regSec = docText.split('## 6.')[1] || '';
       expect(regSec).toContain(`docs/reports/${latest.file}`);
     });
+
+    it('la fecha del reporte más reciente coincide con la fecha de la última corrida del doc', () => {
+      // Cabecera canónica de la sección 6: "## 6. Registro de ejecución — YYYY-MM-DD (...)".
+      const heading = /^## 6\. Registro de ejecución — (\d{4}-\d{2}-\d{2})/m.exec(docText);
+      expect(heading, 'heading "## 6. Registro de ejecución — YYYY-MM-DD" no encontrado').not.toBeNull();
+      const docRunDate = heading[1];
+      // La fecha del reporte más reciente (del nombre del archivo) debe ser la
+      // misma corrida que el doc declara como la última (anti-drift reporte ↔ doc).
+      expect(docRunDate).toBe(report.corrida);
+      expect(docRunDate.replace(/-/g, '')).toBe(latest.date);
+    });
   });
 });

@@ -135,7 +135,7 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 
 > **2026-08-10 — Completado.** Baseline exacta registrada y custodiada en
 > `docs/baseline_fase0_v32.md` (referencia de Fase 0):
-> - **Suites:** WebUI 105 files / 4723 tests (0 fallos, 2 skipped) + guard
+> - **Suites:** WebUI 105 files / 4724 tests (0 fallos, 2 skipped) + guard
 >   `baselineGuard.test.js` anti-drift; C++ 126 suites / 3.689.164 assertions.
 > - **Cobertura:** sección 2 (`npx vitest run --coverage`).
 > - **Hashes A–H:** sección 4 + `schemas/corpus-hashes.json` — verificados en CI por el
@@ -218,7 +218,7 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > `docs/reports/nivel3b-20260810.json`. **Cierre ✅ pendiente**: `--classify` por preset
 > y validación vía WebUI real (checklist A–E en `docs/fase4_nivel3b_hardware_in_the_loop.md`).
 > Ver `docs/fase4_roundtrip_equality.md`.
-> Vitest (2026-08-10): 105 files / 4723 tests / 0 fallos.
+> Vitest (2026-08-10): 105 files / 4724 tests / 0 fallos.
 
 ### Fase 5: Rendimiento Tiempo Real, Capabilities y Bridge WASM
 - [x] Sustituir búsquedas dinámicas en `WASMBridge.cpp` por `std::array` e índices `ParameterIndex`.
