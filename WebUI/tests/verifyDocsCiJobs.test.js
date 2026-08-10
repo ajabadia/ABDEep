@@ -2,7 +2,7 @@
  * verifyDocsCiJobs.test.js — verificación documental de Fase 7 (plan v3.2 §7).
  *
  * Cubre scripts/verify_docs_ci_jobs.js (job CI docs-verification):
- *   - Contrato canónico: EXPECTED_JOBS (12 jobs) y JOB_WORKFLOWS (1:1 de existencia).
+ *   - Contrato canónico: EXPECTED_JOBS (13 jobs) y JOB_WORKFLOWS (1:1 de existencia).
  *   - Extracción: extractSection / extractJobNames / setEquals sobre contenido sintético.
  *   - Integración positiva: el script real sobre los docs COMMITEADOS → exit 0.
  *   - Integración negativa (con --overrides): job faltante / extra en baseline o plan,
@@ -115,13 +115,13 @@ function runScript(args) {
 // ────────────────────────────────────────────────────────────────────────────
 
 describe('verify_docs_ci_jobs.js — contrato de Fase 7', () => {
-  it('EXPECTED_JOBS son exactamente los 12 jobs de Fase 7 (ordenados)', () => {
-    expect(EXPECTED_JOBS).toHaveLength(12);
+  it('EXPECTED_JOBS son exactamente los 13 jobs de Fase 7 (ordenados)', () => {
+    expect(EXPECTED_JOBS).toHaveLength(13);
     expect(EXPECTED_JOBS).toEqual([...EXPECTED_JOBS].sort());
     expect(EXPECTED_JOBS).toEqual([
-      'allocation-audit', 'benchmark', 'cpp-unit-tests', 'fase4-corpus', 'pluginval',
-      'property-fuzzing', 'registry-generation', 'roundtrip-corpus', 'schema-validation',
-      'security-scan', 'vitest', 'wasm-build',
+      'allocation-audit', 'benchmark', 'cpp-unit-tests', 'fase4-corpus', 'hw-dump-validate',
+      'pluginval', 'property-fuzzing', 'registry-generation', 'roundtrip-corpus',
+      'schema-validation', 'security-scan', 'vitest', 'wasm-build',
     ]);
   });
 
@@ -268,7 +268,7 @@ describe('verify_docs_ci_jobs.js — extractJobsFromWorkflow', () => {
 // ────────────────────────────────────────────────────────────────────────────
 
 describe('verify_docs_ci_jobs.js — docs commiteados', () => {
-  it('exit 0: los 12 jobs del plan coinciden con baseline §7 y tienen workflow', () => {
+  it('exit 0: los 13 jobs del plan coinciden con baseline §7 y tienen workflow', () => {
     const { status, stdout } = runScript([]);
     expect(status, stdout).toBe(0);
     expect(stdout).toContain('✅ OK');

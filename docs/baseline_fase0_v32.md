@@ -27,15 +27,15 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 
 ## 2. Baseline WebUI (Vitest + ESLint)
 
-> **2026-08-10 — actualizado a los números vigentes** (104 files / 4712 tests,
+> **2026-08-10 — actualizado a los números vigentes** (105 files / 4718 tests,
 > ESLint 0 warnings). El count de test files/tests lo verifica en cada `npm test` el
 > **guard `WebUI/tests/baselineGuard.test.js`** (anti-drift: corre la suite en un
 > subproceso excluyéndose y reconcilia con esta sección).
 
 | Métrica | Valor |
 |---|---|
-| Test files | **104** (104 passed) |
-| Tests | **4712** (4710 passed, 2 skipped, 0 failed) |
+| Test files | **105** (105 passed) |
+| Tests | **4718** (4715 passed, 2 skipped, 0 failed) |
 | Duración | ~16 s |
 | ESLint | **0 errores, 0 warnings** (`curly` limpios con `--fix`; `npm run lint`
   ahora es `--max-warnings 0` → CI falla ante cualquier warning) |
@@ -262,7 +262,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   0 fallos**. Nota: **3 fallos FX preexistentes documentados** (refactor FX en curso:
   fidelidad delay + full-gain wet) — el paso usa `continue-on-error` (no bloquean CI).
 - ✅ **Job `vitest` + lint** en `.github/workflows/webui-ci.yml` (ubuntu-latest): suite
-  completa de WebUI (**104 files / 4712 tests, 0 fallos**) y ESLint **0 errores / 0
+  completa de WebUI (**105 files / 4718 tests, 0 fallos**) y ESLint **0 errores / 0
   warnings** (`npm run lint` con `--max-warnings 0`). El guard `baselineGuard.test.js`
   incluido en la suite verifica que los counts de esta sección no deriven.
   `package-lock.json` commiteado; `patchwork-deepmind` eliminado de `dependencies`
@@ -352,7 +352,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   Memory con `initial >= 512` páginas (32 MiB)** = reserva fija preasignada en
   `wasminitengine()`. Verificado local: 13 exports, Memory 512 páginas, exit 0.
 - ✅ **Job `pluginval`** en `.github/workflows/pluginval.yml` (windows-2022,
-  timeout 45 min) — **último job de Fase 7**: valida el plugin VST3 con
+  timeout 45 min): valida el plugin VST3 con
   **Tracktion/pluginval pinneda a v1.0.4** (asset `pluginval_Windows.zip`, 2.4 MB,
   determinismo CI como JUCE 8.0.12 y Emscripten 3.1.64):
   - **Build**: `cmake --build build --config Release --target ABDEep_Standalone_VST3`
@@ -366,8 +366,19 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
     **ALL TESTS PASSED**, publicando `pluginval.log` como artefacto diagnóstico.
   - **Nota `vst3val`**: no existe como repo público (404) — pluginval sigue siendo
     la herramienta canónica de validación VST3 en CI.
+- ✅ **Job `hw-dump-validate`** en `.github/workflows/hardware-dump-validate.yml`
+  (ubuntu-latest, timeout 10 min): validación **OFFLINE** (sin hardware) de los
+  dumps commiteados del DM12 (`resources/hardware_dumps/2026-08-10/`, 8 bancos)
+  vía `node scripts/hw_bank_dump.js --validate-committed --check-payloads` — NO
+  abre MIDI; verifica por banco A-H: **tamaño canónico 37248 B** (128 × 291),
+  **SHA-256 == `manifest.json` `rawSha256`** (los dumps no se han tocado) y **diffs
+  de payload (10..-3) vs corpus == `manifest.banks[X].payloadDiffPrograms`** —
+  incluye la divergencia conocida **B/1 → known_exception** (2 bytes en offsets
+  281/283, registrada en el manifest). Falla con `::error::hw-dump-validate` si
+  manifest, dumps o corpus divergen. Resultado verificado: **8/8 bancos
+  consistentes, exit 0**.
 - 🔎 **Verificación documental** (`.github/workflows/docs-verification.yml`, job
-  `docs-verification`): comprueba que los 12 jobs de Fase 7 del plan
+  `docs-verification`): comprueba que los 13 jobs de Fase 7 del plan
   (`implementation_plan architecture.md`, sección «Fase 7») coinciden con esta
   sección y que cada job tiene su workflow real (`scripts/verify_docs_ci_jobs.js`)
   — falla con `::error::docs-verification` ante cualquier divergencia plan ↔ doc.
@@ -384,7 +395,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
 ### ✅ Completadas
 
 0. **Fase 0 — Inventario, Baseline y Perfilado (Pre-requisito):** este documento es la
-   baseline exacta exigida por el plan — suites (104 files / 4712 tests WebUI + 126 suites /
+   baseline exacta exigida por el plan — suites (105 files / 4718 tests WebUI + 126 suites /
    3.689.164 assertions C++), cobertura (§2), hashes A–H (§4 + `schemas/corpus-hashes.json`,
    verificados por el job `roundtrip-corpus` con `--check-hashes`), percentiles
    p95/p99/p999 de `processBlock()` en µs (§5.3, presupuesto DEFINITIVO desde runner
@@ -433,7 +444,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
    en `bridge-dual.js`). 93 fuentes migradas mecánicamente (0 refs residuales a
    `window.dualMidiBridge`), setup de vitest con fallback para tests que stubbean el
    alias, y `bridgeAliasDeprecation.test.js` (acceso canónico + dedup del aviso).
-   Baseline WebUI actualizada a 104 files / 4712 tests.
+   Baseline WebUI actualizada a 105 files / 4718 tests.
 
 ### ⏳ Pendientes
 

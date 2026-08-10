@@ -11,9 +11,9 @@
 | Área | Estado |
 |------|--------|
 | Fases 0–7 del plan | ✅ **Todas completadas** (27/27 checkboxes `[x]`) |
-| Fase 7 — Pipeline CI/CD | ✅ **12 jobs implementados y documentados** (anti-drift `docs-verification`) |
+| Fase 7 — Pipeline CI/CD | ✅ **13 jobs implementados y documentados** (anti-drift `docs-verification`) |
 | Nivel 3b (hardware-in-the-loop) | 🟡 Fases A–D + **dumps completos A–H** (1024 presets, 1023/1024 payload-identicos; B/1 known_exception); cierre A–E pendiente |
-| Suites WebUI | ✅ **104 files / 4712 tests** (4710 passed, 2 skipped, 0 fallos) · ESLint 0/0 |
+| Suites WebUI | ✅ **105 files / 4718 tests** (4715 passed, 2 skipped, 0 fallos) · ESLint 0/0 |
 | Suite C++ | ✅ **126 suites / 3.689.168 assertions / 0 fallos** |
 | Invariantes tiempo real | ✅ 0 allocs/bloque · 0 overruns · p95/p99/p999 bajo presupuesto |
 
@@ -30,19 +30,20 @@
 | **4 — Batería round-trip** | `roundtrip_equality.js` (Nivel 1/2/3a + `fuzzRoundTrip` acotado) + `scripts/roundtrip_corpus.js` + `scripts/fuzz_roundtrip.js` | Jobs `fase4-corpus` (1024/1024) + `property-fuzzing` (8.000 casos) + **Nivel 3b en curso** |
 | **5 — Tiempo real WASM** | `WasmBridge.cpp` con `std::array` + `ParameterIndex` (0 lookup por string) + `ModelCapabilities` (dm12_hardware vs abyssmind_pro) | Job `wasm-build` (Memory ≥32 MiB, ≥9 exports, preasignación) |
 | **6 — Retirada legacy** | `Logger.deprecation()` (fuera de audio) + `getBridge()` canónico (93 fuentes migradas, 0 refs a `window.dualMidiBridge`) | `bridgeAliasDeprecation.test.js` + `logger.test.js` |
-| **7 — Pipeline CI/CD** | 12 workflows (`dsp-ci`, `webui-ci`, `roundtrip-corpus`, `property-fuzzing`, `registry-generation`, `schema-validation`, `security-scan`, `wasm-build`, `pluginval`, `docs-verification`, + auxiliares) | Job `docs-verification` (plan ↔ baseline ↔ workflows) |
+| **7 — Pipeline CI/CD** | 13 workflows (`dsp-ci`, `webui-ci`, `roundtrip-corpus`, `property-fuzzing`, `registry-generation`, `schema-validation`, `security-scan`, `wasm-build`, `pluginval`, `hardware-dump-validate`, `docs-verification`, + auxiliares) | Job `docs-verification` (plan ↔ baseline ↔ workflows) |
 
 ---
 
-## 3. Los 12 jobs de Fase 7
+## 3. Los 13 jobs de Fase 7
 
 | Job | Workflow | Qué valida |
 |-----|----------|-----------|
 | `schema-validation` | schema-validation.yml | `.gen` commiteados == fuentes (validate_and_generate.ps1) |
 | `registry-generation` | registry-generation.yml | generador puro, 4 artefactos regenerados sin diffs |
-| `vitest` + lint | webui-ci.yml | 104 files / 4712 tests + ESLint 0/0 |
+| `vitest` + lint | webui-ci.yml | 105 files / 4718 tests + ESLint 0/0 |
 | `cpp-unit-tests` | dsp-ci.yml (job `build-and-test`) | 126 suites / 3.689.168 assertions |
 | `roundtrip-corpus` | roundtrip-corpus.yml | 8 bancos A–H (1024 presets) + SHA-256 (`--check-hashes`) |
+| `hw-dump-validate` | hardware-dump-validate.yml | dumps commiteados == manifest + corpus (offline, B/1 known_exception) |
 | `fase4-corpus` | roundtrip-corpus.yml | 3 niveles sobre el corpus (804 exact · 210 canonical · 10 semantic) |
 | `allocation-audit` | dsp-ci.yml | 0 allocs/bloque en idle/poly12/max_all |
 | `benchmark` | dsp-ci.yml | 18 escenarios × 3 repeticiones (windows-2022) |
@@ -71,7 +72,7 @@
 ## 5. Validación local (comandos)
 
 ```bash
-npm test                                  # WebUI: 104 files / 4712 tests
+npm test                                  # WebUI: 105 files / 4718 tests
 npx eslint . --max-warnings 0             # 0 errores / 0 warnings
 node scripts/verify_docs_ci_jobs.js       # plan ↔ baseline ↔ workflows (exit 0)
 node scripts/roundtrip_corpus.js          # batería round-trip A–H (1024 presets)

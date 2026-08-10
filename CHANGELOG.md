@@ -4,6 +4,29 @@
 
 ---
 
+## 0.2.44 — Job CI hw-dump-validate (validación offline de dumps commiteados)
+
+- **`scripts/hw_bank_dump.js`**: nuevo modo `--validate-committed` (OFFLINE, sin
+  MIDI): valida los dumps commiteados (`resources/hardware_dumps/`, auto-detección
+  del directorio más reciente o `--out`) contra su `manifest.json` (tamaño canónico
+  37248 B = 128 × 291 y SHA-256 == `rawSha256`) y contra el corpus de fábrica (diffs
+  de payload 10..-3 == `manifest.banks[X].payloadDiffPrograms`, incluyendo la
+  divergencia conocida B/1 → known_exception). Exit 0/1 + `::error::hw-dump-validate`
+  + reporte `--json` con marker `---JSON---`.
+- **Nuevo job CI `hw-dump-validate`** (`.github/workflows/hardware-dump-validate.yml`,
+  ubuntu-latest, sin hardware): ejecuta `node scripts/hw_bank_dump.js --validate-committed
+  --check-payloads` en cada PR que toque el harness, los dumps, el corpus o los hashes —
+  falla si manifest, dumps o corpus divergen. Fase 7 pasa de 12 a **13 jobs**.
+- **Contrato de jobs actualizado a 13**: `verify_docs_ci_jobs.js` (EXPECTED_JOBS /
+  JOB_WORKFLOWS / JOB_WORKFLOW_JOBS), `docs-verification.yml`, plan Fase 7 y
+  `baseline_fase0_v32.md` §7 + `plan_v32_resumen_ejecutivo.md` (tabla §3).
+- **Tests**: `WebUI/tests/hwDumpValidate.test.js` (6 tests): exit 0 con 8/8 bancos
+  consistentes, reporte `--json`, invariante B/1 known_exception, auto-detección,
+  banco manipulado → exit 1 y manifest ausente → exit 1.
+- Baseline WebUI actualizada a 105 files / 4718 tests.
+
+---
+
 ## 0.2.43 — Test de esquema del reporte Nivel 3b + baseline actualizada
 
 - `WebUI/tests/nivel3bReportSchema.test.js` (24 tests): valida el esquema de

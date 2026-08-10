@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * @file verify_docs_ci_jobs.js
- * @purpose Verificación documental de Fase 7 (plan v3.2 §7) — contrato de los 12 jobs CI.
+ * @purpose Verificación documental de Fase 7 (plan v3.2 §7) — contrato de los 13 jobs CI.
  *
- * Comprueba que los 12 jobs de Fase 7 listados en el plan
+ * Comprueba que los 13 jobs de Fase 7 listados en el plan
  * (`implementation_plan architecture.md`, sección `### Fase 7: Pipeline CI/CD Reproducible`)
  * COINCIDEN con los documentados en `docs/baseline_fase0_v32.md` §7
  * (`## 7. CI — estado de Fase 7`), y que cada job tiene un workflow real en
@@ -38,7 +38,7 @@ const fs = require('fs');
 const path = require('path');
 
 // ────────────────────────────────────────────────────────────────────────────
-// Contrato canónico: los 12 jobs de Fase 7 (plan v3.2 §7).
+// Contrato canónico: los 13 jobs de Fase 7 (plan v3.2 §7).
 // Fuente de verdad — un job NUEVO debe añadirse AQUÍ + como bullet
 // `- [x] Job \`<nombre>\`` en el plan + como bullet `- ✅ **Job \`<nombre>\`**`
 // en baseline_fase0_v32.md §7, o el job docs-verification falla.
@@ -48,6 +48,7 @@ const EXPECTED_JOBS = [
   'benchmark',
   'cpp-unit-tests',
   'fase4-corpus',
+  'hw-dump-validate',
   'pluginval',
   'property-fuzzing',
   'registry-generation',
@@ -65,6 +66,7 @@ const JOB_WORKFLOWS = {
   benchmark: 'dsp-ci.yml',
   'cpp-unit-tests': 'dsp-ci.yml',
   'fase4-corpus': 'roundtrip-corpus.yml',
+  'hw-dump-validate': 'hardware-dump-validate.yml',
   pluginval: 'pluginval.yml',
   'property-fuzzing': 'property-fuzzing.yml',
   'registry-generation': 'registry-generation.yml',
@@ -83,6 +85,7 @@ const JOB_WORKFLOW_JOBS = {
   benchmark: ['benchmark'],
   'cpp-unit-tests': ['build-and-test'],
   'fase4-corpus': ['fase4-corpus'],
+  'hw-dump-validate': ['hw-dump-validate'],
   pluginval: ['pluginval'],
   'property-fuzzing': ['property-fuzzing'],
   'registry-generation': ['registry-generation'],
@@ -344,14 +347,14 @@ function main() {
 function finish(report, wantJson, exitCode) {
   const lines = [
     '='.repeat(64),
-    '📄 DOCS VERIFICATION (Fase 7 §7) — 12 jobs del plan vs baseline',
+    '📄 DOCS VERIFICATION (Fase 7 §7) — 13 jobs del plan vs baseline',
     '='.repeat(64),
     'Plan (Job bullets): ' + (report.planJobs.length > 0 ? report.planJobs.join(', ') : '—'),
     'Baseline §7 (Job bullets): ' + (report.baselineJobs.length > 0 ? report.baselineJobs.join(', ') : '—'),
   ];
 
   if (report.ok) {
-    lines.push('\n✅ OK — los 12 jobs de Fase 7 del plan coinciden con baseline_fase0_v32.md §7, tienen workflow real y sus bullets mencionan el workflow correcto.');
+    lines.push('\n✅ OK — los 13 jobs de Fase 7 del plan coinciden con baseline_fase0_v32.md §7, tienen workflow real y sus bullets mencionan el workflow correcto.');
   } else {
     lines.push('\n❌ Violaciones:');
     for (const p of report.problems) {

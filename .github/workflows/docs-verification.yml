@@ -1,7 +1,7 @@
 name: Docs Verification CI
 
 # docs-verification — verificación documental de Fase 7 (plan v3.2 §7).
-# Comprueba que los 12 jobs CI listados en el plan (`implementation_plan
+# Comprueba que los 13 jobs CI listados en el plan (`implementation_plan
 # architecture.md`, sección "### Fase 7: Pipeline CI/CD Reproducible") COINCIDEN
 # con los documentados en `docs/baseline_fase0_v32.md` §7 ("## 7. CI — estado de
 # Fase 7") y que cada job tiene su workflow real en .github/workflows/.
@@ -52,12 +52,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Verify the 12 Fase 7 jobs in the plan match baseline §7
+      - name: Verify the 13 Fase 7 jobs in the plan match baseline §7
         run: |
           # `if ! cmd` no dispara set -e (los comandos en condiciones están
           # exentos), así que el ::error:: sí se imprime antes del exit 1.
           if ! node scripts/verify_docs_ci_jobs.js; then
-            echo "::error::Los 12 jobs de Fase 7 del plan no coinciden con baseline_fase0_v32.md §7 (o falta un workflow real). Revisa scripts/verify_docs_ci_jobs.js --json para el detalle."
+            echo "::error::Los 13 jobs de Fase 7 del plan no coinciden con baseline_fase0_v32.md §7 (o falta un workflow real). Revisa scripts/verify_docs_ci_jobs.js --json para el detalle."
             exit 1
           fi
-          echo "OK — los 12 jobs de Fase 7 del plan coinciden con baseline_fase0_v32.md §7 y tienen workflow real."
+          echo "OK — los 13 jobs de Fase 7 del plan coinciden con baseline_fase0_v32.md §7 y tienen workflow real."

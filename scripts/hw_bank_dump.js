@@ -13,6 +13,16 @@
  *   node scripts/hw_bank_dump.js --check-hashes     # + comparar SHA-256 con schemas/corpus-hashes.json
  *   node scripts/hw_bank_dump.js --out tmp/hw       # directorio de salida
  *   node scripts/hw_bank_dump.js --json             # reporte JSON en stdout
+ *   node scripts/hw_bank_dump.js --validate-committed [--out dir]  # OFFLINE (sin hardware): valida los
+ *                                            dumps commiteados contra manifest.json y el corpus
+ *
+ * Modo validación (--validate-committed): NO abre MIDI. Lee los .syx ya
+ * commiteados en resources/hardware_dumps/ (o --out) y verifica que sigan
+ * consistentes con su manifest.json (tamaño canónico 128×291 B y SHA-256) y con
+ * el corpus de fábrica (diffs de payload 10..-3 == manifest.banks[X].payloadDiffPrograms,
+ * incluyendo la divergencia conocida B/1 → known_exception). Útil en CI sin hardware.
+ * NOTA: en este modo el chequeo de payload es INCONDICIONAL (es el núcleo de la
+ * validación); `--check-payloads` se acepta por simetría CLI pero no añade nada.
  *
  * Formato del request (idéntico a `requestBankDump` de la WebUI):
  *   F0 00 20 32 20 <devId> 01 <bank> <prog> F7     (01 = Program Dump Request)
@@ -34,13 +44,14 @@ function parseArgs() {
   const args = process.argv.slice(2);
   // devId por defecto 0x00: este DM12 responde a su Device ID configurado (0, el
   // mismo del MCP), NO a broadcast 0x7F (verificado en vivo 2026-08-10).
-  const opts = { banks: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], out: null, checkHashes: false, checkPayloads: false, wantJson: false, devId: 0x00, normalizeDev: null, spacingMs: 35, perBankTimeoutMs: 20000, maxSweeps: 3 };
+  const opts = { banks: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], out: null, checkHashes: false, checkPayloads: false, wantJson: false, validateCommitted: false, devId: 0x00, normalizeDev: null, spacingMs: 35, perBankTimeoutMs: 20000, maxSweeps: 3 };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--banks') { opts.banks = String(args[++i]).split(',').map((s) => s.trim().toUpperCase()); }
     else if (a === '--out') { opts.out = path.resolve(args[++i]); }
     else if (a === '--check-hashes') { opts.checkHashes = true; }
     else if (a === '--check-payloads') { opts.checkPayloads = true; }
+    else if (a === '--validate-committed') { opts.validateCommitted = true; }
     else if (a === '--json') { opts.wantJson = true; }
     else if (a === '--dev') { opts.devId = parseInt(args[++i], 16); }
     else if (a === '--normalize-dev') { opts.normalizeDev = parseInt(args[++i], 16); }
@@ -54,7 +65,7 @@ function parseArgs() {
 }
 
 function usage() {
-  console.error('Uso: node scripts/hw_bank_dump.js [--banks A,B] [--out dir] [--check-hashes] [--check-payloads] [--normalize-dev 7F] [--dev 0] [--json]');
+  console.error('Uso: node scripts/hw_bank_dump.js [--banks A,B] [--out dir] [--check-hashes] [--check-payloads] [--normalize-dev 7F] [--dev 0] [--json] | --validate-committed [--out dir] [--json]');
 }
 
 // ── MIDI ────────────────────────────────────────────────────────────────────
@@ -169,10 +180,135 @@ function normalizeDeviceId(syx, devId) {
 function sha256(buf) { return crypto.createHash('sha256').update(buf).digest('hex'); }
 function hash0(h) { return String(h).slice(0, 12); }
 
+// ── Validación offline de dumps commiteados (sin hardware) ─────────────────
+
+/** Directorio de dumps más reciente bajo DEFAULT_OUT_ROOT (formato YYYYMMDD o YYYY-MM-DD). */
+function findLatestDumpDir() {
+  if (!fs.existsSync(DEFAULT_OUT_ROOT)) { return null; }
+  const dirs = fs.readdirSync(DEFAULT_OUT_ROOT)
+    .filter((d) => /^\d{8}$/.test(d) || /^\d{4}-\d{2}-\d{2}$/.test(d))
+    .map((d) => ({ d, key: d.replace(/-/g, '') }))
+    .filter((x) => fs.statSync(path.join(DEFAULT_OUT_ROOT, x.d)).isDirectory())
+    .sort((a, b) => a.key.localeCompare(b.key));
+  return dirs.length > 0 ? path.join(DEFAULT_OUT_ROOT, dirs[dirs.length - 1].d) : null;
+}
+
+/**
+ * Modo --validate-committed: valida dumps ya commiteados SIN abrir MIDI.
+ *
+ * Verifica por banco A-H: (1) el archivo .syx existe con el tamaño canónico
+ * 37248 B (128 × 291), (2) su SHA-256 coincide con manifest.json `rawSha256`
+ * (los dumps NO se han modificado respecto al manifest commiteado) y (3) los
+ * diffs de payload (10..-3) vs el corpus de fábrica coinciden EXACTAMENTE con
+ * `manifest.banks[X].payloadDiffPrograms` (incluye la divergencia conocida
+ * B/1 → known_exception). Exit 0 = manifest, dumps y corpus consistentes.
+ */
+async function validateCommitted({ out, banks, wantJson }) {
+  const report = { tool: 'hw_bank_dump', mode: 'validate-committed', banks: [], errors: [], ok: true };
+
+  const dumpDir = out || findLatestDumpDir();
+  if (!dumpDir) {
+    report.errors.push(`no se encontró ningún directorio de dumps bajo ${DEFAULT_OUT_ROOT} (usa --out)`);
+    report.ok = false;
+    if (wantJson) { emitJson(report); }
+    return report;
+  }
+
+  const manifestPath = path.join(dumpDir, 'manifest.json');
+  let manifest = null;
+  try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); }
+  catch (e) { report.errors.push(`manifest.json ilegible (${manifestPath}): ${e.message}`); report.ok = false; }
+  if (!manifest) {
+    if (wantJson) { emitJson(report); }
+    return report;
+  }
+
+  const corpusDir = path.resolve(__dirname, '..', 'resources', 'banks', 'Factory Banks V1.1.2');
+  const canonicalSize = 128 * 291; // 37248 B
+
+  for (const bankLetter of banks) {
+    const filePath = path.join(dumpDir, `Synth Bank ${bankLetter}.syx`);
+    const entry = { bank: bankLetter, file: filePath, consistent: false };
+    report.banks.push(entry);
+
+    if (!fs.existsSync(filePath)) {
+      report.errors.push(`${bankLetter}: dump no encontrado (${filePath})`);
+      report.ok = false;
+      continue;
+    }
+    const hwBuf = fs.readFileSync(filePath);
+    entry.size = hwBuf.length;
+    entry.sha256 = sha256(hwBuf);
+
+    const m = manifest.banks && manifest.banks[bankLetter];
+    const sizeOk = hwBuf.length === canonicalSize;
+    const hashOk = Boolean(m) && entry.sha256 === m.rawSha256;
+    entry.sizeOk = sizeOk;
+    entry.hashMatch = hashOk;
+
+    // Payload 10..-3 vs corpus — debe coincidir con lo registrado en el manifest.
+    const corpusPath = path.join(corpusDir, `Synth Bank ${bankLetter}.syx`);
+    const diffPrograms = [];
+    if (!fs.existsSync(corpusPath)) {
+      entry.payloadConsistent = false;
+      entry.consistent = false;
+      report.errors.push(`${bankLetter}: corpus no encontrado (${corpusPath})`);
+      report.ok = false;
+      continue;
+    }
+    const corpusBuf = fs.readFileSync(corpusPath);
+    for (let p = 0; p < 128; p++) {
+      const a = corpusBuf.subarray(p * 291 + 10, (p + 1) * 291 - 3);
+      const c = hwBuf.subarray(p * 291 + 10, (p + 1) * 291 - 3);
+      let d = 0;
+      for (let i = 0; i < a.length; i++) { if (a[i] !== c[i]) { d++; } }
+      if (d > 0) { diffPrograms.push({ prog: p, diffBytes: d }); }
+    }
+    entry.payloadDiffPrograms = diffPrograms;
+
+    const expected = (m && m.payloadDiffPrograms) || [];
+    const payloadOk = JSON.stringify(diffPrograms) === JSON.stringify(expected);
+    entry.payloadConsistent = payloadOk;
+    entry.consistent = sizeOk && hashOk && payloadOk;
+
+    const status = entry.consistent ? '✅' : '⚠️';
+    const why = [
+      sizeOk ? '' : 'size',
+      hashOk ? '' : 'hash',
+      payloadOk ? '' : 'payload',
+    ].filter(Boolean).join('+');
+    console.log(`  ${status} ${bankLetter}: ${hwBuf.length} B · SHA-256 ${hash0(entry.sha256)} · payload diffs ${diffPrograms.length}${why ? ' — INCONSISTENTE (' + why + ')' : ''}`);
+    if (!entry.consistent) {
+      report.errors.push(`${bankLetter}: inconsistencia (${why})`);
+      report.ok = false;
+    }
+  }
+
+  console.log(`📁 Validación de dumps commiteados: ${dumpDir}`);
+  if (wantJson) { emitJson(report); }
+  return report;
+}
+
+/** Emite el reporte JSON con el marker canónico `---JSON---` (patrón roundtrip_corpus.js). */
+function emitJson(report) {
+  process.stdout.write('\n---JSON---\n' + JSON.stringify(report, null, 2) + '\n');
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
   const opts = parseArgs();
+
+  // Modo offline: sin MIDI, valida los dumps commiteados vs manifest + corpus.
+  if (opts.validateCommitted) {
+    const report = await validateCommitted({ out: opts.out, banks: opts.banks, wantJson: opts.wantJson });
+    if (!report.ok) {
+      for (const e of report.errors) { console.error(`::error::hw-dump-validate — ${e}`); }
+    }
+    process.exitCode = report.ok ? 0 : 1;
+    return;
+  }
+
   const report = { tool: 'hw_bank_dump', banks: [], errors: [], ok: true };
 
   const outDir = opts.out || path.join(DEFAULT_OUT_ROOT, new Date().toISOString().slice(0, 10).replace(/-/g, ''));

@@ -1,0 +1,68 @@
+name: Hardware Dump Validation CI
+
+# hw-dump-validate — validación OFFLINE (sin hardware) de los dumps commiteados
+# del DM12 (Nivel 3b E-1). Ejecuta `scripts/hw_bank_dump.js --validate-committed`
+# que NO abre MIDI: lee los .syx ya commiteados en resources/hardware_dumps/ y
+# verifica por banco A-H que sigan consistentes con su manifest.json (tamaño
+# canónico 37248 B = 128×291 y SHA-256 == rawSha256) y con el corpus de fábrica
+# (diffs de payload 10..-3 == manifest.banks[X].payloadDiffPrograms, incluyendo
+# la divergencia conocida B/1 → known_exception). Falla si el manifest, los
+# dumps o el corpus divergen entre sí en cualquier PR.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/hw_bank_dump.js"
+      - "resources/hardware_dumps/**"
+      - "resources/banks/**"
+      - "schemas/corpus-hashes.json"
+      - ".github/workflows/hardware-dump-validate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/hw_bank_dump.js"
+      - "resources/hardware_dumps/**"
+      - "resources/banks/**"
+      - "schemas/corpus-hashes.json"
+      - ".github/workflows/hardware-dump-validate.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hardware-dump-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hw-dump-validate:
+    name: Validate committed dumps vs manifest + corpus (no hardware)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate committed hardware dumps (manifest ↔ corpus consistency)
+        run: |
+          # `if ! cmd` no dispara set -e (los comandos en condiciones están
+          # exentos), así que el ::error:: del script sí se imprime antes del
+          # exit 1 (mismo patrón que registry-generation/docs-verification).
+          # En --validate-committed el chequeo de payload es incondicional (el
+          # flag --check-payloads se pasa por simetría CLI); sin --out se auto-
+          # detecta el directorio de dumps más reciente bajo resources/hardware_dumps/.
+          if ! node scripts/hw_bank_dump.js --validate-committed --check-payloads; then
+            echo "::error::hw-dump-validate — los dumps commiteados divergen de manifest.json o del corpus. Revisa el reporte --json (node scripts/hw_bank_dump.js --validate-committed --json)."
+            exit 1
+          fi
+          echo "OK — los dumps commiteados coinciden con manifest.json y el corpus de fábrica (B/1 known_exception incluida)."
