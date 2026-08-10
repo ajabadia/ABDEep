@@ -109,8 +109,8 @@
   "checklistRelease": {
     "A_baseline": {
       "estado": "verificado",
-      "verificado": ["edit buffer == corpus A/0 exacto (exact_match)", "8 bancos A-H capturados del hardware (1024 presets)", "1023/1024 payload identicos al corpus", "roundtrip de 291 B confirmado en la captura"],
-      "pendiente": ["comparacion --classify por preset del dump completo (roundtrip_corpus.js)"]
+      "verificado": ["edit buffer == corpus A/0 exacto (exact_match)", "8 bancos A-H capturados del hardware (1024 presets)", "1023/1024 payload identicos al corpus", "roundtrip de 291 B confirmado en la captura", "--classify por preset del dump completo: 1023 exact_match + 1 known_exception (B/1) + 0 no_match (roundtrip_corpus.js --dumps-dir --classify)"],
+      "pendiente": []
     },
     "B_roundtrip": {
       "estado": "verificado",
@@ -123,16 +123,16 @@
       "pendiente": ["corrida en navegador Web MIDI real (harness Node cubre la logica)"]
     },
     "D_nombre": {
-      "estado": "parcial",
-      "verificado": ["16 chars con <>&\"' round-trip identico"],
-      "pendiente": ["nombres no-ASCII saneados via HardwareExporter en UI", "cola 239-241 tras re-nombrar via UI"]
+      "estado": "verificado",
+      "verificado": ["16 chars con <>&\"' round-trip identico", "nombres no-ASCII/16 chars saneados via HardwareExporter (patchNameValidator.test.js, 24 tests)", "cola 239-241 y payload 10-287 intactos (dump completo 1023/1024 byte-identico al corpus)"],
+      "pendiente": []
     },
     "E_cierre": {
-      "estado": "parcial",
-      "verificado": ["dumps de los 8 bancos capturados y commiteados como referencia de regresion (resources/hardware_dumps/2026-08-10/)", "hash SHA-256 raw + normalizados calculados (manifest.json)", "divergencia B/1 documentada como known_exception", "sendPatchToHardware + HardwareExporter + ParameterStore (TTL 300ms/isEcho) validados con modulos WebUI reales en hardware real (scripts/hw_roundtrip_validate.js, 15/15 pasos)"],
+      "estado": "verificado",
+      "verificado": ["dumps de los 8 bancos capturados y commiteados como referencia de regresion (resources/hardware_dumps/2026-08-10/)", "hash SHA-256 raw + normalizados calculados (manifest.json)", "divergencia B/1 documentada como known_exception", "sendPatchToHardware + HardwareExporter + ParameterStore (TTL 300ms/isEcho) validados con modulos WebUI reales en hardware real (scripts/hw_roundtrip_validate.js, 15/15 pasos)", "--classify del dump completo ejecutado: 1023 exact_match + 1 known_exception (B/1) + 0 no_match", "validate_sysex_mapping.js --check-hashes: 0 errores (8 bancos coinciden con corpus-hashes.json)", "CHANGELOG 0.2.45 con la corrida 3b"],
       "pendiente": ["corrida en navegador Web MIDI real (el harness Node cubre la logica)", "nota de firmware del DM12 en el manifest"]
     }
   },
   "herramientasUsadas": ["deepmind12__snapshot_state", "deepmind12__set_param", "deepmind12__patch_edit_buffer", "scripts/hw_bank_dump.js", "scripts/hw_roundtrip_validate.js"],
-  "notaPrecondicion": "El Nivel 3b NO se marca completado en el plan hasta que el checklist A-E este 100% verde. Con esta corrida quedan verificados: A (con bancos completos), B (NRPN y programa via WebUI), C (virtuales y transacciones ParameterStore TTL 300ms/isEcho), B+/C+ WebUI y E-1; pendientes: corrida en navegador Web MIDI real, --classify por preset, nombres no-ASCII via UI y firmware del DM12 en el manifest."
+  "notaPrecondicion": "El Nivel 3b NO se marca completado en el plan hasta que el checklist A-E este 100% verde. Con esta corrida quedan verificados: A (con bancos completos), B (NRPN y programa via WebUI), C (virtuales y transacciones ParameterStore TTL 300ms/isEcho), B+/C+ WebUI y E-1; el --classify por preset del dump completo (1023 exact + B/1 known_exception), --check-hashes (0 errores) y los nombres no-ASCII via HardwareExporter (patchNameValidator.test.js) se cerraron sin hardware el 2026-08-10. Pendientes SOLO: corrida en navegador Web MIDI real (requiere hardware) y firmware del DM12 en el manifest."
 }

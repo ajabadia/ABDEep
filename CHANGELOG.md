@@ -4,6 +4,26 @@
 
 ---
 
+## 0.2.45 — Nivel 3b: cierre de checkboxes sin hardware (--classify dump + --check-hashes + D)
+
+- **`scripts/roundtrip_corpus.js`**: nuevo modo `--dumps-dir <dir> [--classify]`
+  (Nivel 3b): clasifica los dumps del HARDWARE contra el corpus de fábrica con
+  `hardwareCanonicalEqual`, leyendo las **known_exceptions del `manifest.json`** del
+  directorio (B/1 → `known_exception`, prioridad sobre exact). Fast-path por posición
+  declarada (O(n) en vez de O(n²)): pre-check exact + known_exception antes del scan.
+  Resultado verificado: **1023 exact_match + 1 known_exception (B/1) + 0 no_match**.
+- **Checklist Nivel 3b §4 cerrado sin hardware**: `validate_sysex_mapping.js
+  --check-hashes` (0 errores, 8 bancos OK) y `--classify` del dump completo ✅;
+  sección D (nombres no-ASCII/16 chars + cola 239–241) ✅ vía `patchNameValidator.test.js`
+  (24 tests) y payload del dump byte-idéntico. Pendiente solo la corrida en navegador
+  Web MIDI real (requiere hardware) y el firmware del DM12 en el manifest.
+- **Tests**: `roundtripCorpusScript.test.js` +4 (modo dumps: 1023/1024+known_exception,
+  B/1 del manifest, sin manifest → semantic_match, preset manipulado → no_match exit 1).
+- **Reporte 3b actualizado**: `docs/reports/nivel3b-20260810.json` — A_baseline/D_nombre/
+  E_cierre a `verificado` (checklist A–E casi 100 %; únicos pendientes: navegador + firmware).
+
+---
+
 ## 0.2.44 — Job CI hw-dump-validate (validación offline de dumps commiteados)
 
 - **`scripts/hw_bank_dump.js`**: nuevo modo `--validate-committed` (OFFLINE, sin

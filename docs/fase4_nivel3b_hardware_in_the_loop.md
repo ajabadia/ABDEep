@@ -156,9 +156,14 @@ forma más rápida de re-ejecutar la batería con el hardware conectado al naveg
       normalizado (dev→7F) coincide **exacto en A**; B–H divergen solo por el bank byte
       `00` del corpus (quirk de exportación) → paridad significativa = payload
       (**1023/1024 idénticos**, B/1 = known_exception; ver `resources/hardware_dumps/2026-08-10/manifest.json`).
-- [ ] `node scripts/roundtrip_corpus.js --classify` contra el corpus: **0 errores**; toda
+- [x] `node scripts/roundtrip_corpus.js --classify` contra el corpus: **0 errores**; toda
       desviación clasificada (`exact`/`canonical`/`semantic`) y documentada.
-- [ ] `node scripts/validate_sysex_mapping.js --check-hashes` → 0 errores / 0 warnings.
+      Self-match del corpus: 804 exact · 210 canonical · 10 semantic (0 errores).
+      **Dump completo**: `node scripts/roundtrip_corpus.js --dumps-dir resources/hardware_dumps/2026-08-10 --classify`
+      → **1023 exact_match + 1 known_exception (B/1) + 0 no_match** (las known_exceptions
+      se leen del `manifest.json` del directorio — divergencias `clasificacion: known_exception`).
+- [x] `node scripts/validate_sysex_mapping.js --check-hashes` → 0 errores / 0 warnings.
+      Verificado 2026-08-10: los 8 bancos coinciden con `schemas/corpus-hashes.json`.
 
 ### B. Round-trip de programa
 
@@ -168,8 +173,9 @@ forma más rápida de re-ejecutar la batería con el hardware conectado al naveg
       `transport=true patch=true mismatches=0`.
 - [x] `rawCodecEqual` (Nivel 1) igual tras el round-trip; `semanticEqual` (Nivel 2) sin
       mismatches fuera de tolerancia. Verificado a nivel de transporte (repack 278/278
-      idéntico + payload 242/242 byte-idéntico). Pendiente la clasificación formal por
-      preset con `--classify` del dump completo.
+      idéntico + payload 242/242 byte-idéntico). Clasificación formal por preset del
+      dump completo en `--dumps-dir --classify` (1023 exact + B/1 known_exception, 0
+      no_match).
 - [x] `HardwareExporter` no muta `patch.name`/`patch.unpackedBytes` al exportar.
       Verificado: `prepareForSysEx` devuelve copia con Uint8Array nuevo; bytes 223–238
       del original intactos tras exportar.
@@ -197,9 +203,15 @@ forma más rápida de re-ejecutar la batería con el hardware conectado al naveg
 
 ### D. Nombre y región reservada
 
-- [ ] Nombres de 16 chars ASCII redondean 223–238 correctamente (dump de vuelta idéntico).
-- [ ] Nombres inválidos (no-ASCII, >16) saneados sin corromper el preset.
-- [ ] Cola 239–241 y payload 10–287 intactos tras re-nombrar.
+- [x] Nombres de 16 chars ASCII redondean 223–238 correctamente (dump de vuelta idéntico).
+      Verificado con `Hi<>&"'ABCDEFGHI` (16 chars, round-trip byte a byte) y el
+      `HardwareExporter` (`patchNameValidator.test.js`: export de 16 chars en 223–238).
+- [x] Nombres inválidos (no-ASCII, >16) saneados sin corromper el preset.
+      `patchNameValidator.test.js`: rechaza no-ASCII, sanitize recorta/limita a 16 chars,
+      `HardwareExporter` descarta no-ASCII (24 tests verdes).
+- [x] Cola 239–241 y payload 10–287 intactos tras re-nombrar.
+      Payload del dump completo byte-idéntico al corpus (1023/1024) y B/1 conocido —
+      la región 223–241 no se altera por el nombre (`HardwareExporter` no muta el modelo).
 
 ### E. Cierre
 
@@ -208,8 +220,10 @@ forma más rápida de re-ejecutar la batería con el hardware conectado al naveg
       hashes SHA-256).
 - [x] Desviaciones documentadas (B/1 = `known_exception`, offsets 281/283 `00`→`20`,
       estable en 2 corridas) en el reporte `docs/reports/nivel3b-20260810.json` +
-      manifest. Pendiente: `--classify` por preset del dump completo.
-- [ ] CHANGELOG con la corrida 3b (fecha, firmware del DM12, resultado por fase).
+      manifest. **`--classify` por preset del dump completo ejecutado**: 1023 exact_match
+      + 1 known_exception (B/1) + 0 no_match (`roundtrip_corpus.js --dumps-dir --classify`).
+- [x] CHANGELOG con la corrida 3b (fecha, firmware del DM12, resultado por fase) —
+      entrada 0.2.45 (ver CHANGELOG.md).
 
 ---
 
@@ -252,10 +266,12 @@ solo lectura — no altera el estado del synth.
   **módulos WebUI reales** cargados en un harness Node conectado al hardware
   (`scripts/hw_roundtrip_validate.js`, 15/15 pasos OK, exit 0, JSON reproducible).
 - **Pendiente para el cierre ✅ del Nivel 3b** (checklist A–E 100 %):
-  1. `roundtrip_corpus.js --classify` sobre los dumps capturados (clasificación
-     exact/canonical/semantic/known_exception por preset — la divergencia B/1 es
-     candidata a `known_exception`).
+  1. ~~`roundtrip_corpus.js --classify` sobre los dumps capturados~~ — **cerrado**: modo
+     `--dumps-dir --classify` → 1023 exact + B/1 known_exception + 0 no_match.
   2. **WebUI en navegador** (Web MIDI real): misma validación B/C a través de la UI
-     (harness Node ya cubre la lógica; pendiente la corrida en el navegador).
-  3. Nombres **no-ASCII** saneados vía `HardwareExporter` y cola 239–241 intacta (UI).
+     (harness Node ya cubre la lógica; pendiente la corrida en el navegador — requiere
+     hardware + navegador).
+  3. ~~Nombres no-ASCII saneados vía `HardwareExporter` y cola 239–241 intacta~~ —
+     **cerrado sin hardware**: `patchNameValidator.test.js` (24 tests, no-ASCII/16 chars)
+     + payload del dump completo byte-idéntico (cola 239–241 intacta).
   4. Firmware del DM12 anotado en el manifest (requiere lectura del menú global del synth).

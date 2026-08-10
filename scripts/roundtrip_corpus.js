@@ -21,9 +21,16 @@
  *   node scripts/roundtrip_corpus.js --banks A,B     # solo bancos indicados
  *   node scripts/roundtrip_corpus.js --json          # reporte JSON en stdout
  *   node scripts/roundtrip_corpus.js --classify      # + tabla por preset (exact/canonical/semantic)
+ *   node scripts/roundtrip_corpus.js --dumps-dir <dir>  # clasifica dumps del HARDWARE
+ *                                            (Nivel 3b) contra el corpus de fábrica; la
+ *                                            clasificación es SIEMPRE activa en este modo
+ *                                            (--classify es un no-op); las known_exceptions
+ *                                            se leen del manifest.json del directorio
+ *                                            (p.ej. B/1) y tienen prioridad
  *   node scripts/roundtrip_corpus.js --out report.json
  *
- * Exit code: 0 = OK · 1 = errores (invariante roto, self-match fallido, banco ausente).
+ * Exit code: 0 = OK · 1 = errores (invariante roto, self-match fallido, banco ausente,
+ *             desviación sin clasificar en modo dumps).
  */
 
 const path = require('path');
@@ -73,7 +80,163 @@ function parseArgs() {
   const wantJson = args.includes('--json');
   const wantClassify = args.includes('--classify');
   const outFile = args.includes('--out') ? args[args.indexOf('--out') + 1] : null;
-  return { banks, wantJson, wantClassify, outFile };
+  const dumpsDir = args.includes('--dumps-dir') ? path.resolve(args[args.indexOf('--dumps-dir') + 1]) : null;
+  return { banks, wantJson, wantClassify, outFile, dumpsDir };
+}
+
+/**
+ * Carga las known_exceptions del manifest.json de un directorio de dumps
+ * (formato nivel3b: resumen.divergencias[] con clasificacion known_exception).
+ * Devuelve Array<{bank, prog, reason}> — el formato que espera RoundTripEquality.
+ */
+function loadKnownExceptionsFromManifest(dumpsDir) {
+  const manifestPath = path.join(dumpsDir, 'manifest.json');
+  if (!fs.existsSync(manifestPath)) { return []; }
+  let manifest = null;
+  try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); }
+  catch (e) { return []; }
+  const divergencias = (manifest.resumen && manifest.resumen.divergencias) || [];
+  const out = [];
+  for (const d of divergencias) {
+    if (d && d.clasificacion === 'known_exception' && d.banco && d.prog !== undefined) {
+      const offsets = Array.isArray(d.offsets) ? d.offsets.join(',') : '? ';
+      out.push({
+        bank: String(d.banco).toUpperCase(),
+        prog: Number(d.prog),
+        reason: `${d.diffBytes} bytes en offsets [${offsets}] (${d.factory}->${d.hw}) — known_exception registrada en manifest`,
+      });
+    }
+  }
+  return out;
+}
+
+// ────────────────────────────────────────────────────────────────
+// Modo dumps (Nivel 3b): clasificar dumps del HARDWARE vs corpus de fábrica
+// ────────────────────────────────────────────────────────────────
+
+function classifyDumps({ banks, dumpsDir, wantJson, outFile }) {
+  const report = {
+    schemaVersion: 1,
+    tool: 'roundtrip_corpus',
+    mode: 'dumps-vs-corpus',
+    generatedAt: new Date().toISOString(),
+    banks,
+    dumpsDir,
+    corpusSize: 0,
+    dumpsLoaded: 0,
+    knownExceptions: [],
+    classify: { byPreset: [], counts: { exact_match: 0, canonical_match: 0, semantic_match: 0, known_exception: 0, no_match: 0 } },
+    errors: [],
+  };
+
+  const corpus = RTE.loadCorpusFromBanks(BANKS_DIR, banks);
+  report.corpusSize = corpus.length;
+  const expected = banks.length * PRESETS_PER_BANK;
+  if (corpus.length !== expected) {
+    report.errors.push(`Corpus incompleto: ${corpus.length}/${expected} presets cargados de ${BANKS_DIR}`);
+    report.ok = false;
+    finishDumps(report, wantJson, outFile, 1);
+    return;
+  }
+
+  if (!fs.existsSync(dumpsDir)) {
+    report.errors.push(`Directorio de dumps no encontrado: ${dumpsDir}`);
+    report.ok = false;
+    finishDumps(report, wantJson, outFile, 1);
+    return;
+  }
+
+  const dumps = RTE.loadCorpusFromBanks(dumpsDir, banks);
+  report.dumpsLoaded = dumps.length;
+  if (dumps.length !== expected) {
+    report.errors.push(`Dumps incompletos: ${dumps.length}/${expected} presets cargados de ${dumpsDir}`);
+    report.ok = false;
+    finishDumps(report, wantJson, outFile, 1);
+    return;
+  }
+
+  const knownExceptions = loadKnownExceptionsFromManifest(dumpsDir);
+  report.knownExceptions = knownExceptions;
+
+  // Fast path por posición declarada: la mayoría de presets del dump son byte-
+  // idénticos al corpus en su MISMA posición (1023/1024) — se clasifican con un
+  // pre-check O(1) (exact) o la known_exception registrada (B/1), SIN escanear el
+  // corpus completo (O(n²) ≈ 27 s). Solo las divergencias reales caen al scan.
+  const byPos = new Map();
+  for (const c of corpus) { byPos.set(c.bank + '/' + c.prog, c); }
+  const exByPos = new Map();
+  for (const ex of knownExceptions) { exByPos.set(ex.bank + '/' + ex.prog, ex); }
+
+  for (const t of dumps) {
+    const key = t.bank + '/' + t.prog;
+    const target = { unpacked: t.unpacked, bank: t.bank, prog: t.prog };
+    let cls = null;
+    let reason = null;
+
+    const ex = exByPos.get(key);
+    if (ex) {
+      cls = RTE.KNOWN_EXCEPTION;
+      reason = ex.reason;
+    } else {
+      const samePos = byPos.get(key);
+      if (samePos && bytesEqual(t.unpacked, samePos.unpacked)) {
+        cls = RTE.EXACT;
+      }
+    }
+
+    // Divergencia real (o posición sin par): scan completo del corpus.
+    if (cls === null) {
+      const r = RTE.hardwareCanonicalEqual(target, corpus, { registry: REGISTRY, knownExceptions });
+      cls = r.best;
+      reason = (r.bestMatch && r.bestMatch.reason) || null;
+    }
+
+    const row = {
+      bank: t.bank,
+      prog: t.prog,
+      classification: cls,
+      reason,
+    };
+    report.classify.byPreset.push(row);
+    report.classify.counts[cls] = (report.classify.counts[cls] || 0) + 1;
+    if (cls === RTE.NO_MATCH) {
+      report.errors.push(`Dumps [${t.bank}/${t.prog}]: desviación SIN clasificar contra el corpus (no_match)`);
+    } else if (cls === RTE.SEMANTIC && !exByPos.has(key)) {
+      // Divergencia clasificada como semantic SIN known_exception registrada: aviso
+      // no-fatal (el manifest puede faltar o no documentar esta posición todavía).
+      report.warnings = report.warnings || [];
+      report.warnings.push(`Dumps [${t.bank}/${t.prog}]: semantic_match sin known_exception en manifest.json — verificar si debe registrarse`);
+      console.warn(`⚠️ Dumps [${t.bank}/${t.prog}]: semantic_match sin known_exception en manifest.json`);
+    }
+  }
+
+  report.ok = report.errors.length === 0;
+  finishDumps(report, wantJson, outFile, report.ok ? 0 : 1);
+}
+
+function finishDumps(report, wantJson, outFile, exitCode) {
+  const C = report.classify.counts;
+  const lines = [
+    '='.repeat(64),
+    '🔧 ROUND-TRIP DUMPS (Nivel 3b) — dumps del hardware vs corpus de fábrica',
+    '='.repeat(64),
+    `Dumps: ${report.dumpsLoaded}/${report.corpusSize} presets (${report.dumpsDir})`,
+    'Clasificación por preset:',
+    `  exact_match: ${C.exact_match} · canonical_match: ${C.canonical_match} · semantic_match: ${C.semantic_match} · known_exception: ${C.known_exception} · no_match: ${C.no_match}`,
+  ];
+  if (report.knownExceptions.length > 0) {
+    lines.push(`Known exceptions aplicadas (${report.knownExceptions.length}):`);
+    for (const ex of report.knownExceptions) {
+      lines.push(`  ${ex.bank}/${ex.prog} — ${ex.reason}`);
+    }
+  }
+  if (report.errors.length > 0) {
+    lines.push(`\n❌ ${report.errors.length} error(es):`);
+    for (const err of report.errors) { lines.push(`  - ${err}`); }
+  } else {
+    lines.push('\n✅ Todos los presets del dump clasificados (sin no_match) — corpus y dumps consistentes.');
+  }
+  emitReport(report, lines, wantJson, outFile, exitCode);
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -81,7 +244,14 @@ function parseArgs() {
 // ────────────────────────────────────────────────────────────────
 
 function main() {
-  const { banks, wantJson, wantClassify, outFile } = parseArgs();
+  const { banks, wantJson, wantClassify, outFile, dumpsDir } = parseArgs();
+
+  // Modo Nivel 3b: clasificar dumps del hardware contra el corpus de fábrica.
+  if (dumpsDir) {
+    classifyDumps({ banks, dumpsDir, wantJson, outFile });
+    return;
+  }
+
 
   const report = {
     schemaVersion: 1,
@@ -298,13 +468,15 @@ function finish(report, wantJson, outFile, exitCode) {
   } else {
     lines.push('\n✅ Todos los niveles verdes sobre el corpus completo.');
   }
+  emitReport(report, lines, wantJson, outFile, exitCode);
+}
 
-  const out = lines.join('\n') + '\n';
-  process.stdout.write(out);
+/** Emisión compartida de reporte (consola + ::error:: + --json marker + --out). */
+function emitReport(report, lines, wantJson, outFile, exitCode) {
+  process.stdout.write(lines.join('\n') + '\n');
   for (const err of report.errors) {
     process.stderr.write(`::error::roundtrip-corpus — ${err}\n`);
   }
-
   if (wantJson) {
     process.stdout.write('\n---JSON---\n');
     process.stdout.write(JSON.stringify(report, null, 2) + '\n');

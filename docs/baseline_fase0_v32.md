@@ -27,7 +27,7 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 
 ## 2. Baseline WebUI (Vitest + ESLint)
 
-> **2026-08-10 — actualizado a los números vigentes** (105 files / 4718 tests,
+> **2026-08-10 — actualizado a los números vigentes** (105 files / 4723 tests,
 > ESLint 0 warnings). El count de test files/tests lo verifica en cada `npm test` el
 > **guard `WebUI/tests/baselineGuard.test.js`** (anti-drift: corre la suite en un
 > subproceso excluyéndose y reconcilia con esta sección).
@@ -35,7 +35,7 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 | Métrica | Valor |
 |---|---|
 | Test files | **105** (105 passed) |
-| Tests | **4718** (4715 passed, 2 skipped, 0 failed) |
+| Tests | **4723** (4720 passed, 2 skipped, 0 failed) |
 | Duración | ~16 s |
 | ESLint | **0 errores, 0 warnings** (`curly` limpios con `--fix`; `npm run lint`
   ahora es `--max-warnings 0` → CI falla ante cualquier warning) |
@@ -262,7 +262,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   0 fallos**. Nota: **3 fallos FX preexistentes documentados** (refactor FX en curso:
   fidelidad delay + full-gain wet) — el paso usa `continue-on-error` (no bloquean CI).
 - ✅ **Job `vitest` + lint** en `.github/workflows/webui-ci.yml` (ubuntu-latest): suite
-  completa de WebUI (**105 files / 4718 tests, 0 fallos**) y ESLint **0 errores / 0
+  completa de WebUI (**105 files / 4723 tests, 0 fallos**) y ESLint **0 errores / 0
   warnings** (`npm run lint` con `--max-warnings 0`). El guard `baselineGuard.test.js`
   incluido en la suite verifica que los counts de esta sección no deriven.
   `package-lock.json` commiteado; `patchwork-deepmind` eliminado de `dependencies`
@@ -395,7 +395,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
 ### ✅ Completadas
 
 0. **Fase 0 — Inventario, Baseline y Perfilado (Pre-requisito):** este documento es la
-   baseline exacta exigida por el plan — suites (105 files / 4718 tests WebUI + 126 suites /
+   baseline exacta exigida por el plan — suites (105 files / 4723 tests WebUI + 126 suites /
    3.689.164 assertions C++), cobertura (§2), hashes A–H (§4 + `schemas/corpus-hashes.json`,
    verificados por el job `roundtrip-corpus` con `--check-hashes`), percentiles
    p95/p99/p999 de `processBlock()` en µs (§5.3, presupuesto DEFINITIVO desde runner
@@ -444,7 +444,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
    en `bridge-dual.js`). 93 fuentes migradas mecánicamente (0 refs residuales a
    `window.dualMidiBridge`), setup de vitest con fallback para tests que stubbean el
    alias, y `bridgeAliasDeprecation.test.js` (acceso canónico + dedup del aviso).
-   Baseline WebUI actualizada a 105 files / 4718 tests.
+   Baseline WebUI actualizada a 105 files / 4723 tests.
 
 ### ⏳ Pendientes
 
