@@ -236,7 +236,7 @@ Reporte completo: `docs/reports/nivel3b-20260810.json`. Resultado por fase:
 | **A+** | **Dumps completos A–H del hardware** (`scripts/hw_bank_dump.js`) | ✅ 1023/1024 payload-identicos | 8 × 128 × 291 B capturados (2 corridas deterministas); **B/1 difiere 2 bytes de cola** (offsets 281/283, `00`→`20`) = `known_exception`; hash normalizado (dev→7F) coincide **exacto en A**; corpus usa bank byte `00` en todos sus headers (quirk de exportación) → la paridad significativa es el payload |
 | **B** | Round-trip NRPN: `filter.cutoff` (byte 39) → 100 | ✅ ok | Snapshot de vuelta: raw **100** (delta 0) — eco real del hardware |
 | **B+** | **Round-trip de programa vía WebUI** (`scripts/hw_roundtrip_validate.js`): `sendPatchToHardware` → `HardwareExporter` → `buildSingleSysex` (291 B) → envío real → program dump de vuelta → `validateSinglePatchSysexRoundTrip` | ✅ ok | `transport=true patch=true mismatches=0`; **payload 242/242 bytes idénticos** enviado↔vuelto; nombre intacto en 223–238; `HardwareExporter` no muta el patch original |
-| **C+** | **Transacciones NRPN/CC38 vía WebUI**: `setParameter` → tx pending (TTL 300 ms); eco → `confirmByValue` `isEcho=true` → `confirmed` sin re-escritura del slider; override externo → `synced` + UI actualizada; sweep TTL → `out_of_sync` | ✅ ok | **El DM12 NO re-emite NRPN** (0 ecos en 1.2 s) → política timeout/`out_of_sync` confirmada; eco validado con los módulos WebUI reales + `ParameterStore` (14/14 pasos, `scripts/hw_roundtrip_validate.js --nrpn-test`) |
+| **C+** | **Transacciones NRPN/CC38 vía WebUI**: `setParameter` → tx pending (TTL 300 ms); eco → `confirmByValue` `isEcho=true` → `confirmed` sin re-escritura del slider; override externo → `synced` + UI actualizada; sweep TTL → `out_of_sync` | ✅ ok | **El DM12 NO re-emite NRPN** (0 ecos en 1.2 s) → política timeout/`out_of_sync` confirmada; eco validado con los módulos WebUI reales + `ParameterStore` (15/15 pasos, `scripts/hw_roundtrip_validate.js --nrpn-test`) |
 | **C** | Virtuales: `fx_feedback_gain` (byteOffset 304) | ✅ ok | Rechazado por el cliente sin emitir MIDI; snapshot posterior **sin bytes corruptos** |
 | **D** | Nombre límite: `Hi<>&"'ABCDEFGHI` (16 chars) en 223–238 | ✅ ok | Round-trip **idéntico byte a byte** (sin truncado ni corrupción) |
 
@@ -250,7 +250,7 @@ solo lectura — no altera el estado del synth.
   La validación de la WebUI (sendPatchToHardware → HardwareExporter →
   validateSinglePatchSysexRoundTrip + transacciones ParameterStore) se ejecutó con los
   **módulos WebUI reales** cargados en un harness Node conectado al hardware
-  (`scripts/hw_roundtrip_validate.js`, 14/14 pasos OK, exit 0, JSON reproducible).
+  (`scripts/hw_roundtrip_validate.js`, 15/15 pasos OK, exit 0, JSON reproducible).
 - **Pendiente para el cierre ✅ del Nivel 3b** (checklist A–E 100 %):
   1. `roundtrip_corpus.js --classify` sobre los dumps capturados (clasificación
      exact/canonical/semantic/known_exception por preset — la divergencia B/1 es

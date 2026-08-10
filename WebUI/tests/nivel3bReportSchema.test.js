@@ -1,0 +1,164 @@
+// WebUI/tests/nivel3bReportSchema.test.js
+// Valida el esquema de los reportes de hardware-in-the-loop (docs/reports/nivel3b-*.json)
+// y que el doc docs/fase4_nivel3b_hardware_in_the_loop.md referencie el reporte MÁS RECIENTE.
+//
+// Contrato (plan v3.2 §5, Nivel 3b):
+//   - schema: "nivel3b-report" · schemaVersion >= 1 · corrida en formato YYYY-MM-DD
+//   - fases A–D (+ variantes B_webui/C_webui) con titulo/descripcion/resultado/detalle
+//   - checklistRelease A–E con estado ∈ {verificado, parcial, pendiente}
+//   - restauracion con detalle.filter.cutoff y nombre, coincideConBaseline === true
+//   - el doc del Nivel 3b debe apuntar al reporte con la fecha más reciente del directorio
+import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, '..', '..');
+const REPORTS_DIR = path.join(ROOT, 'docs', 'reports');
+const NIVEL3B_DOC = path.join(ROOT, 'docs', 'fase4_nivel3b_hardware_in_the_loop.md');
+
+/** Lista los reportes nivel3b-*.json con su fecha YYYYMMDD extraída del nombre. */
+function listNivel3bReports() {
+  if (!fs.existsSync(REPORTS_DIR)) { return []; }
+  return fs.readdirSync(REPORTS_DIR)
+    .filter((f) => /^nivel3b-\d{8}\.json$/.test(f))
+    .map((f) => {
+      const m = f.match(/^nivel3b-(\d{8})\.json$/);
+      return { file: f, date: m[1] };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+describe('docs/reports/nivel3b-*.json — esquema del reporte hardware-in-the-loop', () => {
+  const reports = listNivel3bReports();
+
+  it('existe al menos un reporte nivel3b-YYYYMMDD.json', () => {
+    expect(reports.length).toBeGreaterThan(0);
+  });
+
+  /** Carga el reporte más reciente (helper lazy para mensajes de error claros). */
+  function loadLatestReport() {
+    if (reports.length === 0) {
+      throw new Error('no hay reportes nivel3b-*.json en docs/reports/');
+    }
+    const latest = reports[reports.length - 1];
+    return JSON.parse(fs.readFileSync(path.join(REPORTS_DIR, latest.file), 'utf8'));
+  }
+
+  const report = loadLatestReport();
+  const latest = reports[reports.length - 1];
+  const docText = fs.existsSync(NIVEL3B_DOC) ? fs.readFileSync(NIVEL3B_DOC, 'utf8') : '';
+
+  describe('raíz del reporte', () => {
+    it('tiene schema="nivel3b-report" y schemaVersion numérico', () => {
+      expect(report.schema).toBe('nivel3b-report');
+      expect(typeof report.schemaVersion).toBe('number');
+      expect(report.schemaVersion).toBeGreaterThanOrEqual(1);
+    });
+
+    it('corrida tiene formato YYYY-MM-DD coherente con el nombre del archivo', () => {
+      expect(report.corrida).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(report.corrida.replace(/-/g, '')).toBe(latest.date);
+    });
+
+    it('declara hardware con modelo y deviceId numérico', () => {
+      expect(typeof report.hardware).toBe('object');
+      expect(typeof report.hardware.modelo).toBe('string');
+      expect(report.hardware.modelo.length).toBeGreaterThan(0);
+      expect(typeof report.hardware.deviceId).toBe('number');
+      expect(report.hardware.deviceId).toBeGreaterThanOrEqual(0);
+    });
+
+    it('resumen declara fases_completadas no vacío y hallazgos', () => {
+      expect(Array.isArray(report.resumen.fases_completadas)).toBe(true);
+      expect(report.resumen.fases_completadas.length).toBeGreaterThan(0);
+      expect(Array.isArray(report.resumen.hallazgos)).toBe(true);
+    });
+
+    it('invariante de cruce: fases_completadas ⊆ claves de fases', () => {
+      for (const fase of report.resumen.fases_completadas) {
+        expect(report.fases[fase], `fase "${fase}" declarada completada sin detalle en fases`).toBeDefined();
+      }
+    });
+
+    it('herramientasUsadas incluye el harness de round-trip WebUI', () => {
+      expect(Array.isArray(report.herramientasUsadas)).toBe(true);
+      expect(report.herramientasUsadas).toContain('scripts/hw_roundtrip_validate.js');
+    });
+  });
+
+  describe('fases A–D (+ B_webui/C_webui)', () => {
+    it.each(['A', 'B', 'C', 'D', 'B_webui', 'C_webui'])(
+      'la fase %s tiene titulo, descripcion, resultado y detalle',
+      (fase) => {
+        expect(report.fases[fase]).toBeDefined();
+        expect(typeof report.fases[fase].titulo).toBe('string');
+        expect(report.fases[fase].titulo.length).toBeGreaterThan(0);
+        expect(typeof report.fases[fase].descripcion).toBe('string');
+        expect(typeof report.fases[fase].resultado).toBe('string');
+        expect(report.fases[fase].resultado.length).toBeGreaterThan(0);
+        expect(typeof report.fases[fase].detalle).toBe('object');
+      }
+    );
+
+    it('B_webui registra 15/15 pasos del harness (round-trip + transacciones + restauración)', () => {
+      const d = report.fases.B_webui.detalle;
+      expect(typeof d.pasos).toBe('number');
+      expect(typeof d.pasosOk).toBe('number');
+      expect(d.pasosOk).toBe(d.pasos);
+      // El reporte es un SNAPSHOT commiteado de la corrida del 2026-08-10: el
+      // harness tenía 15 pasos en el camino feliz. Exacto a propósito: si el
+      // harness gana pasos, el reporte debe actualizarse (no romper el test).
+      expect(d.pasos).toBe(15);
+      expect(d.validateSinglePatchSysexRoundTrip).toBe('transport=true patch=true mismatches=0');
+      expect(d.payloadEnviadoVsVuelto).toMatch(/242\/242/);
+    });
+
+    it('C_webui documenta el hallazgo: DM12 no re-emite NRPN', () => {
+      expect(report.fases.C_webui.detalle.hallazgoClave).toMatch(/NO re-emite NRPN/i);
+      expect(report.fases.C_webui.detalle.ttlTimeout).toBe('status=out_of_sync tras sweep');
+    });
+  });
+
+  describe('restauración del hardware', () => {
+    it('declara estado y detalle con cutoff=42 y nombre "Blue Dolphin BC"', () => {
+      expect(typeof report.restauracion).toBe('object');
+      expect(typeof report.restauracion.estado).toBe('string');
+      expect(report.restauracion.detalle['filter.cutoff']).toBe(42);
+      expect(report.restauracion.detalle.nombre).toContain('Blue Dolphin BC');
+      expect(report.restauracion.detalle.coincideConBaseline).toBe(true);
+    });
+  });
+
+  describe('checklistRelease A–E', () => {
+    it.each(['A_baseline', 'B_roundtrip', 'C_nrpn', 'D_nombre', 'E_cierre'])(
+      'la sección %s tiene estado válido y listas verificado/pendiente',
+      (seccion) => {
+        const c = report.checklistRelease[seccion];
+        expect(c).toBeDefined();
+        expect(['verificado', 'parcial', 'pendiente']).toContain(c.estado);
+        expect(Array.isArray(c.verificado)).toBe(true);
+        expect(Array.isArray(c.pendiente)).toBe(true);
+        expect(c.verificado.length).toBeGreaterThan(0);
+      }
+    );
+
+    it('E_cierre refleja la validación WebUI ya realizada (harness en verificado)', () => {
+      const e = report.checklistRelease.E_cierre;
+      expect(e.verificado.join('\n')).toContain('hw_roundtrip_validate.js');
+      expect(e.pendiente.join('\n')).not.toMatch(/validacion via WebUI real/i);
+    });
+  });
+
+  describe('el doc del Nivel 3b referencia el reporte más reciente', () => {
+    it('el doc menciona el reporte más reciente por su ruta completa', () => {
+      expect(docText).toContain(`docs/reports/${latest.file}`);
+    });
+
+    it('la sección "Registro de ejecución" del doc usa el reporte más reciente', () => {
+      const regSec = docText.split('## 6.')[1] || '';
+      expect(regSec).toContain(`docs/reports/${latest.file}`);
+    });
+  });
+});

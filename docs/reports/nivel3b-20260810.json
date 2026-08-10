@@ -74,8 +74,8 @@
       "descripcion": "Harness Node con los MODULOS WEBUI REALES (browser_packer.js, patch_name.js, parameter_store.js, bridge-parameter-store.js, bridge-midi-rx-nrpn-handlers.js) conectado al hardware via node-midi: sendPatchToHardware -> HardwareExporter.prepareForSysEx -> buildSingleSysex (291 B) -> envio real -> program dump request de vuelta -> validateSinglePatchSysexRoundTrip (port JS fiel del C++).",
       "resultado": "ok",
       "detalle": {
-        "pasos": 14,
-        "pasosOk": 14,
+        "pasos": 15,
+        "pasosOk": 15,
         "mensaje": "291 B canonico (F0 00 20 32 20 <dev> 02 ..., dev=0x00)",
         "validateSinglePatchSysexRoundTrip": "transport=true patch=true mismatches=0",
         "payloadEnviadoVsVuelto": "242/242 bytes identicos",
@@ -129,10 +129,10 @@
     },
     "E_cierre": {
       "estado": "parcial",
-      "verificado": ["dumps de los 8 bancos capturados y commiteados como referencia de regresion (resources/hardware_dumps/2026-08-10/)", "hash SHA-256 raw + normalizados calculados (manifest.json)", "divergencia B/1 documentada como known_exception"],
-      "pendiente": ["validacion via WebUI real (HardwareExporter/ParameterStore)", "nota de firmware del DM12 en el manifest"]
+      "verificado": ["dumps de los 8 bancos capturados y commiteados como referencia de regresion (resources/hardware_dumps/2026-08-10/)", "hash SHA-256 raw + normalizados calculados (manifest.json)", "divergencia B/1 documentada como known_exception", "sendPatchToHardware + HardwareExporter + ParameterStore (TTL 300ms/isEcho) validados con modulos WebUI reales en hardware real (scripts/hw_roundtrip_validate.js, 15/15 pasos)"],
+      "pendiente": ["corrida en navegador Web MIDI real (el harness Node cubre la logica)", "nota de firmware del DM12 en el manifest"]
     }
   },
   "herramientasUsadas": ["deepmind12__snapshot_state", "deepmind12__set_param", "deepmind12__patch_edit_buffer", "scripts/hw_bank_dump.js", "scripts/hw_roundtrip_validate.js"],
-  "notaPrecondicion": "El Nivel 3b NO se marca completado en el plan hasta que el checklist A-E este 100% verde. Con esta corrida quedan verificados: A (con bancos completos), B (NRPN y programa via WebUI), C (virtuales y transacciones ParameterStore TTL 300ms/isEcho) y E-1; pendientes: corrida en navegador Web MIDI real, --classify por preset, nombres no-ASCII via UI y firmware del DM12 en el manifest."
+  "notaPrecondicion": "El Nivel 3b NO se marca completado en el plan hasta que el checklist A-E este 100% verde. Con esta corrida quedan verificados: A (con bancos completos), B (NRPN y programa via WebUI), C (virtuales y transacciones ParameterStore TTL 300ms/isEcho), B+/C+ WebUI y E-1; pendientes: corrida en navegador Web MIDI real, --classify por preset, nombres no-ASCII via UI y firmware del DM12 en el manifest."
 }

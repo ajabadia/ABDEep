@@ -4,6 +4,18 @@
 
 ---
 
+## 0.2.43 — Test de esquema del reporte Nivel 3b + baseline actualizada
+
+- `WebUI/tests/nivel3bReportSchema.test.js` (24 tests): valida el esquema de
+  `docs/reports/nivel3b-*.json` (raíz, fases A–D + B_webui/C_webui, checklistRelease
+  A–E, restauración cutoff=42/nombre, invariante `fases_completadas ⊆ fases`) y que
+  el doc `docs/fase4_nivel3b_hardware_in_the_loop.md` referencie el reporte más reciente.
+- Reporte `nivel3b-20260810.json`: `pasos` 14 → **15/15** (restauración A/0 incluida) y
+  checklist E_cierre actualizado (validación WebUI en `verificado`).
+- Baseline WebUI actualizada a **104 files / 4712 tests** (4710 passed, 2 skipped) en
+  `docs/baseline_fase0_v32.md`, `docs/plan_v32_resumen_ejecutivo.md` e
+  `implementation_plan architecture.md`.
+
 ## 0.2.42 — Nivel 3b B+/C+: round-trip de programa y transacciones NRPN vía WebUI + hardware
 
 - `scripts/hw_roundtrip_validate.js`: harness Node que carga los **módulos WebUI reales**
