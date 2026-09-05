@@ -4,6 +4,7 @@
 #include <JuceHeader.h>
 #include "DSP/SynthEngine.h"
 #include "Calibration/AudioABRecorder.h"
+#include "Plugin/PatchController.h"
 
 class ABDEepAudioProcessor : public juce::AudioProcessor
 {
@@ -43,6 +44,8 @@ public:
     juce::String getPresetName() const { return currentPresetName; }
     void setPresetName (const juce::String& newName);
 
+    ABD::PatchController& getPatchController() { return patchController; }
+
     void queueMidiMessage (const juce::MidiMessage& msg)
     {
         const juce::ScopedLock sl (midiQueueLock);
@@ -57,7 +60,8 @@ public:
 
     // Callback invoked after restoring DAW session state (setStateInformation)
     // Used by PluginEditor to refresh the WebUI when a project is loaded
-    std::function<void()> onStateRestored;
+    // Arguments: bankIdx (0-7, or -1 if none), progIdx (0-127, or -1 if none)
+    std::function<void(int, int)> onStateRestored;
 
 private:
     juce::UndoManager undoManager;
@@ -66,6 +70,7 @@ private:
     juce::CriticalSection midiQueueLock;
     ABD::SynthEngine synthEngine;
     AudioABRecorder audioABRecorder;
+    ABD::PatchController patchController;
     juce::String currentPresetName = "Default";
     bool isPrepared = false;
 

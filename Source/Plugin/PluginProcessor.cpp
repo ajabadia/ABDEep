@@ -1,6 +1,9 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "ParametersSpec.h"
+#include "Core/PatchByteCodec.h"
+#include "Core/BankFileReader.h"
+#include "ParameterRegistry.gen.h"
 #if DEEP_TARGET_MODEL >= 2
 #include "Core/CalibrationSpec.h"
 #endif
@@ -10,7 +13,9 @@ ABDEepAudioProcessor::ABDEepAudioProcessor()
     : AudioProcessor (BusesProperties()
                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts (*this, &undoManager, "Parameters", ParametersSpec::createLayout())
+      apvts (*this, &undoManager, "Parameters", ParametersSpec::createLayout()),
+      patchController (apvts,
+                       [this] (const juce::String& name) { setPresetName (name); })
 {
 #if JucePlugin_Build_Standalone
     // Check for --run-unit-tests flag
@@ -99,23 +104,37 @@ void ABDEepAudioProcessor::setPresetName (const juce::String& newName)
 
 int ABDEepAudioProcessor::getNumPrograms()
 {
-    return 1;
+    return 1024; // 8 banks × 128 programs
 }
 
 int ABDEepAudioProcessor::getCurrentProgram()
 {
-    return 0;
+    int bank = patchController.getCurrentBank();
+    int prog = patchController.getCurrentProgram();
+    return bank * 128 + prog;
 }
 
 void ABDEepAudioProcessor::setCurrentProgram (int index)
 {
+    if (index < 0 || index >= 1024)
+        return;
+    int bank = index / 128;
+    int prog = index % 128;
+    patchController.scheduleApply (bank, prog);
 }
 
 const juce::String ABDEepAudioProcessor::getProgramName (int index)
 {
-    // Todos los índices (solo 0) retornan el nombre del preset actual
-    juce::ignoreUnused (index);
-    return currentPresetName;
+    if (index < 0 || index >= 1024)
+        return {};
+    int bank = index / 128;
+    int prog = index % 128;
+    char letter = 'A' + bank;
+    if (!patchController.isBankLoaded (bank))
+        return juce::String ("Bank ") + letter + " Patch " + juce::String (prog + 1) + " (not loaded)";
+    auto& bankData = patchController.getBankData (bank);
+    juce::String name = bankData.names[prog];
+    return juce::String ("Bank ") + letter + " Patch " + juce::String (prog + 1) + (name.isEmpty() ? "" : " " + name);
 }
 
 void ABDEepAudioProcessor::changeProgramName (int index, const juce::String& newName)
@@ -179,6 +198,9 @@ void ABDEepAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         }
     }
 
+    // Procesar Program Change / Bank Select del buffer MIDI entrante
+    patchController.offerMidi (midiMessages);
+
     // Actualizar parámetros de control y síntesis
     synthEngine.updateParameters (apvts);
 
@@ -201,6 +223,8 @@ void ABDEepAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     auto state = apvts.copyState();
     state.setProperty ("presetName", currentPresetName, nullptr);
     state.setProperty ("version", 1, nullptr);
+    state.setProperty ("pc_bank", patchController.getCurrentBank(), nullptr);
+    state.setProperty ("pc_program", patchController.getCurrentProgram(), nullptr);
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
 }
@@ -221,12 +245,22 @@ void ABDEepAudioProcessor::setStateInformation (const void* data, int sizeInByte
             if (newState.hasProperty ("presetName"))
                 currentPresetName = newState.getProperty ("presetName").toString();
 
+            // Restaurar metadata de banco/programa (NO reaplicar patch: el APVTS restaurado ya tiene el sonido)
+            int restoredBank = -1, restoredProg = -1;
+            if (newState.hasProperty ("pc_bank"))
+            {
+                restoredBank = newState.getProperty ("pc_bank");
+                restoredProg = newState.hasProperty ("pc_program") ? newState.getProperty ("pc_program") : 0;
+                patchController.getMidiMap().setCurrentBank (restoredBank);
+                // NO scheduleApply: el APVTS restaurado ya contiene el estado sonoro completo
+            }
+
             apvts.replaceState (newState);
             updateHostDisplay (juce::AudioProcessor::ChangeDetails().withProgramChanged (true));
 
-            // Notificar al editor (WebUI) para que refresque su estado
+            // Notificar al editor (WebUI) con banco/programa restaurados para sincronizar UI
             if (onStateRestored != nullptr)
-                onStateRestored();
+                onStateRestored (restoredBank, restoredProg);
         }
     }
 }

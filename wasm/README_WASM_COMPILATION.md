@@ -241,4 +241,44 @@ wasm\build_wasm.bat
 * `WebUI/wasm/abdeep_dsp.wasm` / `WebUI/wasm/abdjunio601_dsp.wasm` (Binario DSP optimizado sin símbolos)
 * `WebUI/wasm/abdeep_dsp.js` / `WebUI/wasm/abdjunio601_dsp.js` (Glue code modularizado ES6/AudioWorklet)
 
+---
+
+## ⚡ 6. Lecciones Críticas de Depuración en AudioWorklets (WASM)
+
+Al portar motores C++ complejos de JUCE a AudioWorklet, ten siempre presente:
+
+### 1. El Constructor por defecto de `juce::Random`
+* **Problema**: El constructor por defecto de `juce::Random` (o llamadas estáticas como `juce::Random::getSystemRandom()`) intenta leer del sistema operativo (p. ej. `/dev/urandom` o APIs criptográficas de JS). En el hilo seguro y aislado del `AudioWorkletProcessor`, esto viola la seguridad y provoca un aborto catastrófico en tiempo de ejecución: `libc++abi: terminating`.
+* **Solución**: Inicializa siempre los miembros `juce::Random` con una semilla numérica fija (ej: `juce::Random noiseGen (12345);`).
+* **Alternativa LCG**: Para módulos de velocidad crítica (como Sample & Hold en LFOs), sustituye la clase `juce::Random` por un generador congruencial lineal (LCG) en línea:
+  ```cpp
+  lcgSeed = lcgSeed * 196314165u + 907633515u;
+  float val = (2.f * (float)lcgSeed / (float)0xFFFFFFFFu) - 1.f;
+  ```
+
+### 2. Exportación de `HEAPF32` en el Linker
+* **Problema**: JavaScript lee y escribe audio en los búferes copiando directamente del array `HEAPF32` de WASM. Si las optimizaciones de Emscripten están al máximo, esta propiedad del módulo puede resultar eliminada si no se exporta explícitamente.
+* **Solución**: Añade `'HEAPF32'` a `EXPORTED_RUNTIME_METHODS` en el linker de CMake:
+  ```cmake
+  -s "EXPORTED_RUNTIME_METHODS=['ccall','cwrap','getValue','setValue','HEAPF32']"
+  ```
+
+### 3. Escalado y Desnormalización de Parámetros
+* **Problema**: La UI web envía valores normalizados entre `0.0` y `1.0`. C++ espera valores en rangos discretos nativos (por ejemplo, `polyMode` de `1` a `3`). Mapear directamente sin desnormalizar rompe la lógica interna del motor.
+* **Solución**: Desnormaliza y escala los flotantes en `WasmBridge.cpp` usando `std::lround()` antes de asignarlos a `gParams`:
+  ```cpp
+  gParams.polyMode = (int)std::lround(getMap("polyMode", 0.0f) * 2.0f) + 1; // 0.0, 0.5, 1.0 -> 1, 2, 3
+  ```
+
+### 4. Empaquetado Single-File (Base64)
+* **Mejor Práctica**: Para evitar fallos de CORS al importar el archivo `.wasm` separado dentro del contexto de AudioWorklet en servidores de producción estrictos, utiliza la bandera `-s SINGLE_FILE=1` en el linker de CMake.
+
+### 5. Optimización Zero-Copy
+* **Mejor Práctica**: Evita inicializar vistas typed array (`new Float32Array`) en el callback `process()` de JS para no saturar el Garbage Collector. Obtén las referencias `HEAPF32.subarray(ptr, ptr+len)` una sola vez y copia sobre el búfer utilizando `outputBuffer.set(cachedSubarray)`.
+
+### 6. Uso del Asignador `emmalloc`
+* **Mejor Práctica**: Para aplicaciones web de audio ligeras, fuerza el uso del asignador `-s MALLOC=emmalloc` en el linker de CMake. Esto optimiza el binario de WebAssembly reduciendo significativamente su peso y el jitter de latencia.
+
+
+
 

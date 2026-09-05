@@ -35,17 +35,53 @@ ABDEepAudioProcessorEditor::ABDEepAudioProcessorEditor (ABDEepAudioProcessor& p)
     // Liberar foco de teclado para que el DAW pueda recibir atajos (Espacio = Play/Stop)
     setWantsKeyboardFocus (false);
 
-    // Callback para notificar a la WebUI cuando el DAW restaura un proyecto
-    audioProcessor.onStateRestored = [this]()
+    // Callback para notificar a la WebUI cuando el DAW restaura un proyecto (con banco/programa restaurados)
+    audioProcessor.onStateRestored = [this] (int bankIdx, int progIdx)
     {
         if (webComponent != nullptr)
         {
-            webComponent->evaluateJavascript (
-                "if (typeof window._onStateRestored === 'function')"
-                "  window._onStateRestored();"
-                "else"
-                "  console.log('[WebUI] State restored — _onStateRestored not registered');"
-            );
+            if (bankIdx >= 0 && bankIdx < 8 && progIdx >= 0 && progIdx < 128)
+            {
+                juce::String bankLetter = juce::String::charToString (juce::juce_wchar ('A' + bankIdx));
+                juce::String js = "if (typeof window._onStateRestored === 'function') "
+                                "  window._onStateRestored(" + bankLetter.quoted() + ", " + juce::String (progIdx) + ");";
+                webComponent->evaluateJavascript (js);
+            }
+            else
+            {
+                // Sin banco/programa guardado: notificar sin args para reset genérico
+                webComponent->evaluateJavascript (
+                    "if (typeof window._onStateRestored === 'function')"
+                    "  window._onStateRestored();"
+                    "else"
+                    "  console.log('[WebUI] State restored — _onStateRestored not registered');"
+                );
+            }
+        }
+    };
+
+    // Callback para notificar a la WebUI cuando cambia el patch vía Program Change
+    audioProcessor.getPatchController().onProgramChanged = [this] (int bankIdx, int progIdx, const juce::String& patchName)
+    {
+        if (webComponent != nullptr)
+        {
+            juce::String bankLetter = juce::String::charToString (juce::juce_wchar ('A' + bankIdx));
+            juce::String js = "if (typeof window._onProgramChanged === 'function') "
+                            "  window._onProgramChanged(" + bankLetter.quoted() + ", " + juce::String (progIdx) + ");";
+            webComponent->evaluateJavascript (js);
+        }
+    };
+
+    // Callback para notificar a la WebUI cuando falla la carga de un banco
+    audioProcessor.getPatchController().onBankLoadFailed = [this] (int bankIdx, const juce::String& reason)
+    {
+        if (webComponent != nullptr)
+        {
+            juce::String bankLetter = juce::String::charToString (juce::juce_wchar ('A' + bankIdx));
+            juce::String escapedReason = reason.replaceCharacter ('\'', "\\'");
+            juce::String js = "if (typeof window._onBankLoadFailed === 'function') "
+                            "  window._onBankLoadFailed(" + bankLetter.quoted() + ", " + escapedReason.quoted() + ");";
+            webComponent->evaluateJavascript (js);
         }
     };
 
@@ -57,6 +93,8 @@ ABDEepAudioProcessorEditor::~ABDEepAudioProcessorEditor()
     stopTimer();
     // Prevenir dangling callback si setStateInformation se invoca tras destruir el editor
     audioProcessor.onStateRestored = nullptr;
+    audioProcessor.getPatchController().onProgramChanged = nullptr;
+    audioProcessor.getPatchController().onBankLoadFailed = nullptr;
 }
 
 void ABDEepAudioProcessorEditor::paint (juce::Graphics& g)

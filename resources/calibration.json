@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "source": "DeepMind 12 Factory Calibration",
+  "notes": "Calibración de fábrica para Behringer DeepMind 12. Valores basados en especificaciones de hardware y mediciones de referencia.",
+  "transfer": {
+    "vcfCutoff": {
+      "minHz": 15.0,
+      "maxHz": 22000.0,
+      "curveBase": 550.0
+    },
+    "vcfKeytrack": {
+      "referenceHz": 261.63,
+      "amountScale": 1.0
+    },
+    "vcfPitchBend": {
+      "cutoffScale": 0.3
+    },
+    "hpf": {
+      "minHz": 10.0,
+      "maxHz": 20000.0,
+      "modScaleHz": 500.0,
+      "bassBoostGain": 1.0
+    },
+    "envelopes": {
+      "driftToTimeScale": 0.3,
+      "maxTimeSec": 10.0
+    },
+    "lfo": {
+      "rateScale": 0.035,
+      "rateExp": 7.5
+    }
+  },
+  "voice": {
+    "staticPitchCentsRange": 3.0,
+    "staticCutoffNormRange": 0.06,
+    "staticResNormRange": 0.04,
+    "staticEnvTimeNormRange": 0.16,
+    "cutoffDriftScale": 1.0,
+    "resonanceDriftScale": 0.5
+  }
+}

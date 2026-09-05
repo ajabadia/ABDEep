@@ -59,5 +59,23 @@ juce::AudioProcessorValueTreeState::ParameterLayout ParametersSpec::createLayout
                 s.defaultValue));
         }
     }
+
+    // Global setting: protect unsaved edits from being overwritten by Program Change
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID{ "protect_unsaved_edits", 1 }, "Protect Unsaved Edits",
+        false));
+
+    // Runtime state: patch has been edited since last load (cleared on patch load, set on user edit)
+    // Not exposed to UI, not persistent in presets
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID{ "patch_dirty", 1 }, "Patch Dirty",
+        false));
+
+    // Global MIDI channel filter for Program Change / Bank Select (0 = omni, 1-16 = specific channel)
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{ "midi_channel", 1 }, "MIDI Channel",
+        juce::StringArray{ "Omni", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16" },
+        0));
+
     return layout;
 }

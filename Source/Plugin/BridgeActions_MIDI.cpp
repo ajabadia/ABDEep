@@ -17,6 +17,23 @@ void requestMidiDump (ABDEepAudioProcessor& audioProcessor,
             msg = MidiTranslationEngine::createEditBufferDumpRequest();
         else if (type == "global")
             msg = MidiTranslationEngine::createGlobalParameterDumpRequest();
+        else if (type == "program")
+        {
+            // Get current patch from PatchController and create Program Dump
+            auto& pc = audioProcessor.getPatchController();
+            int bank = pc.getCurrentBank();
+            int prog = pc.getCurrentProgram();
+            if (pc.isBankLoaded (bank))
+            {
+                auto& bankData = pc.getBankData (bank);
+                if (prog >= 0 && prog < BankFileReader::kPatchesPerBank)
+                {
+                    const auto& patchBytes = bankData.patches[prog];
+                    auto sysex = MidiTranslationEngine::createProgramDumpSysex (patchBytes, bank, prog);
+                    msg = juce::MidiMessage (sysex.data(), static_cast<int> (sysex.size()));
+                }
+            }
+        }
         
         if (msg.getRawDataSize() > 0)
         {

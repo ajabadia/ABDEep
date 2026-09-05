@@ -135,7 +135,7 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 
 > **2026-08-10 — Completado.** Baseline exacta registrada y custodiada en
 > `docs/baseline_fase0_v32.md` (referencia de Fase 0):
-> - **Suites:** WebUI 105 files / 4735 tests (0 fallos, 2 skipped) + guard
+> - **Suites:** WebUI 105 files / 4738 tests (0 fallos, 2 skipped) + guard
 >   `baselineGuard.test.js` anti-drift; C++ 126 suites / 3.689.164 assertions.
 > - **Cobertura:** sección 2 (`npx vitest run --coverage`).
 > - **Hashes A–H:** sección 4 + `schemas/corpus-hashes.json` — verificados en CI por el
@@ -158,8 +158,8 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > (rechaza IDs duplicados, rangos incompatibles, NRPNs colisionados y regiones reservadas
 > del preset 223-241 con `RESERVED_BYTE_COLLISION`). Emite 4 artefactos `.gen`
 > (`schemas/parameter-registry.data.json`, `WebUI/js/registry.gen.js`,
-> `Source/Core/ParameterRegistry.gen.{h,cpp}`; 235 parámetros: 226 físicos · 3 extendidos ·
-> 6 virtuales). Paridad verificada por `WebUI/tests/registryGen.test.js`; jobs CI dedicados
+> `Source/Core/ParameterRegistry.gen.{h,cpp}`; 236 parámetros: 226 físicos · 3 extendidos ·
+> 7 virtuales). Paridad verificada por `WebUI/tests/registryGen.test.js`; jobs CI dedicados
 > `schema-validation` y `registry-generation` (Fase 7). Ver `docs/fase1_registry.md`.
 > Vitest: 96 files / 4605 tests / 0 fallos.
 
@@ -224,7 +224,7 @@ En el hilo de audio nativo y WASM (`processBlock()`):
 > 15/15 pasos). Única recomendación no bloqueante: corrida de refuerzo en navegador Web MIDI
 > real (el harness Node cubre la lógica). Procedimiento + checklist en
 > `docs/fase4_nivel3b_hardware_in_the_loop.md`. Ver `docs/fase4_roundtrip_equality.md`.
-> Vitest (2026-08-10): 105 files / 4735 tests / 0 fallos.
+> Vitest (2026-08-10): 105 files / 4738 tests / 0 fallos.
 
 ### Fase 5: Rendimiento Tiempo Real, Capabilities y Bridge WASM
 - [x] Sustituir búsquedas dinámicas en `WASMBridge.cpp` por `std::array` e índices `ParameterIndex`.

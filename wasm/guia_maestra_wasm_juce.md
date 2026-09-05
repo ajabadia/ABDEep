@@ -256,7 +256,7 @@ set_target_properties(mysynth_dsp PROPERTIES
         -s EXPORT_ES6=1 \
         -s EXPORT_NAME=MySynthDSP \
         -s EXPORTED_FUNCTIONS=[\"_wasm_init_engine\",\"_wasm_process_audio\",\"_wasm_set_parameter\",\"_wasm_note_on\",\"_wasm_note_off\",\"_wasm_set_model\",\"_malloc\",\"_free\"] \
-        -s EXPORTED_RUNTIME_METHODS=[\"ccall\",\"cwrap\",\"setValue\",\"getValue\"] \
+        -s EXPORTED_RUNTIME_METHODS=[\"ccall\",\"cwrap\",\"setValue\",\"getValue\",\"HEAPF32\"] \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s INITIAL_MEMORY=33554432 \
         -s STACK_SIZE=1048576 \
@@ -366,4 +366,44 @@ Para publicar la carpeta `WebUI/` directamente a un hosting de producción con c
    - **Tipo:** `CNAME`
    - **Host / Nombre:** `supersix`
    - **Valor / Apunta a:** `cname.vercel-dns.com` (o Servidores NameServers de Vercel `ns1.vercel-dns.com` / `ns2.vercel-dns.com`).
+
+---
+
+## ⚡ 11. Lecciones de Depuración en AudioWorklets (WASM)
+
+Al depurar o portar módulos DSP de JUCE más complejos al contexto de `AudioWorkletProcessor` en WebAssembly, se deben tener presentes las siguientes restricciones:
+
+### A. Crash por inicialización de Entropía (`juce::Random`)
+* **Problema**: El constructor por defecto de `juce::Random` (o estáticos como `juce::Random::getSystemRandom()`) intenta leer de `/dev/urandom` o solicitar entropía criptográfica al sistema operativo. En el hilo restringido de `AudioWorklet`, esta llamada lanza una excepción de seguridad no capturable, crasheando el procesador con un error del tipo `libc++abi: terminating` o `RuntimeError: unreachable`.
+* **Solución**: Evita instanciar variables miembro o locales de tipo `juce::Random` usando el constructor por defecto. Inicialízalos siempre de forma explícita pasando una semilla numérica fija en la lista de inicialización del constructor (ej: `noiseGen(12345)`).
+* **Alternativa de Rendimiento (LFO Sample & Hold)**: Para generadores pseudoaleatorios ligeros en DSP que no requieren criptografía, implementa un generador congruencial lineal (LCG) en línea:
+  ```cpp
+  // LCG ultra-rápido en coma flotante de rango [-1.0f, 1.0f]
+  lcgSeed = lcgSeed * 196314165u + 907633515u;
+  float val = (2.f * (float)lcgSeed / (float)0xFFFFFFFFu) - 1.f;
+  ```
+
+### B. Mapeos de Parámetros Flotantes Normalizados
+* **Problema**: La UI web envía valores de parámetros normalizados en el rango de `0.0` a `1.0`. Si el motor C++ espera enteros discretos (por ejemplo, `polyMode` de `1` a `3`, o `delaySetting` de `0` a `11`), un casteo simple a entero `(int)getMap("param")` truncará el valor flotante y limitará los estados a `0` y `1`, rompiendo la funcionalidad.
+* **Solución**: Desnormaliza explícitamente los parámetros en `WasmBridge.cpp` utilizando la escala correcta y redondeando con `std::lround()`:
+  ```cpp
+  gParams.polyMode = (int)std::lround(getMap("polyMode", 0.0f) * 2.0f) + 1; // 0.0f/0.5f/1.0f -> 1/2/3
+  gParams.delaySetting = (int)std::lround(getMap("delaySetting", 0.0f) * 11.0f); // 0.0f..1.0f -> 0..11
+  ```
+
+### C. Parcheo del Leak Detector de JUCE
+* Al no ejecutarse el ciclo de vida habitual del framework nativo ni instanciarse el `juce::DeletedAtShutdown` en el shutdown de WASM, macros de control de leaks como `JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR` pueden gatillar falsas alertas de fugas de memoria o abortar la ejecución si no se gestionan las instancias de componentes (como `JunoDCO` o `JunoVoice`) dinámicamente o dentro de un wrapper controlado en el Heap C++.
+
+### D. Empaquetado Single-File (Incrustación Base64)
+* **Problema**: Los AudioWorklets se ejecutan en un hilo de trabajo aislado con políticas de seguridad restrictivas. Intentar hacer un `fetch()` asíncrono para descargar el binario `.wasm` separado suele provocar fallos de CORS o bloqueos de red en navegadores en entornos de producción rígidos.
+* **Práctica de Calidad**: Utilizar la bandera `-s SINGLE_FILE=1` en el enlazador de Emscripten. Esto embebe el binario compilado de WebAssembly en formato Base64 dentro del código JavaScript generado, permitiendo cargar el sintetizador completo con una única importación modular y sin peticiones de red adicionales.
+
+### E. Optimización de Memoria Zero-Copy (Prevención de Garbage Collection)
+* **Problema**: Inicializar y desechar vistas en el heap (ej: `new Float32Array(...)`) en cada llamada de la función de callback `process()` genera una gran presión sobre el Garbage Collector de JavaScript, provocando micro-pausas y cortes (pops/clicks) en el audio.
+* **Práctica de Calidad**: Obtener y almacenar las referencias a los subarrays del heap (`HEAPF32.subarray(ptr, ptr + samples)`) una única vez durante el arranque o el `prepare`. En el bucle de procesamiento, copiar datos directamente sobre los canales de salida usando métodos de copia directa (`outputBuffer.set(cachedSubarray)`), garantizando un renderizado 100% libre de GC.
+
+### F. Selección de Asignador de Memoria en WASM (`emmalloc`)
+* **Práctica de Calidad**: Para aplicaciones de audio en el navegador, sustituir el asignador por defecto por `-s MALLOC=emmalloc`. `emmalloc` está específicamente optimizado para entornos de bajo consumo y tamaño de código mínimo, reduciendo el binario resultante drásticamente y mejorando el perfil de latencia determinista en tiempo de ejecución.
+
+
 

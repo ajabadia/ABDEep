@@ -24,7 +24,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const SCRIPT = path.join(ROOT, 'scripts', 'check_wasm_build.js');
 const WASM_DIR = path.join(ROOT, 'WebUI', 'wasm');
-const hasArtifacts = fs.existsSync(path.join(WASM_DIR, 'abdeep_dsp.wasm'));
+const hasArtifacts = fs.existsSync(path.join(WASM_DIR, 'abdeep_dsp.js'));
 
 // Las constantes canónicas las exporta el propio script (main() no se ejecuta
 // al requerirlo gracias al guard `require.main === module`).

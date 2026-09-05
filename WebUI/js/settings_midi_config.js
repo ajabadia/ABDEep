@@ -17,6 +17,10 @@ function initMidiChannelSetting() {
                 payload[0] = ((devId & 0x0F) << 4) | ((ch - 1) & 0x0F);
                 getBridge().sendGlobalDump(Array.from(payload));
             }
+            // Sync to C++ parameter (0 = Omni, 1-16 = specific)
+            if (getBridge().isJuce && window.juce && typeof window.juce.setParameter === 'function') {
+                window.juce.setParameter('midi_channel', ch - 1); // 0=Omni, 1=Ch1, etc.
+            }
         }
     });
     const saved = localStorage.getItem('abd-eep-midi-channel');
@@ -60,3 +64,19 @@ function initDeviceIdSetting() {
 window.initMidiChannelSetting = initMidiChannelSetting;
 window.initMidiClockSetting = initMidiClockSetting;
 window.initDeviceIdSetting = initDeviceIdSetting;
+
+function initProtectUnsavedEditsSetting() {
+    const sel = document.getElementById('settings-protect-unsaved');
+    if (!sel) {return;}
+    const saved = localStorage.getItem('abd-eep-protect-unsaved') || '0';
+    sel.value = saved;
+    sel.addEventListener('change', function() {
+        const val = parseInt(this.value);
+        localStorage.setItem('abd-eep-protect-unsaved', this.value);
+        if (getBridge() && getBridge().isJuce && window.juce && typeof window.juce.setParameter === 'function') {
+            window.juce.setParameter('protect_unsaved_edits', val);
+        }
+    });
+}
+
+window.initProtectUnsavedEditsSetting = initProtectUnsavedEditsSetting;

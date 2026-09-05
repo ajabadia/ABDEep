@@ -34,7 +34,7 @@
   temporal); usa `vitest list` (enumera sin ejecutar, ~21s) para los counts + un run
   ligero JSON solo sobre los 4 archivos con `skipIf` condicional para capturar los
   skipped del entorno (2 en `checkWasmBuild`, artefactos WASM locales incompletos).
-- **Baseline actualizada:** suite 105/105 · **4733 passed + 2 skipped (4735)** ·
+- **Baseline actualizada:** suite 105/105 · **4736 passed + 2 skipped (4738)** ·
   ESLint 0 errores 0 warnings · docs-verification exit 0. Verificado en navegador:
   teclado de 48 teclas renderizado, sección OSC visible, 0 errores de consola.
 
@@ -43,7 +43,7 @@
 ## 0.2.48 — ✅ Cierre definitivo del plan v3.2 (Fases 0–7 completadas)
 
 > **Hito:** Refactorización de Arquitectura e Integración v3.2 cerrada al 100%.
-> 28/28 checkboxes del plan marcados · 13 jobs CI · suite 105 files / 4735 tests.
+> 28/28 checkboxes del plan marcados · 13 jobs CI · suite 105 files / 4738 tests.
 
 - **Fase 0 — Baseline y perfiledo:** `docs/baseline_fase0_v32.md` con baseline
   exacta (test suites, corpus A–H, percentiles p95/p99/p999, audit de asignaciones),
@@ -90,7 +90,7 @@
   A (baseline/8 bancos/291 B), B (paridad C++↔JS), C (eco NRPN 15/15), D (nombres
   no-ASCII/cola 239-241), E (reporte/CHANGELOG) verificados.
 - **`docs/plan_v32_resumen_ejecutivo.md`**: estado global del plan v3.2 a 9.5/10+
-  con las 8 fases cerradas, métricas actualizadas (105 files / 4735 tests, 13 jobs
+  con las 8 fases cerradas, métricas actualizadas (105 files / 4738 tests, 13 jobs
   CI, 1023 exact + 1 known_exception B/1) y sección 7 con la matriz de jobs
   completa.
 
@@ -104,7 +104,7 @@
   banks A–H (rawSha256/normalizedSha256 hex-64, size 37248, payloadDiffPrograms) y
   los **SHA-256 reales de los 8 .syx** == manifest (dumps no alterados) + cruce de
   fecha con el reporte más reciente (manifest.fecha == report.corrida).
-- Baseline WebUI actualizada a 105 files / 4735 tests.
+- Baseline WebUI actualizada a 105 files / 4738 tests.
 
 ---
 
@@ -1091,7 +1091,7 @@ Primera ejecución del Nivel 3b (§5 del plan v3.2) con hardware real vía Web M
 - **Valor añadido vs `schema-validation`**: verificación **multiplataforma** del generador
   (Linux en vez de Windows) y cobertura del generador sin el wrapper PS1.
 - **Verificado localmente end-to-end**: `node scripts/registry_generator.js` → exit 0
-  (235 parámetros: 226 físicos · 3 extendidos · 6 virtuales); `data.json` 7091 líneas;
+  (236 parámetros: 226 físicos · 3 extendidos · 7 virtuales); `data.json` 7110 líneas;
   `git diff --exit-code --ignore-matching-lines='generatedAt'` → **0 diffs de contenido**.
   Checkbox de Fase 7 marcado (queda pendiente `pluginval`, `wasm-build`, `security-scan`,
   `property-fuzzing`).
@@ -1200,7 +1200,7 @@ Primera ejecución del Nivel 3b (§5 del plan v3.2) con hardware real vía Web M
 - **Guard NRPN en `bridge_connection_midi.js`**: `sendWebMidiParameter` ignora parámetros
   con `byteOffset >= 300` — antes, offset 305 habría emitido NRPN (MSB=1, LSB=177) que
   colisiona con un parámetro real del hardware (FX1 Param 12).
-- **Regenerados** los 4 artefactos `.gen` (226 físicos · 3 extendidos · 6 virtuales); byteMap
+- **Regenerados** los 4 artefactos `.gen` (226 físicos · 3 extendidos · 7 virtuales); byteMap
   223-241 limpio (id null). Tests: Vitest 4383/4383 ✓ · C++ UnitTests 3.689.132 assertions ✓.
 - *Resuelto en 0.2.4*: la etiqueta "(firmware metadata)" de b223 y el fix de
   `validate_sysex_mapping.js` (nombre 223-238 + cabecera real de 10 bytes).
@@ -1338,7 +1338,7 @@ Primera ejecución del Nivel 3b (§5 del plan v3.2) con hardware real vía Web M
 - **Nuevo esquema versionado** `schemas/parameter-registry.json` (`schemaVersion: 1`): JSON Schema draft-07 que describe el registro canónico (parámetros, byte map de 242 bytes, spec-only, warnings, summary).
 - **Nuevo generador** `scripts/registry_generator.js` que fusiona las **3 fuentes de verdad** (`bridge-param-maps.js` canónico HW, `byte_map_data.js` 242 bytes, `parameters_spec.json` legacy) y emite **4 artefactos .gen commiteados**: `schemas/parameter-registry.data.json`, `WebUI/js/registry.gen.js`, `Source/Core/ParameterRegistry.gen.{h,cpp}`.
 - **Política de validación (§1.1):** errores fatales antes de emitir (ids duplicados, rangos `min>=max`, NRPNs colisionados fuera de los alias `{32,88,160}`, byte map no contiguo, colisiones `cppName`); advertencias no fatales para divergencias legacy (comparisonMode §6).
-- **Registro generado:** **235 parámetros** (228 físicos · 3 extendidos `vcf_model/moog/korg` @245-247 · 4 virtuales chord @300-303), 3 grupos alias, 49 enum, 43 bipolar, 33 CC; **8 divergencias CC legacy** documentadas (`cc` canónico + `legacyCC`, p.ej. `vcf_cutoff` 29 vs 23).
+- **Registro generado:** **236 parámetros** (226 físicos · 3 extendidos `vcf_model/moog/korg` @245-247 · 7 virtuales @300-306), 3 grupos alias, 50 enum, 43 bipolar, 33 CC; **8 divergencias CC legacy** documentadas (`cc` canónico + `legacyCC`, p.ej. `vcf_cutoff` 29 vs 23).
 - **Enlace CMake:** `add_custom_command` regenera los .gen al cambiar cualquier fuente (con fallback a artefactos commiteados si falta `node`); `.gen.cpp` añadido a `ABDEEP_CORE_SOURCES` → se compila en todos los targets.
 - **Orquestador** `scripts/validate_and_generate.ps1` (humano/CI): valida, emite y verifica los 4 artefactos (exit 0/1/2).
 - **Tests de paridad** `WebUI/tests/registryGen.test.js` (**21 tests**): biyección id↔byteOffset, codec/enumMax/CC idénticos al bridge real, BYTE_MAP canónico, fusión spec, codec round-trip estable.

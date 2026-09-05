@@ -74,6 +74,25 @@ else()
 endif()
 
 # ============================================================
+# Copy factory calibration.json to build resources folder
+# ============================================================
+set(CALIBRATION_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/resources/calibration.json")
+set(CALIBRATION_DEST_DIR "${CMAKE_CURRENT_BINARY_DIR}/resources")
+set(CALIBRATION_DEST "${CALIBRATION_DEST_DIR}/calibration.json")
+
+add_custom_command(
+    OUTPUT ${CALIBRATION_DEST}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CALIBRATION_DEST_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CALIBRATION_SOURCE} ${CALIBRATION_DEST}
+    DEPENDS ${CALIBRATION_SOURCE}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Copiando factory calibration.json a build/resources..."
+    VERBATIM
+)
+
+add_custom_target(copy_calibration DEPENDS ${CALIBRATION_DEST})
+
+# ============================================================
 # ABDEEP_CORE_SOURCES — DSP + Core + Calibration Source Files
 # ============================================================
 set(ABDEEP_CORE_SOURCES
@@ -90,6 +109,7 @@ set(ABDEEP_CORE_SOURCES
     ${SRC_ROOT}/Core/CalibrationSpec.cpp
     ${SRC_ROOT}/Core/CalibrationSpec_Serialization.cpp
     ${SRC_ROOT}/Core/RoundTripValidator.cpp
+    ${SRC_ROOT}/Core/BankFileReader.cpp
 
     # ── Oscillators ──
     ${SRC_ROOT}/DSP/OSC1.cpp
@@ -202,6 +222,7 @@ set(ABDEEP_RC_LIB_SOURCES
     ${SRC_ROOT}/Plugin/PluginEditor.cpp
     ${SRC_ROOT}/Plugin/PluginEditor_NativeFunctions.cpp
     ${SRC_ROOT}/Plugin/PluginEditor_ResourceProvider.cpp
+    ${SRC_ROOT}/Plugin/PatchController.cpp
 
     # ── Bridge Actions ──
     ${SRC_ROOT}/Plugin/BridgeActions.cpp
@@ -276,6 +297,9 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         ABDEep_WebUI
     )
 
+    # Ensure factory calibration.json is copied to build/resources
+    add_dependencies(ABDEep_Standalone copy_calibration)
+
     # Also configure VST3 target (created by juce_add_plugin FORMATS)
     if(TARGET ABDEep_VST3)
         juce_generate_juce_header(ABDEep_VST3)
@@ -293,6 +317,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
             juce::juce_audio_utils
             ABDEep_WebUI
         )
+        add_dependencies(ABDEep_VST3 copy_calibration)
     endif()
 
 endif()
@@ -386,6 +411,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_Transfer.cpp
         ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_RapidSweep.cpp
         ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_MIDITiming.cpp
+        ${SRC_ROOT}/Tools/UnitTests/MidiProgramUnitTests.cpp
 
         # ── Fast-math tolerance tests (Tier 3 candidates) ──
         ${SRC_ROOT}/Tools/UnitTests/FastMathUnitTests.cpp

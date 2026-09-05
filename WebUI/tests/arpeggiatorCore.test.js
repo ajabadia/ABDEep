@@ -26,7 +26,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
  * Shared helpers (mirrored from source)
  * ================================================================ */
 
-const ARP_CLOCK_NAMES = ['1/1','1/2','1/3','1/4','1/6','1/8','1/12','1/16','1/24','1/32','1/48','1/64','1/96'];
+const ARP_CLOCK_NAMES = ['1/2','3/8','1/3','1/4','3/16','1/6','1/8','3/32','1/12','1/16','1/24','1/32','1/48'];
 const ARP_MODE_NAMES = ['UP','DOWN','UP-DOWN','UP-INV','DOWN-INV','UP-DN-INV','UP-ALT','DOWN-ALT','RANDOM','AS-PLAYED'];
 const ARP_VELGATE_NAMES = ['Gate','Velocity','Seq'];
 
@@ -301,6 +301,7 @@ function _syncArpModalUI(patch, controls, selectors, sliders) {
   const clockVal = bytes[158] || 0;
   const keySyncEn = bytes[159] > 0.5;
   const holdEn = bytes[161] > 0.5;
+  const patternVal = bytes[162] || 0;
   const octaveVal = bytes[164] || 0;
   const velGateVal = bytes[112] || 0;
 
@@ -313,6 +314,7 @@ function _syncArpModalUI(patch, controls, selectors, sliders) {
   if (selectors.clock) {selectors.clock.value = Math.round(clockVal);}
   if (selectors.velGate) {selectors.velGate.value = Math.round(velGateVal);}
   if (selectors.mode) {selectors.mode.value = Math.round(modeVal);}
+  if (selectors.pattern) {selectors.pattern.value = Math.round(patternVal);}
   if (selectors.octave) {selectors.octave.value = Math.round(octaveVal);}
 
   // Slider handle positions
@@ -340,6 +342,7 @@ function _syncArpModalUI(patch, controls, selectors, sliders) {
     clockVal: clockVal,
     keySyncEn: keySyncEn,
     holdEn: holdEn,
+    patternVal: patternVal,
     octaveVal: octaveVal,
     velGateVal: velGateVal,
   };
@@ -366,6 +369,9 @@ function _arpDispatchParamChange(paramId, val, backdrop, controls, selectors, sl
   }
   if (paramId === 'arp_mode' && selectors.mode) {
     selectors.mode.value = Math.round(val * 10.0);
+  }
+  if (paramId === 'arp_pattern' && selectors.pattern) {
+    selectors.pattern.value = Math.round(val * 64.0);
   }
   if (paramId === 'arp_octave' && selectors.octave) {
     selectors.octave.value = Math.round(val * 3.0);
@@ -467,21 +473,21 @@ describe('Arp step gate — full DOM integration', () => {
 // ────────── Select change LCD HTML ───────────────────────────
 
 describe('Arp select change — LCD HTML generation', () => {
-  it('clock select at index 0 produces "CLOCK 1/1" LCD', () => {
+  it('clock select at index 0 produces "CLOCK 1/2" LCD', () => {
     const html = _arpClockLcdHtml('0');
     expect(html).toContain('CLOCK');
-    expect(html).toContain('1/1');
+    expect(html).toContain('1/2');
     expect(html).toContain('lcd-color-yellow');
   });
 
-  it('clock select at index 6 produces "CLOCK 1/12" LCD', () => {
+  it('clock select at index 6 produces "CLOCK 1/8" LCD', () => {
     const html = _arpClockLcdHtml('6');
-    expect(html).toContain('1/12');
+    expect(html).toContain('1/8');
   });
 
-  it('clock select at index 12 produces "CLOCK 1/96" LCD', () => {
+  it('clock select at index 12 produces "CLOCK 1/48" LCD', () => {
     const html = _arpClockLcdHtml('12');
-    expect(html).toContain('1/96');
+    expect(html).toContain('1/48');
   });
 
   it('mode select at index 0 produces "MODE: UP" LCD', () => {
@@ -1047,6 +1053,7 @@ describe('syncArpModalUI — patch bytes to controls', () => {
         clock: makeMockSelect(),
         velGate: makeMockSelect(),
         mode: makeMockSelect(),
+        pattern: makeMockSelect(),
         octave: makeMockSelect(),
       },
       sliders: {
@@ -1066,7 +1073,7 @@ describe('syncArpModalUI — patch bytes to controls', () => {
     };
   }
 
-  it('reads 6 controls from patch.unpackedBytes offsets 155-164', () => {
+  it('reads 7 controls from patch.unpackedBytes offsets 155-164', () => {
     const f = makeSyncFixture();
     const patch = {
       unpackedBytes: {
@@ -1075,6 +1082,7 @@ describe('syncArpModalUI — patch bytes to controls', () => {
         158: 3,     // clock
         159: 1.0,   // key_sync (bool)
         161: 0.0,   // hold (bool)
+        162: 20,    // pattern
         164: 2,     // octave
         112: 1,     // vel_gate
         163: 12,    // swing
@@ -1089,6 +1097,7 @@ describe('syncArpModalUI — patch bytes to controls', () => {
     expect(result.clockVal).toBe(3);
     expect(result.keySyncEn).toBe(true);
     expect(result.holdEn).toBe(false);
+    expect(result.patternVal).toBe(20);
     expect(result.octaveVal).toBe(2);
     expect(result.velGateVal).toBe(1);
   });
@@ -1107,12 +1116,13 @@ describe('syncArpModalUI — patch bytes to controls', () => {
   it('updates select element values', () => {
     const f = makeSyncFixture();
     const patch = {
-      unpackedBytes: { 155: 0, 156: 7, 158: 10, 159: 0, 161: 1.0, 164: 3, 112: 2, 163: 8, 157: 64, 160: 50 },
+      unpackedBytes: { 155: 0, 156: 7, 158: 10, 159: 0, 161: 1.0, 162: 33, 164: 3, 112: 2, 163: 8, 157: 64, 160: 50 },
     };
     _syncArpModalUI(patch, f.controls, f.selectors, f.sliders);
     expect(f.selectors.clock.value).toBe(10);
     expect(f.selectors.velGate.value).toBe(2);
     expect(f.selectors.mode.value).toBe(7);
+    expect(f.selectors.pattern.value).toBe(33);
     expect(f.selectors.octave.value).toBe(3);
   });
 
@@ -1157,6 +1167,7 @@ describe('Arp param change dispatch — onParameterChanged handler', () => {
         clock: makeMockSelect(),
         velGate: makeMockSelect(),
         mode: makeMockSelect(),
+        pattern: makeMockSelect(),
         octave: makeMockSelect(),
       },
       sliders: {},
@@ -1211,6 +1222,14 @@ describe('Arp param change dispatch — onParameterChanged handler', () => {
     expect(f.selectors.octave.value).toBe(1);
   });
 
+  it('arp_pattern updates pattern select value (val*64)', () => {
+    const f = makeDispatchFixture('flex');
+    _arpDispatchParamChange('arp_pattern', 0.5, f.backdrop, f.controls, f.selectors, f.sliders);
+    expect(f.selectors.pattern.value).toBe(32);
+    _arpDispatchParamChange('arp_pattern', 1.0, f.backdrop, f.controls, f.selectors, f.sliders);
+    expect(f.selectors.pattern.value).toBe(64);
+  });
+
   it('arp_swing updates slider handle position', () => {
     const f = makeDispatchFixture('flex');
     const handle = { style: {} };
@@ -1261,8 +1280,8 @@ describe('Arp param change dispatch — onParameterChanged handler', () => {
     expect(f.controls.arpBox.classList.toggle).not.toHaveBeenCalled();
   });
 
-  it('all 7 non-slider paramIds are handled without errors', () => {
-    const knownParams = ['arp_enable', 'arp_hold', 'arp_key_sync', 'arp_clock_divider', 'arp_velocity_gate', 'arp_mode', 'arp_octave'];
+  it('all 8 non-slider paramIds are handled without errors', () => {
+    const knownParams = ['arp_enable', 'arp_hold', 'arp_key_sync', 'arp_clock_divider', 'arp_velocity_gate', 'arp_mode', 'arp_pattern', 'arp_octave'];
     knownParams.forEach(function(pid) {
       const f = makeDispatchFixture('flex');
       if (pid === 'arp_swing' || pid === 'arp_rate' || pid === 'arp_gate_time') {
@@ -1624,7 +1643,7 @@ describe('ARP semantic class assertions', () => {
   });
 
   it('clock select LCD contains .text-accent and lcd-color-yellow', () => {
-    const html = _arpClockLcdHtml('4');
+    const html = _arpClockLcdHtml('5');
     expect(html).toContain('text-accent');
     expect(html).toContain('lcd-color-yellow');
     expect(html).toContain('1/6');

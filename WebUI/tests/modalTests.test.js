@@ -30,7 +30,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // ─── ARPEGGIATOR HELPERS ──────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════
 
-const ARP_CLOCK_NAMES = ['1/1','1/2','1/3','1/4','1/6','1/8','1/12','1/16','1/24','1/32','1/48','1/64','1/96'];
+const ARP_CLOCK_NAMES = ['1/2','3/8','1/3','1/4','3/16','1/6','1/8','3/32','1/12','1/16','1/24','1/32','1/48'];
 const ARP_MODE_NAMES = ['UP','DOWN','UP-DOWN','UP-INV','DOWN-INV','UP-DN-INV','UP-ALT','DOWN-ALT','RANDOM','AS-PLAYED'];
 const ARP_VELGATE_NAMES = ['Gate','Velocity','Seq'];
 
@@ -355,16 +355,16 @@ describe('Arpeggiator — clock names', () => {
   });
 
   it('contains expected entries', () => {
-    expect(ARP_CLOCK_NAMES[0]).toBe('1/1');
+    expect(ARP_CLOCK_NAMES[0]).toBe('1/2');
     expect(ARP_CLOCK_NAMES[3]).toBe('1/4');
-    expect(ARP_CLOCK_NAMES[6]).toBe('1/12');
-    expect(ARP_CLOCK_NAMES[12]).toBe('1/96');
+    expect(ARP_CLOCK_NAMES[6]).toBe('1/8');
+    expect(ARP_CLOCK_NAMES[12]).toBe('1/48');
   });
 
   it('_getArpClockName returns correct name for valid index', () => {
-    expect(_getArpClockName(0)).toBe('1/1');
-    expect(_getArpClockName(6)).toBe('1/12');
-    expect(_getArpClockName(12)).toBe('1/96');
+    expect(_getArpClockName(0)).toBe('1/2');
+    expect(_getArpClockName(6)).toBe('1/8');
+    expect(_getArpClockName(12)).toBe('1/48');
   });
 
   it('_getArpClockName returns empty for negative index', () => {
@@ -1425,6 +1425,8 @@ function _arpDispatchParamChange(paramId, val, backdropVisible) {
     result.velGateValue = Math.round(val * 2.0);
   } else if (paramId === 'arp_mode') {
     result.modeValue = Math.round(val * 10.0);
+  } else if (paramId === 'arp_pattern') {
+    result.patternValue = Math.round(val * 64.0);
   } else if (paramId === 'arp_octave') {
     result.octaveValue = Math.round(val * 3.0);
   } else if (paramId === 'arp_swing' || paramId === 'arp_rate' || paramId === 'arp_gate_time') {
@@ -1686,6 +1688,12 @@ describe('Arpeggiator — parameter change dispatch', () => {
     expect(_arpDispatchParamChange('arp_mode', 0.5, true).modeValue).toBe(5);
     expect(_arpDispatchParamChange('arp_mode', 0.0, true).modeValue).toBe(0);
     expect(_arpDispatchParamChange('arp_mode', 1.0, true).modeValue).toBe(10);
+  });
+
+  it('arp_pattern maps val*64 to select value', () => {
+    expect(_arpDispatchParamChange('arp_pattern', 0.5, true).patternValue).toBe(32);
+    expect(_arpDispatchParamChange('arp_pattern', 1.0, true).patternValue).toBe(64);
+    expect(_arpDispatchParamChange('arp_pattern', 0.0, true).patternValue).toBe(0);
   });
 
   it('arp_octave maps val*3 to select value', () => {

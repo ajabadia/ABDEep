@@ -127,6 +127,14 @@ function triggerMidiDump(patch) {
         }
     } catch(e) {}
 
+    // Clear dirty flag on patch load (from browser, program change, or SysEx dump)
+    if (getBridge()) {
+        getBridge().parameterCache['patch_dirty'] = 0;
+        if (getBridge().isJuce && window.juce && typeof window.juce.setParameter === 'function') {
+            window.juce.setParameter('patch_dirty', 0);
+        }
+    }
+
     window._lastUnpackedBytes = patch.unpackedBytes;
     window._lastPresetName = patch.name;
 

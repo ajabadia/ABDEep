@@ -64,7 +64,31 @@ namespace juce
         const std::size_t slot = resolveSlot(id);
         if (slot == kNoSlot)
             return nullptr;
-        gChoiceStore[slot].value.store(gValueStore[slot].load(std::memory_order_relaxed));
+
+        float rawVal = gValueStore[slot].load(std::memory_order_relaxed);
+
+        if (slot < ABD::Registry::kParameterCount)
+        {
+            const auto& entry = ABD::Registry::kParameters[slot];
+            if (entry.codecType == 2) // Enum
+            {
+                rawVal = std::round(rawVal * static_cast<float>(entry.enumMax));
+            }
+        }
+        else
+        {
+            // Internal parameters: desnormalize enums
+            if (id == "vcf_oversample")
+            {
+                rawVal = std::round(rawVal * 2.0f);
+            }
+            else if (id == "vca_mode")
+            {
+                rawVal = std::round(rawVal * 1.0f);
+            }
+        }
+
+        gChoiceStore[slot].value.store(rawVal, std::memory_order_relaxed);
         return &gChoiceStore[slot];
     }
 }

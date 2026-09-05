@@ -26,8 +26,8 @@ const ENUM_VOICE_MODE  = ['Poly','Uni2','Uni3','Uni4','Uni6','Uni12','Mono','Mon
 const ENUM_TRIG_MODE   = ['Mono','Re-Trig','Legato','One-Shot'];
 const ENUM_NOTE_PRIO   = ['Lowest','Highest','Last'];
 const ENUM_ARP_MODE    = ['Up','Down','Up&Dn','Up Inv','Dn Inv','Up&Dn Inv','Up Alt','Down Alt','Random','As Played','Chord'];
-const ENUM_ARP_CLOCK   = ['1/32','1/16T','1/32D','1/16','1/8T','1/16D','1/8','1/4T','1/8D','1/4','1/2T','1/4D','1/2'];
-const ENUM_SEQ_CLOCK   = ['1/32','1/16T','1/32D','1/16','1/8T','1/16D','1/8','1/4T','1/8D','1/4','1/2T','1/4D','1/2','1/1T','1/2D','1/1'];
+const ENUM_ARP_CLOCK   = ['1/2','3/8','1/3','1/4','3/16','1/6','1/8','3/32','1/12','1/16','1/24','1/32','1/48'];
+const ENUM_SEQ_CLOCK   = ['1/2', '3/8', '1/3', '1/4', '3/16', '1/6', '1/8', '1/12', '1/16', '1/24', '1/32', '1/48', '1/64', '1/96', '1/128', '1/192'];
 const ENUM_KEY_LOOP    = ['Loop Off','Loop On','(unused)'];
 const ENUM_FX_ROUTING  = ['M-1 Ser 1-2-3-4','M-2 Par 1/2 Ser 3-4','M-3 Par 1/2 Par 3/4','M-4 Par 1/2/3/4','M-5 Par 1/2/3 Ser 4','M-6 Ser 1-2 Par 3/4','M-7 Ser 1 Par 2/3/4','M-8 Par (Ser 1-2-3)/4','M-9 Ser 3-4 FB(1-2)','M-10 Ser 4 FB(1-2-3)'];
 const ENUM_FX_MODE     = ['Insert','Send','Bypass'];
@@ -1141,8 +1141,8 @@ describe('formatParamValue — enum edge cases', function () {
 
     it('seq clock enum has 16 entries', function () {
         expect(ENUM_SEQ_CLOCK.length).toBe(16);
-        expect(ENUM_SEQ_CLOCK[0]).toBe('1/32');
-        expect(ENUM_SEQ_CLOCK[15]).toBe('1/1');
+        expect(ENUM_SEQ_CLOCK[0]).toBe('1/2');
+        expect(ENUM_SEQ_CLOCK[15]).toBe('1/192');
     });
 
 });

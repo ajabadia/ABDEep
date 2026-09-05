@@ -114,11 +114,36 @@ bool CalibrationSpec::operator==(const CalibrationSpec& o) const
 
 //==============================================================================
 // getDefaultCalibrationFile — Ruta del archivo por defecto
+// Busca en orden: usuario → instalación → recursos (factory)
 //==============================================================================
 
 juce::File CalibrationSpec::getDefaultCalibrationFile()
 {
-    return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
+    // 1. Usuario (~/Documents/ABDEep/calibration.json)
+    juce::File userFile = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
         .getChildFile ("ABDEep")
         .getChildFile ("calibration.json");
+    if (userFile.existsAsFile())
+        return userFile;
+
+    // 2. Instalación (exe_dir/resources/calibration.json)
+    juce::File installFile = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
+        .getParentDirectory()
+        .getChildFile ("resources")
+        .getChildFile ("calibration.json");
+    if (installFile.existsAsFile())
+        return installFile;
+
+    // 3. Desarrollo (Source/../resources/calibration.json)
+    juce::File currentFile (__FILE__);
+    juce::File devFile = currentFile.getParentDirectory()
+        .getParentDirectory()
+        .getParentDirectory()
+        .getChildFile ("resources")
+        .getChildFile ("calibration.json");
+    if (devFile.existsAsFile())
+        return devFile;
+
+    // Fallback: retorna la ruta de usuario (aunque no exista, para creación)
+    return userFile;
 }

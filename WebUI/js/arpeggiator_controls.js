@@ -17,7 +17,17 @@ window.initArpControls = function(backdrop, stepEditor, callbacks) {
     const selectVelGate = document.getElementById('modal-arp-velgate-select');
     const selectMode = document.getElementById('modal-arp-mode-select');
     const selectOctave = document.getElementById('modal-arp-octave-select');
+    const selectPattern = document.getElementById('modal-arp-pattern-select');
     const loadPresetBtn = document.getElementById('modal-arp-load-preset');
+
+    if (selectPattern) {
+        selectPattern.addEventListener('change', function() {
+            if (getBridge()) { getBridge().setParameter('arp_pattern', parseInt(selectPattern.value) / 64.0); }
+            const patVal = parseInt(selectPattern.value);
+            const patName = patVal === 0 ? 'None' : (patVal <= 32 ? 'Preset ' + patVal : 'User ' + (patVal - 32));
+            window._showArpLcdMessage('ARPEGGIATOR', 'PATTERN', patName, 'green');
+        });
+    }
     const savePresetBtn = document.getElementById('modal-arp-save-preset');
     const resetBtn = document.getElementById('modal-arp-reset-btn');
 
@@ -47,7 +57,7 @@ window.initArpControls = function(backdrop, stepEditor, callbacks) {
     if (selectClock) {
         selectClock.addEventListener('change', function() {
             if (getBridge()) { getBridge().setParameter('arp_clock_divider', parseInt(selectClock.value) / 12.0); }
-            window._showArpSelectLcd('arp_clock', selectClock, ['1/1','1/2','1/3','1/4','1/6','1/8','1/12','1/16','1/24','1/32','1/48','1/64','1/96'], 'yellow');
+            window._showArpSelectLcd('arp_clock', selectClock, ['1/2','3/8','1/3','1/4','3/16','1/6','1/8','3/32','1/12','1/16','1/24','1/32','1/48'], 'yellow');
         });
     }
 

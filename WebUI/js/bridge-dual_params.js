@@ -25,6 +25,17 @@
 
         this.parameterCache[paramId] = normalizedValue;
 
+        // Marcar patch como "dirty" cuando el usuario edita un parámetro (no durante carga)
+        if (!forceResend && paramId !== 'patch_dirty' && paramId !== 'protect_unsaved_edits') {
+            const wasClean = this.parameterCache['patch_dirty'] !== 1;
+            if (wasClean) {
+                this.parameterCache['patch_dirty'] = 1;
+                if (window.juce && typeof window.juce.setParameter === 'function') {
+                    window.juce.setParameter('patch_dirty', 1);
+                }
+            }
+        }
+
         if (this.isJuce) {
             if (window.juce && typeof window.juce.setParameter === 'function') {
                 window.juce.setParameter(paramId, normalizedValue);

@@ -195,6 +195,10 @@ window._handlePanelParamChange = function(paramId, val) {
             const sel = document.getElementById('panel-arp-octave-select');
             if (sel) {sel.value = Math.round(val * 3.0);}
         }
+        if (paramId === 'arp_pattern') {
+            const sel = document.getElementById('panel-arp-pattern-select');
+            if (sel) {sel.value = Math.round(val * 64.0);}
+        }
         if (paramId === 'arp_swing' || paramId === 'arp_rate' || paramId === 'arp_gate_time') {
             const sliderEl = container.querySelector('[data-param="' + paramId + '"] .v-slider');
             _updateSliderHandle(sliderEl, val);

@@ -158,24 +158,38 @@ function checkArtifacts(wasmDir) {
   const jsPath = path.join(wasmDir, 'abdeep_dsp.js');
   const wasmPath = path.join(wasmDir, 'abdeep_dsp.wasm');
 
-  if (!fs.existsSync(jsPath)) { problems.push('Falta abdeep_dsp.js (build WASM no ejecutado)'); }
-  if (!fs.existsSync(wasmPath)) { problems.push('Falta abdeep_dsp.wasm (build WASM no ejecutado)'); }
-  if (problems.length > 0) { return { problems, js: null, wasm: null }; }
+  let js = null;
+  if (!fs.existsSync(jsPath)) { 
+    problems.push('Falta abdeep_dsp.js (build WASM no ejecutado)'); 
+  } else {
+    js = fs.readFileSync(jsPath, 'utf8');
+    if (js.trim().length === 0) { problems.push('abdeep_dsp.js está vacío'); }
+  }
 
-  const js = fs.readFileSync(jsPath, 'utf8');
-  const wasm = fs.readFileSync(wasmPath);
-
-  if (js.trim().length === 0) { problems.push('abdeep_dsp.js está vacío'); }
-  if (wasm.length === 0) { problems.push('abdeep_dsp.wasm está vacío'); }
+  let wasm = null;
+  if (fs.existsSync(wasmPath)) {
+    wasm = fs.readFileSync(wasmPath);
+    if (wasm.length === 0) { problems.push('abdeep_dsp.wasm está vacío'); }
+  } else {
+    // Intentar extraer de la cadena base64 en abdeep_dsp.js (SINGLE_FILE=1)
+    const match = js ? js.match(/data:application\/octet-stream;base64,([A-Za-z0-9+/=]+)/) : null;
+    if (match) {
+      wasm = Buffer.from(match[1], 'base64');
+    } else {
+      problems.push('Falta abdeep_dsp.wasm o WASM embebido en abdeep_dsp.js (build WASM no ejecutado)');
+    }
+  }
 
   // El glue modularizado debe exponer el EXPORT_NAME y las funciones exportadas.
-  if (!js.includes('ABDEepDSP')) {
-    problems.push('glue .js no contiene el EXPORT_NAME ABDEepDSP (EXPORT_NAME cambió?)');
-  }
-  for (const fn of REQUIRED_EXPORTS) {
-    // En el glue Emscripten aparecen con prefijo '_' en EXPORTED_FUNCTIONS.
-    if (!js.includes('_' + fn)) {
-      problems.push('glue .js no exporta _' + fn + ' (EXPORTED_FUNCTIONS cambió?)');
+  if (js) {
+    if (!js.includes('ABDEepDSP')) {
+      problems.push('glue .js no contiene el EXPORT_NAME ABDEepDSP (EXPORT_NAME cambió?)');
+    }
+    for (const fn of REQUIRED_EXPORTS) {
+      // En el glue Emscripten aparecen con prefijo '_' en EXPORTED_FUNCTIONS.
+      if (!js.includes('_' + fn)) {
+        problems.push('glue .js no exporta _' + fn + ' (EXPORTED_FUNCTIONS cambió?)');
+      }
     }
   }
   return { problems, js, wasm };

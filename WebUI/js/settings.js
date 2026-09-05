@@ -57,6 +57,7 @@ function initSettingsAndModals() {
     initMidiChannelSetting();
     initMidiClockSetting();
     initDeviceIdSetting();
+    initProtectUnsavedEditsSetting();
 
     // ── Initialize from settings_advanced.js ──
     initAdvancedSettings();

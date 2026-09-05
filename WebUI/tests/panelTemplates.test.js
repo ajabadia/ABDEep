@@ -208,11 +208,11 @@ describe('PANEL_TEMPLATES — section titles', function () {
         expect(html).toContain('Presets &amp; Hardware');
     });
 
-    it('ARP template contains Arpeggiator Status, Arp Routing, Mode & Range, Faders', function () {
+    it('ARP template contains Arpeggiator Status, Arp Routing, Mode, Pattern & Range, Faders', function () {
         const html = PANEL_TEMPLATES.ARP();
         expect(html).toContain('Arpeggiator Status');
         expect(html).toContain('Arp Routing &amp; Clock');
-        expect(html).toContain('Mode &amp; Range');
+        expect(html).toContain('Mode, Pattern &amp; Range');
         expect(html).toContain('Arpeggiator Faders');
     });
 

@@ -59,4 +59,11 @@ window.bindPanelArpControls = function(container, state, titleEl) {
             if (getBridge()) {getBridge().setParameter('arp_octave', parseInt(selectOctave.value) / 3.0);}
         });
     }
+
+    const selectPattern = document.getElementById('panel-arp-pattern-select');
+    if (selectPattern) {
+        selectPattern.addEventListener('change', () => {
+            if (getBridge()) {getBridge().setParameter('arp_pattern', parseInt(selectPattern.value) / 64.0);}
+        });
+    }
 };

@@ -240,13 +240,14 @@ set_target_properties(abdeep_dsp PROPERTIES
         -s EXPORT_ES6=1 \
         -s EXPORT_NAME=ABDEepDSP \
         -s EXPORTED_FUNCTIONS=[\"_wasm_init_engine\",\"_wasm_process_audio\",\"_wasm_set_parameter\",\"_wasm_set_parameter_index\",\"_wasm_get_parameter_index\",\"_wasm_set_model\",\"_wasm_get_model\",\"_wasm_note_on\",\"_wasm_note_off\",\"_wasm_pitch_bend\",\"_wasm_panic\",\"_malloc\",\"_free\"] \
-        -s EXPORTED_RUNTIME_METHODS=[\"ccall\",\"cwrap\",\"setValue\",\"getValue\"] \
+        -s EXPORTED_RUNTIME_METHODS=[\"ccall\",\"cwrap\",\"setValue\",\"getValue\",\"HEAPF32\"] \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s INITIAL_MEMORY=33554432 \
         -s STACK_SIZE=1048576 \
         -s NO_EXIT_RUNTIME=1 \
         -s ENVIRONMENT=web,worker \
-        -s SINGLE_FILE=0 \
+        -s SINGLE_FILE=1 \
+        -s MALLOC=emmalloc \
         -s ASSERTIONS=0 \
         --strip-all \
         -O3 \

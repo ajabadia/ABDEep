@@ -40,22 +40,23 @@ JS y la documentación se compilen SIEMPRE desde la misma fuente validada
 |---|---|
 | `schemas/parameter-registry.data.json` | Instancia canónica: `schemaVersion`, `generatedAt`, `sourceHashes` (SHA-256), `parameters[]`, `byteMap[]`, `specOnly[]`, `warnings[]`, `summary` |
 | `WebUI/js/registry.gen.js` | UMD (`window.ParameterRegistry` + `module.exports`): mismos datos + índices `byId`/`byOffset` + codec `rawToNormalized`/`normalizedToRaw` |
-| `Source/Core/ParameterRegistry.gen.h` | `ABD::Registry`: `enum class ParameterIndex` (235 índices), `struct ParameterEntry`, `kParameters`, `kByteMapParams`, `findParameterById/ByOffset` |
+| `Source/Core/ParameterRegistry.gen.h` | `ABD::Registry`: `enum class ParameterIndex` (236 índices), `struct ParameterEntry`, `kParameters`, `kByteMapParams`, `findParameterById/ByOffset` |
 | `Source/Core/ParameterRegistry.gen.cpp` | Datos `const std::array` (sin JUCE — compila en cualquier toolchain) |
 
 ## 3. Datos del registro generado (baseline)
 
 ```
 schemaVersion: 1
-parámetros: 235  (físicos=228 · extendidos=3 · virtuales=4)
+parámetros: 236  (físicos=226 · extendidos=3 · virtuales=7)
 byteMap: 242 bytes físicos (contiguos 0..241)
 aliasGroups: 3  → {osc2_pm_source, osc2_pitch_mod_select}@32
                   {voice_drift, osc_drift}@88
                   {arp_gate_time, arp_gate}@160
-codec: enum=49 · bipolar=43 · value=143
+codec: enum=50 · bipolar=43 · value=143
 cc: 33 mapeos canónicos (PARAM_TO_CC)
 extendidos (AbyssMind Pro): vcf_model=245, vcf_moog_submode=246, vcf_korg_submode=247
-virtuales (chords): chord_enable=300, poly_chord_enable=301, chord_key=302, chord_type=303
+virtuales: chord_enable=300, poly_chord_enable=301, chord_key=302, chord_type=303,
+          fx_feedback_gain=304, fx_send_level=305, vcf_voicing_mode=306
 specOnly: slot_a_type, slot_b_type (universo legacy sin byte físico)
 warnings: 8 divergencias CC legacy (comparisonMode §6)
 ```

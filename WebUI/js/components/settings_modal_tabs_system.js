@@ -139,6 +139,13 @@
                             <span id="settings-lcd-contrast-val" style="width:28px;text-align:center;font-size:var(--text-sm);color:var(--brand-accent)">70%</span>
                         </div>
                     </div>
+                    <div class="flex-col bg-surface" style="border:1px solid var(--border-dim);border-radius:var(--radius-sm);padding:6px;gap:4px">
+                        <span class="text-uppercase text-dim" style="font-size:8px;font-weight:bold">Protect Unsaved</span>
+                        <div class="flex-row justify-between items-center">
+                            <select id="settings-protect-unsaved" class="modal-select" style="width:80px;font-size:var(--text-sm);padding:1px"><option value="0">Off</option><option value="1">On</option></select>
+                            <span id="settings-protect-unsaved-hint" style="font-size:8px;color:var(--text-dim)">Blocks PC when dirty</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="flex-row justify-end" style="margin-top:8px;gap:6px">
                     <button id="settings-global-refresh" class="btn btn-xs btn-outline" data-accent="blue" style="font-size:9px;padding:2px 8px" data-ctrl-tooltip="Request Global Dump from hardware to refresh global params">\u21bb Refresh from HW</button>

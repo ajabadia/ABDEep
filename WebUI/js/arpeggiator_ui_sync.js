@@ -17,6 +17,7 @@ window.syncArpModalUI = function() {
     const clockVal = patch.unpackedBytes[158] || 0;
     const keySyncEn = patch.unpackedBytes[159] > 0.5;
     const holdEn = patch.unpackedBytes[161] > 0.5;
+    const patternVal = patch.unpackedBytes[162] || 0;
     const octaveVal = patch.unpackedBytes[164] || 0;
     const velGateVal = patch.unpackedBytes[112] || 0;
 
@@ -26,6 +27,7 @@ window.syncArpModalUI = function() {
     const selectClock = document.getElementById('modal-arp-clock-select');
     const selectVelGate = document.getElementById('modal-arp-velgate-select');
     const selectMode = document.getElementById('modal-arp-mode-select');
+    const selectPattern = document.getElementById('modal-arp-pattern-select');
     const selectOctave = document.getElementById('modal-arp-octave-select');
 
     if (arpBox) {arpBox.classList.toggle('active', arpEn);}
@@ -35,6 +37,7 @@ window.syncArpModalUI = function() {
     if (selectClock) {selectClock.value = Math.round(clockVal);}
     if (selectVelGate) {selectVelGate.value = Math.round(velGateVal);}
     if (selectMode) {selectMode.value = Math.round(modeVal);}
+    if (selectPattern) {selectPattern.value = Math.round(patternVal);}
     if (selectOctave) {selectOctave.value = Math.round(octaveVal);}
 
     // Offsets corregidos del manual: arp_swing=163, arp_rate=157, arp_gate_time=160
