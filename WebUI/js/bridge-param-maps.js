@@ -22,7 +22,8 @@ window.BRIDGE_PARAM_MAPS = (function() {
         166: 49, 179: 49, 192: 49, 205: 49,         222: 2,
         245: 2,
         246: 2,
-        247: 1
+        247: 1,
+        306: 1
     };
 
     // Mapa: paramId → byteOffset
@@ -101,7 +102,8 @@ window.BRIDGE_PARAM_MAPS = (function() {
         'fx_send_level': 305,
         'vcf_model': 245,
         'vcf_moog_submode': 246,
-        'vcf_korg_submode': 247
+        'vcf_korg_submode': 247,
+        'vcf_voicing_mode': 306
     };
 
     // Mapa: paramId → MIDI CC

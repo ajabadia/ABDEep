@@ -248,6 +248,7 @@ enum class ParameterIndex : std::uint16_t
     VcfModel = 232,
     VcfMoogSubmode = 233,
     VcfKorgSubmode = 234,
+    VcfVoicingMode = 235,
     kCount
 };
 
@@ -264,7 +265,7 @@ struct ParameterEntry
     ParameterIndex index;
 };
 
-inline constexpr std::size_t kParameterCount = 235;
+inline constexpr std::size_t kParameterCount = 236;
 inline constexpr std::size_t kByteMapSize = 242;
 
 extern const std::array<ParameterEntry, kParameterCount> kParameters;

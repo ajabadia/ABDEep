@@ -242,6 +242,7 @@ const std::array<ParameterEntry, kParameterCount> kParameters = {{
     { "vcf_model", 245, "Extended", 2, 0, 2, -1.000000f, ParameterIndex::VcfModel },
     { "vcf_moog_submode", 246, "Extended", 2, 0, 2, -1.000000f, ParameterIndex::VcfMoogSubmode },
     { "vcf_korg_submode", 247, "Extended", 2, 0, 1, -1.000000f, ParameterIndex::VcfKorgSubmode },
+    { "vcf_voicing_mode", 306, "Virtual", 2, 0, 1, 0.000000f, ParameterIndex::VcfVoicingMode },
 }};
 
 const std::array<const char*, kByteMapSize> kByteMapParams = {{

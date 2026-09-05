@@ -144,15 +144,16 @@ describe('registry.gen.js — paridad byteOffset', () => {
     }
   });
 
-  it('categorías: 226 físicos · 3 extendidos (245-247) · 6 virtuales (300-305)', () => {
+  it('categorías: 226 físicos · 3 extendidos (245-247) · 7 virtuales (300-306)', () => {
     const ext = registry.parameters.filter((p) => p.category === 'extended');
     const virt = registry.parameters.filter((p) => p.category === 'virtual');
     expect(ext.map((p) => p.id).sort()).toEqual(['vcf_korg_submode', 'vcf_model', 'vcf_moog_submode']);
     expect(ext.map((p) => p.byteOffset).sort()).toEqual([245, 246, 247]);
     expect(virt.map((p) => p.id).sort()).toEqual([
       'chord_enable', 'chord_key', 'chord_type', 'fx_feedback_gain', 'fx_send_level', 'poly_chord_enable',
+      'vcf_voicing_mode',
     ]);
-    expect(virt.map((p) => p.byteOffset).sort()).toEqual([300, 301, 302, 303, 304, 305]);
+    expect(virt.map((p) => p.byteOffset).sort()).toEqual([300, 301, 302, 303, 304, 305, 306]);
     expect(registry.summary.physical).toBe(226);
   });
 });

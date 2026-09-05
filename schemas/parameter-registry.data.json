@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-09T08:53:08.021Z",
+  "generatedAt": "2026-08-25T04:39:34.060Z",
   "sourceHashes": {
-    "parametersSpec": "0f1bbce5fa10c8f6840c6de519222031dc530077a024e708f85ef353bc094378",
-    "bridgeParamMaps": "781091b5bce1b77ecdac4dc1d952584b9d2fc084a38e13530f4ba041cd177186",
-    "byteMapData": "fc9acdcbd69efd5bdfef2985d03efe1e8c13a14fd29fa4bc6cd6fb93bf388d78"
+    "parametersSpec": "6532174bcb2fb79cfd0bc1a0dc05f654126306550de7bcf0cbdd5d9ae45b94b1",
+    "bridgeParamMaps": "0deb5c47ea0d645988d7f406de8ce1e54d15dc282480ed4704b831e8be773b22",
+    "byteMapData": "44f4411d71dfbbb19069a6205f19aaa2028e0bc82ef0e875cdcb66454a5ca478"
   },
   "parameters": [
     {
@@ -3291,19 +3291,19 @@
       "byteMapType": "enum",
       "enumMax": 12,
       "enumLabels": [
-        "1/32",
-        "1/16T",
-        "1/32D",
-        "1/16",
-        "1/8T",
-        "1/16D",
-        "1/8",
-        "1/4T",
-        "1/8D",
+        "1/2",
+        "3/8",
+        "1/3",
         "1/4",
-        "1/2T",
-        "1/4D",
-        "1/2"
+        "3/16",
+        "1/6",
+        "1/8",
+        "3/32",
+        "1/12",
+        "1/16",
+        "1/24",
+        "1/32",
+        "1/48"
       ],
       "cc": null,
       "legacyCC": null,
@@ -4663,6 +4663,25 @@
       "aliases": [],
       "cppName": "VcfKorgSubmode",
       "index": 234
+    },
+    {
+      "id": "vcf_voicing_mode",
+      "byteOffset": 306,
+      "category": "virtual",
+      "region": "Virtual",
+      "codecType": "enum",
+      "byteMapType": null,
+      "enumMax": 1,
+      "enumLabels": null,
+      "cc": null,
+      "legacyCC": -1,
+      "ccConflict": false,
+      "name": "VCF Voicing Mode",
+      "desc": "Modo de voicing del filtro (DeepMind o Juno-106)",
+      "defaultValue": 0,
+      "aliases": [],
+      "cppName": "VcfVoicingMode",
+      "index": 235
     }
   ],
   "byteMap": [
@@ -6238,19 +6257,19 @@
       "type": "enum",
       "desc": null,
       "enumLabels": [
-        "1/32",
-        "1/16T",
-        "1/32D",
-        "1/16",
-        "1/8T",
-        "1/16D",
-        "1/8",
-        "1/4T",
-        "1/8D",
+        "1/2",
+        "3/8",
+        "1/3",
         "1/4",
-        "1/2T",
-        "1/4D",
-        "1/2"
+        "3/16",
+        "1/6",
+        "1/8",
+        "3/32",
+        "1/12",
+        "1/16",
+        "1/24",
+        "1/32",
+        "1/48"
       ],
       "id": "arp_clock_divider"
     },
@@ -7076,12 +7095,12 @@
     }
   ],
   "summary": {
-    "total": 235,
+    "total": 236,
     "physical": 226,
     "extended": 3,
-    "virtual": 6,
+    "virtual": 7,
     "aliasGroups": 3,
-    "enumCount": 49,
+    "enumCount": 50,
     "bipolarCount": 43,
     "valueCount": 143,
     "ccCount": 33,

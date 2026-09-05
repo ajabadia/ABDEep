@@ -114,6 +114,16 @@
       "description": "Pendiente del filtro"
     },
     {
+      "id": "vcf_voicing_mode",
+      "name": "VCF Voicing Mode",
+      "block": "filtro",
+      "type": "enum",
+      "options": ["DeepMind", "Juno-106"],
+      "default": "DeepMind",
+      "midi_cc": -1,
+      "description": "Modo de voicing del filtro (DeepMind o Juno-106)"
+    },
+    {
       "id": "vcf_env_depth",
       "name": "VCF Envelope Depth",
       "block": "filtro",
