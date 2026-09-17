@@ -16,6 +16,14 @@ JUCE es un framework nativo pesado orientado a escritorio. Cuando intentas compi
 
 La estrategia consiste en **aislar el motor DSP** compilándolo sin dependencias de hosts de audio externos ni UI nativa, inyectando un **Mock del gestor de parámetros de JUCE** en el preprocesador global.
 
+### A.0 Listas de fuentes single-source (anti-drift: `DspSources.cmake`)
+
+**Lección transversal de la suite (2026-09):** duplicar la lista de `.cpp` del motor en el CMake nativo y en el WASM garantiza drift silencioso. Ocurrió en ABDMS2000 (4 ficheros sin replicar — el motor web sonaba, pero no era el sintetizador completo), y se detectó también en ABDCZ101 (GLOB nativo vs lista estática WASM) y ABDJUNiO601 (46 ficheros de hueco). El remedio, aplicado a los cinco proyectos con doble build:
+
+- **Un único `DspSources.cmake` en la raíz** con dos variables (`<PROY>_DSP_SOURCES` nativa y `<PROY>_DSP_SOURCES_WASM`), consumido vía `include()` por el CMake raíz y por `wasm/CMakeLists.txt`.
+- Toda diferencia entre listas se **documenta en la cabecera del propio fichero** (exclusión justificada ≠ drift silencioso).
+- Regla de mantenimiento: un módulo DSP nuevo va a las **dos** listas, o se justifica su exclusión en ese bloque.
+
 ### A. Deshabilitar Módulos Gráficos y de Host en CMake
 En tu `CMakeLists.txt` de WASM, deshabilita de forma explícita los módulos innecesarios:
 ```cmake
@@ -123,6 +131,8 @@ target_compile_options(tu_target PRIVATE
 ```
 
 ---
+
+**⚠️ Actualización JUCE 8 (2026-09):** este mock sigue siendo válido como técnica general, pero la vía moderna ya no pasa por él en los TUs que construyen layouts APVTS. La variante `juce_audio_processors_headless` de JUCE 8 **redefine** `ParameterID`/`AudioParameter*` que ya existen en `juce_audio_basics` (redefiniciones + `override` inválido), y el módulo completo arrastra `juce_gui_extra` — no hay combinación viable con `audio_basics` activo. La solución aplicada en la suite: los TUs que construyen el layout APVTS (`ParametersSpec*` y similares) son **exclusivos del plugin nativo**; el motor WASM consume el registry generado (`ParameterRegistry.gen.*`) directamente desde el bridge. Ver `DspSources.cmake` de ABDEep para la exclusión documentada.
 
 ### C. Implementación del Bridge C++ / JS (`WasmBridge.cpp`)
 El bridge actúa como el punto de entrada que expone los métodos de audio al hilo de javascript (AudioWorklet). En este archivo implementamos los métodos del Mock declarados en la cabecera anterior:
@@ -241,6 +251,16 @@ wasm\build_wasm.bat
 * `WebUI/wasm/abdeep_dsp.wasm` / `WebUI/wasm/abdjunio601_dsp.wasm` (Binario DSP optimizado sin símbolos)
 * `WebUI/wasm/abdeep_dsp.js` / `WebUI/wasm/abdjunio601_dsp.js` (Glue code modularizado ES6/AudioWorklet)
 
+### Estado por proyecto (auditoría anti-drift 2026-09-17)
+
+| Proyecto | Estrategia WASM | Lista single-source | Estado |
+|---|---|---|---|
+| ABDNeural | JUCE 8 nativo con em++ (sin shim) sobre `DspEngineFacade` | `DspSources.cmake` | ✅ verde (smoke test Node) |
+| ABDMS2000 | sin-JUCE, bridge `extern "C"` | `DspSources.cmake` | ✅ verde (2 módulos recuperados) |
+| ABDCZ101 | `juce_shim` + módulos JUCE | `DspSources.cmake` | ✅ verde (receta SIMD, lección 7) |
+| ABDJUNiO601 | 3 módulos vendados | `DspSources.cmake` | ✅ verde (motor SysEx pendiente: depende de `JuceHeader.h` completo) |
+| ABDEep | `juce_shim` + módulos JUCE | `DspSources.cmake` | ✅ verde (BankFileReader + CalibrationSpec recuperados) |
+
 ---
 
 ## ⚡ 6. Lecciones Críticas de Depuración en AudioWorklets (WASM)
@@ -278,6 +298,35 @@ Al portar motores C++ complejos de JUCE a AudioWorklet, ten siempre presente:
 
 ### 6. Uso del Asignador `emmalloc`
 * **Mejor Práctica**: Para aplicaciones web de audio ligeras, fuerza el uso del asignador `-s MALLOC=emmalloc` en el linker de CMake. Esto optimiza el binario de WebAssembly reduciendo significativamente su peso y el jitter de latencia.
+
+### 7. Intrinsics SSE en headers DSP compartidos (`-msimd128` + shims)
+* **Problema**: los headers DSP compartidos (p. ej. `ABDSharedCode/LutDSP/LutEvaluatorSimd.h`) usan `__m128`/`_mm_*` de x86. Bajo WASM no existen, y `juce::dsp::SIMDRegister` tampoco: JUCE lo excluye en Emscripten (`JUCE_USE_SIMD=0`, no hay backend SIMD WASM).
+* **Solución**: Emscripten trae shims compat (`system/include/compat/immintrin.h`) que traducen los intrinsics SSE a WASM SIMD128 real, pero exigen las macros x86 que `emcc` no define por defecto. Receta completa (probada en ABDCZ101):
+```cmake
+target_compile_options(tu_target PRIVATE
+    -msimd128
+    "SHELL:-D__SSE__ -D__SSE2__"      # los shims dan #error sin estas macros
+    "SHELL:-include immintrin.h"
+)
+```
+* **Efecto colateral en JUCE**: con `__SSE__` definido, `juce_TargetPlatform.h` deduce `JUCE_INTEL=1` y JUCE emite inline asm x86 (`bswap %%eax` en `juce_ByteOrder`) que WASM no soporta. Interruptor oficial: añade `JUCE_NO_INLINE_ASM=1` a los defines.
+
+### 8. La trampa de `juce_audio_processors` (y su variante headless) en JUCE 8
+* **Problema**: activar `JUCE_MODULE_AVAILABLE_juce_audio_processors=1` sin compilar su `.cpp` parece la vía natural para APVTS/`AudioParameterBool`, pero el módulo completo incluye `juce_gui_extra` (no vendado), y su variante `juce_audio_processors_headless` **redefine** `ParameterID`, `RangedAudioParameter` y `AudioParameter*` que ya existen en `juce_audio_basics` — con `audio_basics` activo produce redefiniciones y `override` inválidos, con o sin su flag de módulo.
+* **Solución**: los TUs que construyen el layout APVTS son exclusivos del plugin nativo (ver lección del mock, §2.C). El motor WASM consume el registry generado directamente. Documenta la exclusión en `DspSources.cmake`.
+
+### 9. El quirk de `emsdk_env.bat` en los `.bat` (PATH perdido)
+* **Problema**: `call C:\emsdk\emsdk_env.bat >nul 2>nul` silencia también su `set PATH`; y bajo Git Bash el script emite exports `sh` que cmd no ejecuta. Resultado: `"emcmake" no se reconoce` aunque el SDK esté instalado. Afectó a los `.bat` de CZ101, JUNiO y EEP.
+* **Solución**: montar el PATH a mano, determinista:
+```bat
+if exist "C:\emsdk\upstream\emscripten\emcmake.exe" (
+    set "PATH=C:\emsdk;C:\emsdk\upstream\emscripten;C:\emsdk\node\22.16.0_64bit\bin;C:\emsdk\python\3.13.3_64bit;%PATH%"
+    set "EM_CONFIG=C:\emsdk\.emscripten"
+) else (
+    call C:\emsdk\emsdk_env.bat >nul 2>nul
+)
+```
+* **Relacionado (CMake de VS)**: si un directorio de build nativo fue configurado con el CMake que trae Visual Studio, reconfigurarlo después con el CMake independiente lo corrompe (`No preprocessor test for "PellesC"`). Usa siempre el CMake que creó el directorio: `.../Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe`.
 
 
 
