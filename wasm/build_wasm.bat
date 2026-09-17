@@ -33,9 +33,17 @@ REM 5. Patching PluginHostType de juce_audio_processors: usamos el enum correcto
 echo Patching juce_audio_processors PluginHostType...
 powershell -NoProfile -Command "(Get-Content 'wasm\juce_shim\juce_audio_processors\utilities\juce_PluginHostType.cpp') -replace '#error', 'return PluginHostType::UnknownHost;' | Set-Content 'wasm\juce_shim\juce_audio_processors\utilities\juce_PluginHostType.cpp'"
 
-REM Activar Emscripten y VS (silenciando la salida)
+REM Activar Emscripten y VS (silenciando la salida).
+REM Quirk conocido (ver ABDCZ101/wasm/build_wasm.bat): llamar emsdk_env.bat con
+REM >nul silencia TAMBIEN su set PATH y bajo Git Bash emite exports sh. Si el
+REM SDK esta donde se espera, montar el PATH a mano (determinista).
 call "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvarsall.bat" x64 >nul 2>nul
-call C:\emsdk\emsdk_env.bat >nul 2>nul
+if exist "C:\emsdk\upstream\emscripten\emcmake.exe" (
+    set "PATH=C:\emsdk;C:\emsdk\upstream\emscripten;C:\emsdk\node\22.16.0_64bit\bin;C:\emsdk\python\3.13.3_64bit;%PATH%"
+    set "EM_CONFIG=C:\emsdk\.emscripten"
+) else (
+    call C:\emsdk\emsdk_env.bat >nul 2>nul
+)
 
 REM Crear directorio de build
 if not exist "wasm\build" mkdir wasm\build

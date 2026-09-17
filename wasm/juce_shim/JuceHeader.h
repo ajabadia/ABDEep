@@ -24,3 +24,9 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_dsp/juce_dsp.h>
 
+// NOTA: no incluir juce_audio_processors (ni su variante headless): el modulo
+// completo necesita juce_gui_extra, y la variante headless de JUCE 8 redefine
+// ParameterID/AudioParameter* que ya existen en juce_audio_basics. Los TUs que
+// necesitan APVTS (ParametersSpec*, CalibrationSpec*) son exclusivos del
+// plugin nativo y no forman parte del motor WASM (ver DspSources.cmake).
+

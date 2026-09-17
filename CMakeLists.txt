@@ -27,6 +27,28 @@ else()
 endif()
 
 # ============================================================
+# ABDSharedCode — shared SynthCore module (abd::synth)
+# DRY transversal: VoiceAllocator (MS2000-grade steal ladder) shared across
+# synths. Local sibling repo when present; FetchContent fallback otherwise.
+# Must come after JUCE (module links juce_core/juce_events).
+# ============================================================
+set(ABDSHARED_CODE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../ABDSharedCode")
+# No construir el exe de tests standalone del módulo dentro del build del plugin.
+set(ABDSHAREDCODE_BUILD_SYNTHCORE_TESTS OFF)
+if(EXISTS "${ABDSHARED_CODE_DIR}/CMakeLists.txt")
+    message(STATUS "ABDSharedCode: Using local at ${ABDSHARED_CODE_DIR}")
+    add_subdirectory("${ABDSHARED_CODE_DIR}" "${CMAKE_BINARY_DIR}/ABDSharedCode")
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+      ABDSharedCode
+      GIT_REPOSITORY https://github.com/ajabadia/ABDSharedCode.git
+      GIT_TAG        master
+    )
+    FetchContent_MakeAvailable(ABDSharedCode)
+endif()
+
+# ============================================================
 # Source directories
 # ============================================================
 set(SRC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Source")
@@ -95,117 +117,12 @@ add_custom_target(copy_calibration DEPENDS ${CALIBRATION_DEST})
 # ============================================================
 # ABDEEP_CORE_SOURCES — DSP + Core + Calibration Source Files
 # ============================================================
+include("${CMAKE_CURRENT_SOURCE_DIR}/DspSources.cmake")
+
 set(ABDEEP_CORE_SOURCES
-
-    # ── Core ──
-    ${SRC_ROOT}/Core/ParameterRegistry.gen.h
-    ${SRC_ROOT}/Core/ParameterRegistry.gen.cpp
-    ${SRC_ROOT}/Core/ParametersSpec.cpp
-    ${SRC_ROOT}/Core/ParametersSpec_Synth.cpp
-    ${SRC_ROOT}/Core/ParametersSpec_Voice.cpp
-    ${SRC_ROOT}/Core/ParametersSpec_ModMatrix.cpp
-    ${SRC_ROOT}/Core/ParametersSpec_SeqArp.cpp
-    ${SRC_ROOT}/Core/ParametersSpec_FX.cpp
-    ${SRC_ROOT}/Core/CalibrationSpec.cpp
-    ${SRC_ROOT}/Core/CalibrationSpec_Serialization.cpp
-    ${SRC_ROOT}/Core/RoundTripValidator.cpp
-    ${SRC_ROOT}/Core/BankFileReader.cpp
-
-    # ── Oscillators ──
-    ${SRC_ROOT}/DSP/OSC1.cpp
-    ${SRC_ROOT}/DSP/OSC2.cpp
-
-    # ── Filters ──
-    ${SRC_ROOT}/DSP/Filter.cpp
-    ${SRC_ROOT}/DSP/MoogLadderVCF.cpp
-    ${SRC_ROOT}/DSP/KorgMS20VCF.cpp
-    ${SRC_ROOT}/DSP/JunoVCF_ZDF.cpp
-    ${SRC_ROOT}/DSP/JunoVCF_ZDF_Process.cpp
-
-    # ── Modulators ──
-    ${SRC_ROOT}/DSP/Envelope.cpp
-    ${SRC_ROOT}/DSP/LFO.cpp
-    ${SRC_ROOT}/DSP/ModulationMatrix.cpp
-    ${SRC_ROOT}/DSP/DriftEngine.cpp
-
-    # ── Voice & Engine ──
-    ${SRC_ROOT}/DSP/SynthVoice.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_Lifecycle.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_Diagnostics.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_Pitch.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_Process.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_Filter.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_VCA.cpp
-    ${SRC_ROOT}/DSP/SynthEngine.cpp
-    ${SRC_ROOT}/DSP/SynthEngine_VoiceManager.cpp
-    ${SRC_ROOT}/DSP/SynthEngine_Parameters.cpp
-    ${SRC_ROOT}/DSP/SynthEngine_MIDI.cpp
-    ${SRC_ROOT}/DSP/SynthEngine_Snapshot.cpp
-
-    # ── FX Slots ──
-    ${SRC_ROOT}/DSP/FX/FXSlot.cpp
-    ${SRC_ROOT}/DSP/FX/FXSlot_Factory.cpp
-    ${SRC_ROOT}/DSP/FX/FXEngine.cpp
-    ${SRC_ROOT}/DSP/FX/FXEngine_Routing.cpp
-
-    # ── FX Effects (Standard) ──
-    ${SRC_ROOT}/DSP/FX/FXDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXChorus.cpp
-    ${SRC_ROOT}/DSP/FX/FXSimpleReverb.cpp
-    ${SRC_ROOT}/DSP/FX/FXSimpleReverb_Process.cpp
-    ${SRC_ROOT}/DSP/FX/FXFlanger.cpp
-    ${SRC_ROOT}/DSP/FX/FXPhaser.cpp
-    ${SRC_ROOT}/DSP/FX/FXRotarySpeaker.cpp
-    ${SRC_ROOT}/DSP/FX/FXAutoPan.cpp
-    ${SRC_ROOT}/DSP/FX/FXRackAmp.cpp
-    ${SRC_ROOT}/DSP/FX/FXMultiBandDist.cpp
-    ${SRC_ROOT}/DSP/FX/FXEdison.cpp
-    ${SRC_ROOT}/DSP/FX/FXMoodFilter.cpp
-    ${SRC_ROOT}/DSP/FX/FXEnhancer.cpp
-    ${SRC_ROOT}/DSP/FX/FXSimpleComp.cpp
-    ${SRC_ROOT}/DSP/FX/FXNoiseGate.cpp
-    ${SRC_ROOT}/DSP/FX/FXPitchShifter.cpp
-    ${SRC_ROOT}/DSP/FX/FXDecimDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXTapeDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXModDelayRev.cpp
-    ${SRC_ROOT}/DSP/FX/FXMidasEQ.cpp
-    ${SRC_ROOT}/DSP/FX/FXHybridReverb.cpp
-    ${SRC_ROOT}/DSP/FX/FXMultiTapDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXChorusD.cpp
-    ${SRC_ROOT}/DSP/FX/FXFairComp.cpp
-
-    # ── FX Effects (Advanced — IDs 36..56) ──
-    ${SRC_ROOT}/DSP/FX/FXRolandBBDChorus.cpp
-    ${SRC_ROOT}/DSP/FX/FXSolinaEnsemble.cpp
-    ${SRC_ROOT}/DSP/FX/FXRingModulator.cpp
-    ${SRC_ROOT}/DSP/FX/FXSpaceEchoRE201.cpp
-    ${SRC_ROOT}/DSP/FX/FXAnalogTapeDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXShimmerDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXGranularDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXPatternFreeze.cpp
-    ${SRC_ROOT}/DSP/FX/FXDuckingDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXSpectralDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXFrequencyShifter.cpp
-    ${SRC_ROOT}/DSP/FX/FXResonator.cpp
-    ${SRC_ROOT}/DSP/FX/FXCombulator.cpp
-    ${SRC_ROOT}/DSP/FX/FXVocoder.cpp
-    ${SRC_ROOT}/DSP/FX/FXVocoder_Filter.cpp
-    ${SRC_ROOT}/DSP/FX/FXVocoder_Process.cpp
-    ${SRC_ROOT}/DSP/FX/FXOversamplingDistortion.cpp
-    ${SRC_ROOT}/DSP/FX/FXWaveShaper.cpp
-    ${SRC_ROOT}/DSP/FX/FXFDNReverb.cpp
-    ${SRC_ROOT}/DSP/FX/FXZitaReverb.cpp
-    ${SRC_ROOT}/DSP/FX/FXNimbus.cpp
-    ${SRC_ROOT}/DSP/FX/FXBonsai.cpp
-    ${SRC_ROOT}/DSP/FX/FXTreemonster.cpp
-
-    # ── Calibration ──
-    ${SRC_ROOT}/Calibration/AudioABComparator.cpp
-    ${SRC_ROOT}/Calibration/AudioABComparator_Alignment.cpp
-    ${SRC_ROOT}/Calibration/AudioABComparator_Spectral.cpp
-    ${SRC_ROOT}/Calibration/AudioABRecorder.cpp
-    ${SRC_ROOT}/Calibration/AudioABRecorder_Process.cpp
-    ${SRC_ROOT}/Calibration/AudioABVerdictEngine.cpp
+    # Lista compartida single-source (anti-drift) con el build WASM:
+    # DspSources.cmake define ABDEEP_DSP_SOURCES / ABDEEP_DSP_SOURCES_WASM.
+    ${ABDEEP_DSP_SOURCES}
 )
 
 # Configuration for abdeep_core has been removed since it is now merged into ABDEep_rc_lib
@@ -292,6 +209,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
     # Link DSP, Devices, Utils, and WebUI binary data modules
     target_link_libraries(ABDEep_Standalone PRIVATE
         juce::juce_dsp
+        ABDShared::SynthCore
         juce::juce_audio_devices
         juce::juce_audio_utils
         ABDEep_WebUI
@@ -313,6 +231,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         )
         target_link_libraries(ABDEep_VST3 PRIVATE
             juce::juce_dsp
+            ABDShared::SynthCore
             juce::juce_audio_devices
             juce::juce_audio_utils
             ABDEep_WebUI
@@ -360,6 +279,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
 
     target_link_libraries(ABDEepCalibrationLab PRIVATE
         juce::juce_dsp
+        ABDShared::SynthCore
         juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_events
@@ -428,6 +348,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
 
     target_link_libraries(ABDEep_UnitTests PRIVATE
         juce::juce_dsp
+        ABDShared::SynthCore
         juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_events
@@ -471,6 +392,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
 
     target_link_libraries(ABDEep_Benchmarks PRIVATE
         juce::juce_dsp
+        ABDShared::SynthCore
         juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_events

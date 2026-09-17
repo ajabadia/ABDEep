@@ -17,6 +17,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # --- Rutas ---
 set(JUCE_PATH "C:/JUCE" CACHE PATH "Path to JUCE")
 set(SRC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../Source")
+
+# --- Lista compartida single-source (anti-drift) con el build nativo ---
+# DspSources.cmake define ABDEEP_DSP_SOURCES y ABDEEP_DSP_SOURCES_WASM; la
+# diferencia (Plugin/Tools/Calibration, tests) esta documentada alli.
+include("${CMAKE_CURRENT_LIST_DIR}/../DspSources.cmake")
 set(JUCE_MODULES "${JUCE_PATH}/modules")
 
 # --- Verificar JUCE ---
@@ -45,104 +50,8 @@ add_executable(abdeep_dsp
     ${JUCE_MODULES}/juce_audio_formats/juce_audio_formats.cpp
     ${JUCE_MODULES}/juce_dsp/juce_dsp.cpp
 
-    # --- ABDEep Core DSP ---
-    ${SRC_ROOT}/Core/ParametersSpec.cpp
-    ${SRC_ROOT}/Core/ParametersSpec_Synth.cpp
-    ${SRC_ROOT}/Core/ParametersSpec_Voice.cpp
-    ${SRC_ROOT}/Core/ParametersSpec_ModMatrix.cpp
-    ${SRC_ROOT}/Core/ParametersSpec_SeqArp.cpp
-    ${SRC_ROOT}/Core/ParametersSpec_FX.cpp
-    ${SRC_ROOT}/Core/CalibrationSpec.cpp
-    ${SRC_ROOT}/Core/CalibrationSpec_Serialization.cpp
-    ${SRC_ROOT}/Core/RoundTripValidator.cpp
-    ${SRC_ROOT}/Core/ParameterRegistry.gen.cpp
-
-    # --- Oscillators ---
-    ${SRC_ROOT}/DSP/OSC1.cpp
-    ${SRC_ROOT}/DSP/OSC2.cpp
-
-    # --- Filters ---
-    ${SRC_ROOT}/DSP/Filter.cpp
-    ${SRC_ROOT}/DSP/MoogLadderVCF.cpp
-    ${SRC_ROOT}/DSP/KorgMS20VCF.cpp
-    ${SRC_ROOT}/DSP/JunoVCF_ZDF.cpp
-    ${SRC_ROOT}/DSP/JunoVCF_ZDF_Process.cpp
-
-    # --- Modulators ---
-    ${SRC_ROOT}/DSP/Envelope.cpp
-    ${SRC_ROOT}/DSP/LFO.cpp
-    ${SRC_ROOT}/DSP/ModulationMatrix.cpp
-    ${SRC_ROOT}/DSP/DriftEngine.cpp
-
-    # --- Voice & Engine ---
-    ${SRC_ROOT}/DSP/SynthVoice.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_Lifecycle.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_Diagnostics.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_Pitch.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_Process.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_Filter.cpp
-    ${SRC_ROOT}/DSP/SynthVoice_VCA.cpp
-    ${SRC_ROOT}/DSP/SynthEngine.cpp
-    ${SRC_ROOT}/DSP/SynthEngine_VoiceManager.cpp
-    ${SRC_ROOT}/DSP/SynthEngine_Parameters.cpp
-    ${SRC_ROOT}/DSP/SynthEngine_MIDI.cpp
-    ${SRC_ROOT}/DSP/SynthEngine_Snapshot.cpp
-
-    # --- FX ---
-    ${SRC_ROOT}/DSP/FX/FXSlot.cpp
-    ${SRC_ROOT}/DSP/FX/FXSlot_Factory.cpp
-    ${SRC_ROOT}/DSP/FX/FXDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXChorus.cpp
-    ${SRC_ROOT}/DSP/FX/FXSimpleReverb.cpp
-    ${SRC_ROOT}/DSP/FX/FXSimpleReverb_Process.cpp
-    ${SRC_ROOT}/DSP/FX/FXFlanger.cpp
-    ${SRC_ROOT}/DSP/FX/FXPhaser.cpp
-    ${SRC_ROOT}/DSP/FX/FXRotarySpeaker.cpp
-    ${SRC_ROOT}/DSP/FX/FXAutoPan.cpp
-    ${SRC_ROOT}/DSP/FX/FXRackAmp.cpp
-    ${SRC_ROOT}/DSP/FX/FXMultiBandDist.cpp
-    ${SRC_ROOT}/DSP/FX/FXEdison.cpp
-    ${SRC_ROOT}/DSP/FX/FXMoodFilter.cpp
-    ${SRC_ROOT}/DSP/FX/FXEnhancer.cpp
-    ${SRC_ROOT}/DSP/FX/FXSimpleComp.cpp
-    ${SRC_ROOT}/DSP/FX/FXNoiseGate.cpp
-    ${SRC_ROOT}/DSP/FX/FXPitchShifter.cpp
-    ${SRC_ROOT}/DSP/FX/FXDecimDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXTapeDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXModDelayRev.cpp
-    ${SRC_ROOT}/DSP/FX/FXMidasEQ.cpp
-    ${SRC_ROOT}/DSP/FX/FXHybridReverb.cpp
-    ${SRC_ROOT}/DSP/FX/FXMultiTapDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXChorusD.cpp
-    ${SRC_ROOT}/DSP/FX/FXFairComp.cpp
-    ${SRC_ROOT}/DSP/FX/FXRolandBBDChorus.cpp
-    ${SRC_ROOT}/DSP/FX/FXSolinaEnsemble.cpp
-    ${SRC_ROOT}/DSP/FX/FXRingModulator.cpp
-    ${SRC_ROOT}/DSP/FX/FXSpaceEchoRE201.cpp
-    ${SRC_ROOT}/DSP/FX/FXAnalogTapeDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXShimmerDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXGranularDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXPatternFreeze.cpp
-    ${SRC_ROOT}/DSP/FX/FXDuckingDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXSpectralDelay.cpp
-    ${SRC_ROOT}/DSP/FX/FXFrequencyShifter.cpp
-    ${SRC_ROOT}/DSP/FX/FXResonator.cpp
-    ${SRC_ROOT}/DSP/FX/FXCombulator.cpp
-    ${SRC_ROOT}/DSP/FX/FXVocoder.cpp
-    ${SRC_ROOT}/DSP/FX/FXVocoder_Filter.cpp
-    ${SRC_ROOT}/DSP/FX/FXVocoder_Process.cpp
-    ${SRC_ROOT}/DSP/FX/FXOversamplingDistortion.cpp
-    ${SRC_ROOT}/DSP/FX/FXWaveShaper.cpp
-    ${SRC_ROOT}/DSP/FX/FXFDNReverb.cpp
-    ${SRC_ROOT}/DSP/FX/FXZitaReverb.cpp
-    ${SRC_ROOT}/DSP/FX/FXNimbus.cpp
-    ${SRC_ROOT}/DSP/FX/FXBonsai.cpp
-    ${SRC_ROOT}/DSP/FX/FXTreemonster.cpp
-    ${SRC_ROOT}/DSP/FX/FXEngine.cpp
-    ${SRC_ROOT}/DSP/FX/FXEngine_Routing.cpp
-
-    # --- WASM Bridge ---
-    ${SRC_ROOT}/Wasm/WasmBridge.cpp
+    # --- ABDEep (lista compartida single-source, anti-drift) ---
+    ${ABDEEP_DSP_SOURCES_WASM}
     ${CMAKE_CURRENT_SOURCE_DIR}/juce_shim/wasm_link_stubs.cpp
 )
 
@@ -155,6 +64,9 @@ target_include_directories(abdeep_dsp PRIVATE
     ${JUCE_MODULES}
     # Generated JuceHeader shim
     ${CMAKE_CURRENT_SOURCE_DIR}/juce_shim
+    # SynthEngine.h incluye <SynthCore/VoiceAllocator.h> (ABDSharedCode,
+    # header-only y sin JUCE — elegible en WASM)
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode
 )
 
 # --- JUCE module configuration defines ---
@@ -168,6 +80,8 @@ target_compile_definitions(abdeep_dsp PRIVATE
     JUCE_MODULE_AVAILABLE_juce_data_structures=1
     JUCE_MODULE_AVAILABLE_juce_audio_formats=1
     JUCE_MODULE_AVAILABLE_juce_audio_processors=0
+    # La variante headless TAMBIEN redefine ParameterID/ utilities de
+    # juce_audio_basics (JUCE 8) -> no activable junto a audio_basics.
     JUCE_MODULE_AVAILABLE_juce_dsp=1
     JUCE_MODULE_AVAILABLE_juce_graphics=0
     JUCE_MODULE_AVAILABLE_juce_gui_basics=0
