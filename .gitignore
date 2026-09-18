@@ -42,3 +42,8 @@ pluginval_Windows.zip
 /resources/manual/
 /resources/md/
 /resources/patchwork-deepmind-main/
+build_log.txt
+test_results.log
+test_results_release.log
+abdeeper_release_build.log
+*.cpp.bak
