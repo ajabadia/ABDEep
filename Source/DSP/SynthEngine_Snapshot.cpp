@@ -134,6 +134,7 @@ namespace ABD
         {
             voices[i].stopNote (true);
         }
+        voiceAlloc.reset();
         
         std::memset (polyChordHeldNotes, 0, sizeof (polyChordHeldNotes));
         polyChordNoteCount = 0;

@@ -2,11 +2,17 @@
 
 #include <JuceHeader.h>
 #include <atomic>
+#include <array>
 #include "SynthVoice.h"
 #include "ModulationMatrix.h"
 #include "FX/FXEngine.h"
 #include "Core/DiagnosticSnapshots.h"
 #include "Core/CalibrationSpec.h"
+// DRY transversal: la asignación/robo de voces vive en el módulo compartido
+// ABDSharedCode::SynthCore (abd::synth::VoiceAllocator), con la escalera de
+// robo estilo MS2000 generalizada (nota repetida → libre → latch → release
+// por nivel → FIFO). Libre de JUCE: se alimenta vía StealHint.
+#include <SynthCore/VoiceAllocator.h>
 
 namespace ABD
 {
@@ -89,6 +95,10 @@ namespace ABD
     private:
         static constexpr int kNumVoices = 12;
         SynthVoice voices[kNumVoices];
+        // Agregador compartido (DRY): misma escalera de robo que ABDMS2000.
+        abd::synth::VoiceAllocator<static_cast<size_t>(kNumVoices)> voiceAlloc;
+        // Tabla de observación voice-agnóstica (audio thread only).
+        std::array<abd::synth::StealHint, static_cast<size_t>(kNumVoices)> stealHints {};
         ModulationMatrix modMatrix;
         FXEngine fxEngine;
 
@@ -171,8 +181,16 @@ namespace ABD
         int monoHeldNotes[12] = {};
         int monoHeldNoteCount = 0;
 
-        // Alojamiento de voces
-        int findFreeVoice();
+        // Alojamiento de voces — delegado en el módulo compartido SynthCore.
+        // voiceAlloc mantiene el estado sombra (notas, timestamps, cursor RR)
+        // sincronizado con voices[] tras cada decisión.
+        int findFreeVoice(int incomingNote);
+        /** Refresca la tabla StealHint desde el estado real de las voces. */
+        void syncVoiceAllocatorHints();
+        /** Commits an allocation to the VoiceAllocator (called after startNote). */
+        void commitAllocation(int slotIndex, int midiNote);
+        /** Marks a slot as released in the VoiceAllocator (called after stopNote). */
+        void markSlotReleased(int slotIndex);
         void triggerNote(int midiNoteNumber, float velocity);
         void triggerChordForRoot(int rootNote, int numChordNotes, const int* intervals, float velocity);
         void releaseNote(int midiNoteNumber);

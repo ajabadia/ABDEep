@@ -31,6 +31,8 @@ namespace ABD
         float nextSample();
         bool isActive() const { return currentStage != Stage::kIdle; }
         Stage getCurrentStage() const { return currentStage; }
+        /** Nivel actual de la envolvente (para decisiones de robo de voz — MS2000 ladder). */
+        float getCurrentLevel() const { return currentLevel; }
 
     private:
         double sampleRate = 44100.0;

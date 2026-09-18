@@ -14,7 +14,7 @@ namespace ABD
 
             for (int v = 0; v < voicesPerNote; ++v)
             {
-                int voiceIdx = findFreeVoice();
+                int voiceIdx = findFreeVoice(chordNote);
                 if (voiceIdx < 0 || voiceIdx >= kNumVoices)
                     break;
 
@@ -26,9 +26,13 @@ namespace ABD
                 voices[voiceIdx].unisonDetuneSemitones = detuneST;
                 voices[voiceIdx].unisonPanPosition = panPos;
                 if (voices[voiceIdx].isActive())
+                {
                     voices[voiceIdx].stopNote(true);
+                    voiceAlloc.markSlotReleased(voiceIdx);
+                }
                 voices[voiceIdx].startNote(chordNote, velocity, (float)voiceIdx / (float)(kNumVoices - 1));
                 voices[voiceIdx].setRootNote(rootNote);
+                voiceAlloc.commitAllocation(voiceIdx, chordNote);
 
                 voices[voiceIdx].setExternalModulation(ModSource::kPitchBend, currentPitchBend);
                 voices[voiceIdx].setExternalModulation(ModSource::kModWheel, currentModWheel);
@@ -69,7 +73,10 @@ namespace ABD
                 for (int i = 0; i < kNumVoices; ++i)
                 {
                     if (voices[i].isActive())
+                    {
                         voices[i].stopNote(true);
+                        voiceAlloc.markSlotReleased(i);
+                    }
                 }
 
                 for (int h = 0; h < polyChordNoteCount; ++h)
@@ -84,12 +91,15 @@ namespace ABD
                     for (int i = 0; i < kNumVoices; ++i)
                     {
                         if (voices[i].isActive())
+                        {
                             voices[i].stopNote(true);
+                            voiceAlloc.markSlotReleased(i);
+                        }
                     }
                 }
                 triggerChordForRoot(midiNoteNumber, numChordNotes, intervals, velocity);
             }
-            
+
             pendingNoteOnNote.store(midiNoteNumber, std::memory_order_release);
             pendingNoteOnVel.store(velocity, std::memory_order_release);
 
@@ -146,7 +156,10 @@ namespace ABD
                 for (int i = 0; i < kNumVoices; ++i)
                 {
                     if (voices[i].isActive())
+                    {
                         voices[i].stopNote(true);
+                        voiceAlloc.markSlotReleased(i);
+                    }
                 }
             }
             else
@@ -166,7 +179,7 @@ namespace ABD
 
         for (int v = 0; v < voicesPerNote; ++v)
         {
-            int voiceIdx = findFreeVoice();
+            int voiceIdx = findFreeVoice(midiNoteNumber);
             if (voiceIdx < 0 || voiceIdx >= kNumVoices)
                 break;
 
@@ -179,9 +192,13 @@ namespace ABD
             voices[voiceIdx].unisonDetuneSemitones = detuneST;
             voices[voiceIdx].unisonPanPosition = panPos;
             if (voices[voiceIdx].isActive())
+            {
                 voices[voiceIdx].stopNote(true);
+                voiceAlloc.markSlotReleased(voiceIdx);
+            }
             voices[voiceIdx].startNote(midiNoteNumber, velocity, voiceNormalized);
             voices[voiceIdx].setRootNote(midiNoteNumber);
+            voiceAlloc.commitAllocation(voiceIdx, midiNoteNumber);
 
             voices[voiceIdx].setExternalModulation(ModSource::kPitchBend, currentPitchBend);
             voices[voiceIdx].setExternalModulation(ModSource::kModWheel, currentModWheel);
@@ -229,7 +246,10 @@ namespace ABD
                 for (int i = 0; i < kNumVoices; ++i)
                 {
                     if (voices[i].isActive())
+                    {
                         voices[i].stopNote(false);
+                        voiceAlloc.markSlotReleased(i);
+                    }
                 }
             }
             else
@@ -237,7 +257,10 @@ namespace ABD
                 for (int i = 0; i < kNumVoices; ++i)
                 {
                     if (voices[i].isActive() && voices[i].getRootNote() == midiNoteNumber)
+                    {
                         voices[i].stopNote(false);
+                        voiceAlloc.markSlotReleased(i);
+                    }
                 }
             }
             return;
@@ -278,7 +301,10 @@ namespace ABD
                 for (int i = 0; i < kNumVoices; ++i)
                 {
                     if (voices[i].isActive())
+                    {
                         voices[i].stopNote(true);
+                        voiceAlloc.markSlotReleased(i);
+                    }
                 }
                 triggerNote(nextNote, 0.8f);
                 return;
@@ -287,7 +313,10 @@ namespace ABD
             for (int i = 0; i < kNumVoices; ++i)
             {
                 if (voices[i].isActive())
+                {
                     voices[i].stopNote(false);
+                    voiceAlloc.markSlotReleased(i);
+                }
             }
             return;
         }
@@ -301,6 +330,7 @@ namespace ABD
             if (voices[i].isActive() && voices[i].getRootNote() == midiNoteNumber)
             {
                 voices[i].stopNote(false);
+                voiceAlloc.markSlotReleased(i);
             }
         }
     }

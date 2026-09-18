@@ -36,6 +36,11 @@ namespace ABD
         // Preparar HPF global (post-VCA, un filtro por canal)
         globalHpf[0].prepare(sampleRate);
         globalHpf[1].prepare(sampleRate);
+
+        // Sincronizar el VoiceAllocator con las voces recién inicializadas.
+        // (El constructor de SynthEngine no reseta voiceAlloc explícitamente,
+        // y prepare puede ser llamado varias veces durante la vida del engine.)
+        voiceAlloc.reset();
     }
 
     void SynthEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)

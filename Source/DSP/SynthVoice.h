@@ -37,6 +37,10 @@ namespace ABD
         int getMidiNote() const { return currentMidiNote; }
         int getRootNote() const { return rootNoteTriggered; }
         void setRootNote(int note) { rootNoteTriggered = note; }
+        /** Envelope VCA en fase de Release (tier de robo por fase de caída). */
+        bool isReleasing() const { return env1VCA.getCurrentStage() == Envelope::Stage::kRelease; }
+        /** Nivel actual de la envolvente VCA (robo de la voz más cercana al silencio). */
+        float getVcaEnvelopeLevel() const { return env1VCA.getCurrentLevel(); }
 
         /** Set immutable calibration snapshot for this block (called by SynthEngine) */
         void setCalibration(const CalibrationSpec* cal) { calibration = cal; }

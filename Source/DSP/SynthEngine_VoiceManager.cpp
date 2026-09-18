@@ -88,33 +88,69 @@ namespace ABD
     }
 
     // ========== Voice Allocation ==========
+    // DRY transversal: la escalera de robo (nota repetida → libre → latch →
+    // release por nivel → FIFO → RR) vive en abd::synth::VoiceAllocator
+    // (ABDSharedCode::SynthCore), generalizada desde ABDMS2000 VoiceManager.
+    // Aquí solo alimentamos la tabla de observación voice-agnóstica (StealHint)
+    // y aplicamos el resultado; el módulo compartido no conoce JUCE ni SynthVoice.
 
-    int SynthEngine::findFreeVoice()
+    void SynthEngine::syncVoiceAllocatorHints()
     {
-        // 1. Buscar una voz completamente inactiva (Stage::kIdle)
         for (int i = 0; i < kNumVoices; ++i)
         {
-            if (!voices[i].isActive())
-                return i;
+            const SynthVoice& v = voices[i];
+            const bool active = v.isActive();
+            abd::synth::StealHint& h = stealHints[static_cast<size_t>(i)];
+            h.slotIndex = i;
+            h.midiNote = v.getMidiNote();
+            h.isVoiceActive = active;
+            // Sustain-latch: nota key-released con pedal pisado (equivalente al
+            // HOLD latch del MS2000). Sigue sonando y es candidata barata (tier 3).
+            h.isLatched = active && isSustainLatched(h.midiNote);
+            h.isKeyHeld = active && !v.isReleasing() && !h.isLatched;
+            h.isReleasing = active && v.isReleasing();
+            h.envelopeLevel = active ? v.getVcaEnvelopeLevel() : 0.0f;
+            h.triggerStamp = voiceAlloc.getVoiceState(static_cast<size_t>(i)).noteOnTimestamp;
         }
+    }
 
-        // 2. Si no hay inactivas, priorizar el robo de voces que ya estén en fase de Release
-        int bestReleaseVoice = -1;
-        for (int i = 0; i < kNumVoices; ++i)
-        {
-            if (voices[i].isActive() && voices[i].env1VCA.getCurrentStage() == Envelope::Stage::kRelease)
-            {
-                bestReleaseVoice = i;
-                break;
-            }
-        }
-        if (bestReleaseVoice >= 0)
-            return bestReleaseVoice;
+    void SynthEngine::commitAllocation(int slotIndex, int midiNote)
+    {
+        if (slotIndex < 0 || slotIndex >= kNumVoices) return;
+        voiceAlloc.commitAllocation(slotIndex, midiNote);
+        
+        // Actualizar la StealHint correspondiente para reflejar el nuevo estado
+        abd::synth::StealHint& h = stealHints[static_cast<size_t>(slotIndex)];
+        h.slotIndex = slotIndex;
+        h.midiNote = midiNote;
+        h.isVoiceActive = true;
+        h.isKeyHeld = true;  // La voz acaba de ser activada, está "key held" por defecto
+        h.isLatched = false; // No está latchada (a menos que el pedal esté pisado, pero eso se maneja en syncVoiceAllocatorHints)
+        h.isReleasing = false; // Acaba de comenzar, no está en release
+        h.envelopeLevel = 0.0f; // El nivel de envolvente empieza en 0 (attack)
+        h.triggerStamp = voiceAlloc.getVoiceState(static_cast<size_t>(slotIndex)).noteOnTimestamp;
+    }
 
-        // 3. Si todas las voces están sostenidas físicamente (Attack/Decay/Sustain),
-        // robamos usando round-robin para distribuir el robo de voz de forma rotatoria
-        static int lastStolenVoice = 0;
-        lastStolenVoice = (lastStolenVoice + 1) % kNumVoices;
-        return lastStolenVoice;
+    void SynthEngine::markSlotReleased(int slotIndex)
+    {
+        if (slotIndex < 0 || slotIndex >= kNumVoices) return;
+        voiceAlloc.markSlotReleased(slotIndex);
+        
+        // Actualizar la StealHint correspondiente para reflejar el nuevo estado
+        abd::synth::StealHint& h = stealHints[static_cast<size_t>(slotIndex)];
+        h.slotIndex = slotIndex;
+        h.midiNote = -1;  // La nota se libera
+        h.isVoiceActive = false; // La voz se libera
+        h.isKeyHeld = false; // No está "key held" porque se liberó
+        h.isLatched = false; // No está latchada
+        h.isReleasing = false; // Se libera inmediatamente (no va a release)
+        h.envelopeLevel = 0.0f; // El nivel de envolvente es 0 porque la voz se libera
+        h.triggerStamp = 0; // El timestamp se resetea
+    }
+
+    int SynthEngine::findFreeVoice(int incomingNote)
+    {
+        syncVoiceAllocatorHints();
+        return voiceAlloc.findVoiceToSteal(stealHints.data(), static_cast<size_t>(kNumVoices), incomingNote);
     }
 }
