@@ -27,7 +27,7 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 
 ## 2. Baseline WebUI (Vitest + ESLint)
 
-> **2026-09-06 — actualizado a los números vigentes** (107 files / 4750 tests,
+> **2026-09-06 — actualizado a los números de entonces** (107 files / 4750 tests,
 > ESLint 0 warnings). El count de test files/tests lo verifica en cada `npm test` el
 > **guard `WebUI/tests/baselineGuard.test.js`** (anti-drift: corre la suite en un
 > subproceso excluyéndose y reconcilia con esta sección).
@@ -35,12 +35,55 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 > **2026-09-21 — fitStage compartido**: +1 fichero (+5 tests) por la adopcion
 > del ajuste al viewport (`WebUI/tests/fitStage.test.js`: copia gestionada +
 > integracion del mount en el chasis 1200x768).
+>
+> **2026-09-24 — pipeline de bundle del WebUI**: +2 ficheros (+12 tests) —
+> `WebUI/tests/keyboardSharedMount.test.js` (5: ABDEep monta el keybed compartido
+> y ya no tiene keybed propio) y `WebUI/tests/webuiBundlePipeline.test.js` (7:
+> runner de Vite, copia estatica, provider/CMake, build.bat y los deps
+> `workspace:*`). El bump de la tabla
+> de counts queda pendiente del refactor `type: module` en vuelo (17 ficheros no
+> coleccionan, asi que el total real de tests aun no es medible).
+
+> **2026-09-25 — migración a ESM, counts vigentes**: los 17 ficheros de test/soporte
+> que aún usaban `require` se migraron a ESM y el toolchain queda ALINEADO con el
+> resto del workspace (vitest **1.6.1** / vite 5.4.21, sin excepciones). Números reales:
+> **2026-09-28 — los nombres de tipo de efecto salen del contrato compartido, counts
+> vigentes**: `FX_TYPE_NAMES` (lista escrita a mano de 57 nombres en
+> `WebUI/js/effects_data.js`, DESALINEADA con `FXSlot_Factory.cpp`) se sustituyó por
+> `ABDSharedAssets/contracts/fx-effects.json` vía `WebUI/js/fx_contract.gen.js`
+> (generado por `scripts/generate_fx_contract.mjs`, comprobado byte a byte en el
+> test). Nuevo `fxContract.test.js` (13 tests) que ata web ↔ contrato ↔ fábrica C++.
+> Números reales: **112 files / 4839 tests** (0 skipped). La enumeración de la suite vive ahora en un
+> único helper compartido (`WebUI/tests/support/vitestSuite.js`, vía el propio
+> `globTestFiles()` de vitest), usado por `baselineGuard` y `ciSubprocessTests`.
+>
+> **Límite conocido:** `vitest list` (enumera tests sin ejecutarlos) existe desde
+> vitest 3. Con el 1.6.1 fijado, `baselineGuard` reconcilia el **número de ficheros**
+> (exacto sin ejecutar nada) y avisa de que el **número de tests** no es verificable
+> sin correr la suite entera — hay que mantenerlo a mano hasta que el toolchain suba a
+> vitest >= 3. `ciSubprocessTests` sí verifica la recogida real de ficheros en
+> cualquier versión.
+
+> **2026-09-25 — sourceHashes canónicos**: `sourceHashes` (parametersSpec /
+> bridgeParamMaps / byteMapData) se calculan ahora sobre la **forma canónica** de cada
+> fuente — el valor ya parseado, serializado de forma determinista: claves ordenadas,
+> arrays en su orden, `Set` como array ordenado, sin funciones — y **no** sobre los bytes
+> del fichero. Así, cambios de formato, indentación o comentarios **no** re-sellan el
+> registro; solo lo hace un cambio real de datos. La implementación de referencia vive en
+> `scripts/registry_core.ts` (`canonicalizeSource`) y `scripts/registry_generator.js`
+> replica la misma forma (no puede importar TS: corre bajo node plano desde CMake).
+> Verificado en `registryGen.test.js` §5b-bis (5 tests nuevos).
 
 | Métrica | Valor |
 |---|---|
-| Test files | **107** (107 passed) |
-| Tests | **4750** (4748 passed, 2 skipped, 0 failed) |
-| Duración | ~16 s |
+| Test files | **112** (112 passed) |
+
+> 2026-09-28: +1 fichero (`WebUI/tests/modMatrixTables.test.js`, el guard de
+> la matriz de modulacion contra el hardware). Los tests suben de 4817 a
+> 4839 (+22 del guard nuevo, que replaces las copias de tabla que otros
+> tests traian pegadas).
+| Tests | **4817** (4817 passed, 0 skipped, 0 failed) |
+| Duración | ~80 s – 3 min (según máquina y caché) |
 | ESLint | **0 errores, 0 warnings** (`curly` limpios con `--fix`; `npm run lint`
   ahora es `--max-warnings 0` → CI falla ante cualquier warning) |
 
@@ -266,7 +309,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   0 fallos**. Nota: **3 fallos FX preexistentes documentados** (refactor FX en curso:
   fidelidad delay + full-gain wet) — el paso usa `continue-on-error` (no bloquean CI).
 - ✅ **Job `vitest` + lint** en `.github/workflows/webui-ci.yml` (ubuntu-latest): suite
-  completa de WebUI (**107 files / 4750 tests, 0 fallos**) y ESLint **0 errores / 0
+  completa de WebUI (**112 files / 4839 tests, 0 fallos**) y ESLint **0 errores / 0
   warnings** (`npm run lint` con `--max-warnings 0`). El guard `baselineGuard.test.js`
   incluido en la suite verifica que los counts de esta sección no deriven.
   `package-lock.json` commiteado; `patchwork-deepmind` eliminado de `dependencies`
@@ -399,7 +442,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
 ### ✅ Completadas
 
 0. **Fase 0 — Inventario, Baseline y Perfilado (Pre-requisito):** este documento es la
-   baseline exacta exigida por el plan — suites (107 files / 4750 tests WebUI + 126 suites /
+   baseline exacta exigida por el plan — suites (112 files / 4839 tests WebUI + 126 suites /
    3.689.164 assertions C++), cobertura (§2), hashes A–H (§4 + `schemas/corpus-hashes.json`,
    verificados por el job `roundtrip-corpus` con `--check-hashes`), percentiles
    p95/p99/p999 de `processBlock()` en µs (§5.3, presupuesto DEFINITIVO desde runner
@@ -448,7 +491,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
    en `bridge-dual.js`). 93 fuentes migradas mecánicamente (0 refs residuales a
    `window.dualMidiBridge`), setup de vitest con fallback para tests que stubbean el
    alias, y `bridgeAliasDeprecation.test.js` (acceso canónico + dedup del aviso).
-   Baseline WebUI actualizada a 107 files / 4750 tests.
+   Baseline WebUI actualizada a 112 files / 4839 tests (contrato de efectos compartido).
 
 ### ⏳ Pendientes
 

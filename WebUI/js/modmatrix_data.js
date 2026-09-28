@@ -76,7 +76,10 @@ function getSrcCategoryColor(idx) {
 function getDestCategoryColor(idx) {
     if (idx === 0) {return null;}
     if (idx >= 1 && idx <= 8) {return 'var(--accent-teal)';}
-    if (idx >= 9 && idx <= 18) {return 'var(--accent-blue)';}
+    // 9-19 son OSCILADORES y PORTAMENTO (9-18 los Family 1 y el 19 es
+    // 'Porta Time'), 20-23 el VCF. El 19 estaba entre ambos rangos y caia sin
+    // familia: la vista del grafo lo pintaba rosa, esta lo dejaba en --text-dim.
+    if (idx >= 9 && idx <= 19) {return 'var(--accent-blue)';}
     if (idx >= 20 && idx <= 23) {return 'var(--accent-pink)';}
     if (idx >= 24 && idx <= 62) {return 'var(--accent-green)';}
     if (idx === 63 || idx === 64) {return 'var(--color-gold)';}

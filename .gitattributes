@@ -9,3 +9,12 @@ schemas/parameter-registry.data.json text eol=lf
 WebUI/js/registry.gen.js text eol=lf
 Source/Core/ParameterRegistry.gen.h text eol=lf
 Source/Core/ParameterRegistry.gen.cpp text eol=lf
+
+# La matriz de modulacion y su guard: LF en checkout para que los diffs sean
+# deterministas (el guard compara literales de tabla contra el fichero real, y
+# un CRLF de mas o de menos se leeria como contenido).
+WebUI/js/modmatrix_data.js text eol=lf
+WebUI/js/components/mod-matrix-canvas_data.js text eol=lf
+WebUI/js/components/mod-matrix-canvas.js text eol=lf
+WebUI/tests/modMatrixTables.test.js text eol=lf
+WebUI/tests/modmatrix.test.js text eol=lf

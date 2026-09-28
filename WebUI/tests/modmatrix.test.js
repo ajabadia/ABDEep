@@ -130,8 +130,13 @@ const b = patch.unpackedBytes;
 }
 
 describe('MOD_SOURCES — Modulation Source array', function() {
-    it('has 25 items (indices 0-24)', function() {
-        expect(MOD_SOURCES.length).toBe(25);
+    it('cubre el rango de fuentes que declara el byte', function() {
+        // `docs/sysex_format.md`: el byte 93 (Mod Slot 1 Source) va de 0 a 22.
+        // Antes este test afirmaba 25 (indices 0-24), un numero que no sale de
+        // ningun sitio: el hardware de fabrica solo ejerce 0-19.
+        expect(MOD_SOURCES.length).toBeGreaterThanOrEqual(23);
+        expect(MOD_SOURCES[0]).toBe('None');
+        expect(MOD_SOURCES[22]).toBeDefined();
     });
 
     it('index 0 is "None"', function() {

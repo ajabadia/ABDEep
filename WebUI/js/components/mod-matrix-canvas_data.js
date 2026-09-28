@@ -1,61 +1,85 @@
 /**
- * @purpose Mod Matrix Canvas Data — source/destination name tables and color mapping.
- * Extracted from mod-matrix-canvas.js.
+ * Mod Matrix Canvas Data — NOMBRES y COLORES de la vista de grafos.
+ * ===============================================================================
+ * ANTES este fichero declaraba sus PROPIAS tablas (`MOD_SOURCES_SHORT` con 25
+ * entradas y `MOD_DESTS_SHORT` con 237) y se divergieron en silencio de
+ * `modmatrix_data.js` (25 y 133): la misma matriz con dos nombres distintos,
+ * y la del grafo situaba `Fx1` en el índice 233, donde no existe ningún byte.
+ * Ese desacuerdo no lo detectaba nadie.
+ *
+ * AHORA los NOMBRES se deriven de la tabla del dato (`modmatrix_data.js`, que es
+ * la que se corresponde con el byte). Aquí no hay ni un literal de nombre: solo
+ * acceso perezoso, para que el orden de carga de `index.html` (este fichero se
+ * carga ANTES que `modmatrix_data.js`) no importe — la tabla se lee en el
+ * primer pintado, no al cargar.
+ *
+ * Lo que SÍ se queda aquí, a propósito, son los COLORES: el canvas no puede
+ * recibir `var(--accent-blue)` (fillStyle no resuelve variables CSS). Así que
+ * esta vista lleva el color en hex y la otra en variable CSS, y son dos
+ * representations de la MISMA clasificación. `modMatrixTables.test.js` compara
+ * las dos por CATEGORÍA en todos los índices, que es lo que las ata.
+ * Depender de la tabla del dato para el color rompería el canvas.
+ *
+ * Depende de: modmatrix_data.js (leído perezosamente, no al cargar).
  */
 
-window.MOD_SOURCES_SHORT = [
-  'None','P.Bend','M.Wheel','Foot','Breath','Press','Expr','LFO1',
-  'LFO2','Env1','Env2','Env3','Note#','Vel','OffVel','Seq',
-  'LFO1Uni','LFO2Uni','LFO1Fd','LFO2Fd','V#','UniV','CC115','CC116','CC117'
-];
+(function () {
+  /**
+   * Nombre corto de una fuente de modulación (índice del byte de la matriz).
+   * Delega en MOD_SOURCES, la tabla que corresponde al hardware.
+   * @param {number} i
+   * @returns {string}
+   */
+  window.modSrcShort = function (i) {
+    const table = window.MOD_SOURCES || [];
+    return table[i] !== undefined ? table[i] : '?';
+  };
 
-window.MOD_DESTS_SHORT = [
-  'None','LFO1Rt','LFO1Dly','LFO1Slw','LFO1Shp','LFO2Rt','LFO2Dly','LFO2Slw',
-  'LFO2Shp','O1+2Pit','O1+2Fin','O1Pit','O1Fin','O2Pit','O2Fin','O1PM',
-  'PWM','TMod','O2PM','Porta','VCFf','VCFr','VCFenv','VCFlfo',
-  'EnvRts','AllA','AllD','AllS','AllR','E1Rts','E2Rts','E3Rts',
-  'E1Cur','E2Cur','E3Cur','E1A','E1D','E1S','E1R','E1AC',
-  'E1DC','E1SC','E1RC','E2A','E2D','E2S','E2R','E2AC',
-  'E2DC','E2SC','E2RC','E3A','E3D','E3S','E3R','E3AC',
-  'E3DC','E3SC','E3RC','VCA','VCAAct','VCAEnv','PanSpr','VCPan',
-  'O2Lvl','Noise','HPF','UniDt','Drift','P.Drift','DrfRt','ArpG',
-  'SeqSlw',
-  '','','','','','','','','','','','','','','','','','','','',
-  '','','','','','','','','','','','','','','','','','','','',
-  '','','','','','','','','','','','','','','','','','','','',
-  '','','','','','','','','','','','','','','','','','','','',
-  '','','','','','','','','','','','','','','','','','','','',
-  '','','','','','','','','','','','','','','','','','','','',
-  '','','','','','','','','','','','','','','','','','','','',
-  '','','','','','','','','','','','','','','','','','','','',
-  'Fx1','Fx2','Fx3','Fx4'
-];
+  /**
+   * Nombre corto de un destino de modulación (índice del byte de la matriz).
+   * Delega en FULL_MOD_DESTINATIONS, la tabla rellenada que cubre el rango
+   * completo del byte.
+   * @param {number} i
+   * @returns {string}
+   */
+  window.modDestShort = function (i) {
+    const table = window.FULL_MOD_DESTINATIONS || [];
+    return table[i] !== undefined ? table[i] : '?';
+  };
 
-/**
- * Retorna el color asociado a un índice de fuente de modulación.
- * @param {number} i - Índice de fuente (0 = None)
- * @returns {string|null} Color CSS o null si es None
- */
-window.modSrcColor = function(i) {
-  if (i === 0) { return null; }
-  if (i <= 6) { return '#5b9bd5'; }
-  if (i === 7 || i === 8 || (i >= 16 && i <= 19)) { return '#4ecdc4'; }
-  if (i <= 11) { return '#6abf69'; }
-  if (i <= 14) { return '#d4a843'; }
-  return '#e68a8a';
-};
+  /**
+   * Retorna el color asociado a un índice de fuente de modulación.
+   *
+   * La clasificación (qué índices van en qué familia) es la de
+   * `getSrcCategoryColor` en modmatrix_data.js, replicada aquí en hex porque
+   * el canvas no resuelve variables CSS. El guard de tablas comprueba que las
+   * dos clasificaciones coincidan, índice a índice.
+   *
+   * @param {number} i - Índice de fuente (0 = None)
+   * @returns {string|null} Color CSS o null si es None
+   */
+  window.modSrcColor = function (i) {
+    if (i === 0) { return null; }
+    if (i <= 6) { return '#5b9bd5'; }            // pedales, ruedas,.aftertouch
+    if (i === 7 || i === 8 || (i >= 16 && i <= 19)) { return '#4ecdc4'; } // LFO
+    if (i <= 11) { return '#6abf69'; }            // envolventes
+    if (i <= 14) { return '#d4a843'; }            // nota, velocidad, seq
+    return '#e68a8a';                             // voz, ejes CC
+  };
 
-/**
- * Retorna el color asociado a un índice de destino de modulación.
- * @param {number} i - Índice de destino (0 = None)
- * @returns {string|null} Color CSS o null si es None
- */
-window.modDstColor = function(i) {
-  if (i === 0) { return null; }
-  if (i <= 8) { return '#4ecdc4'; }
-  if (i <= 18) { return '#5b9bd5'; }
-  if (i <= 23) { return '#e68a8a'; }
-  if (i <= 62) { return '#6abf69'; }
-  if (i === 63 || i === 64) { return '#d4a843'; }
-  return '#888';
-};
+  /**
+   * Retorna el color asociado a un índice de destino de modulación.
+   * Misma clasificación que `getDestCategoryColor`, en hex (ver arriba).
+   * @param {number} i - Índice de destino (0 = None)
+   * @returns {string|null} Color CSS o null si es None
+   */
+  window.modDstColor = function (i) {
+    if (i === 0) { return null; }
+    if (i <= 8) { return '#4ecdc4'; }             // LFO
+    if (i <= 19) { return '#5b9bd5'; }            // osciladores y portamento
+    if (i <= 23) { return '#e68a8a'; }            // VCF
+    if (i <= 62) { return '#6abf69'; }            // envolventes
+    if (i === 63 || i === 64) { return '#d4a843'; } // VCA
+    return '#888';
+  };
+})();

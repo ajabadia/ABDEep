@@ -50,8 +50,9 @@
     syncFromCache(cache) {
       this.slots = [];
       this.activeCount = 0;
-      const sources = window.MOD_SOURCES_SHORT;
-      const dests = window.MOD_DESTS_SHORT;
+      // Los NOMBRES salen de la tabla del dato (modmatrix_data.js) a traves de
+      // los accesores perezosos: la vista de grafos ya no lleva su propia copia
+      // (ver mod-matrix-canvas_data.js y el guard modMatrixTables.test.js).
       for (let s = 1; s <= 8; s++) {
         const srcRaw = cache['mod_matrix_slot' + s + '_src'] || 0;
         const dstRaw = cache['mod_matrix_slot' + s + '_dest'] || 0;
@@ -66,8 +67,8 @@
           depth: (depthVal * 2) - 1,
           depthNorm: depthVal,
           active: active,
-          srcName: sources[srcIdx] || '?',
-          dstName: dests[dstIdx] || '?',
+          srcName: window.modSrcShort(srcIdx),
+          dstName: window.modDestShort(dstIdx),
           srcColor: window.modSrcColor(srcIdx),
           dstColor: window.modDstColor(dstIdx)
         });
