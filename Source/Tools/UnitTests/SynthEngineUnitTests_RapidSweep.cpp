@@ -32,6 +32,32 @@ public:
 
     SynthEngineRapidSweepTests() : juce::UnitTest("SynthEngine Rapid Sweep Tests", "ABD") {}
 
+    //==============================================================================
+    /** Una asercion cuyo TEXTO solo se construye si la asercion FALLA.
+
+        `juce::UnitTest::expect` recibe el mensaje ya construido, como
+        `const String&`. Escribiendolo asi —que es como estaba— cada llamada
+        evaluaba la concatenacion entera ANTES de saber si hacia falta: en el
+        bucle de la envolvente eso son seis construcciones de `juce::String` por
+        muestra, con sus reservas, unas 1,7 millones de veces, para un texto que
+        se tira entero en cuanto la condicion sale bien.
+
+        Aqui la lambda solo se llama en el camino del fallo. Es la misma
+        comprobacion con el mismo mensaje: cuando `condition` es cierta,
+        `expect` no hacia nada (no cuenta, no registra, no imprime), asi que
+        saltarselo es exactamente equivalente.
+
+        Y NO es un `std::function`: eso seria cambiar un coste por otro —
+        una reserva y una indireccion virtual por asercion, en el lazo de
+        audio del test—. Con una lambda de captura por referencia el camino
+        bueno no cuesta nada: evaluar el booleano y volver. */
+    template <typename MakeMessage>
+    void expectLazy (bool condition, MakeMessage&& makeMessage)
+    {
+        if (! condition)
+            expect (false, makeMessage());
+    }
+
     void runTest() override
     {
         //==============================================================================
@@ -65,17 +91,19 @@ public:
                                 for (int i = 0; i < 500; ++i)
                                 {
                                     float sample = env.nextSample();
-                                    expect(std::isfinite(sample),
-                                        "Envelope NaN at a=" + juce::String(a)
+                                    expectLazy(std::isfinite(sample), [&] {
+                                        return "Envelope NaN at a=" + juce::String(a)
                                         + " d=" + juce::String(d)
-                                        + " s=" + juce::String(s));
+                                        + " s=" + juce::String(s);
+                                    });
                                 }
                                 env.release();
                                 for (int i = 0; i < 1000; ++i)
                                 {
                                     float sample = env.nextSample();
-                                    expect(std::isfinite(sample),
-                                        "Envelope NaN after release");
+                                    expectLazy(std::isfinite(sample), [&] {
+                                        return "Envelope NaN after release";
+                                    });
                                 }
                             }
                         }
@@ -109,9 +137,10 @@ public:
                         for (int s = 0; s < 500; ++s)
                         {
                             float sample = lfo.nextSample();
-                            expect(std::isfinite(sample),
-                                "LFO NaN shape=" + juce::String(shape)
-                                + " rate=" + juce::String(rate));
+                            expectLazy(std::isfinite(sample), [&] {
+                                return "LFO NaN shape=" + juce::String(shape)
+                                + " rate=" + juce::String(rate);
+                            });
                         }
                     }
                 }
@@ -138,8 +167,9 @@ public:
                     for (int s = 0; s < 200; ++s)
                     {
                         float sample = lfo.nextSample();
-                        expect(std::isfinite(sample),
-                            "LFO keySync NaN shape=" + juce::String(shape));
+                        expectLazy(std::isfinite(sample), [&] {
+                            return "LFO keySync NaN shape=" + juce::String(shape);
+                        });
                     }
                 }
             }
@@ -170,9 +200,10 @@ public:
                         float input = std::sin(6.283185f * 220.0f * cutoffStep / static_cast<float>(kTestSampleRate)) * 0.5f;
                         float output = vcf.process(input, frq, res);
 
-                        expect(std::isfinite(output),
-                            "JunoVCF NaN frq=" + juce::String(frq)
-                            + " res=" + juce::String(res));
+                        expectLazy(std::isfinite(output), [&] {
+                            return "JunoVCF NaN frq=" + juce::String(frq)
+                            + " res=" + juce::String(res);
+                        });
                     }
                 }
             }
@@ -209,10 +240,11 @@ public:
                             for (int s = 0; s < 5; ++s)
                             {
                                 float output = vcf.process(input);
-                                expect(std::isfinite(output),
-                                    "MoogLadder NaN pole=" + juce::String(poleMode)
+                                expectLazy(std::isfinite(output), [&] {
+                                    return "MoogLadder NaN pole=" + juce::String(poleMode)
                                     + " sub=" + juce::String(subMode)
-                                    + " cutoff=" + juce::String(cutoffHz));
+                                    + " cutoff=" + juce::String(cutoffHz);
+                                });
                             }
                         }
                     }
@@ -250,9 +282,10 @@ public:
                             for (int s = 0; s < 5; ++s)
                             {
                                 float output = vcf.process(input);
-                                expect(std::isfinite(output),
-                                    "KorgMS20 NaN pole=" + juce::String(poleMode)
-                                    + " sub=" + juce::String(subMode));
+                                expectLazy(std::isfinite(output), [&] {
+                                    return "KorgMS20 NaN pole=" + juce::String(poleMode)
+                                    + " sub=" + juce::String(subMode);
+                                });
                             }
                         }
                     }
@@ -284,9 +317,10 @@ public:
                     float input = std::sin(6.283185f * 110.0f * (cutoffStep + 1) / static_cast<float>(kTestSampleRate)) * 0.5f;
                     float output = hpf.process(input);
 
-                    expect(std::isfinite(output),
-                        "HPF NaN cutoff=" + juce::String(cutoffHz)
-                        + " boost=" + (boostActive ? "true" : "false"));
+                    expectLazy(std::isfinite(output), [&] {
+                        return "HPF NaN cutoff=" + juce::String(cutoffHz)
+                        + " boost=" + (boostActive ? "true" : "false");
+                    });
                 }
             }
             logMessage("HPF rapid sweep: OK (16 cutoffs x 6 boost combos)");
@@ -309,9 +343,10 @@ public:
 
                         drift.nextSample();
                         float driftVal = drift.getOsc1PitchDrift();
-                        expect(std::isfinite(driftVal),
-                            "Drift NaN vd=" + juce::String(voiceDrift)
-                            + " pd=" + juce::String(paramDrift));
+                        expectLazy(std::isfinite(driftVal), [&] {
+                            return "Drift NaN vd=" + juce::String(voiceDrift)
+                            + " pd=" + juce::String(paramDrift);
+                        });
                     }
                 }
             }
@@ -347,8 +382,9 @@ public:
                                 static_cast<ModDestination>(dest),
                                 sourceValues);
 
-                            expect(std::isfinite(modValue),
-                                "ModMatrix NaN slot=" + juce::String(slot));
+                            expectLazy(std::isfinite(modValue), [&] {
+                                return "ModMatrix NaN slot=" + juce::String(slot);
+                            });
                         }
                     }
                 }
@@ -375,10 +411,11 @@ public:
                         for (int range = 0; range <= 2; ++range)
                         {
                             float sample = osc1.nextSample();
-                            expect(std::isfinite(sample),
-                                "OSC1 NaN saw=" + juce::String(sawEn)
+                            expectLazy(std::isfinite(sample), [&] {
+                                return "OSC1 NaN saw=" + juce::String(sawEn)
                                 + " pulse=" + juce::String(pulseEn)
-                                + " pwm=" + juce::String(pwm));
+                                + " pwm=" + juce::String(pwm);
+                            });
                         }
                     }
                 }
@@ -404,9 +441,10 @@ public:
                     for (float level = 0.0f; level <= 1.0f; level += 0.25f)
                     {
                         float sample = osc2.nextSample();
-                        expect(std::isfinite(sample),
-                            "OSC2 NaN pitch=" + juce::String(pitch)
-                            + " tone=" + juce::String(toneMod));
+                        expectLazy(std::isfinite(sample), [&] {
+                            return "OSC2 NaN pitch=" + juce::String(pitch)
+                            + " tone=" + juce::String(toneMod);
+                        });
                     }
                 }
             }
@@ -445,9 +483,10 @@ public:
 
                             for (int ch = 0; ch < 2; ++ch)
                                 for (int s = 0; s < 128; ++s)
-                                    expect(std::isfinite(buf.getSample(ch, s)),
-                                        "VCA NaN level=" + juce::String(vcaLevel)
-                                        + " mode=" + juce::String(vcaMode));
+                                    expectLazy(std::isfinite(buf.getSample(ch, s)), [&] {
+                                        return "VCA NaN level=" + juce::String(vcaLevel)
+                                        + " mode=" + juce::String(vcaMode);
+                                    });
 
                             voice.stopNote(true);
                         }
@@ -480,9 +519,10 @@ public:
 
                 for (int ch = 0; ch < 2; ++ch)
                     for (int s = 0; s < 256; ++s)
-                        expect(std::isfinite(buffer.getSample(ch, s)),
-                            "Engine NaN note=" + juce::String(note)
-                            + " ch=" + juce::String(ch));
+                        expectLazy(std::isfinite(buffer.getSample(ch, s)), [&] {
+                            return "Engine NaN note=" + juce::String(note)
+                            + " ch=" + juce::String(ch);
+                        });
             }
 
             // Test with all notes off (should produce zero/silence)
@@ -498,8 +538,9 @@ public:
 
                 for (int ch = 0; ch < 2; ++ch)
                     for (int s = 0; s < 256; ++s)
-                        expect(std::isfinite(buffer.getSample(ch, s)),
-                            "Engine NaN after noteOff");
+                        expectLazy(std::isfinite(buffer.getSample(ch, s)), [&] {
+                            return "Engine NaN after noteOff";
+                        });
             }
 
             logMessage("SynthEngine integration rapid sweep: OK (6 notes x 256 samples)");
