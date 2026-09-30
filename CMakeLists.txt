@@ -27,14 +27,18 @@ else()
 endif()
 
 # ============================================================
-# ABDSharedCode — shared SynthCore module (abd::synth)
+# ABDSharedCode — shared SynthCore module (abd::synth) + DspEffects (abd::dsp)
 # DRY transversal: VoiceAllocator (MS2000-grade steal ladder) shared across
-# synths. Local sibling repo when present; FetchContent fallback otherwise.
+# synths, y los motores de efectos que ahora usa FXSimpleReverb.
+# Local sibling repo when present; FetchContent fallback otherwise.
 # Must come after JUCE (module links juce_core/juce_events).
 # ============================================================
 set(ABDSHARED_CODE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../ABDSharedCode")
-# No construir el exe de tests standalone del módulo dentro del build del plugin.
+# No construir los exe de tests standalone del módulo dentro del build del plugin.
+# Los effects se prueban desde aqui (Source/DSP/FX/FXUnitTests_ReverbParity.cpp),
+# que es donde esta el original contra el que hay que comparar.
 set(ABDSHAREDCODE_BUILD_SYNTHCORE_TESTS OFF)
+set(ABDSHAREDCODE_BUILD_DSPEFFECTS_TESTS OFF)
 if(EXISTS "${ABDSHARED_CODE_DIR}/CMakeLists.txt")
     message(STATUS "ABDSharedCode: Using local at ${ABDSHARED_CODE_DIR}")
     add_subdirectory("${ABDSHARED_CODE_DIR}" "${CMAKE_BINARY_DIR}/ABDSharedCode")
@@ -210,6 +214,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
     target_link_libraries(ABDEep_Standalone PRIVATE
         juce::juce_dsp
         ABDShared::SynthCore
+        ABDShared::DspEffects
         juce::juce_audio_devices
         juce::juce_audio_utils
         ABDEep_WebUI
@@ -232,6 +237,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         target_link_libraries(ABDEep_VST3 PRIVATE
             juce::juce_dsp
             ABDShared::SynthCore
+            ABDShared::DspEffects
             juce::juce_audio_devices
             juce::juce_audio_utils
             ABDEep_WebUI
@@ -280,6 +286,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
     target_link_libraries(ABDEepCalibrationLab PRIVATE
         juce::juce_dsp
         ABDShared::SynthCore
+        ABDShared::DspEffects
         juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_events
@@ -341,6 +348,12 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         ${SRC_ROOT}/DSP/FX/FXUnitTests_Standard.cpp
         ${SRC_ROOT}/DSP/FX/FXUnitTests_Advanced.cpp
         ${SRC_ROOT}/DSP/FX/FXUnitTests_Fidelity.cpp
+        # ── Paridad bit a bit de los efectos movidos a ABDSharedCode/DspEffects ──
+        ${SRC_ROOT}/DSP/FX/FXUnitTests_ReverbParity.cpp
+        # El coro BBD NO lleva paridad: su sonido tenia que cambiar. Lo que
+        # lleva es la medicion del antes y el despues, con la copia congelada
+        # del motor anterior dentro del propio test.
+        ${SRC_ROOT}/DSP/FX/FXUnitTests_BbdChorus.cpp
 
         # ── AudioAB Tests ──
         ${SRC_ROOT}/Tools/UnitTests/AudioABComparatorUnitTests.cpp
@@ -349,6 +362,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
     target_link_libraries(ABDEep_UnitTests PRIVATE
         juce::juce_dsp
         ABDShared::SynthCore
+        ABDShared::DspEffects
         juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_events
@@ -393,6 +407,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
     target_link_libraries(ABDEep_Benchmarks PRIVATE
         juce::juce_dsp
         ABDShared::SynthCore
+        ABDShared::DspEffects
         juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_events
