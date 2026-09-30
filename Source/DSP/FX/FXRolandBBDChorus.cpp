@@ -1,261 +1,148 @@
 #include "FXRolandBBDChorus.h"
-#include <cmath>
 
 namespace ABD
 {
+    using Mode = abd::dsp::JunoBbdMode;
+    using Profile = abd::dsp::JunoBbdJ106Profile;
+
+    //--- Reparto de los cuatro mandos del slot ------------------------------//
+    //
+    // Los valores por defecto (0.0 / 0.3 / 0.5 / 0.3) son los que tenia el
+    // slot, y estan elegidos para que el sonido por defecto no se mueva. Los
+    // numeros de la maquina no se repiten aqui: salen del perfil.
+    namespace
+    {
+        /** El 0.75 con el que el slot anterior limitaba el barrido. Se conserva
+            porque el barrido medido (anchura de la banda modulada, 1.5-3 Hz en
+            los dos) sale igual, y cambiarlo seria cambiar el coro sin motivo. */
+        constexpr float kDepthScale = 0.75f;
+
+        /** El mando de desgaste va de 0.25 a 1.0, no de 0 a 1. A 0 el motor se
+            queda sin siseo, sin fuga y sin clics, que es un coro digital, y el
+            slot 36 nunca estuvo tan limpio. */
+        constexpr float kWearFloor = 0.25f;
+
+        /** El 0.3 del mando de velocidad es la velocidad de fabrica del perfil,
+            para que el valor por defecto suene como sonaba. A partir de ahi se
+            abre una octava por lado. */
+        constexpr float kRateAnchor = 0.3f;
+    }
+
     FXRolandBBDChorus::FXRolandBBDChorus()
     {
         reset();
     }
 
-    void FXRolandBBDChorus::prepare(double sr, int /*samplesPerBlock*/)
+    void FXRolandBBDChorus::prepare(double sampleRate, int /*samplesPerBlock*/)
     {
-        sampleRate = sr;
+        engine.prepare(sampleRate);
 
-        // BBD buffer: 4096 samples (~93ms @ 44.1k, más que suficiente)
-        auto allocBuf = [](std::vector<float>& buf, int& mask)
-        {
-            buf.assign(4096, 0.0f);
-            mask = (int)buf.size() - 1;
-        };
-        allocBuf(bbdBuf0, bbdMask0);
-        allocBuf(bbdBuf1, bbdMask1);
+        // El IC6 entero: seco 0.863 y mojado 1.257. Es lo que hace la maquina, y
+        // es lo que reproduce el nivel del slot anterior con +0.04 dB medidos.
+        engine.setMixerGains(Profile::value.gainDry, Profile::value.gainWet);
+        engine.setMix(1.0f);
 
-        noiseHPCoeff = expf(-2.0f * 3.14159265f * 6800.0f / (float)sampleRate);
-        noiseLPCoeff = expf(-2.0f * 3.14159265f * 1200.0f / (float)sampleRate);
-
-        configureMode();
+        // NO se vuelven a poner los valores por defecto del slot aqui: se reaplican
+        // los que hay, que en el primer `prepare` son los de fabrica y en los
+        // siguientes son los que haya puesto el usuario. `prepare()` tambien se
+        // llama cuando cambia la frecuencia de muestreo, y en ese momento tirar
+        // los mandos seria perder los ajustes a mitad de una sesion.
+        applyAll();
     }
 
     void FXRolandBBDChorus::reset()
     {
-        paramMode = 0.0f;
-        paramRate = 0.3f;
-        paramDepth = 0.5f;
-        paramBBDNoise = 0.3f;
+        // OJO con el orden. `engine.reset()` pone los mandos de calibracion y los
+        // valores por defecto DEL PERFIL, o sea que se come lo que este
+        // envoltorio le haya pasado antes. Por eso el estado de audio se vacia
+        // primero y los mandos del slot se reaplican despues desde la copia que
+        // el envoltorio guarda. Al reves, un `reset()` en mitad de una nota
+        // devuelve el coro a los numeros de fabrica.
+        engine.reset();
+        engine.setMixerGains(Profile::value.gainDry, Profile::value.gainWet);
+        engine.setMix(1.0f);
+        applyAll();
+    }
 
-        currentMode = 0;
-        pendingMode = 0;
-        fade = 0.0f;
-        fadeTarget = 0.0f;
-        fadeInc = 0.0f;
-        useSineLFO = false;
-
-        targetDepthMs = kModeIDepthMs;
-        smoothDepthMs = kModeIDepthMs;
-
-        lfoPhase = 0.0f;
-        lfoInc = 0.0f;
-
-        noiseSeed = 0xDEADBEEFu;
-        noiseHPState = 0.0f;
-        noiseLPState = 0.0f;
-
-        for (auto* buf : { &bbdBuf0, &bbdBuf1 })
-        {
-            std::fill(buf->begin(), buf->end(), 0.0f);
-        }
-        bbdWPos0 = 0;
-        bbdWPos1 = 0;
+    void FXRolandBBDChorus::applyAll()
+    {
+        applyMode();
+        applyRate();
+        engine.setDepth(paramDepth * kDepthScale);
+        engine.setHissMultiplier(kWearFloor + (1.0f - kWearFloor) * paramWear);
     }
 
     void FXRolandBBDChorus::setParameter(int index, float value)
     {
+        const float v = juce::jlimit(0.0f, 1.0f, value);
+
         switch (index)
         {
-            case 0: // Mode
+            case 0: // Mode: 0 = Off, 1 = I, 2 = II, 3 = I+II
             {
-                float clamped = juce::jlimit(0.0f, 0.999f, value);
-                int newMode = (int)(clamped * 4.0f);
-                if (newMode != pendingMode)
+                const int mode = (int)(v * 3.999f);
+                if (mode != currentMode)
                 {
-                    pendingMode = newMode;
-                    fadeTarget = 0.0f;
-                    fadeInc = -1.0f / (kFadeMs * 0.001f * (float)sampleRate);
+                    currentMode = mode;
+                    applyMode();
+                    // El LFO del motor es COMUNIDO por los dos canales, asi que
+                    // cambiar de modo cambia su velocidad de fabrica y hay que
+                    // reajustar el mando. Antes esto no hacia falta porque el
+                    // mando de velocidad no existia.
+                    applyRate();
                 }
-                paramMode = clamped;
                 break;
             }
-            case 1: paramRate = juce::jlimit(0.0f, 1.0f, value); break;
-            case 2: paramDepth = juce::jlimit(0.0f, 1.0f, value); break;
-            case 3: paramBBDNoise = juce::jlimit(0.0f, 1.0f, value); break;
+
+            case 1: // Rate: alrededor de la velocidad de fabrica del modo
+                paramRate = v;
+                applyRate();
+                break;
+
+            case 2: // Depth
+                paramDepth = v;
+                engine.setDepth(paramDepth * kDepthScale);
+                break;
+
+            case 3: // Desgaste de la maquina (siseo + fuga + clics)
+                paramWear = v;
+                engine.setHissMultiplier(kWearFloor + (1.0f - kWearFloor) * paramWear);
+                break;
+
             default: break;
         }
     }
 
-    void FXRolandBBDChorus::configureMode()
+    void FXRolandBBDChorus::applyMode()
     {
-        switch (pendingMode)
+        switch (currentMode)
         {
-            case 0: // Off
-                targetDepthMs = 0.0f;
-                useSineLFO = false;
-                break;
-            case 1: // Mode I
-                targetDepthMs = kModeIDepthMs;
-                useSineLFO = false;
-                lfoInc = (float)(2.0 * 3.14159265 * kModeIRate / sampleRate);
-                break;
-            case 2: // Mode II
-                targetDepthMs = kModeIIDepthMs;
-                useSineLFO = false;
-                lfoInc = (float)(2.0 * 3.14159265 * kModeIIRate / sampleRate);
-                break;
-            case 3: // Mode I+II
-                targetDepthMs = kModeI_IIDepthMs;
-                useSineLFO = true;
-                lfoInc = (float)(2.0 * 3.14159265 * kModeI_IIRate / sampleRate);
-                break;
-            default:
-                break;
+            case 0:  engine.setMode(Mode::Off);       break;
+            case 1:  engine.setMode(Mode::ChorusI);   break;
+            case 2:  engine.setMode(Mode::ChorusII);  break;
+            default: engine.setMode(Mode::ChorusBoth); break;
         }
     }
 
-    float FXRolandBBDChorus::lfoTriangle()
+    void FXRolandBBDChorus::applyRate()
     {
-        lfoPhase += lfoInc;
-        if (lfoPhase > 2.0f * 3.14159265f)
-            lfoPhase -= 2.0f * 3.14159265f;
-        // Triangle from phase: peaks at pi, zero at 0 and 2pi
-        float norm = lfoPhase / (3.14159265f); // 0..2
-        if (norm > 1.0f)
-            norm = 2.0f - norm;
-        return norm * 2.0f - 1.0f; // -1..+1
+        engine.setRate(modeFactoryRate(currentMode)
+                       * std::pow(2.0f, (paramRate - kRateAnchor) * 2.0f));
     }
 
-    float FXRolandBBDChorus::lfoSine()
+    float FXRolandBBDChorus::modeFactoryRate(int mode)
     {
-        lfoPhase += lfoInc;
-        if (lfoPhase > 2.0f * 3.14159265f)
-            lfoPhase -= 2.0f * 3.14159265f;
-        return sinf(lfoPhase);
-    }
-
-    float FXRolandBBDChorus::noiseGenerate()
-    {
-        // 32-bit LCG → float [0, 1)
-        noiseSeed = noiseSeed * 1664525u + 1013904223u;
-        return (float)(noiseSeed >> 8) / 16777216.0f;
-    }
-
-    float FXRolandBBDChorus::hermite(float frac, float y0, float y1, float y2, float y3)
-    {
-        float c0 = y1;
-        float c1 = 0.5f * (y2 - y0);
-        float c2 = y0 - 2.5f * y1 + 2.0f * y2 - 0.5f * y3;
-        float c3 = 0.5f * (y3 - y0) + 1.5f * (y1 - y2);
-        return ((c3 * frac + c2) * frac + c1) * frac + c0;
-    }
-
-    float FXRolandBBDChorus::readHermite(const std::vector<float>& buf, int mask, int wPos, float delaySamples) const
-    {
-        float readPos = (float)wPos - delaySamples;
-        if (readPos < 0.0f)
-            readPos += (float)(mask + 1);
-        int i0 = (int)readPos;
-        float frac = readPos - (float)i0;
-        i0 &= mask;
-        int i1 = (i0 + 1) & mask;
-        int i2 = (i1 + 1) & mask;
-        int i3 = (i2 + 1) & mask;
-        return hermite(frac, buf[i0], buf[i1], buf[i2], buf[i3]);
-    }
-
-    void FXRolandBBDChorus::processBBD(std::vector<float>& buf, int& mask, int& wPos,
-                                        float input, float delaySamples, float injectedNoise)
-    {
-        buf[wPos] = input + injectedNoise;
-        wPos = (wPos + 1) & mask;
+        const auto& p = Profile::value;
+        return mode == 2 ? p.rateII : (mode == 3 ? p.rateBoth : p.rateI);
     }
 
     void FXRolandBBDChorus::process(const float* inL, const float* inR,
-                                     float* outL, float* outR,
-                                     int numSamples)
+                                    float* outL, float* outR,
+                                    int numSamples)
     {
-        // Fade state machine (crossfade between modes)
-        bool modeTransitioning = (fadeTarget < 0.5f && pendingMode != currentMode);
-        if (fadeInc < 0.0f && fade <= 0.0f)
-        {
-            currentMode = pendingMode;
-            configureMode();
-            fadeInc = 1.0f / (kFadeMs * 0.001f * (float)sampleRate);
-            fadeTarget = 1.0f;
-        }
-
-        float depthMs = smoothDepthMs;
-
+        // El motor procesa por MARCO y no por bloque, asi que da igual donde
+        // corten los bloques: no hay estado a nivel de bloque.
         for (int i = 0; i < numSamples; ++i)
-        {
-            float inSampleL = inL[i];
-            float inSampleR = inR[i];
-
-            // Mode transition crossfade
-            if (modeTransitioning)
-            {
-                fade += fadeInc;
-                if (fade >= 1.0f)
-                {
-                    fade = 1.0f;
-                    fadeInc = 0.0f;
-                    fadeTarget = 1.0f;
-                    modeTransitioning = false;
-                }
-            }
-
-            // Smooth depth toward target
-            depthMs += (targetDepthMs - depthMs) * 0.001f;
-
-            // LFO value (triangle for modes I/II, sine for I+II)
-            float lfoVal = useSineLFO ? lfoSine() : lfoTriangle();
-
-            // Scale depth by user param (0.75 of max for control range)
-            float depthScaled = depthMs * paramDepth * 0.75f;
-
-            // Modulate center delay by depth + LFO
-            float delayMs = kCenterDelayMs + lfoVal * depthScaled;
-            if (delayMs < kMinDelayMs)
-                delayMs = kMinDelayMs;
-            float delaySamples = delayMs * 0.001f * (float)sampleRate;
-
-            // Per-BBD clock trim: BBD1 slightly faster, BBD2 slightly slower
-            float trim0 = 1.0f + kBBDClockTrim * 0.5f;
-            float trim1 = 1.0f - kBBDClockTrim * 0.5f;
-            float delaySamples0 = delaySamples * trim0;
-            float delaySamples1 = delaySamples * trim1;
-
-            // BBD noise injection (charge-transfer)
-            float noiseRaw = noiseGenerate();
-            float noiseCentered = noiseRaw - 0.5f;
-            noiseHPState = noiseHPState * noiseHPCoeff + noiseCentered * (1.0f - noiseHPCoeff);
-            float noiseFiltered = noiseHPState;
-            noiseLPState = noiseLPState * noiseLPCoeff + noiseFiltered * (1.0f - noiseLPCoeff);
-            float noiseVal = noiseLPState * paramBBDNoise * 0.03f;
-
-            // Write input into BBD buffers (mono sum, same as KR106)
-            float monoIn = (inSampleL + inSampleR) * 0.5f;
-            processBBD(bbdBuf0, bbdMask0, bbdWPos0, monoIn, 0.0f, noiseVal);
-            processBBD(bbdBuf1, bbdMask1, bbdWPos1, monoIn, 0.0f, -noiseVal);
-
-            // Read with modulation delay
-            float delayedL = readHermite(bbdBuf0, bbdMask0, bbdWPos0, delaySamples0);
-            float delayedR = readHermite(bbdBuf1, bbdMask1, bbdWPos1, delaySamples1);
-
-            // Mix dry + wet (IC6 gains)
-            float dryL = inSampleL * kDryGain;
-            float dryR = inSampleR * kDryGain;
-            float wetL = delayedL * kWetGain;
-            float wetR = delayedR * kWetGain;
-
-            // Mode crossfade
-            float mixL = dryL + wetL * fade;
-            float mixR = dryR + wetR * fade;
-
-            // Soft-clip output
-            mixL = tanhf(mixL);
-            mixR = tanhf(mixR);
-
-            outL[i] = mixL;
-            outR[i] = mixR;
-        }
+            engine.process(inL[i], inR[i], outL[i], outR[i]);
     }
 }
