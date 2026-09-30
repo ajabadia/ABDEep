@@ -1,16 +1,28 @@
 #pragma once
 
 #include "FXBase.h"
+#include "DspEffects/DspSchroederReverb.h"
+#include "DspEffects/profiles/ReverbProfile.h"
 
 namespace ABD
 {
     /**
-     * FXSimpleReverb: Reverberador Schroeder-Moorer (4 comb + 3 all-pass).
-     * 
+     * FXSimpleReverb: ENVOLTORIO de politica sobre el reverberador compartido.
+     *
+     * Este efecto ya NO tiene reverberador. La maquina vive en
+     * `abd::dsp::SchroederReverb` (ABDSharedCode/DspEffects) y los numeros de
+     * cada variante en `abd::dsp::ReverbProfile`. Lo que queda aqui es
+     * exactamente la parte que es de ABDEep y no del modulo:
+     *
+     *   - el reparto de los doce mandos normalizados a controles del motor,
+     *     que es el orden del HARDWARE del DeepMind 12 y cambia por variante;
+     *   - el wet/dry, que no esta aqui: lo mezcla `FXSlot`.
+     *
      * Sirve para múltiples tipos de reverb del DeepMind 12:
      *   Hall (1), Plate (2), Rich Plate (3), Ambience (4),
-     *   Gated (5), Reverse (6), Chamber (26), Room (27), Vintage (28)
-     * 
+     *   Gated (5), Reverse (6), Chamber (26), Room (27), Vintage (28),
+     *   Deep Verb (22)
+     *
      * Parámetros (orden hardware por tipo, docs/deepmind_fx.md):
      *   Hall(1)/Plate(2)/RichPlate(3)/Chamber(26)/Room(27)/Vintage(28): 12 params
      *     [preDelay, decay, size, damping, diffusion, mix, loCut, hiCut,
@@ -24,7 +36,14 @@ namespace ABD
      *   DeepVerb(22): 5 params [preset, decay, tone, preDelay, mix]
      *
      * DSP real para los controles con equivalente interno (preDelay, decay,
-     * size→roomSize, damping, diffusion); el resto se almacena/ignora.
+     * size→roomSize, damping, diffusion); el resto se almacena/ignora. Cual de
+     * los doce mandos mueve cual de los cinco controles lo dice `ReverbProfile`
+     * (`paramIndex*`), no este fichero: por eso el `switch` de abajo se ha
+     * quedado en una tabla en vez de en diez casos escritos a mano.
+     *
+     * PARIDAD. Este envoltorio no cambia ni una muestra: la comprobacion bit a
+     * bit esta en `FXUnitTests_ReverbParity.cpp`, contra una copia congelada
+     * del kernel anterior a la extraccion.
      */
     class FXSimpleReverb : public FXBase
     {
@@ -43,54 +62,28 @@ namespace ABD
 
     private:
         int reverbType;
-        double sampleRate = 44100.0;
 
-        // Parámetros
+        // La variante del DeepMind 12 que sirve este slot. Apunta a una fila de
+        // `ReverbProfile::variants` (o a la fila generica), nunca a memoria
+        // propia, asi que no hay nada que liberar.
+        const abd::dsp::ReverbProfile::Variant* variant = nullptr;
+
+        // Cache de los cinco controles del motor. Se guardan aqui, y no se
+        // releen del perfil, por una razon concreta: el perfil solo tiene los
+        // valores de FABRICA, y un mando que se mueva tiene que sobrevivir a que
+        // otro se mueva despues. `setGeometry` recalcula longitudes sin tocar
+        // estos numeros, asi que el cache es lo que conserva el estado.
         float decay = 0.5f;
         float preDelayTime = 0.0f;
         float damping = 0.5f;
         float diffusion = 0.5f;
         float roomSize = 0.5f;
 
-        // Pre-delay buffer
-        juce::AudioSampleBuffer preDelayBuffer;
-        int preDelaySamples = 0;
-        int preDelayWritePos = 0;
-
-        // Comb filters: 4 por canal
-        struct CombFilter {
-            float* buffer = nullptr;
-            int bufferSize = 0;
-            int writePos = 0;
-            float feedback = 0.5f;
-            float damp1 = 0.5f;
-            float damp2 = 0.5f;
-            float filterState = 0.0f;
-        };
-
-        CombFilter combL[4], combR[4];
-
-        // All-pass filters: 3 por canal
-        struct AllPassFilter {
-            float* buffer = nullptr;
-            int bufferSize = 0;
-            int writePos = 0;
-            float gain = 0.5f;
-        };
-
-        AllPassFilter allpassL[3], allpassR[3];
-
-        // Almacenamiento de buffers
-        juce::AudioBuffer<float> combBufferL;
-        juce::AudioBuffer<float> combBufferR;
-        juce::AudioBuffer<float> allpassBufferL;
-        juce::AudioBuffer<float> allpassBufferR;
+        // La maquina. Es un solo motor para las diez variantes: lo que las
+        // diferencia son los cinco numeros de arriba.
+        abd::dsp::SchroederReverb engine;
 
         void updateFilters();
         void updateCombParams();
-        void setDefaultsForType(int type);
-        int numParametersForType(int type) const;
-        float processComb(CombFilter& comb, float input);
-        float processAllPass(AllPassFilter& ap, float input);
     };
 }
