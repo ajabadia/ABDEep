@@ -49,30 +49,73 @@
 
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
+import { gitSeguro, RAIZ } from './helpers/gitSeguro.js';
 import { descubreArtefactos } from './gitattributesGuard.js';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(here, '..', '..');
+// La raiz del repo NO se cuenta aqui. Este fichero vivia en `WebUI/tests/` y se
+// resolvian tres niveles a mano, y ese numero se separo del que usa
+// `helpers/gitSeguro.js`: con dos, `ls-files` funcionaba —el helper tiene bien el
+// suyo— mientras todo lo demas miraba `ABDEep/WebUI/`, donde
+// `scripts/registry_generator.js` no existe. Los `lee*` de abajo no lanzaban por
+// eso, sino porque en un fichero inexistente no hay nada que lanzar: devolvian
+// listas vacias, y comparar vacias contra vacias da VERDE.
+//
+// Que se notara hacia falta mirar que el test comprobaba algo. Un `readFileSync`
+// sobre un fichero que no existe lanza; uno que lee `undefined` y lo pasa por
+// `exec` no lanza nada.
+//
+// Ahora las dos cosas salen del helper, que ya sabe donde esta. Aqui queda solo
+// el alias, porque el resto del fichero habla de `repoRoot` y renombrarlo todo no
+// aporta nada.
+const repoRoot = RAIZ;
 const NUL = String.fromCharCode(0);
 
 const GENERADOR = resolve(repoRoot, 'scripts', 'registry_generator.js');
 const WORKFLOW = resolve(repoRoot, '.github', 'workflows', 'registry-generation.yml');
 
+/**
+ * Los ficheros que git tiene versionados.
+ *
+ * AQUI NO SE TRAGA EL ERROR, Y ES LO QUE HACE ESTE FICHERO DISTINTO DE SUS TRES
+ * HERMANOS. `leeOut`, `leeEscritos` y `leeArtefactosDelCi` lanzan cuando no
+ * encuentran lo que buscan, porque comparar contra una lista vacia es verde y
+ * mentira. Devolver [] aqui hacia eso mismo, pero PEOR: los tests de abajo no
+ * comparan contra el vacio, ACUSAN. Con la lista vacia el rojo sale diciendo
+ * "el guard no descubre estos cuatro artefactos", cuando el guard los descubre
+ * bien y lo unico que fallo fue leer la lista. Eso manda a mirar al fichero
+ * equivocado, que es el fallo mas caro de todos: el test no esta roto, lo que
+ * esta roto es el diagnostico que da.
+ *
+ * Y POR QUE NO HAY UN CENTINELA QUE LO CATCHE, COMO EN `gitattributesGuard`.
+ *
+ * Alli el helper traga el error y hay un test —«el guard tiene ficheros con los
+ * que trabajar»— que se pone rojo con un mensaje escrito a mano. Aqui no puede
+ * haber eso: el centinela tendria que ir PRIMERO, y aunque fuera primero, los
+ * otros cinco tests seguirian poniendose rojos por su cuenta y el que se lee
+ * primero no seria el que dice la verdad. Un centinela que convive con cinco
+ * posibles de mentira no es un centinela.
+ *
+ * Asi que aqui se LANZA, y se lanza por `gitSeguro`, que ya pone la excepcion de
+ * `dubious ownership`. Si llega aqui, de verdad no hay checkout, y el mensaje lo
+ * dice. Es la misma conclusion a la que llego `gitattributesGuard` por otra
+ * puerta, y las dos son defendibles por lo mismo: la lista vacia nunca debe ser
+ * una palabra sobre las reglas.
+ */
 function listaTrackeada () {
   try {
-    return execFileSync('git', ['ls-files'], {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      maxBuffer: 64 * 1024 * 1024,
-      stdio: ['ignore', 'pipe', 'pipe']
-    }).split('\n').filter((f) => f !== '');
+    return gitSeguro(['ls-files'], { stdio: ['ignore', 'pipe', 'pipe'] })
+      .split('\n').filter((f) => f !== '');
   } catch (e) {
-    console.error('[artefactosVigilados] `git ls-files` fallo: ' + e.message);
-    return [];
+    const stderr = (e.stderr || '').toString().trim();
+    const porQue = stderr === '' ? e.message : stderr.split('\n')[0];
+
+    throw new Error('`git ls-files` fallo en ' + repoRoot + ', de modo que este test no puede '
+      + 'decir NADA sobre los artefactos, ni a favor ni en contra: ' + porQue
+      + '\n\nSi el repositorio pertenece a otro usuario, `git` se niega a leerlo por `dubious '
+      + 'ownership`. Se puede dejar pasar solo para esta ejecucion con '
+      + 'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=<repo>.');
   }
 }
 
@@ -137,15 +180,44 @@ function leeEscritos (fuente) {
   return escritos;
 }
 
-/** Los ficheros contra los que el CI hace `git diff --exit-code`. */
+/**
+ * Los ficheros contra los que el CI hace `git diff --exit-code`.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * POR QUE SALTA LAS LINEAS DE COMENTARIO, Y NO ES COSMETICO
+ *
+ * La primera version de esto buscaba `/artifacts=\(([\s\S]*?)\)/`, que corta en el
+ * PRIMER parentesis cerrado que encuentra despues del nombre. El workflow tiene
+ * un comentario que explica este mismo array, y al NOMBRARLO —con su parentesis
+ * de apertura— la regex se quedaba con el comentario en lugar de con el codigo: el
+ * bloque leido era `...` y la lista salia VACIA.
+ *
+ * Y ahi esta el motivo de que esto no sea un detalle: un `[]` hace que el test
+ * «el CI verifica todo lo que el generador escribe» mire cuatro rutas contra
+ * ninguna y lo declare BIEN, cuando en realidad el CI no vigila nada. Verde y
+ * mentira, que es el unico fallo que este fichero existe para no tener.
+ *
+ * Un comentario no puede cambiar lo que el CI vigila, asi que la expresion exige
+ * que el parentesis este CODIGO —al principio de la linea, sin nada delante— y no
+ * un texto. Asi el comentario puede hablar del array con libertad.
+ */
 function leeArtefactosDelCi (workflow) {
-  const bloque = /artifacts=\(([\s\S]*?)\)/.exec(workflow);
+  // `^` con la flag `m`: el array tiene que empezar una linea. Un comentario
+  // empieza con `#`, y un `artifacts=` en mitad de un texto no cuenta.
+  const bloque = /^[^\S\n\r]*artifacts=\(([^)]*)\)/m.exec(workflow);
 
   if (!bloque)
-    throw new Error('no se encontro el array `artifacts=(...)` en registry-generation.yml. Si el '
-      + 'workflow cambio de forma, este test tiene que decirlo en vez de comparar listas vacias.');
+    throw new Error('no se encontro el array de artefactos del CI en registry-generation.yml. Si el '
+      + 'workflow cambio de forma, este test tiene que decirlo en vez de comparar listas vacias: '
+      + 'hoy el CI no vigila ningun artefacto y este test no lo diria.');
 
-  return (bloque[1].match(/'([^']+)'/g) || []).map((t) => t.slice(1, -1));
+  const entradas = (bloque[1].match(/'([^']+)'/g) || []).map((t) => t.slice(1, -1));
+
+  if (entradas.length === 0)
+    throw new Error('el array de artefactos del CI esta ahi pero vacio. Un `artifacts=()` sin '
+      + 'ficheros hace que este test.compare contra nada y de verde.');
+
+  return entradas;
 }
 
 const FUENTE = readFileSync(GENERADOR, 'utf8');
