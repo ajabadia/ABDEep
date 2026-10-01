@@ -1,0 +1,188 @@
+#!/usr/bin/env node
+/**
+ * Generador del binding del CONTRATO de efectos para el WebUI.
+ *
+ *   node scripts/generate_fx_contract.mjs           # escribe el .gen.js
+ *   node scripts/generate_fx_contract.mjs --check   # solo comprueba (CI)
+ *
+ * POR QUE UN GENERADOR Y NO UN IMPORT. El contrato vive en ABDSharedAssets
+ * (`contracts/fx-effects.json`), que es un repositorio hermano, y el WebUI lo
+ * consume como COPIA GESTIONADA. No se puede importar directamente por dos
+ * razones estructurales, no de gusto:
+ *
+ *   1. Los ficheros `WebUI/js/effects_*.js` son SCRIPTS CLASICOS (no ESM): se
+ *      cargan con `<script src=...>` y se hablan por `window`. El unico punto
+ *      ESM del WebUI son las dos entradas de Vite (`keyboard.js`, `fit-stage.js`).
+ *   2. El resource provider sirve el arbol crudo de `WebUI/` cuando no hay
+ *      `dist/`, y en ese modo el contrato -que vive fuera del arbol- no tiene
+ *      ruta que servir.
+ *
+ * Un .gen clasico dentro del arbol resuelve las dos cosas y cabe en los tres
+ * modos de servicio (arbol crudo, dev server de Vite y bundle).
+ *
+ * QUE SUSTITUYE. Este generador es lo que mata a `FX_TYPE_NAMES` en
+ * `WebUI/js/effects_data.js`: una lista escrita a mano de 57 nombres
+ * DESALINEADA con la fabrica, que enumeraba los ids 0..56 en orden. A partir
+ * del id 7 la etiqueta no correspondia al efecto, y la 22 (Deep Verb) no
+ * figuraba como tal. La lista no podia quedarse bien porque el contrato ya
+ * declara `generatedFrom: ABDEep/Source/DSP/FX/FXSlot_Factory.cpp`: la fabrica
+ * es la verdad, y ahora la web lee de ahi.
+ *
+ * IDEMPOTENTE: solo escribe si el contenido cambia, para que regenerar sin
+ * cambios no ensucie el diff (mismo criterio que `registry_generator.js`).
+ *
+ * Mismo patron que `registry.gen.js`: cabecera AUTO-GENERATED, envoltorio UMD, y
+ * CI que regenera y compara. Si el contrato cambia y el .gen no, el CI falla.
+ */
+
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const repoRoot = resolve(here, '..');
+const suiteRoot = resolve(repoRoot, '..');
+
+const contractPath = join(suiteRoot, 'ABDSharedAssets', 'contracts', 'fx-effects.json');
+const targetPath = join(repoRoot, 'WebUI', 'js', 'fx_contract.gen.js');
+
+if (! existsSync(contractPath)) {
+  console.error(`No se encuentra el contrato compartido: ${contractPath}`);
+  console.error('Se espera ABDSharedAssets/contracts/fx-effects.json junto a ABDEep.');
+  process.exit(2);
+}
+
+const contractBytes = readFileSync(contractPath);
+const contract = JSON.parse(contractBytes.toString('utf8'));
+const effects = contract.effects ?? contract;
+
+// El contrato es la fuente de verdad, pero una entrada sin id o sin nombre rompe
+// la WebUI en silencio (el nombre saldria `undefined` en el panel). Se avisa
+// aqui, en el generador, que es donde el fallo se ve claro.
+const seenIds = new Set();
+
+for (const effect of effects) {
+  if (typeof effect.id !== 'number') {
+    console.error(`Entrada del contrato sin id numerico: ${JSON.stringify(effect).slice(0, 80)}`);
+    process.exit(2);
+  }
+
+  if (seenIds.has(effect.id)) {
+    console.error(`El contrato repite el id ${effect.id}.`);
+    process.exit(2);
+  }
+
+  seenIds.add(effect.id);
+
+  if (typeof effect.name !== 'string' || effect.name.length === 0) {
+    console.error(`El efecto ${effect.id} no tiene nombre.`);
+    process.exit(2);
+  }
+}
+
+// Los ids tienen que ser contiguos desde 0: el WebUI indexa por id y la ultima
+// fila del rack es un desplegable, no un campo de texto.
+const maxId = Math.max(...effects.map((e) => e.id));
+const missing = [];
+
+for (let id = 0; id <= maxId; id++) {
+  if (! seenIds.has(id)) missing.push(id);
+}
+
+if (missing.length > 0) {
+  console.error(`El contrato tiene huecos en los ids: ${missing.join(', ')}`);
+  process.exit(2);
+}
+
+const sourceHash = createHash('sha256').update(contractBytes).digest('hex');
+
+// Solo lo que el WebUI necesita, y en el orden del contrato.
+const slim = effects.map((e) => ({
+  id: e.id,
+  name: e.name,
+  engine: e.engine ?? null,
+  variant: e.variant ?? null,
+  family: e.family,
+  params: e.params,
+}));
+
+const byId = {};
+for (const effect of slim) byId[effect.id] = effect;
+
+// Nombres indexados por id: la forma que indexes la UI.
+const names = [];
+for (let id = 0; id <= maxId; id++) names.push(byId[id].name);
+
+const families = {};
+for (const effect of slim) families[effect.family] = (families[effect.family] ?? 0) + 1;
+
+const payload = {
+  title: contract.title,
+  generatedFrom: contract.generatedFrom,
+  source: 'ABDSharedAssets/contracts/fx-effects.json',
+  sourceHash,
+  count: slim.length,
+  maxId,
+  families,
+  names,
+  effects: slim,
+  byId,
+};
+
+const file = `/* AUTO-GENERATED by scripts/generate_fx_contract.mjs from ${payload.source} — DO NOT EDIT. */
+/* eslint-disable */
+(function (root, factory) {
+  // SE ASIGNA A LOS TRES NOMBRES, Y NO ES "UNA VERDAD TRES VECES".
+  //
+  // Antes era un if/else: con \`module\` presente (cualquier bundler, y tambien
+  // vitest) se escribia solo \`module.exports\` y \`window.FxEffectsContract\`
+  // NO LLEGABA A PONERSE. Todo el que consume el contrato en la WebUI lee
+  // \`window.FxEffectsContract\`, asi que empaquetado el rack de efectos se
+  // quedaba sin un solo efecto, sin error y sin aviso: el desplegable vacio y
+  // los doce mandos de cada hueco apagados.
+  //
+  // Aqui sale un solo objeto y se publica por los tres sitios que usan los
+  // distintos cargadores. Es el MISMO objeto, no tres verdades: lo unico que
+  // cambia es el nombre por el que se puede alcanzar.
+  var contrato = factory();
+
+  if (typeof module === "object" && module && module.exports) { module.exports = contrato; }
+  if (typeof window !== "undefined") { window.FxEffectsContract = contrato; }
+  if (root) { root.FxEffectsContract = contrato; }
+
+  return contrato;
+})(typeof self !== "undefined" ? self : globalThis, function () {
+  return ${JSON.stringify(payload, null, 2)};
+});
+`;
+
+const checkOnly = process.argv.includes('--check');
+const current = existsSync(targetPath) ? readFileSync(targetPath, 'utf8') : null;
+
+if (checkOnly) {
+  if (current === null) {
+    console.error(`${targetPath} no existe. Ejecuta: node scripts/generate_fx_contract.mjs`);
+    process.exit(1);
+  }
+
+  if (current !== file) {
+    console.error('STALE: WebUI/js/fx_contract.gen.js no coincide con el contrato compartido.');
+    console.error('El contrato cambio, o alguien edito el .gen a mano. Regenera con:');
+    console.error('  node scripts/generate_fx_contract.mjs');
+    process.exit(1);
+  }
+
+  console.log(`OK: fx_contract.gen.js al dia (${slim.length} efectos, hash ${sourceHash.slice(0, 12)}).`);
+  process.exit(0);
+}
+
+if (current === file) {
+  console.log(`Sin cambios: ${targetPath} (${slim.length} efectos, hash ${sourceHash.slice(0, 12)}).`);
+  process.exit(0);
+}
+
+mkdirSync(dirname(targetPath), { recursive: true });
+writeFileSync(targetPath, file, 'utf8');
+
+console.log(`fx_contract.gen.js <- ${payload.source} (${slim.length} efectos, hash ${sourceHash.slice(0, 12)}).`);

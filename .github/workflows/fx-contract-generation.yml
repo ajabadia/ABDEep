@@ -1,0 +1,90 @@
+name: FX Contract Generation CI
+
+# QUÉ COMPRUEBA. Que `WebUI/js/fx_contract.gen.js` — commiteado, y por tanto
+# el que lee la WebUI — sea EXACTAMENTE lo que produce
+# `scripts/generate_fx_contract.mjs` a partir del contrato compartido
+# `ABDSharedAssets/contracts/fx-effects.json`.
+#
+# POR QUÉ UN JOB DEDICADO Y NO UN PASO DE webui-ci. Porque el contrato vive en
+# OTRO repositorio, ABDSharedAssets. Un PR que cambie el contrato no toca
+# ningún fichero de ABDEep, así que un job con `paths:` sobre este repo no se
+# dispararía nunca justo cuando hace falta. Este workflow dispara también con
+# `workflow_dispatch`, que es como se comprueba tras mergear un cambio de
+# contrato en el hermano.
+#
+# POR QUÉ NO USA LA ACCIÓN DE BOOTSTRAP DE pnpm. Porque este job no necesita
+# instalar dependencias: el generador es un fichero .mjs de Node puro, sin
+# imports de paquetes. Un `actions/checkout` del hermano y un `node` bastan, y
+# así el workflow no depende de una acción que vive en otro repo.
+#
+# POR QUÉ `fx-effects.json` Y NO EL RESTO. El generador solo lee ese contrato.
+# Traer el hermano entero sería más lento sin añadir nada.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "scripts/generate_fx_contract.mjs"
+      - "WebUI/js/fx_contract.gen.js"
+      - "WebUI/tests/fxContract.test.js"
+      - "WebUI/index.html"
+      - "WebUI/js/effects_data.js"
+      - "WebUI/js/components/fx_modal_templates.js"
+      - ".github/workflows/fx-contract-generation.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/generate_fx_contract.mjs"
+      - "WebUI/js/fx_contract.gen.js"
+      - "WebUI/tests/fxContract.test.js"
+      - "WebUI/index.html"
+      - "WebUI/js/effects_data.js"
+      - "WebUI/js/components/fx_modal_templates.js"
+      - ".github/workflows/fx-contract-generation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fx-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fx-contract:
+    name: Verify fx_contract.gen.js matches the shared contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      CI: true
+
+    steps:
+      # El generador resuelve el contrato como HERMANO:
+      # `resolve(repoRoot, '..', 'ABDSharedAssets', 'contracts', 'fx-effects.json')`.
+      # Es decir, necesita ABDSharedAssets un nivel por encima de ABDEep, y por
+      # eso los dos checkouts van con `path:` explicito.
+      - name: Checkout ABDEep
+        uses: actions/checkout@v4
+        with:
+          path: ABDEep
+
+      - name: Checkout ABDSharedAssets (the contract lives here)
+        uses: actions/checkout@v4
+        with:
+          repository: ajabadia/ABDSharedAssets
+          path: ABDSharedAssets
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # El propio --check ya distingue los dos fallos que importan, y con
+      # mensajes distintos: si el .gen NO EXISTE dice que hay que generarlo, y
+      # si existe pero no casa con el contrato dice STALE. Por eso se deja que
+      # sea él el que salga con 1, en vez de envolverlo en un `if !` que
+      # imprima un mensaje genérico encima.
+      - name: Verify the committed .gen matches the shared contract
+        working-directory: ABDEep
+        run: node scripts/generate_fx_contract.mjs --check
