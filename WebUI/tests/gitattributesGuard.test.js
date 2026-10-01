@@ -27,13 +27,14 @@
 
 import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
   reglasDe, cubreLa, obligaLf, reglasQueFijan, patronARegex,
-  cuentaCrlf, pareceComparadoComoDato, esPreventiva, reglasInertes
+  cuentaCrlf, pareceComparadoComoDato, esPreventiva, reglasInertes,
+  senasDeArtefacto, descubreArtefactos, artefactosSinFijar
 } from './gitattributesGuard.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -63,6 +64,39 @@ function listaTrackeada () {
     );
     return [];
   }
+}
+
+/**
+ * El contenido de los ficheros trackeados que se pueden leer como texto.
+ *
+ * Ni los bancos `.syx` ni los PNG sirven para buscar una cabecera, y leerlos
+ * enteros para comprobar que NO la tienen es tirar el tiempo del guard. Se
+ * cortan por tamano y se descartan los que tienen bytes NUL, que es como se
+ * distingue un binario de un texto sin depender de la extension.
+ */
+function contenidos (ficheros) {
+  const salida = [];
+
+  for (const f of ficheros) {
+    try {
+      if (statSync(resolve(repoRoot, f)).size > 2 * 1024 * 1024)
+        continue;
+
+      const texto = readFileSync(resolve(repoRoot, f), 'utf8');
+
+      if (texto.indexOf('\u0000') !== -1)
+        continue;
+
+      salida.push({ ruta: f, contenido: texto });
+    } catch (e) {
+      // Un fichero que no se puede leer no se puede desproteger: se avisa y se
+      // sigue, porque reventar aqui dejaria el resto del guard sin comprobar
+      // por un unico banco corrupto.
+      console.warn('[gitattributesGuard] no se pudo leer ' + f + ': ' + e.message);
+    }
+  }
+
+  return salida;
 }
 
 const TRACKEADOS = listaTrackeada();
@@ -283,3 +317,65 @@ describe('el .gitattributes protege de verdad, y se ve', () => {
 function generados () {
   return TRACKEADOS.filter(pareceComparadoComoDato);
 }
+
+describe('y los artefactos generados se descubren solos', () => {
+  // Aqui la senal que funciona es la CABECERA: `GEN_HEADER_JS` y `GEN_HEADER_CPP`
+  // escriben `AUTO-GENERATED` en la primera linea de los cuatro `.gen` de codigo,
+  // y eso es mas fuerte que cualquier lista, porque viaja con el fichero. Ahi se
+  // anade el nombre, que es lo unico que puede delatar al JSON: el `.data.json`
+  // no lleva cabecera porque es un JSON y no un fuente.
+  const ARTEFACTOS = descubreArtefactos(contenidos(TRACKEADOS));
+
+  it('el guard descubre los cinco artefactos del repo', () => {
+    // Un MINIMO, no una lista cerrada: un `.gen` nuevo tiene que entrar en el
+    // recuento sin que nadie edite este test, que es la promesa del
+    // descubrimiento. Lo exacto es el test de mas abajo, que pregunta quien
+    // protege a cada uno.
+    const rutas = ARTEFACTOS.map((a) => a.ruta).sort();
+
+    expect(rutas.length).toBeGreaterThanOrEqual(5);
+    expect(rutas).toEqual(expect.arrayContaining([
+      'Source/Core/ParameterRegistry.gen.cpp',
+      'Source/Core/ParameterRegistry.gen.h',
+      'WebUI/js/fx_contract.gen.js',
+      'WebUI/js/registry.gen.js',
+      'schemas/parameter-registry.data.json'
+    ]));
+  });
+
+  it('los cuatro de codigo se delatan por la cabecera, no por el nombre', () => {
+    const porCabecera = ARTEFACTOS
+      .filter((a) => a.senas.includes('cabecera'))
+      .map((a) => a.ruta)
+      .sort();
+
+    expect(porCabecera).toEqual([
+      'Source/Core/ParameterRegistry.gen.cpp',
+      'Source/Core/ParameterRegistry.gen.h',
+      'WebUI/js/fx_contract.gen.js',
+      'WebUI/js/registry.gen.js'
+    ]);
+  });
+
+  it('el .data.json se delata por su nombre, porque un JSON no lleva cabecera', () => {
+    const data = ARTEFACTOS.filter((a) => a.ruta.endsWith('.data.json'));
+
+    expect(data.map((a) => a.ruta)).toEqual(['schemas/parameter-registry.data.json']);
+    expect(data[0].senas).toEqual(['nombre']);
+  });
+
+  it('y los cinco estan fijados en LF por alguna regla', () => {
+    const sinFijar = artefactosSinFijar(ARTEFACTOS, ga);
+
+    expect(sinFijar.map((a) => a.ruta), 'artefactos generados sin regla que los fije en LF')
+      .toEqual([]);
+  });
+
+  it('la defensa muerde: sin reglas, los cinco salen en rojo', () => {
+    expect(artefactosSinFijar(ARTEFACTOS, '').length).toBe(ARTEFACTOS.length);
+    // Y con la regla puesta para otro fichero: `*` no cruza `/` y una regla
+    // concreta no protege a sus vecinas.
+    expect(artefactosSinFijar(ARTEFACTOS, 'WebUI/js/registry.gen.js text eol=lf').length)
+      .toBe(ARTEFACTOS.length - 1);
+  });
+});
