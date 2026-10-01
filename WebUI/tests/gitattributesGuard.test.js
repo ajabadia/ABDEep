@@ -33,7 +33,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   reglasDe, cubreLa, obligaLf, reglasQueFijan, patronARegex,
-  cuentaCrlf, pareceComparadoComoDato
+  cuentaCrlf, pareceComparadoComoDato, esPreventiva, reglasInertes
 } from './gitattributesGuard.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -82,20 +82,40 @@ describe('el .gitattributes protege de verdad, y se ve', () => {
     expect(REGLAS.length).toBeGreaterThan(5);
   });
 
-  it('toda regla cubre al menos un fichero trackeado', () => {
-    // EL CASO QUE ESTA GUARD EXISTE PARA ATRAPAR. Una regla que no cubre nada
-    // esta en el fichero, se lee como una proteccion, y no protege nada.
-    const huerfanas = REGLAS
-      .filter((r) => cubreLa(r, TRACKEADOS).length === 0)
-      .map((r) => r.cruda);
+  it('ninguna regla sobre un fichero CONCRETO queda huerfana', () => {
+    // EL CASO QUE ESTA GUARD EXISTE PARA ATRAPAR. Una regla que nombra un
+    // fichero que no esta, o una ruta mal escrita, se lee como una proteccion y
+    // no protege nada. `resources/banks/*.syx` estuvo años así: cubría cero
+    // bancos porque están en un subdirectorio y `*` no cruza `/`.
+    //
+    // Y aquí NO se mira las reglas por extension, que pueden no tener ficheros
+    // hoy y ser la intencion de mañana. Ver el test de esPreventiva.
+    const { errores } = reglasInertes(REGLAS, TRACKEADOS);
 
     expect(
-      huerfanas,
-      'reglas de .gitattributes que no cubren NINGUN fichero. O el patron esta mal '
-      + '(recuerda: `*` NO cruza `/`, asi que hace falta `**`), o el fichero que '
-      + 'querian proteger no existe, o se ha movido. Mismo caso: una proteccion que '
-      + 'solo existe en el texto.\n  ' + huerfanas.join('\n  ')
+      errores.map((r) => r.cruda),
+      'reglas de .gitattributes sobre un fichero o ruta CONCRETOS que no cubren '
+      + 'NINGUN fichero trackeado. O la ruta esta mal (recuerda: `*` NO cruza `/`, '
+      + 'asi que hace falta `**`), o el fichero se ha movido, o la regla se ha '
+      + 'quedado sin nada que proteger. Mismo caso: una proteccion que solo existe '
+      + 'en el texto.'
     ).toEqual([]);
+  });
+
+  it('este repo no acumula reglas preventivas sin cubrir', () => {
+    // El contrapeso del de arriba, y es lo que hace que el guard se pueda
+    // llevar a otro repo. Un repo que declara su futuro con veinte reglas por
+    // extension es normal; uno que acumula quince rutas concretas que no cubren
+    // nada esta lleno de reglas muertas, y este test lo dice.
+    //
+    // En ABDEep el limite es 0 a proposito: aqui las reglas son todas
+    // concretas y todas cubren algo. En ABDSharedAssets, donde si hay
+    // declarativas, el limite es mas alto. Lo que no cambia es que el numero
+    // este ESCRITO y no "cero", porque si fuera cero este test no miraria nada.
+    const { preventivas } = reglasInertes(REGLAS, TRACKEADOS);
+
+    expect(preventivas.length, 'reglas por extension que hoy no cubren nada:\n  ' +
+      preventivas.map((r) => r.cruda).join('\n  ')).toBeLessThanOrEqual(0);
   });
 
   it('todo artefacto generado esta fijado a LF en checkout', () => {
@@ -205,6 +225,38 @@ describe('el .gitattributes protege de verdad, y se ve', () => {
       expect(reglasQueFijan('x.js', 'x.js text eol=lf').length).toBe(1);
       // Un glob que cubre tambien cuenta.
       expect(reglasQueFijan('WebUI/js/fx_contract.gen.js', '*.gen.js text eol=lf').length).toBe(1);
+    });
+
+    it('esPreventiva separa "declaro una extension" de "nombro este fichero"', () => {
+      // La distincion que hace que este guard se pueda llevar a un repo donde
+      // las reglas por extension son la norma. Sin ella, un repo con 18 reglas
+      // de futuro tiene un guard que solo se puede apagar.
+      const preventivas = ['*.cpp', '*.h', '*.txt', '**/*.tmp', 'a/**/b.js'];
+      const concretas = ['CMakeLists.txt', '.gitignore', '.gitattributes',
+        'WebUI/js/fx_contract.gen.js', 'resources/banks/*.syx'];
+
+      for (const p of preventivas) {
+        expect(esPreventiva({ patron: p }), p + ' deberia ser preventiva').toBe(true);
+      }
+      for (const p of concretas) {
+        expect(esPreventiva({ patron: p }), p + ' deberia ser concreta').toBe(false);
+      }
+    });
+
+    it('y reglasInertes separa las dos clases sin perder ninguna', () => {
+      const reglas = reglasDe([
+        '*.cpp text eol=lf',                    // preventiva, no cubre
+        '*.js text eol=lf',                     // preventiva, SI cubre
+        'WebUI/js/fx_contract.gen.js text eol=lf', // concreta, SI cubre
+        'WebUI/js/inexistente.js text eol=lf'    // concreta, NO cubre
+      ].join('\n'));
+      const { errores, preventivas } = reglasInertes(reglas, ['WebUI/js/fx_contract.gen.js']);
+
+      expect(errores.map((r) => r.cruda)).toEqual(['WebUI/js/inexistente.js text eol=lf']);
+      expect(preventivas.map((r) => r.cruda)).toEqual(['*.cpp text eol=lf']);
+      // Y ninguna se pierde por el camino, que seria el fallo de una separacion
+      // hecha con dos filtros seguidos en vez de con una particion.
+      expect(errores.length + preventivas.length).toBe(2);
     });
 
     it('cuentaCrlf ve los CRLF y no ve los LF', () => {

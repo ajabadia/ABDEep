@@ -146,6 +146,51 @@ function cuentaCrlf (texto) {
   return (texto.match(/\r\n/g) || []).length;
 }
 
+/**
+ * Si una regla es PREVENTIVA: declara una intencion sobre una extension o una
+ * familia de rutas, y no sobre un fichero concreto.
+ *
+ * POR QUE HACE FALTA, Y POR QUE LA PRIMERA VERSION DEL GUARD ESTABA MAL.
+ *
+ * El guard se escribio primero para ABDEep, donde todas las reglas cubren algo y
+ * no hacia falta esta distincion. Al llevarlo a ABDSharedAssets aparecieron 18
+ * reglas "inertes" y eran casi todas legitimas: `*.cpp`, `*.h`, `*.cmake`,
+ * `*.sh`... ese repo no tiene C++, pero su hermano ABDSharedCode si, y el
+ * `.gitattributes` dice literalmente que es una copia del de ABDSharedCode. Son
+ * reglas de futuro: declaran que, SI aparece un `.cpp`, tiene que ser LF.
+ *
+ * Un guard que exige "toda regla cubre un fichero" las marca a todas como
+ * error, y lo unico que se puede hacer con ese guard es apagarlo.
+ *
+ * LA DISTINCION. Una extension (`*.cpp`) o una familia (`**`) es preventiva:
+ * que hoy no haya ficheros que case no dice nada malo. Un nombre CONCRETO
+ * (`WebUI/js/fx_contract.gen.js`, `CMakeLists.txt`, `.gitignore`) que no cubre
+ * nada si es un error: o la ruta esta mal escrita, o el fichero se ha movido, o
+ * la regla se ha quedado huerfana. Las tres son fallos reales y las tres son
+ * silenciosas.
+ *
+ * Ojo con el caso limite: `*.` es lo que hace preventiva una regla, no el
+ * contenido. Un patron como `sources/plataformas/windows.cpp` NO empieza por
+ * `*.`, asi que cuenta como ruta concreta, que es lo que es.
+ */
+function esPreventiva (regla) {
+  return /^\*\./.test(regla.patron) || regla.patron.includes('**');
+}
+
+/**
+ * Las reglas que no cubren NINGUN fichero, separadas en las que son error y las
+ * que solo son declarativas. Separarlas es el punto: mezclarlas convertia el
+ * guard en algo que hay que apagar en cuanto un repo declara su futuro.
+ */
+function reglasInertes (reglas, ficheros) {
+  const inertes = reglas.filter((r) => cubreLa(r, ficheros).length === 0);
+
+  return {
+    errores: inertes.filter((r) => !esPreventiva(r)),
+    preventivas: inertes.filter(esPreventiva)
+  };
+}
+
 /** Los ficheros de texto que se COMPARAN como datos, no se ejecutan. */
 function pareceComparadoComoDato (fichero) {
   return /\.(gen\.js|gen\.h|gen\.cpp|data\.json)$/.test(fichero) ||
@@ -154,5 +199,6 @@ function pareceComparadoComoDato (fichero) {
 
 export {
   reglaDe, reglasDe, patronARegex, cubreLa, obligaLf,
-  reglasQueFijan, cuentaCrlf, pareceComparadoComoDato
+  reglasQueFijan, cuentaCrlf, pareceComparadoComoDato,
+  esPreventiva, reglasInertes
 };
