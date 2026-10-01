@@ -325,6 +325,12 @@
     <script src="js/effects_renderers_modulation.js"></script>
     <script src="js/effects_renderers_delays_pitch.js"></script>
     <script src="js/effects_theme.js"></script>
+    <!-- Mandos por hueco de efectos: uno por parametro que el tipo CONECTA, y el
+         resto declarado no conectable. Va ANTES de effects_render_params.js,
+         que es quien llama a renderFxSlotKnobs(). No necesita ir despues del
+         contrato: tablaPorTipo() se reintenta en la siguiente llamada si
+         window.FxEffectsContract todavia no existe. -->
+    <script src="js/fx_slot_knobs.js"></script>
     <script src="js/effects_render_params.js"></script>
     <script src="js/effects_templates_renderers.js"></script>
     <script src="js/effects_templates.js"></script>
