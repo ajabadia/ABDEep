@@ -3,7 +3,32 @@ name: FX Contract Generation CI
 # QUÉ COMPRUEBA. Que `WebUI/js/fx_contract.gen.js` — commiteado, y por tanto
 # el que lee la WebUI — sea EXACTAMENTE lo que produce
 # `scripts/generate_fx_contract.mjs` a partir del contrato compartido
-# `ABDSharedAssets/contracts/fx-effects.json`.
+# `ABDSharedAssets/contracts/fx-effects.json`, Y que se produzca igual con
+# finales de línea CRLF que con LF.
+#
+# POR QUÉ UNA MATRIZ Y POR QUÉ CRUZADA. El `.gen` es lo único de esta cadena que
+# se compara como DATO: el generador lo lee y lo compara con una cadena, carácter
+# a carácter. Todo lo demás se lee como CÓDIGO, y el parser de JavaScript
+# normaliza los saltos de línea del fuente, así que ahí el CRLF no llega a
+# existir. Consecuencia: un checkout con `core.autocrlf=true` deja el `.gen` con
+# CRLF, la comparación falla, y el fallo es de UNA SOLA PLATAFORMA.
+#
+# Y el trick de la matriz es CRUZAR el ajuste en vez de confiar en el de cada
+# imagen:
+#
+#   - ubuntu con core.autocrlf=true    simula un checkout de Windows en Linux
+#   - windows con core.autocrlf=false   simula un checkout de Linux en Windows
+#
+# Si se usara el valor por defecto de cada runner, el resultado dependería de lo
+# que traiga la imagen: autocrlf=true en Windows y false en Linux es lo de
+# siempre, pero si una imagen cambiara el valor, el job seguiría en verde sin
+# haber comprobado nada. Con el ajuste a la mano, el caso peligroso se ejercita
+# en las DOS plataformas, y el fallo sale en la que toque, no en la quelective.
+#
+# Además de comparar, el job REGENERA y compara el resultado con lo commiteado,
+# byte a byte. `--check` ya hace esa comparación, pero regenerar comprueba algo
+# más: que volver a producir el fichero no lo cambie. Es la diferencia entre
+# "el fichero es correcto" y "el fichero es reproducible".
 #
 # POR QUÉ UN JOB DEDICADO Y NO UN PASO DE webui-ci. Porque el contrato vive en
 # OTRO repositorio, ABDSharedAssets. Un PR que cambie el contrato no toca
@@ -16,9 +41,6 @@ name: FX Contract Generation CI
 # instalar dependencias: el generador es un fichero .mjs de Node puro, sin
 # imports de paquetes. Un `actions/checkout` del hermano y un `node` bastan, y
 # así el workflow no depende de una acción que vive en otro repo.
-#
-# POR QUÉ `fx-effects.json` Y NO EL RESTO. El generador solo lee ese contrato.
-# Traer el hermano entero sería más lento sin añadir nada.
 
 on:
   workflow_dispatch:
@@ -30,6 +52,7 @@ on:
       - "WebUI/index.html"
       - "WebUI/js/effects_data.js"
       - "WebUI/js/components/fx_modal_templates.js"
+      - ".gitattributes"
       - ".github/workflows/fx-contract-generation.yml"
   push:
     branches:
@@ -41,6 +64,7 @@ on:
       - "WebUI/index.html"
       - "WebUI/js/effects_data.js"
       - "WebUI/js/components/fx_modal_templates.js"
+      - ".gitattributes"
       - ".github/workflows/fx-contract-generation.yml"
 
 permissions:
@@ -52,14 +76,35 @@ concurrency:
 
 jobs:
   fx-contract:
-    name: Verify fx_contract.gen.js matches the shared contract
-    runs-on: ubuntu-latest
+    name: Verify the .gen regenerates identically (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+
+    strategy:
+      # Las dos legs se ven aunque una falle: si solo se ejecutara la que pasa,
+      # el diagnostico del fallo se pierde.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            autocrlf: 'true'
+            name: linux, autocrlf=true
+          - os: windows-latest
+            autocrlf: 'false'
+            name: windows, autocrlf=false
 
     env:
       CI: true
 
     steps:
+      # ANTES del checkout, porque es el checkout lo que convierte. Puesto
+      # después no cambiaría nada: los ficheros ya estarían escritos.
+      - name: Forzar core.autocrlf antes de comprobar nada
+        run: git config --global core.autocrlf ${{ matrix.autocrlf }}
+
+      - name: Decir que ajuste se ha puesto
+        run: git config --global --get core.autocrlf
+
       # El generador resuelve el contrato como HERMANO:
       # `resolve(repoRoot, '..', 'ABDSharedAssets', 'contracts', 'fx-effects.json')`.
       # Es decir, necesita ABDSharedAssets un nivel por encima de ABDEep, y por
@@ -75,16 +120,89 @@ jobs:
           repository: ajabadia/ABDSharedAssets
           path: ABDSharedAssets
 
+      # Node fijado a una versión EXACTA, no a una major. Si el job dice "el
+      # .gen se regenera igual en todas partes" y el intérprete cambia solo,
+      # hay una causa de diferencia que no es el fin de línea, y el job la
+      # camufla. La versión es la misma que usa la suite.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '22.23.3'
+
+      # El `.gitattributes` es lo que arregla esto, así que el job comprueba
+      # primero que GANA al ajuste forzado, antes de mirar nada del contrato.
+      # Se escribe en node y no en grep porque tiene que correr igual en las dos
+      # plataformas, y un `grep -P` o un `$'\r'` no es portable.
+      - name: Ningun CRLF en los ficheros de la cadena
+        working-directory: ABDEep
+        run: |
+          node -e '
+            const fs = require("fs");
+            const ficheros = [
+              "WebUI/js/fx_contract.gen.js",
+              "scripts/generate_fx_contract.mjs",
+              "../ABDSharedAssets/contracts/fx-effects.json"
+            ];
+            let malos = 0;
+            for (const f of ficheros) {
+              const texto = fs.readFileSync(f, "latin1");
+              const crlf = (texto.match(/\r\n/g) || []).length;
+              if (crlf > 0) {
+                console.error("CRLF x" + crlf + "  " + f);
+                malos++;
+              }
+            }
+            if (malos > 0) {
+              console.error("core.autocrlf=" + process.env.AUTOCRLF + " gana sobre el .gitattributes.");
+              process.exit(1);
+            }
+            console.log("sin CRLF en " + ficheros.length + " ficheros");
+          '
+        env:
+          AUTOCRLF: ${{ matrix.autocrlf }}
 
       # El propio --check ya distingue los dos fallos que importan, y con
-      # mensajes distintos: si el .gen NO EXISTE dice que hay que generarlo, y
-      # si existe pero no casa con el contrato dice STALE. Por eso se deja que
-      # sea él el que salga con 1, en vez de envolverlo en un `if !` que
-      # imprima un mensaje genérico encima.
+      # mensajes distintos: si el .gen NO EXISTE dice que hay que generarlo, si
+      # existe pero no casa con el contrato dice STALE, y si lo único que no
+      # casa es el salto de línea lo dice por separado. Por eso se deja que sea
+      # él el que salga con 1, en vez de envolverlo en un `if !` que imprima un
+      # mensaje genérico encima.
       - name: Verify the committed .gen matches the shared contract
         working-directory: ABDEep
         run: node scripts/generate_fx_contract.mjs --check
+
+      # Y ahora REGENERAR, que es lo que el job no hacía. `--check` compara;
+      # esto comprueba que volver a producir el fichero no lo cambie. Es la
+      # diferencia entre "el fichero es correcto" y "el fichero es
+      # reproducible".
+      - name: Regenerar y comprobar que no cambia ni un byte
+        working-directory: ABDEep
+        run: |
+          node -e '
+            const fs = require("fs");
+            fs.copyFileSync("WebUI/js/fx_contract.gen.js", process.env.RUNNER_TEMP + "/gen-committed.js");
+          '
+          node scripts/generate_fx_contract.mjs
+          node -e '
+            const fs = require("fs");
+            const antes = fs.readFileSync(process.env.RUNNER_TEMP + "/gen-committed.js");
+            const ahora = fs.readFileSync("WebUI/js/fx_contract.gen.js");
+            if (!antes.equals(ahora)) {
+              console.error("REGENERAR CAMBIO EL FICHERO: antes " + antes.length +
+                            " bytes, despues " + ahora.length);
+              process.exit(1);
+            }
+            console.log("regenerar no cambia un byte (" + ahora.length + ")");
+          '
+
+      # El digest en el log de las dos legs. Si someday dejan de coincidir, se
+      # ve en el propio log sin tener que comparar a mano, y dice que plataforma
+      # empieza a divergir.
+      - name: El digest del fichero regenerado
+        working-directory: ABDEep
+        run: |
+          node -e '
+          const fs = require("fs"), c = require("crypto");
+          const b = fs.readFileSync("WebUI/js/fx_contract.gen.js");
+          console.log(c.createHash("sha256").update(b).digest("hex") + "  " + b.length + " bytes");
+          '

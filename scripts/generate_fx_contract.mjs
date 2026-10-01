@@ -167,6 +167,25 @@ if (checkOnly) {
   }
 
   if (current !== file) {
+    // Un caso aparte, porque el mensaje general MIENTE en el. Si el unico
+    // cambio son los finales de linea, el contrato no cambio y nadie edito el
+    // .gen: lo que paso es un checkout con core.autocrlf=true, y la causa
+    // esta en la configuracion de git, no en el fichero.
+    //
+    // Y no basta con decir que se regenere, porque REGENERAR NO LO ARREGLA: el
+    // parser de JavaScript normaliza los saltos de linea del fuente, asi que
+    // el .gen vuelve a salir con LF, el checkout lo vuelve a convertir a CRLF, y
+    // el --check vuelve a fallar. Es un bucle.
+    if (current.replace(/\r\n/g, '\n') === file) {
+      console.error('STALE solo por el FIN DE LINEA: WebUI/js/fx_contract.gen.js tiene CRLF.');
+      console.error('El contenido es identico al que genera el contrato; lo unico que');
+      console.error('cambia es el salto de linea. Esto NO se arregla regenerando: el .gen');
+      console.error('volveria a salir con LF y el checkout lo volveria a convertir.');
+      console.error('La causa es core.autocrlf=true en un checkout que no lo cubre, y');
+      console.error('WebUI/js/fx_contract.gen.js esta fijado a eol=lf en .gitattributes.');
+      process.exit(1);
+    }
+
     console.error('STALE: WebUI/js/fx_contract.gen.js no coincide con el contrato compartido.');
     console.error('El contrato cambio, o alguien edito el .gen a mano. Regenera con:');
     console.error('  node scripts/generate_fx_contract.mjs');

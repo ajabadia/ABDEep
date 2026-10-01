@@ -10,6 +10,29 @@ WebUI/js/registry.gen.js text eol=lf
 Source/Core/ParameterRegistry.gen.h text eol=lf
 Source/Core/ParameterRegistry.gen.cpp text eol=lf
 
+# El binding del contrato de efectos. Este SI es obligatorio, y no por
+# estetica: el generador compara el fichero commiteado con lo que produce, y lo
+# produce como una CADENA. Un checkout en Windows con core.autocrlf=true deja
+# el .gen con CRLF, la cadena no casa, y `generate_fx_contract.mjs --check`
+# sale con 1 diciendo que el contrato cambio o que alguien edito el .gen a
+# mano. Las dos son mentira: lo unico que cambio es el fin de linea, y
+# regenerar no lo arregla porque el parser de JavaScript normaliza los saltos
+# de linea del fuente y el .gen vuelve a salir con LF.
+#
+# O sea: en Windows el fallo es permanente y el mensaje manda a donde no es.
+WebUI/js/fx_contract.gen.js text eol=lf
+
+# El generador tambien a LF. Aqui el parser de JavaScript neutraliza el CRLF
+# del fuente, asi que hoy no importa; se fija para que no dependa de esa
+# garantia implicita del lenguaje y para que el blob sea el mismo en todas
+# las plataformas.
+scripts/generate_fx_contract.mjs text eol=lf
+
+# El fichero de reglas se fija a si mismo. Sin esto, un checkout con
+# core.autocrlf=true lo trae con CRLF, que no rompe nada pero hace que el guard
+# que lo lee tenga que tolerarlo para nada.
+.gitattributes text eol=lf
+
 # La matriz de modulacion y su guard: LF en checkout para que los diffs sean
 # deterministas (el guard compara literales de tabla contra el fichero real, y
 # un CRLF de mas o de menos se leeria como contenido).

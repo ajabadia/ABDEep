@@ -283,6 +283,48 @@ function opcionesDe (source) {
   return { opciones, monta: true, error: null };
 }
 
+/**
+ * Las REGLAS de `.gitattributes` que tocan a `ruta`, en el subconjunto que
+ * importa aqui: las que Seen `text` con `eol=lf`.
+ *
+ * Se parsea en vez de hacer `toContain('WebUI/js/fx_contract.gen.js text eol=lf')`
+ * porque asi el guard distingue las tres cosas que hay que distinguir: que no
+ * hay ninguna regla, que hay una que dice otra cosa (`eol=crlf`), y que hay una
+ * regla con glob que SI cubre el fichero. Un `toContain` solo veria la tercera.
+ */
+function reglasPara (ruta, texto) {
+  return texto
+    .split('\n')
+    .map((linea) => linea.trim())
+    .filter((linea) => linea !== '' && !linea.startsWith('#'))
+    .filter((regla) => {
+      const patron = regla.split(/\s+/)[0];
+
+      if (!patron || patron.startsWith('"')) {return false;}
+
+      const rx = new RegExp(
+        '^' + patron
+          .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+          .replace(/\*/g, '.*')
+          .replace(/\?/g, '.')
+          .replace(/\//g, '\\/')
+          + '$'
+      );
+
+      return rx.test(ruta);
+    });
+}
+
+/** Si alguna de esas reglas obliga a LF en checkout. */
+function fijaLf (reglas) {
+  return reglas.some((regla) => /(?:^|\s)text(?:\s|=|$)/.test(regla) && /(?:^|\s)eol=lf(?:\s|$)/.test(regla));
+}
+
+/** Los saltos CRLF de un texto. Cero es lo unico aceptable en un .gen. */
+function cuentaCrlf (texto) {
+  return (texto.match(/\r\n/g) || []).length;
+}
+
 /** El sha256 de los BYTES del contrato, que es lo que hashea el generador. */
 function hashContrato () {
   return createHash('sha256').update(readFileSync(CONTRACT)).digest('hex');
@@ -570,6 +612,48 @@ describe('el --check del generador detecta un .gen desincronizado', () => {
 
       expect(r.status, 'el --check tendria que salir con 1').toBe(1);
       expect(r.stderr).toMatch(/STALE/);
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
+  it('y un .gen con CRLF se detecta como lo que es, no como STALE generico', () => {
+    // El caso que no existia y que Justamente es el de Windows. Un checkout
+    // con core.autocrlf=true deja el .gen con CRLF, y el comparador es de
+    // cadena completa, asi que falla. Lo grave no era que fallara: era que el
+    // mensaje decia "el contrato cambio, o alguien edito el .gen a mano", las
+    // dos cosas mentira, y encolaba a regenerar.
+    //
+    // Y REGENERAR NO LO ARREGLA, que es lo que lo hacia permanente: el parser
+    // de JavaScript normaliza los saltos de linea del fuente, el .gen vuelve
+    // a salir con LF, el checkout lo vuelve a convertir a CRLF, y aqui
+    // estamos otra vez. Por eso el mensaje tiene que decir otra cosa.
+    const raiz = mkdtempSync(join(tmpdir(), 'fx-contract-crlf-'));
+
+    try {
+      mkdirSync(join(raiz, 'ABDEep', 'scripts'), { recursive: true });
+      mkdirSync(join(raiz, 'ABDSharedAssets', 'contracts'), { recursive: true });
+      mkdirSync(join(raiz, 'ABDEep', 'WebUI', 'js'), { recursive: true });
+
+      copyFileSync(GENERATOR, join(raiz, 'ABDEep', 'scripts', 'generate_fx_contract.mjs'));
+      copyFileSync(CONTRACT, join(raiz, 'ABDSharedAssets', 'contracts', 'fx-effects.json'));
+      // El mismo contenido, un byte por linea distinto.
+      writeFileSync(
+        join(raiz, 'ABDEep', 'WebUI', 'js', 'fx_contract.gen.js'),
+        readFileSync(GENERATED, 'utf8').replace(/\n/g, '\r\n'),
+        'utf8'
+      );
+
+      const r = spawnSync(process.execPath, ['scripts/generate_fx_contract.mjs', '--check'], {
+        cwd: join(raiz, 'ABDEep'),
+        encoding: 'utf8'
+      });
+
+      expect(r.status, 'el --check tendria que salir con 1').toBe(1);
+      // Y tiene que decir QUE es. Si vuelve al mensaje generico, alguien vuelve
+      // a perder una tarde persiguiendo un cambio de contrato que no existe.
+      expect(r.stderr).toMatch(/FIN DE LINEA/);
+      expect(r.stderr).not.toMatch(/alguien edito el \.gen a mano/);
     } finally {
       rmSync(raiz, { recursive: true, force: true });
     }
@@ -1181,6 +1265,123 @@ describe('los guards de effects_data.js y del desplegable, con un fichero roto d
 
       expect(opciones).toHaveLength(effects.length);
       expect(effects.length).toBeGreaterThan(2);
+    });
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// EL .GEN SOBREVIVE A UN CHECKOUT DE WINDOWS
+// ══════════════════════════════════════════════════════════════════════════
+//
+// El `.gen` es lo unico de esta cadena que se compara como DATO y no como
+// CODIGO. `generate_fx_contract.mjs` lee el fichero commiteado y lo compara
+// con una cadena, caracter a caracter. El resto de la cadena --el contrato, el
+// generador-- se lee de otra manera, y el parser de JavaScript normaliza los
+// saltos de linea del fuente, asi que ahi el CRLF no llega a existir.
+//
+// Consecuencia: un checkout en Windows con core.autocrlf=true deja el `.gen`
+// con CRLF, la comparacion falla, y el fallo es de UNA SOLA PLATAFORMA. El
+// workflow lo ejecutaba en ubuntu, donde no puede pasar, asi que el unico
+// sitio donde se veía era la maquina de un desarrollador, con un mensaje que
+// decia que el contrato habia cambiado.
+//
+// Estos tests son la version determinista: corren en todas partes, y miran el
+// `.gitattributes`, que es la regla que lo arregla. El workflow
+// `fx-contract-generation.yml` hace ademas la comprobacion cruzada, con
+// core.autocrlf puesto a mano en las dos plataformas.
+
+describe('el .gen esta protegido de un checkout de Windows', () => {
+  const GITATTRIBUTES = resolve(repoRoot, '.gitattributes');
+  const GITATTRIBUTES_HERMANO = resolve(suiteRoot, 'ABDSharedAssets', '.gitattributes');
+
+  it('este repo fija el .gen a LF en checkout', () => {
+    const reglas = reglasPara('WebUI/js/fx_contract.gen.js', readFileSync(GITATTRIBUTES, 'utf8'));
+
+    expect(reglas, 'no hay ninguna regla que hable del .gen').not.toEqual([]);
+    expect(fijaLf(reglas)).toBe(true);
+  });
+
+  it('y fija tambien el generador, para que el blob sea el mismo en todas partes', () => {
+    const reglas = reglasPara('scripts/generate_fx_contract.mjs', readFileSync(GITATTRIBUTES, 'utf8'));
+
+    expect(reglas).not.toEqual([]);
+    expect(fijaLf(reglas)).toBe(true);
+  });
+
+  it('el hermano fija el contrato, que es lo que se hashea', () => {
+    // El generador hashea los BYTES del contrato. Si el hermano no lo fijara,
+    // el hash seria distinto en cada plataforma y el `.gen` no podria ser el
+    // mismo fichero en las dos. ABDSharedAssets lo fija con `*.json text
+    // eol=lf`, asi que aqui se comprueba esa regla y no una suelta.
+    //
+    // El `existsSync` va antes porque este fichero ya necesita el hermano para
+    // el contrato, pero sin el fallaba con un ENOENT del `.gitattributes`
+    // en vez de decir que lo que falta es un checkout. Un error que no dice que
+    // hacer es un error que se pierde.
+    expect(
+      existsSync(GITATTRIBUTES_HERMANO),
+      'no esta ABDSharedAssets/.gitattributes: este test lee el contrato del hermano, ' +
+      'hace falta el checkout de ABDSharedAssets un nivel por encima (es lo que hace el workflow)'
+    ).toBe(true);
+
+    const reglas = reglasPara('contracts/fx-effects.json', readFileSync(GITATTRIBUTES_HERMANO, 'utf8'));
+
+    expect(reglas).not.toEqual([]);
+    expect(fijaLf(reglas)).toBe(true);
+  });
+
+  it('el .gen de ESTE checkout no tiene ni un CRLF', () => {
+    // El guard de verdad. Las reglas de `.gitattributes` son una intencion; esto
+    // es el estado. Si alguien regenera el `.gen` desde un editor de Windows sin
+    // el `.gitattributes` puesto, esta linea se pone roja aunque las reglas
+    // sigan ahi, que es justo cuando hace falta.
+    const crlf = cuentaCrlf(readFileSync(GENERATED, 'utf8'));
+
+    expect(crlf, `fx_contract.gen.js tiene ${crlf} saltos CRLF`).toBe(0);
+  });
+
+  it('ni el contrato', () => {
+    expect(cuentaCrlf(readFileSync(CONTRACT, 'utf8'))).toBe(0);
+  });
+
+  describe('y el parser de reglas se equivoca en todos los sentidos que importan', () => {
+    // Sin esto, un `reglasPara` que devolviera siempre `[]` haria que el primer
+    // test de arriba pasara por el `not.toEqual` y el resto no miraria nada.
+    it('sin ninguna regla, no hay nada que fije', () => {
+      expect(fijaLf(reglasPara('WebUI/js/fx_contract.gen.js', '# solo comentarios\n'))).toBe(false);
+    });
+
+    it('una regla que dice eol=crlf NO cuenta', () => {
+      expect(fijaLf(reglasPara('WebUI/js/fx_contract.gen.js', 'WebUI/js/fx_contract.gen.js text eol=crlf\n'))).toBe(false);
+    });
+
+    it('una regla sin `text` NO cuenta', () => {
+      expect(fijaLf(reglasPara('WebUI/js/fx_contract.gen.js', 'WebUI/js/fx_contract.gen.js -text eol=lf\n'))).toBe(false);
+    });
+
+    it('pero un glob que SI cubre el fichero, cuenta igual', () => {
+      // El `.gitattributes` real podria cambiar de forma: lo que importa es si
+      // cubre el fichero, no si la regla esta escrita con su ruta entera.
+      expect(fijaLf(reglasPara('WebUI/js/fx_contract.gen.js', '*.gen.js text eol=lf\n'))).toBe(true);
+      expect(fijaLf(reglasPara('WebUI/js/registry.gen.js', '*.gen.js text eol=lf\n'))).toBe(true);
+    });
+
+    it('y el glob no se come lo que no le toca', () => {
+      expect(reglasPara('WebUI/js/effects_data.js', '*.gen.js text eol=lf\n')).toEqual([]);
+    });
+
+    it('el .gitattributes real se lee entero, no solo la primera linea', () => {
+      const lineas = readFileSync(GITATTRIBUTES, 'utf8').split('\n').filter((l) => l.trim() !== '' && !l.trim().startsWith('#'));
+
+      // Si el parser se quedara en la primera linea, devolveria una sola regla y
+      // el `.gen` --que esta mas abajo-- no tendria ninguna. Este es el fallo que
+      // hace que un parser "funcione" en los tests y falle en el fichero real.
+      expect(lineas.length).toBeGreaterThan(5);
+    });
+
+    it('cuentaCrlf ve los CRLF y no ve los LF', () => {
+      expect(cuentaCrlf('a\nb\nc')).toBe(0);
+      expect(cuentaCrlf('a\r\nb\r\nc')).toBe(2);
     });
   });
 });
