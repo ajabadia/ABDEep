@@ -44,8 +44,11 @@ pluginval_Windows.zip
 /resources/manual/
 /resources/md/
 /resources/patchwork-deepmind-main/
+# Logs: la salida de una compilacion o de una sesion cambia en cada run, y
+# no hay ni un `.log` trackeado en este repo, de modo que la regla no puede
+# estar ocultando un fichero que alguien quiera versionar. Antes se listaban
+# cuatro a mano, que es la forma de que el quinto se cuele: `standalone_debug.log`
+# se colaba. `build_log.txt` se queda aparte porque NO acaba en `.log`.
+*.log
 build_log.txt
-test_results.log
-test_results_release.log
-abdeeper_release_build.log
 *.cpp.bak
