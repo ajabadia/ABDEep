@@ -26,10 +26,18 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { execFileSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+// Toda llamada a git pasa por aqui. No es una comodidad: es lo que evita que
+// este guard se ponga rojo por una razon que no es suya. En una maquina donde
+// el repositorio es de otro usuario, git se niega a trabajar ("dubious
+// ownership"), `ls-files` falla, la lista queda vacia, y el guard entero dice
+// que no hay ni un artefacto: verdad, pero no la que importa. La ruta de
+// `safe.directory` se deduce de donde esta el helper, no se escribe a mano,
+// para que el test no dependa de donde vive el checkout.
+import { GIT, RAIZ, gitSeguro } from './helpers/gitSeguro.js';
 
 import {
   reglasDe, cubreLa, obligaLf, reglasQueFijan, patronARegex,
@@ -44,25 +52,42 @@ const GITATTRIBUTES = resolve(repoRoot, '.gitattributes');
 /**
  * Los ficheros que git lleva, que es lo unico que las reglas pueden cubrir.
  *
- * Si `git ls-files` falla, se avisa con un mensaje util y la lista queda VACIA a
- * proposito, no se lanza. Con la lista vacia el primer test de este fichero
- * (`el guard tiene ficheros con los que trabajar`) se pone rojo diciendo
- * exactamente que pasa. Lanzar el error de git seria peor: el stack apuntaria a
- * `execFileSync` y no a que el problema es que no hay checkout.
+ * ANTES ERA ALGO DISTINTO, Y ESTE ES EL CAMBIO. La version anterior de esta
+ * funcion se tragaba el fallo de `git ls-files` y devolvia una lista VACIA, para
+ * que el rojo lo diera el primer test de este fichero con un mensaje escrito a
+ * mano. La idea era buena y el resultado no: con la lista vacia se ponen rojos
+ * TODOS los tests de aqui por su cuenta, y ninguno de los que se leen primero
+ * dice que el problema es git. El que se lee es el ultimo en caer, y dice que
+ * el guard no descubre estos cuatro artefactos. El guard los descubre
+ * perfectamente. Lo que fallo fue leer la lista, y el diagnostico manda a mirar
+ * al fichero equivocado, que es lo mas caro que puede hacer un test.
+ *
+ * Ahora se LANZA. Y como la llamada va por `gitSeguro`, el error que sale ya no
+ * es el de `dubious ownership` (esa excepcion la pone el helper): si llega
+ * aqui, de verdad no hay checkout, o no hay git, o el directorio no es un
+ * repositorio. Las tres son de git, las tres se dicen, y ninguna se puede
+ * confundir con un problema de las reglas.
  */
 function listaTrackeada () {
   try {
-    return execFileSync('git', ['ls-files'], {
+    return gitSeguro(['ls-files'], {
       cwd: repoRoot,
       encoding: 'utf8',
       maxBuffer: 32 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'pipe']
     }).split('\n').filter((f) => f !== '');
   } catch (e) {
-    console.error(
-      '[gitattributesGuard] no se pudo ejecutar `git ls-files` en ' + repoRoot + ': ' + e.message
-    );
-    return [];
+    const stderr = (e.stderr || '').toString().trim();
+    const porQue = stderr === '' ? e.message : stderr.split('\n')[0];
+
+    throw new Error('[gitattributesGuard] `git ls-files` fallo en ' + repoRoot + ', de modo '
+      + 'que este test no puede decir NADA sobre las reglas: ni a favor ni en contra.\n\n'
+      + 'Lo que fallo: ' + porQue + '\n\n'
+      + 'Si el repositorio pertenece a otro usuario, esto es la proteccion de "dubious '
+      + 'ownership" y no deberia pasar: `gitSeguro` ya pone la excepcion. Si la ves, el '
+      + 'helper esta mirando al repositorio equivocado, y su RAIZ sale de donde vive el '
+      + 'fichero; lo que hay que revisar es donde esta `helpers/gitSeguro.js`, no las '
+      + 'reglas de `.gitattributes`.');
   }
 }
 
@@ -105,14 +130,31 @@ const ga = readFileSync(GITATTRIBUTES, 'utf8');
 const REGLAS = reglasDe(ga);
 
 describe('el .gitattributes protege de verdad, y se ve', () => {
+  it('el helper de git apunta a ESTE repositorio, y git responde', () => {
+    // El fallo mas caro de este fichero no es un artefacto sin fijar: es que
+    // git no lea el repositorio y el guard entero diga que no hay artefactos,
+    // que es un diagnostico que manda a mirar el fichero equivocado. Este test
+    // separa las dos cosas que pueden salir mal: que el helper se haya movido de
+    // sitio (RAIZ deja de ser la raiz) y que git no coopite.
+    expect(RAIZ, 'el helper ya no apunta a la raiz del repo: se ha movido de sitio')
+      .toBe(repoRoot);
+    expect(GIT[0]).toBe('-c');
+    expect(GIT[1], 'la excepcion de safe.directory tiene que ir antes del subcomando')
+      .toBe('safe.directory=' + repoRoot.replace(/\\/g, '/').replace(/\/+$/, ''));
+    expect(gitSeguro(['rev-parse', '--is-inside-work-tree']).trim()).toBe('true');
+  });
+
   it('el guard tiene ficheros con los que trabajar', () => {
     // La costura de todo lo de abajo. Si `git ls-files` devolviera una lista
     // vacia, "ninguna regla cubre nada" seria cierto y el guard pasaria sin
-    // haber mirado un solo fichero.
+    // haber mirado un solo fichero. Antes de que eso importara, el fallo de
+    // git se traducia en lista vacia; ahora `listaTrackeada` lanza, asi que
+    // una lista vacia ya solo puede significar un repositorio sin ficheros.
     expect(TRACKEADOS.length,
-      'la lista de ficheros trackeados esta vacia: `git ls-files` no ha funcionado. '
-      + 'Sin ella, NINGUNA REGLA CUBRE NADA seria cierto y este guard pasaria sin haber '
-      + 'mirado un solo fichero').toBeGreaterThan(100);
+      'la lista de ficheros trackeados esta vacia, y `git ls-files` NO ha fallado: '
+      + 'si fallara habria lanzado antes. O este no es un repositorio de trabajo, o no '
+      + 'tiene un solo fichero dentro, y en ninguno de los dos casos hay reglas que '
+      + 'juzgar').toBeGreaterThan(100);
     expect(REGLAS.length).toBeGreaterThan(5);
   });
 
