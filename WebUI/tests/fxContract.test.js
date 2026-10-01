@@ -42,7 +42,7 @@ import {
   readFileSync, rmSync, statSync, writeFileSync
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
@@ -116,12 +116,186 @@ function problemasDeProcedencia (ctto, gen) {
   return problemas;
 }
 
+/** Una cadena literal, de comillas simples o dobles. */
+const CADENA_LITERAL = /'([^'\\\n]*)'|"([^"\\\n]*)"/g;
+
+/**
+ * Quita comentarios de linea y de bloque, y SOLO eso: una cadena que contiene
+ * `//` es una cadena y se queda.
+ *
+ * POR QUE IMPORTA. Sin esto, `effects_data.js` —que tiene un comentario
+ * explicandO que la lista vieja llamaba "Ambience" al 1— sale con un nombre del
+ * contrato y el guard se pone rojo. Y ese es el peor fallo posible de un guard:
+ * que salte cuando el codigo esta BIEN. El primero que lo ve apaga el paso y
+ * ya no lo vuelve a mirar.
+ */
+function sinComentarios (source) {
+  let out = '';
+  let i = 0;
+
+  while (i < source.length) {
+    const c = source[i];
+    const siguiente = source[i + 1];
+
+    if (c === '/' && siguiente === '/') {
+      while (i < source.length && source[i] !== '\n') i++;
+    } else if (c === '/' && siguiente === '*') {
+      i += 2;
+      while (i + 1 < source.length && !(source[i] === '*' && source[i + 1] === '/')) i++;
+      i += 2;
+    } else {
+      out += c;
+      i++;
+    }
+  }
+
+  return out;
+}
+
+/**
+ * SI HAY UNA LISTA DE NOMBRES ESCRITA A MANO, y por que se cree que lo hay.
+ *
+ * UNA FUNCION PURA, y eso es lo que la hace verificable: este mismo fichero
+ * le puede pasar un array a mano, un objeto a mano y una lista encubierta en
+ * una cadena, y comprobar que los tres los ve. El guard viejo no podia hacer
+ * eso, porque era un `if` dentro de un `it` y su unico caso era el codigo real.
+ *
+ * QUE CAZA, y por que cada forma importa:
+ *
+ *   - un ARRAY plano o partido por el formateador: la forma de siempre.
+ *   - un OBJETO `{0: 'Hall', 1: 'Plate'}`. El regex viejo NO lo ve porque no
+ *     hay ningun array. Y es la refactorizacion mas natural que puede hacer
+ *     alguien que odie los indices sueltos.
+ *   - una CADENA con los nombres separados por comas y un `.split(',')`. Tampoco
+ *     la ve el viejo, y es la forma mas compacta de todos.
+ *
+ * QUE NO CAZA, y por que eso tambien es un requisito:
+ *
+ *   - UN nombre suelto: citar 'Hall' al hablar del efecto 1 no es una lista.
+ *   - Los comentarios: por eso se limpia el codigo antes de mirar.
+ *   - Las clases de Tailwind y los literales de plantilla del desplegable, que
+ *     son tan numerosos como una lista. Un detector de densidad los chillaba;
+ *     uno que mira NOMBRES CONCRETOS no puede, porque 'track' y 'handle' no son
+ *     nombres de efecto.
+ */
+function detectarListaAMano (source) {
+  const codigo = sinComentarios(source);
+  const sueltos = new Set();
+  const encerradas = [];
+  let m;
+
+  CADENA_LITERAL.lastIndex = 0;
+  while ((m = CADENA_LITERAL.exec(codigo)) !== null) {
+    const s = m[1] !== undefined ? m[1] : m[2];
+
+    if (NOMBRES_DEL_CONTRATO.has(s)) {
+      sueltos.add(s);
+    } else {
+      // Una sola cadena con muchos nombres dentro: lista encubierta.
+      //
+      // EL UMBRAL ES 8 Y ESTA MEDIDO, NO ADIVINADO. Con 3 —que era por donde
+      // empezo— el detector marcaba `name: 'Vintage Room Ambience'` en
+      // effects_presets_data.js: es el nombre de un PRESET, pero la subcadena
+      // contiene tres nombres del contrato. Un guard que se pone rojo sobre el
+      // codigo correcto se apaga en su primer falso positivo, y a partir de ahi
+      // no lo mira nadie.
+      //
+      // Los numeros, medidos sobre los 277 .js reales de la WebUI:
+      //   el maximo en codigo correcto ......  3   (el nombre del preset)
+      //   la lista encubierta mas corta .... 10   (diez nombres en un split)
+      //   la de verdad ...................... 61
+      //
+      // O sea: 3 no sirve, 10 basta. 8 se queda en medio, con margen a los dos
+      // lados. Si alguien lo baja, que mire estos numeros antes.
+      const dentro = [...NOMBRES_DEL_CONTRATO].filter((n) => s.includes(n));
+
+      if (dentro.length >= 8) {
+        encerradas.push(`una cadena con ${dentro.length} nombres: "${s.slice(0, 48)}..."`);
+      }
+    }
+  }
+
+  const motivos = [];
+
+  if (sueltos.size >= 2) {
+    motivos.push(`${sueltos.size} nombres del contrato como literales: ${[...sueltos].slice(0, 6).join(', ')}`);
+  }
+
+  motivos.push(...encerradas);
+
+  return { esLista: motivos.length > 0, motivos };
+}
+
+/**
+ * Lo que EXPONE un `effects_data.js` concreto: se monta con el contrato real
+ * delante y se lee lo que deja publicado.
+ *
+ * Recibe el TEXTO en vez de leer el fichero del disco, y eso es lo que la
+ * vuelve pura. Antes la decision vivia dentro de un `it` que se limitaba a
+ * leer el fichero bueno, asi que no habia ninguna forma de darle nada malo y
+ * comprobar que lo notaba: el guard podia quedarse en `expect(...).toEqual(...)`
+ * sobre una expresion vacia y seguir verde.
+ *
+ * Devuelve tambien si el fichero MONTÓ. Un `effects_data.js` que revienta al
+ * cargarse tiene que salir en rojo por aqui, no con un `undefined` que
+ * cualquiera se pueda comparar con cualquier cosa.
+ */
+function nombresExpuestosPor (source) {
+  const context = { window: null, self: null };
+  context.window = context;
+  context.self = context;
+  vm.createContext(context);
+  vm.runInContext(readFileSync(GENERATED, 'utf8'), context, { filename: 'fx_contract.gen.js' });
+
+  try {
+    vm.runInContext(source, context, { filename: 'effects_data.js' });
+  } catch (e) {
+    return { nombres: null, monta: false, error: String(e && e.message) };
+  }
+
+  const nombres = Array.isArray(context.FX_TYPE_NAMES) ? context.FX_TYPE_NAMES : null;
+
+  return { nombres, monta: nombres !== null, error: nombres === null ? 'no publica un array FX_TYPE_NAMES' : null };
+}
+
+/**
+ * Los pares `[id, etiqueta]` que deja un desplegable concreto, montado con el
+ * contrato delante. Misma idea que la de arriba: recibe el texto, distingue
+ * "no monto" de "monte pero no coincide", y por eso se puede usar al reves.
+ */
+function opcionesDe (source) {
+  const context = { window: null, self: null, console: { warn () {} } };
+  context.window = context;
+  context.self = context;
+  vm.createContext(context);
+  vm.runInContext(readFileSync(GENERATED, 'utf8'), context, { filename: 'fx_contract.gen.js' });
+
+  let opciones;
+
+  try {
+    vm.runInContext(source, context, { filename: 'fx_modal_templates.js' });
+    opciones = [...String(context.FX_TYPE_OPTIONS ?? '').matchAll(/<option value="(\d+)">([^<]*)<\/option>/g)]
+      .map((m) => [Number(m[1]), m[2]]);
+  } catch (e) {
+    return { opciones: [], monta: false, error: String(e && e.message) };
+  }
+
+  return { opciones, monta: true, error: null };
+}
+
 /** El sha256 de los BYTES del contrato, que es lo que hashea el generador. */
 function hashContrato () {
   return createHash('sha256').update(readFileSync(CONTRACT)).digest('hex');
 }
 const contract = JSON.parse(readFileSync(CONTRACT, 'utf8'));
 const effects = contract.effects ?? contract;
+
+/**
+ * Los NOMBRES del contrato, como conjunto. Es la lista de lo que delata una
+ * lista escrita a mano en estos ficheros: los nombres de efecto son
+ * exactamente estos, y poner dos o mas como literal en el codigo es la senal.
+ */
+const NOMBRES_DEL_CONTRATO = new Set(effects.map((e) => e.name));
 
 // ══════════════════════════════════════════════════════════════════════════
 
@@ -193,6 +367,109 @@ describe('fx_contract.gen.js esta al dia respecto al contrato compartido', () =>
     // arriba ya decia lo que hay que comprobar; aqui se comprueba de verdad,
     // hasheando el contrato otra vez.
     expect(generated.sourceHash).toBe(hashContrato());
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+
+describe('el detector de listas a mano ve todas las formas y no las de mas', () => {
+  /** Los nombres que el detector usa: tres del contrato, sacados de el. */
+  const [A, B, C] = [...NOMBRES_DEL_CONTRATO];
+
+  describe('las tres formas por las que se colaba una lista', () => {
+    it('un ARRAY plano, la forma de siempre', () => {
+      const { esLista } = detectarListaAMano(`const FX = ['${A}', '${B}', '${C}'];`);
+
+      expect(esLista).toBe(true);
+    });
+
+    it('un OBJETO id -> nombre, que el regex viejo no veia porque no hay array', () => {
+      // Esta es la que mas importa. `const FX = {0: 'Hall', 1: 'Plate'}` es la
+      // refactorizacion mas natural que puede hacer alguien que odie los
+      // indices sueltos, y el guard viejo —que buscaba `/\[[^\]]{200,}\]/`—
+      // no la miraba. Verde y con la lista a mano.
+      const { esLista, motivos } = detectarListaAMano(
+        `const FX = { 0: '${A}', 1: '${B}', 2: '${C}' };`
+      );
+
+      expect(esLista).toBe(true);
+      expect(motivos[0]).toMatch(/nombres del contrato/);
+    });
+
+    it('una CADENA con split, que tampoco tiene array', () => {
+      // Los 61 nombres de verdad, no tres: tres en un split no son una lista, y
+      // un caso de prueba que miente hace que el detector parezca menos capaz
+      // de lo que es y deja el hueco abierto de verdad.
+      const { esLista, motivos } = detectarListaAMano(
+        `const FX = '${[...NOMBRES_DEL_CONTRATO].join(',')}'.split(',');`
+      );
+
+      expect(esLista).toBe(true);
+      expect(motivos[0]).toMatch(/cadena con \d+ nombres/);
+    });
+
+    it('y con la lista mas CORTA que aun es una lista', () => {
+      // Diez nombres en un split. Es el borde inferior que importa: por debajo
+      // de ocho, el detector se calla a proposito (un preset con tres nombres
+      // en su etiqueta existe de verdad, y hay que dejarlo pasar).
+      const diez = [...NOMBRES_DEL_CONTRATO].slice(0, 10);
+
+      expect(detectarListaAMano(`const FX = '${diez.join(',')}'.split(',');`).esLista).toBe(true);
+      expect(detectarListaAMano(`const FX = '${diez.slice(0, 3).join(',')}'.split(',');`).esLista).toBe(false);
+    });
+  });
+
+  describe('y lo que NO es una lista, que tambien hay que comprobar', () => {
+    it('un nombre suelto no es una lista', () => {
+      // Citar 'Hall' al hablar del efecto 1 es correcto y no puede hacer
+      // saltar el guard, o el primer uso legitimo lo apaga para siempre.
+      const { esLista } = detectarListaAMano(`const etiqueta = '${A}';`);
+
+      expect(esLista).toBe(false);
+    });
+
+    it('un nombre en un comentario no es codigo', () => {
+      // `effects_data.js` tiene un comentario que explica que la lista vieja
+      // llamaba 'Ambience' al 1. Sin `sinComentarios()`, ese guard se ponia
+      // rojo con el fichero CORRECTO, que es el peor fallo de un guard.
+      const { esLista } = detectarListaAMano(
+        `// antes decia '${A}' y '${B}' en vez de lo que dice el contrato\nconst x = 1;`
+      );
+
+      expect(esLista).toBe(false);
+    });
+
+    it('los literales de plantilla y las clases de estilo no son una lista', () => {
+      // Un detector por DENSIDAD de cadenas los confundia con una lista: el
+      // desplegable tiene 'track', 'handle', 'flex-row' y media docena mas, y
+      // son tan numeros como 61 nombres. Este los deja pasar porque no son
+      // nombres de efecto, que es justo lo que se le pide al detector.
+      const codigo = `
+        const clase = ['track', 'handle', 'flex-row', 'flex-col', 'items-center',
+                       'label text-xs', 'v-slider', 'knob', 'fx-knobs'];
+      `;
+      const { esLista } = detectarListaAMano(codigo);
+
+      expect(esLista).toBe(false);
+    });
+  });
+
+  it('el codigo real de los dos ficheros se deja pasar', () => {
+    // El contraluz, que es el unico que importa de verdad: si el detector
+    // chillara sobre el codigo correcto, habria que apagarlo y el guard se
+    // habria perdido. Los dos ficheros que vigila, tal y como estan.
+    for (const ruta of [EFFECTS_DATA, resolve(repoRoot, 'WebUI', 'js', 'components', 'fx_modal_templates.js')]) {
+      const { esLista, motivos } = detectarListaAMano(readFileSync(ruta, 'utf8'));
+
+      expect(esLista, `${basename(ruta)} sale como lista a mano: ${motivos.join('; ')}`).toBe(false);
+    }
+  });
+
+  it('el conjunto de nombres del contrato no esta vacio', () => {
+    // Un `new Set()` vacio haria que el detector no encontrase NUNCA y pasase
+    // siempre: verde y muerto. La misma costura que se cosio en
+    // CLAVES_DE_PROCEDENCIA, y por el mismo motivo.
+    expect(NOMBRES_DEL_CONTRATO.size).toBeGreaterThan(2);
   });
 });
 
@@ -540,12 +817,19 @@ describe('effects_data.js deriva del contrato y no los escribe', () => {
   const source = readFileSync(EFFECTS_DATA, 'utf8');
 
   it('no contiene una lista de nombres de efecto escrita a mano', () => {
-    // Cualquier array de cadenas de este tamano en este fichero seria una
-    // lista de nombres. El patron cubre las dos formas que ha habido: el array
-    // plano, y el array partido en lineas por el formateador.
-    const bigArray = source.match(/\[[^\]]{200,}\]/s);
+    // ESTE GUARD ERA DE FORMA Y SE ESCAPABAN TRES COSAS. Buscaba
+    //   source.match(/\[[^\]]{200,}\]/s)
+    // o sea, un ARRAY de mas de 200 caracteres. Se pasaban por debajo, sin
+    // ruido: un objeto `{0: 'Hall', 1: 'Plate'}` (la refactorizacion mas
+    // natural que puede hacer alguien que odie los indices sueltos, y que no
+    // tiene ni un array), y una cadena con `.split(',')`, y un array corto.
+    //
+    // Ahora lo mira `detectarListaAMano`, que pregunta por los NOMBRES
+    // CONCRETOS del contrato en vez de por la forma del codigo. Se verifica
+    // al final del fichero.
+    const { esLista, motivos } = detectarListaAMano(source);
 
-    expect(bigArray, 'effects_data.js ha vuelto a escribir la lista de nombres').toBeNull();
+    expect(esLista, `effects_data.js ha vuelto a escribir la lista de nombres:\n  ${motivos.join('\n  ')}`).toBe(false);
   });
 
   it('no menciona los nombres que solo existian en la lista vieja', () => {
@@ -557,19 +841,17 @@ describe('effects_data.js deriva del contrato y no los escribe', () => {
   });
 
   it('expone la lista que se espera, leida del contrato', () => {
-    const context = { window: null, self: null };
-    context.window = context;
-    context.self = context;
-    vm.createContext(context);
+    // La decision va en `nombresExpuestosPor`, que recibe el texto: asi al
+    // final del fichero se le puede dar un `effects_data.js` ROTO y exigir que
+    // lo note. Aqui solo se afirma sobre el bueno.
+    const { nombres, monta, error } = nombresExpuestosPor(source);
 
-    vm.runInContext(readFileSync(GENERATED, 'utf8'), context, { filename: 'fx_contract.gen.js' });
-    vm.runInContext(source, context, { filename: 'effects_data.js' });
-
-    expect(context.FX_TYPE_NAMES).toEqual(generated.names);
-    expect(context.FX_TYPE_NAMES[0]).toBe('Bypass');
-    expect(context.FX_TYPE_NAMES[1]).toBe('Hall');
-    expect(context.FX_TYPE_NAMES[22]).toBe('Deep Verb');
-    expect(context.FX_TYPE_NAMES[26]).toBe('Chamber');
+    expect(monta, `effects_data.js no monta con el contrato delante: ${error}`).toBe(true);
+    expect(nombres).toEqual(generated.names);
+    expect(nombres[0]).toBe('Bypass');
+    expect(nombres[1]).toBe('Hall');
+    expect(nombres[22]).toBe('Deep Verb');
+    expect(nombres[26]).toBe('Chamber');
   });
 
   it('fxTypeName devuelve undefined para un id que no existe, y el nombre si', () => {
@@ -647,19 +929,31 @@ describe('el desplegable del rack deriva del contrato', () => {
     const source = readFileSync(TEMPLATES, 'utf8');
 
     // Estas cuatro son etiquetas que solo existian en la lista vieja del
-    // desplegable. Si aparecen, alguien ha pegado la lista otra vez.
+    // desplegable. Se quedan como una comprobacion MAS, no como la unica: son
+    // cuatro literales concretos y no cubren una lista nueva escrita con otros
+    // nombres, que es justo el caso que se quiere cazar.
     for (const stale of ['HallReverb', 'Plate Reverb', 'Gated Reverb', 'tcDeepVerb']) {
       expect(source, `fx_modal_templates.js menciona "${stale}", que viene de la lista vieja`).not.toContain(stale);
     }
 
-    // Y el signo de que se construye de verdad: que se llame al contrato.
-    expect(source).toContain('FxEffectsContract');
+    // Y ahora la que de verdad protege: nombres del contrato como literales, en
+    // cualquier forma. El guard viejo se quedaba en `toContain('FxEffectsContract')`,
+    // que lo pasa un fichero que menciona la palabra en un comentario y sigue
+    // con la lista escrita a mano.
+    const { esLista, motivos } = detectarListaAMano(source);
+
+    expect(esLista, `fx_modal_templates.js ha vuelto a escribir la lista de nombres:\n  ${motivos.join('\n  ')}`).toBe(false);
   });
 
   it('cada opcion lleva el nombre que tiene el contrato', () => {
-    const context = loadTemplates();
+    const source = readFileSync(TEMPLATES, 'utf8');
+    const { opciones, monta, error } = opcionesDe(source);
 
-    const mismatches = optionsOf(context)
+    // Montar y no montar no son lo mismo: sin esta linea, un desplegable que
+    // reventara al cargarse llegaria aqui con `opciones` vacio y pasaria.
+    expect(monta, `fx_modal_templates.js no monta con el contrato delante: ${error}`).toBe(true);
+
+    const mismatches = opciones
       .filter(([id, label]) => generated.byId[id]?.name !== label)
       .map(([id, label]) => `${id}: desplegable=${label} contrato=${generated.byId[id]?.name}`);
 
@@ -737,5 +1031,156 @@ describe('el desplegable del rack deriva del contrato', () => {
     // que el usuario tocaba algo. Ahora arrancan en Bypass, que es la verdad.
     expect(context.FX_MODAL_TEMPLATE).not.toContain('Ambience</div>');
     expect(context.FX_MODAL_TEMPLATE).not.toContain('VintageRoom</div>');
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// LOS GUARDS DE LOS DOS FICHEROS, VERIFICANDOSE A SI MISMOS
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Arriba, `detectarListaAMano` se verifica a si misma: casos que TIENEN que
+// estar rotos. Eso demuestra que el detector mira.
+//
+// Lo que faltaba era la otra mitad: que los guards que usan el detector, y las
+// comparaciones que hacen montando el fichero en una VM, tambien se puedan ver
+// rotas. Un guard que compara `context.FX_TYPE_NAMES` con el contrato pasa en
+// verde igual si el fichero publica un array vacio, si el desplegable deja de
+// montar, o si la expresion se typo y devuelve `undefined`. aqui se les da
+// exactamente esos casos.
+//
+// La regla que se repite en cada test: si una comparacion de un guard dejara de
+// mirar, ESTE bloque tiene que ponerse rojo. Por eso las comprobaciones repiten
+// la comparacion literal del guard en vez de llamar al guard entero.
+
+describe('los guards de effects_data.js y del desplegable, con un fichero roto delante', () => {
+  const GOOD_EFFECTS = readFileSync(EFFECTS_DATA, 'utf8');
+  const GOOD_TEMPLATES = readFileSync(resolve(repoRoot, 'WebUI', 'js', 'components', 'fx_modal_templates.js'), 'utf8');
+
+  /** La linea REAL por la que el fichero bueno deriva del contrato. */
+  const DERIVA_EFFECTS = 'const names = Object.freeze(contract.names.slice());';
+  const ANCLA_TEMPLATES = "let html = '';";
+
+  // Las dos piezas de verdad, tal cual, para partir de ellas y romperlas.
+  const CON_LISTA_A_MANO = GOOD_EFFECTS.replace(
+    DERIVA_EFFECTS,
+    "const names = ['Bypass', 'Hall', 'Plate', 'Reverse'];"
+  );
+  const CON_ETIQUETA_MOVIDA = GOOD_TEMPLATES.replace(
+    ANCLA_TEMPLATES,
+    ANCLA_TEMPLATES + "\n        if (effects.length) { return effects.map((e) => "
+    + "'<option value=\"' + e.id + '\">' + (e.id === 1 ? 'Ambience' : e.name) + '</option>').join(''); }"
+  );
+  const CON_ID_DE_MAS = GOOD_TEMPLATES.replace(
+    ANCLA_TEMPLATES,
+    ANCLA_TEMPLATES + "\n        if (effects.length) { return effects.map((e) => "
+    + "'<option value=\"' + e.id + '\">' + e.name + '</option>').join('') "
+    + "+ '<option value=\"ID_FANTASMA\">Plata inventada</option>'; }"
+  );
+
+  it('las tres mutaciones se aplican de verdad, o este bloque no prueba nada', () => {
+    // La costura de todo lo de abajo. Si el fichero bueno cambia y estas
+    // cadenas ya no casan, el `replace` no hace nada y el source roto sale
+    // IDENTICO al bueno: el guard de mas abajo pasaria porque no hay nada roto,
+    // y el bloque entero daria verde sin haber comprobado nada.
+    expect(GOOD_EFFECTS).toContain(DERIVA_EFFECTS);
+    expect(GOOD_TEMPLATES).toContain(ANCLA_TEMPLATES);
+    expect(CON_LISTA_A_MANO).not.toBe(GOOD_EFFECTS);
+    expect(CON_ETIQUETA_MOVIDA).not.toBe(GOOD_TEMPLATES);
+    expect(CON_ID_DE_MAS).not.toBe(GOOD_TEMPLATES);
+  });
+
+  describe('effects_data.js', () => {
+    it('con la lista a mano, el guard de nombres lo nota', () => {
+      const { nombres, monta } = nombresExpuestosPor(CON_LISTA_A_MANO);
+
+      // La misma comparacion que hace el guard de arriba.
+      expect(monta).toBe(true);
+      expect(nombres).not.toEqual(generated.names);
+      expect(detectarListaAMano(CON_LISTA_A_MANO).esLista).toBe(true);
+    });
+
+    it('y con el fichero bueno, el mismo guard pasa', () => {
+      // El contrapeso: un guard que dijera "problema" siempre tampoco seria un
+      // guard. Este par es el que hace que el test de arriba signifique algo.
+      const { nombres, monta } = nombresExpuestosPor(GOOD_EFFECTS);
+
+      expect(monta).toBe(true);
+      expect(nombres).toEqual(generated.names);
+      expect(detectarListaAMano(GOOD_EFFECTS).esLista).toBe(false);
+    });
+
+    it('un fichero que no monta no puede pasar por publicando cualquier cosa', () => {
+      // El `monta` distingue "no se puede cargar" de "carga y no coincide". Sin
+      // el, un `effects_data.js` reventado daria `undefined`, y comparar
+      // `undefined` con la lista daria error, no un fallo limpio.
+      expect(nombresExpuestosPor('throw new Error("reventado");').monta).toBe(false);
+    });
+
+    it('un fichero que carga pero no publica la lista tampoco', () => {
+      // Monta sin reventar y sin publicar nada: el caso silencioso.
+      expect(nombresExpuestosPor('const x = 1;').monta).toBe(false);
+    });
+
+    it('el contrato entero pasa de largo al resultado que el guard compara', () => {
+      // Si `generated.names` se vaciara, `toEqual` compararia lista vacia con
+      // lista vacia y el guard pasaria sin mirar.
+      expect(nombresExpuestosPor(GOOD_EFFECTS).nombres).toHaveLength(effects.length);
+      expect(generated.names).toHaveLength(effects.length);
+    });
+  });
+
+  describe('fx_modal_templates.js', () => {
+    it('una etiqueta descolocada la nota el guard de nombres', () => {
+      // El bug historico exacto: id 1 ponia "Ambience" cuando la fabrica
+      // construye Hall. 57 opciones, todas las que deben, y una mal.
+      const { opciones, monta } = opcionesDe(CON_ETIQUETA_MOVIDA);
+      const fuera = opciones.filter(([id, label]) => generated.byId[id]?.name !== label);
+
+      expect(monta).toBe(true);
+      expect(opciones).toHaveLength(effects.length);
+      expect(fuera.map(([id, label]) => `${id}: ${label}`)).toEqual(['1: Ambience']);
+    });
+
+    it('un id que el contrato no tiene lo nota el guard de ids', () => {
+      // El id se calcula como uno MAS ALLA del maximo del contrato, no como un
+      // numero escrito a mano. El 57 que se puso primero SI existe en el
+      // contrato --los ids van de 0 a 60--, asi que el guard no lo veia, el
+      // numero de opciones seguia cuadrando y el test se ponia rojo por un
+      // motivo equivocado: por el `.not.toEqual`, no por la comprobacion del id.
+      const fantasma = Math.max(...effects.map((e) => e.id)) + 1;
+      const { opciones, monta } = opcionesDe(CON_ID_DE_MAS.replace('ID_FANTASMA', String(fantasma)));
+      const ids = opciones.map(([id]) => id);
+
+      expect(monta).toBe(true);
+      expect(ids).not.toEqual(effects.map((e) => e.id).sort((a, b) => a - b));
+      expect(ids.filter((id) => !generated.byId[id])).toEqual([fantasma]);
+    });
+
+    it('y con el desplegable bueno, los mismos dos guards pasan', () => {
+      const { opciones, monta } = opcionesDe(GOOD_TEMPLATES);
+      const ids = opciones.map(([id]) => id);
+
+      expect(monta).toBe(true);
+      expect(opciones.filter(([id, label]) => generated.byId[id]?.name !== label)).toEqual([]);
+      expect(ids).toEqual(effects.map((e) => e.id).sort((a, b) => a - b));
+    });
+
+    it('un desplegable que no monta sale por el `monta`, no por el `opciones`', () => {
+      // Un desplegable roto que dejara `FX_TYPE_OPTIONS` sin definir daria
+      // `opciones: []`, y `expect([]).toEqual([])` en el guard de ids seria
+      // verde. Por eso `monta` va por delante.
+      expect(opcionesDe('throw new Error("reventado");').monta).toBe(false);
+      expect(opcionesDe('const x = 1;').opciones).toEqual([]);
+    });
+
+    it('el guard de ids no puede pasar porque las dos listas se hayan vaciado', () => {
+      // Las dos comparaciones del guard, con las dos listas no vacias delante.
+      // Si `effects` o el desplegable se quedaran vacios por un cambio de
+      // contrato, `[]` compararia con `[]` y el guard no miraria nada.
+      const { opciones } = opcionesDe(GOOD_TEMPLATES);
+
+      expect(opciones).toHaveLength(effects.length);
+      expect(effects.length).toBeGreaterThan(2);
+    });
   });
 });
