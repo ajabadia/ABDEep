@@ -208,5 +208,23 @@ namespace DSP
         }
     };
 
+// === Centralized tuning constants (legacy 44.1kHz values converted to seconds) ===
+    // Cutoff/amp smoothing: tau = -1/(ln(1-0.05)·44100) = 0.00044208s @ 44.1kHz
+    constexpr float kCutoffSmoothTauSec = 0.00044208f;
+    constexpr float kAmpSmoothTauSec = 0.00044208f;
+
+    // PWM/duty slew: tau = -1/(ln(1-0.1)·44100) = 0.00021522s @ 44.1kHz
+    constexpr float kPwmSlewTauSec = 0.00021522f;
+    constexpr float kDutySlewTauSec = 0.00021522f;
+
+    // Minimum sample rate validation
+    constexpr double kMinSampleRate = 1000.0;
+    constexpr double kDefaultSampleRate = 44100.0;
+
+    inline double validateSampleRate(double sr) noexcept
+    {
+        return (sr > kMinSampleRate) ? sr : kDefaultSampleRate;
+    }
+
 } // namespace DSP
 } // namespace ABD

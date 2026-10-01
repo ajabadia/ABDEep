@@ -53,7 +53,14 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 > `ABDSharedAssets/contracts/fx-effects.json` vía `WebUI/js/fx_contract.gen.js`
 > (generado por `scripts/generate_fx_contract.mjs`, comprobado byte a byte en el
 > test). Nuevo `fxContract.test.js` (13 tests) que ata web ↔ contrato ↔ fábrica C++.
-> Números reales: **112 files / 4839 tests** (0 skipped). La enumeración de la suite vive ahora en un
+> Números reales: **112 files / 4839 tests** (0 skipped).
+>
+> **2026-09-28 — el desplegable del rack también deriva del contrato**: `fx_modal_templates.js`
+> tenía su PROPIA cadena de `<option>` y su PROPIO objeto de etiquetas cortas, los dos escritos a
+> mano y los dos desplazados respecto a la fábrica (id 1 decía “Ambience” y es un Hall, el 22 decía
+> “Delay” y es Deep Verb, el 26 decía “DecimatorDelay” y es Chamber), más 7 opciones fantasma
+> (ids 57-63) que la fábrica no construye. Ahora se montan desde `FxEffectsContract` en el primer
+> acceso. +8 tests en `fxContract.test.js` (21 → 23… y el bloque nuevo). La enumeración de la suite vive ahora en un
 > único helper compartido (`WebUI/tests/support/vitestSuite.js`, vía el propio
 > `globTestFiles()` de vitest), usado por `baselineGuard` y `ciSubprocessTests`.
 >
@@ -82,7 +89,7 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 > la matriz de modulacion contra el hardware). Los tests suben de 4817 a
 > 4839 (+22 del guard nuevo, que replaces las copias de tabla que otros
 > tests traian pegadas).
-| Tests | **4817** (4817 passed, 0 skipped, 0 failed) |
+| Tests | **4847** (4847 passed, 0 skipped, 0 failed) |
 | Duración | ~80 s – 3 min (según máquina y caché) |
 | ESLint | **0 errores, 0 warnings** (`curly` limpios con `--fix`; `npm run lint`
   ahora es `--max-warnings 0` → CI falla ante cualquier warning) |

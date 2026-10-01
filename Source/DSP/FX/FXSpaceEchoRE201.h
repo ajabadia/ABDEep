@@ -46,19 +46,48 @@ namespace ABD
         float paramReverb = 0.3f;
 
         // Tape delay line (max ~1.6s at 44.1kHz)
-        static constexpr int kMaxDelay = 70560;
-        std::vector<float> delayBufL;
+        //
+        // THE SIZE MUST BE A POWER OF TWO, because the wrap is a bit mask and a
+        // mask only wraps when it is 2^n - 1. The old `kMaxDelay = 70560`
+        // (0b1_0001_0011_1010_0000) was not, and its low five bits were zero,
+        // so `(writePos + 1) & delayMask` evaluated to 0 on the very first
+        // sample and stayed 0 forever: every sample was written to the same
+        // cell, the reads landed on masked-off indices that had never been
+        // written, and the tape echo did not exist at all.
+        //
+        // 2^17 = 131072 is the first size that covers the 1.6s this comment
+        // claims, and 2^16 would have been enough for the buffer but not for
+        // the delay range (see `maxDelay` in process: at 44.1kHz the ceiling
+        // is `sampleRate * 1.5` = 66150 samples, and 2^16 would have clipped it
+        // to 65535). With 2^17 the `maxDelay` expression returns exactly the
+        // same numbers it returned before, so the ONLY thing that changes is
+        // that the line advances.
+        static constexpr int kDelaySize = 131072;          // 2^17 = 1.6s at 44.1kHz
+        static constexpr int kDelayMask = kDelaySize - 1;  // 2^17 - 1
+        std::vector<float> delayBufL;                      // kDelaySize cells
         std::vector<float> delayBufR;
-        int delayMask = 0;
         int writePos = 0;
 
-        // Reverb tank (simple plate)
-        static constexpr int kReverbSize = 16384;
-        std::vector<float> reverbBufL;
+        // Reverb tank (simple plate). Same requirement: 16384 was 2^14, a power
+        // of two used as the SIZE where the mask belongs, so
+        // `(reverbWPos + 1) & reverbMask` alternated between 0 and 16384
+        // instead of walking the buffer, and the reads were stuck on index 0.
+        // 2^15 also has to cover the tank's longest tap, which is 0.11s on the
+        // right channel, so the `&` cannot run off the end: 32768 works up to
+        // ~298kHz, and at 44.1kHz it does not move a single tank delay.
+        static constexpr int kReverbSize = 32768;           // 2^15
+        static constexpr int kReverbMask = kReverbSize - 1; // 2^15 - 1
+        std::vector<float> reverbBufL;                      // kReverbSize cells
         std::vector<float> reverbBufR;
-        int reverbMask = 0;
         int reverbWPos = 0;
         float reverbLP = 0.0f;
+
+        // A mask that is not 2^n - 1 does not wrap, it truncates. This is the
+        // whole bug, so it is worth a compile error rather than a comment.
+        static_assert((kDelaySize & (kDelaySize - 1)) == 0,
+                      "kDelaySize must be a power of two or the & mask does not wrap");
+        static_assert((kReverbSize & (kReverbSize - 1)) == 0,
+                      "kReverbSize must be a power of two or the & mask does not wrap");
 
         // Tape degradation state
         float tapeWow = 0.0f;

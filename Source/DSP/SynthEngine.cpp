@@ -30,6 +30,14 @@ namespace ABD
         globalLfo1Buffer.resize(samplesPerBlock);
         globalLfo2Buffer.resize(samplesPerBlock);
 
+        // Un buffer de modulacion de nivel por hueco del bus de fx. Cuatro, no
+        // uno comido: el bus procesa hueco a hueco y `setSlotModulation` toma el
+        // puntero del que le toca.
+        fxLevelMod.resize(4);
+
+        for (int s = 0; s < 4; ++s)
+            fxLevelMod[s].resize(samplesPerBlock);
+
         // Preparar FX Engine
         fxEngine.prepare(sampleRate, samplesPerBlock);
 
@@ -43,6 +51,32 @@ namespace ABD
         voiceAlloc.reset();
     }
 
+    // Los ocho destinos del bus de fx, en el orden del enum (74-81). Se leen
+    // del enum en vez de escribir el numero, para que el 74 viva en un sitio.
+    static ModDestination destinoFxParametros(int hueco)
+    {
+        switch (hueco)
+        {
+            case 0:  return ModDestination::kFx1Parameters;
+            case 1:  return ModDestination::kFx2Parameters;
+            case 2:  return ModDestination::kFx3Parameters;
+            case 3:  return ModDestination::kFx4Parameters;
+            default: return ModDestination::kNone;
+        }
+    }
+
+    static ModDestination destinoFxNivel(int hueco)
+    {
+        switch (hueco)
+        {
+            case 0:  return ModDestination::kFx1Level;
+            case 1:  return ModDestination::kFx2Level;
+            case 2:  return ModDestination::kFx3Level;
+            case 3:  return ModDestination::kFx4Level;
+            default: return ModDestination::kNone;
+        }
+    }
+
     void SynthEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
     {
         // 0. Pre-calcular buffers de LFO global para todo el bloque
@@ -51,6 +85,9 @@ namespace ABD
         {
             globalLfo1Buffer.resize(numSamples);
             globalLfo2Buffer.resize(numSamples);
+
+            for (int s = 0; s < fxLevelMod.size(); ++s)
+                fxLevelMod[s].resize(numSamples);
         }
 
         // Aplicar arp sync a LFOs globales solo si alguna voz lo tiene activo
@@ -188,10 +225,27 @@ namespace ABD
             commonSources[(int)ModSource::kSustainPedal] = currentSustainPedal;
 
             const int numCh = juce::jmin(2, buffer.getNumChannels());
+            // `Fx N Parameters` se decide UNA vez por bloque, con las fuentes en
+            // su valor de la primera muestra: el efecto los lee una vez por
+            // bloque (ver `FXSlot::process` para el por que).
+            commonSources[(int)ModSource::kLFO1] = globalLfo1Buffer[0];
+            commonSources[(int)ModSource::kLFO2] = globalLfo2Buffer[0];
+
+            for (int h = 0; h < 4; ++h)
+                fxParamMod[h] = modMatrix.getModulationValue(destinoFxParametros(h), commonSources);
+
             for (int s = 0; s < numSamples; ++s)
             {
                 commonSources[(int)ModSource::kLFO1] = globalLfo1Buffer[s];
                 commonSources[(int)ModSource::kLFO2] = globalLfo2Buffer[s];
+
+                // `Fx N Level` si es muestra a muestra, y en el MISMO bucle que
+                // el resto de la matriz y con las MISMAS fuentes, para que un
+                // LFO que mueve el cutoff mueva tambien la ganancia del bus con
+                // la misma fase y no con otra copia del LFO que un dia se
+                // desfasara.
+                for (int h = 0; h < 4; ++h)
+                    fxLevelMod[h].set(s, modMatrix.getModulationValue(destinoFxNivel(h), commonSources));
 
                 const float hpfCutoffMod = modMatrix.getModulationValue(ModDestination::kFilterHPFCutoff,
                                                                         commonSources);
@@ -225,6 +279,12 @@ namespace ABD
             }
 #endif
         }
+
+        // El bus de fx recibe su modulacion ANTES de procesar, y la consume en
+        // el mismo `process`: los punteros de nivel valen lo que dura este
+        // bloque, y por eso no se copian.
+        for (int h = 0; h < 4; ++h)
+            fxEngine.setSlotModulation(h, fxLevelMod[h].getRawDataPointer(), fxParamMod[h], numSamples);
 
         // Procesar FX Engine (post-voices, pre-master gain)
         fxEngine.process(buffer);

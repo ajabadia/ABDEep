@@ -185,7 +185,7 @@ function getKeyboardSectionTemplate() {
         </div>
       </div>
 
-      <div id="ivory-keys-bed"></div>
+      <div id="piano-keyboard"></div>
     </div>
   `;
 }
@@ -951,8 +951,10 @@ describe('KeyboardSection (keyboard-section.js)', () => {
     expect(tooltips).toContain('Transpose keyboard up one octave');
   });
 
-  it('has ivory-keys-bed container', () => {
-    expect(getKeyboardSectionTemplate()).toContain('id="ivory-keys-bed"');
+  it('has the shared keyboard container', () => {
+    // El keybed lo monta @abdsynths/midi-keyb sobre #piano-keyboard, dentro de la
+    // franja .keyboard-container (185px) que sigue siendo del host.
+    expect(getKeyboardSectionTemplate()).toContain('id="piano-keyboard"');
   });
 
   it('has porta-edit-btn with data-accent="blue"', () => {

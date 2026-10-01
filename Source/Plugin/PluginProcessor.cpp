@@ -250,7 +250,7 @@ void ABDEepAudioProcessor::setStateInformation (const void* data, int sizeInByte
             if (newState.hasProperty ("pc_bank"))
             {
                 restoredBank = newState.getProperty ("pc_bank");
-                restoredProg = newState.hasProperty ("pc_program") ? newState.getProperty ("pc_program") : 0;
+                restoredProg = newState.hasProperty ("pc_program") ? static_cast<int> (newState.getProperty ("pc_program")) : 0;
                 patchController.getMidiMap().setCurrentBank (restoredBank);
                 // NO scheduleApply: el APVTS restaurado ya contiene el estado sonoro completo
             }

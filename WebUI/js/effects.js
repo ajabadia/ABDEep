@@ -1,7 +1,7 @@
 /**
  * @purpose Controlador del módulo de efectos (Effects Engine Rack) central (fachada).
  * La lógica se ha extraído a:
- *   - effects_data.js       — FX_TYPE_NAMES estático
+ *   - effects_data.js       — nombres de tipo, derivados del contrato compartido
  *   - effects_controls.js   — controles del modal (apertura, slots, tipos, routing, páginas, modos)
  *   - effects_sliders.js    — sliders de envío y parámetros de slot
  *   - effects_modal_sync.js — sincronización de la UI del modal
@@ -18,12 +18,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initEffectsModal() {
     const backdrop = document.getElementById('fx-modal-backdrop');
-    const dynamicArea = document.getElementById('fx-dynamic-editor-area');
 
-    if (!backdrop || !dynamicArea) {return;}
+    // OJO LA CONDICION DE ARRIBA. Comprobaba ademas que existiera la pantalla
+    // de parametros del hueco seleccionado, y como se quito (sus renderers
+    // estaban numerados contra una tabla de efectos que ya no es la del motor),
+    // esta comprobacion hacia que `initEffectsModal` se retornara SIN
+    // INICIALIZAR NADA: el backdrop existia, el elemento no, y el modal entero
+    // se quedaba muerto sin decir nada. Ahora la unica cosa que tiene que
+    // existir es el modal, y la rejilla se pinta despues.
+    if (!backdrop) {return;}
 
     window._selectedFxSlot = 1;
-    window._activeFxPage = 1;
 
     // Inicializar submódulos
     initEffectsControls();

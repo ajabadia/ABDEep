@@ -208,6 +208,20 @@ namespace ABD
         float lfo1MonoMode = 0.0f;
         float lfo2MonoMode = 0.0f;
         juce::Array<float> globalLfo1Buffer, globalLfo2Buffer;
+
+        /**
+         * La modulacion de nivel del bus de fx, una por hueco y muestra a
+         * muestra. La rellena `processBlock` en el bucle donde ya viven las
+         * fuentes de la matriz, y la consume el bus al procesar.
+         */
+        juce::Array<juce::Array<float>> fxLevelMod;
+
+        /**
+         * La modulacion de los parametros del bus de fx, una por hueco y POR
+         * BLOQUE, no por muestra: el efecto lee sus parametros una vez al
+         * procesar el bloque (ver `FXSlot::process`).
+         */
+        float fxParamMod[4] = {};
         
         // Arpeggiator clock frequency (Hz) para LFO Arp Sync y MIDI clock
         float arpClockHz = 1.0f;

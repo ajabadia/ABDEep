@@ -8,14 +8,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..', '..');
-
-const { ModelCapabilities, MODEL_CAPABILITIES, MODELS, MODE_TO_MODEL } =
-    require(path.join(ROOT, 'WebUI', 'js', 'model_capabilities.js'));
+// El modulo de fuente se IMPORTA: su `module.exports` se expone como
+// exportaciones nombradas por el interop de Vitest, mientras que require() bajo
+// type:module devuelve un namespace vacio.
+import { ModelCapabilities, MODEL_CAPABILITIES, MODELS, MODE_TO_MODEL } from '../js/model_capabilities.js';
 
 describe('ModelCapabilities (Fase 5 §1.1)', () => {
     it('matriz canónica con exactamente los dos modelos', () => {

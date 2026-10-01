@@ -1,11 +1,12 @@
 /**
  * fitStage en ABDEep: dos contratos.
  *
- * 1. COPIA GESTIONADA — WebUI/src/shared/fitStage.js es una copia VERBATIM de
- *    ABDSharedAssets/components/fitStage.js (ABDEep no tiene bundler: scripts
- *    clasicos + ESM nativo). Byte a byte contra el paquete del workspace;
- *    editar la copia a mano ROMPE la suite a proposito
- *    (node scripts/sync_shared.mjs).
+ * 1. GLUE FINO — WebUI/js/fit-stage.js YA NO es una copia del componente: importa
+ *    `mountFitStage` del paquete del workspace (`@abdsynths/shared/components`,
+ *    el mismo que usa ABDMS2000) y solo declara el chasis (1200x768) y su montaje.
+ *    El guard es de origen, no de bytes: si alguien reimplementa el calculo en el
+ *    glue en vez de consumir el paquete, la suite lo detecta. El componente en si
+ *    se prueba en ABDSharedAssets (tests/fitStage*.test.js).
  *
  * 2. INTEGRACION — el mount escala y centra el chasis de diseno (1200x768) y
  *    el detach deja de recibir resizes. Sin DOM: la suite corre en entorno
@@ -17,23 +18,36 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { computeFit, mountFitStage } from '../src/shared/fitStage.js';
+// El MISMO specifier que usa el glue: lo que se prueba aqui es lo que carga la app.
+import { computeFit, mountFitStage } from '@abdsynths/shared/components';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const GLUE = join(here, '..', 'js', 'fit-stage.js');
 
-describe('fitStage / copia gestionada', () =>
+describe('fitStage / glue compartido', () =>
 {
-    it('es byte a byte la del paquete compartido', () =>
+    it('consume el paquete del workspace en vez de reimplementar el componente', () =>
     {
-        const suiteRoot = resolve(here, '..', '..', '..');
-        const origin = join(suiteRoot, 'ABDSharedAssets', 'components', 'fitStage.js');
-        const copy = join(here, '..', 'src', 'shared', 'fitStage.js');
+        const glue = readFileSync(GLUE, 'utf8');
 
-        expect(readFileSync(copy, 'utf8')).toBe(readFileSync(origin, 'utf8'));
+        expect(glue).toMatch(/import\s*\{\s*mountFitStage\s*\}\s*from\s*'@abdsynths\/shared\/components'/);
+        // El calculo del fit vive SOLO en el paquete: ni copia local ni matematicas.
+        expect(glue).not.toMatch(/\bcomputeFit\b/);
+        expect(glue).not.toMatch(/Math\.(?:min|max)\s*\(/);
+        expect(glue).not.toMatch(/scale\s*\(/);
+    });
+
+    it('monta el chasis de diseno (#synth-app, 1200x768)', () =>
+    {
+        const glue = readFileSync(GLUE, 'utf8');
+
+        expect(glue).toMatch(/getElementById\(\s*'synth-app'\s*\)/);
+        expect(glue).toMatch(/width:\s*1200\b/);
+        expect(glue).toMatch(/height:\s*768\b/);
     });
 });
 
@@ -50,12 +64,12 @@ describe('fitStage / integracion ABDEep', () =>
             innerHeight: DESIGN.height,
             listeners,
             addEventListener (type, fn) { listeners.set(type, fn); },
-            removeEventListener (type, fn) { if (listeners.get(type) === fn) listeners.delete(type); },
+            removeEventListener (type, fn) { if (listeners.get(type) === fn) { listeners.delete(type); } },
             fire (type)
             {
                 const fn = listeners.get(type);
 
-                if (fn) fn();
+                if (fn) { fn(); }
             },
         };
     }

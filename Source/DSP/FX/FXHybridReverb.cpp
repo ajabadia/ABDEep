@@ -68,15 +68,35 @@ namespace ABD
             }
         }
         // Parámetros 6-11: Reverb
+        //
+        // El bloque de reverb del hibrido esta en el MISMO orden que los cinco
+        // primeros mandos de un Hall (`FXSimpleReverb(1)`): preDelay, decay,
+        // size, damping y --el quinto-- lo que en la Hall seria diffusion. O sea
+        // que el mando 6 va al 0, el 7 al 1, y asi hasta el 10 al 4.
+        //
+        // ESTO ESTUVO CRUZADO. El reparto anterior mandaba 6->1, 7->0, 8->4,
+        // 9->2 y 10->3, o sea que preDelay movia el decay, decay movia el
+        // pre-retardo, size movia la difusion, damping movia el tamano y loCut
+        // movia el damping: cuatro de los cinco knobs acababan en un control que
+        // no era el suyo. El de tamano es ademas el que mas se nota, porque
+        // `setSize` redimensiona los conbs y borra la cola, asi que el mando de
+        // size estaba haciendo eso cada vez que se movia.
+        //
+        // OJO: el quinto mando del panel es loCut, que el motor no tiene (el
+        // motor no tiene ni loCut ni hiCut). Sigue yendo a diffusion, que es lo
+        // que hacia el reparto viejo y la unica manera de que el quinto mando
+        // no se quede muerto. El wet/dry de este efecto NO es el del mando 11
+        // de la reverb: el 11 es el mix del hibrido entero, que se mezcla al
+        // final de `process`.
         else
         {
             switch (index)
             {
-                case 6:  reverb->setParameter(1, value); break; // preDelay
-                case 7:  reverb->setParameter(0, value); break; // decay
-                case 8:  reverb->setParameter(4, value); break; // size
-                case 9:  reverb->setParameter(2, value); break; // damping
-                case 10: reverb->setParameter(3, value); break; // loCut -> diffusion
+                case 6:  reverb->setParameter(0, value); break; // preDelay
+                case 7:  reverb->setParameter(1, value); break; // decay
+                case 8:  reverb->setParameter(2, value); break; // size    -> roomSize
+                case 9:  reverb->setParameter(3, value); break; // damping
+                case 10: reverb->setParameter(4, value); break; // loCut    -> diffusion
                 case 11: mix = value; break;                    // mix
             }
         }

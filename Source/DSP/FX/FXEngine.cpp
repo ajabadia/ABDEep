@@ -83,6 +83,14 @@ namespace ABD
         extModNumSamples = numSamples;
     }
 
+    void FXEngine::setSlotModulation(int slot, const float* level, float paramAmount, int numSamples)
+    {
+        if (slot < 0 || slot >= kNumSlots)
+            return;
+
+        slots[slot].setMatrixModulation(level, paramAmount, numSamples);
+    }
+
     void FXEngine::process(juce::AudioBuffer<float>& buffer)
     {
         if (fxMode == 2) return; // Bypass global

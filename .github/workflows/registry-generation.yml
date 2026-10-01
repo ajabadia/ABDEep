@@ -7,9 +7,9 @@ name: Registry Generation CI
 # se regeneran SIN diffs de contenido (registro stale / edición manual de .gen).
 # Correr en Linux confirma además que el generador es multiplataforma.
 #
-# Nota: registry_generator.js emite `generatedAt` (timestamp por corrida) tanto en
-# data.json como en registry.gen.js — el diff ignora esa línea (--ignore-matching-lines)
-# para que el job solo falle por divergencias de CONTENIDO reales.
+# Nota: registry_generator.js es IDEMPOTENTE — solo avanza `generatedAt` cuando el
+# contenido cambia de verdad, asi que el diff puede ser un `git diff` a secas y
+# cualquier diferencia significa artefactos stale.
 
 on:
   workflow_dispatch:
@@ -85,10 +85,9 @@ jobs:
             'Source/Core/ParameterRegistry.gen.h'
             'Source/Core/ParameterRegistry.gen.cpp'
           )
-          # Guardia: --ignore-matching-lines ignora LÍNEAS completas; si data.json
-          # o registry.gen.js se emitieran en una sola línea (JSON minificado), el
-          # ignore enmascararía TODO el archivo y el job pasaría en falso con
-          # artefactos stale. (Los .h/.cpp se emiten multi-línea via join('\n').)
+          # Guardia: si data.json o registry.gen.js se emitieran en una sola linea
+          # (JSON minificado), el diff seria ilegible y nadie podria revisar que
+          # cambio. (Los .h/.cpp se emiten multi-linea via join().)
           for f in schemas/parameter-registry.data.json WebUI/js/registry.gen.js; do
             if [ ! -f "$f" ]; then
               echo "::error::$f está AUSENTE — no se puede verificar la sincronía de los artefactos .gen."
@@ -99,16 +98,16 @@ jobs:
               exit 1
             fi
           done
-          # generatedAt cambia en cada corrida: se ignora. Cualquier otra
-          # diferencia = los artefactos commiteados están stale.
+          # El generador es idempotente, asi que ya NO hay que ignorar la linea de
+          # generatedAt: CUALQUIER diferencia = artefactos commiteados stale.
           # `if ! git diff --exit-code` captura el exit 1 (hay diffs) SIN que set -e
           # mate el script antes del mensaje. El diff interno lleva `|| true` para
           # que el ::group:: se cierre y el `exit 1` explícito marque el fallo.
-          if ! git diff --exit-code --ignore-matching-lines='generatedAt' -- "${artifacts[@]}"; then
+          if ! git diff --exit-code -- "${artifacts[@]}"; then
             echo "::error::Los artefactos .gen COMMITEADOS no coinciden con la regeneración. Ejecuta localmente: node scripts/registry_generator.js (o powershell -ExecutionPolicy Bypass -File scripts/validate_and_generate.ps1) y haz commit de los 4 artefactos regenerados."
             echo "::group::Diff de artefactos .gen vs regeneración"
-            git diff --ignore-matching-lines='generatedAt' -- "${artifacts[@]}" || true
+            git diff -- "${artifacts[@]}" || true
             echo "::endgroup::"
             exit 1
           fi
-          echo "OK — los 4 artefactos .gen commiteados se regeneran sin diffs de contenido (schemaVersion 1)."
+          echo "OK — los 4 artefactos .gen commiteados se regeneran sin ningun diff (generador idempotente, schemaVersion 1)."

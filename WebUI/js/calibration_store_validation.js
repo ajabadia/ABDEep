@@ -17,7 +17,11 @@
  */
 function classifyRow(paramId, rawA, rawB) {
   const STUB_PARAMS = new Set(['vcfpolemode', 'vcf_pole_mode']);
-  const ALIAS_PARAMS = new Set(['voicedrift', 'oscdrift', 'voice_drift', 'osc_drift']);
+  // `osc_drift` era el segundo nombre del byte 88 (`alias-shared`: dos ids, un
+  // byte). Ese byte ya tiene un solo id, `voice_drift`, así que la categoría
+  // entera sobra. Se deja el nombre normalizado porque el texto de calibración lo
+  // escribe sin guion, pero ya no se clasifica como compartido.
+  const ALIAS_PARAMS = new Set(['voicedrift', 'voice_drift']);
 
   if (STUB_PARAMS.has(paramId)) { return 'stub'; }
   if (ALIAS_PARAMS.has(paramId)) { return 'alias-shared'; }

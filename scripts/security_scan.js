@@ -8,7 +8,7 @@
  *
  *   - CLI  : node scripts/security_scan.js [--json] [--dir <path>]
  *            exit 0 = sin violaciones · exit 1 = hallazgos
- *   - Módulo: require('scripts/security_scan.js') → { auditSource, auditFile, scanDir }
+ *   - Módulo: import { auditSource, auditFile, scanDir } from './security_scan.js'
  *            (reutilizado por WebUI/tests/domSanitize.test.js)
  *
  * Política (§4.1):
@@ -22,11 +22,13 @@
  * innerText/textContent se ignoran (no parsean HTML).
  */
 
-'use strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const fs = require('fs');
-const path = require('path');
-
+// En ESM no existe __dirname: se deriva de import.meta.url para que las rutas
+// relativas al repo sigan resolviendo igual.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_DIR = path.join(ROOT, 'WebUI', 'js');
 
@@ -113,7 +115,8 @@ function scanDir(dir = DEFAULT_DIR) {
 }
 
 // ── CLI ──────────────────────────────────────────────────────────
-if (require.main === module) {
+// Solo cuando se ejecuta `node scripts/security_scan.js`, nunca al importarlo.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
   const useJson = args.includes('--json');
   const dirArgIdx = args.indexOf('--dir');
@@ -137,4 +140,4 @@ if (require.main === module) {
   process.exit(violations.length === 0 ? 0 : 1);
 }
 
-module.exports = { FORBIDDEN_INTERPOLATIONS, SINK_RE, SAFE_ASSIGN_RE, ESCAPED_LINE_RE, auditSource, auditFile, scanDir };
+export { FORBIDDEN_INTERPOLATIONS, SINK_RE, SAFE_ASSIGN_RE, ESCAPED_LINE_RE, auditSource, auditFile, scanDir };

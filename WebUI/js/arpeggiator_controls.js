@@ -17,13 +17,24 @@ window.initArpControls = function(backdrop, stepEditor, callbacks) {
     const selectVelGate = document.getElementById('modal-arp-velgate-select');
     const selectMode = document.getElementById('modal-arp-mode-select');
     const selectOctave = document.getElementById('modal-arp-octave-select');
+    // El selector de patrón ya estaba capturado, pero su listener solo mandaba el
+    // número al bridge: nadie resolovia qué pasos había detrás del índice, así que
+    // las 65 opciones no cambiaban lo que sonaba.
     const selectPattern = document.getElementById('modal-arp-pattern-select');
     const loadPresetBtn = document.getElementById('modal-arp-load-preset');
 
     if (selectPattern) {
         selectPattern.addEventListener('change', function() {
-            if (getBridge()) { getBridge().setParameter('arp_pattern', parseInt(selectPattern.value) / 64.0); }
             const patVal = parseInt(selectPattern.value);
+            const bridge = getBridge();
+            if (bridge) { bridge.setParameter('arp_pattern', patVal / 64.0); }
+            // Y se resuelve el patrón AHORA: el bridge sabe qué hay detrás del índice
+            // (los built-in y lo guardado por el usuario), y la rejilla se pone al día.
+            if (bridge && typeof bridge.resolveArpPattern === 'function') {
+                const steps = bridge.resolveArpPattern(patVal);
+                if (steps) { stepEditor.setSteps(steps); }
+                if (typeof callbacks.onPatternResolved === 'function') { callbacks.onPatternResolved(steps); }
+            }
             const patName = patVal === 0 ? 'None' : (patVal <= 32 ? 'Preset ' + patVal : 'User ' + (patVal - 32));
             window._showArpLcdMessage('ARPEGGIATOR', 'PATTERN', patName, 'green');
         });
@@ -136,6 +147,17 @@ window.initArpControls = function(backdrop, stepEditor, callbacks) {
             const selected = (typeof callbacks.getSelectedPreset === 'function') ? callbacks.getSelectedPreset() : null;
             if (selected) {
                 stepEditor.setSteps(selected.steps);
+                // Cargar un patrón lo pone a sonar: antes lo dibujaba en la rejilla
+                // y el motor seguía con lo que tuviera. Se pone por los dos
+                // caminos —el bridge directo y el callback— para que funcione
+                // aunque quien inicialice no pase el callback.
+                const bridge = getBridge();
+                if (bridge && typeof bridge.setArpPattern === 'function') {
+                    bridge.setArpPattern(selected.steps);
+                }
+                if (typeof callbacks.onPatternResolved === 'function') {
+                    callbacks.onPatternResolved(selected.steps);
+                }
             }
         });
     }
@@ -194,6 +216,7 @@ window.initArpControls = function(backdrop, stepEditor, callbacks) {
             if (paramId === 'arp_velocity_gate' && selectVelGate) { selectVelGate.value = Math.round(val * 2.0); }
             if (paramId === 'arp_mode' && selectMode) { selectMode.value = Math.round(val * 10.0); }
             if (paramId === 'arp_octave' && selectOctave) { selectOctave.value = Math.round(val * 3.0); }
+            if (paramId === 'arp_pattern' && selectPattern) { selectPattern.value = Math.round(val * 64.0); }
 
             // Faders
             if (paramId === 'arp_swing' || paramId === 'arp_rate' || paramId === 'arp_gate_time') {

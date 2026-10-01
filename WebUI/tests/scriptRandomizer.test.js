@@ -142,11 +142,10 @@ function generateMusicalRanges(rng) {
         'drift_rate': 0.5,
         'porta_osc_bal': 0.5,
         'osc_key_reset': 0.0,
-        'osc_drift': r() * 0.3,
 
         // Arp / Seq / Chord
         'arp_rate': 0.3 + r() * 0.4,
-        'arp_gate': 0.5,
+        'arp_gate_time': 0.5,
         'arp_enable': 0.0,
         'arp_hold': 0.0,
         'arp_key_sync': 1.0,
@@ -247,8 +246,8 @@ const CATEGORIES = {
               'lfo2_arp_sync', 'lfo2_mono_mode', 'lfo2_slew'],
     'Voice / Unison': ['note_priority', 'voice_mode', 'trigger_mode', 'unison_detune',
                        'voice_drift', 'param_drift', 'drift_rate', 'porta_osc_bal',
-                       'osc_key_reset', 'osc_drift'],
-    'Arp / Seq / Chord': ['arp_rate', 'arp_gate', 'arp_enable', 'arp_hold', 'arp_key_sync',
+                       'osc_key_reset'],
+    'Arp / Seq / Chord': ['arp_rate', 'arp_gate_time', 'arp_enable', 'arp_hold', 'arp_key_sync',
                           'arp_clock_divider', 'arp_mode', 'arp_swing', 'arp_octave', 'arp_pattern',
                           'seq_enable', 'seq_clock', 'seq_length', 'seq_swing', 'seq_key_loop',
                           'seq_slew_rate', 'chord_enable', 'poly_chord_enable'],
@@ -396,8 +395,11 @@ describe('generateMusicalRanges — constant values (no random variation)', func
         }
     });
 
-    it('arp_gate is always 0.5', function() {
-        expect(result['arp_gate']).toBe(0.5);
+    it('arp_gate_time is always 0.5', function() {
+        // `arp_gate` dejó de existir: duplicaba el byte 160 y el CC 13 de
+        // `arp_gate_time`, que es el que sobrevive.
+        expect(result['arp_gate_time']).toBe(0.5);
+        expect(result['arp_gate']).toBeUndefined();
     });
 
     it('arp_key_sync is always 1.0', function() {
@@ -509,7 +511,9 @@ describe('generateMusicalRanges — value ranges with minimum RNG (returns 0.0)'
         expect(result['unison_detune']).toBe(0.0);
         expect(result['voice_drift']).toBe(0.0);
         expect(result['param_drift']).toBe(0.0);
-        expect(result['osc_drift']).toBe(0.0);
+        // `osc_drift` ya no está: duplicaba el byte 88 de `voice_drift`, que es el
+        // que sobrevive (y `drift_rate`, constante en 0.5, tiene su propio test).
+        expect(result['osc_drift']).toBeUndefined();
     });
 
     it('Arp rate at minimum', function() {

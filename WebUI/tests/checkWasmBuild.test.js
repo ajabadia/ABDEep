@@ -18,18 +18,16 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
+
+// Las constantes canonicas las exporta el propio script; el guard de CLI (que en
+// ESM mira import.meta.url) garantiza que importarlo no ejecuta main().
+import { REQUIRED_EXPORTS } from '../../scripts/check_wasm_build.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const SCRIPT = path.join(ROOT, 'scripts', 'check_wasm_build.js');
 const WASM_DIR = path.join(ROOT, 'WebUI', 'wasm');
 const hasArtifacts = fs.existsSync(path.join(WASM_DIR, 'abdeep_dsp.js'));
-
-// Las constantes canónicas las exporta el propio script (main() no se ejecuta
-// al requerirlo gracias al guard `require.main === module`).
-const require = createRequire(import.meta.url);
-const { REQUIRED_EXPORTS } = require(SCRIPT);
 
 // Glue mínimo con las 13 funciones de EXPORTED_FUNCTIONS (mismo formato que el
 // glue real de Emscripten: nombres con prefijo '_'). Debe incluir las 4 añadidas

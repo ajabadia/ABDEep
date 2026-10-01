@@ -13,7 +13,7 @@ namespace ABD
         phase = 0.0;
         phaseInc = 0.0;
         currentDuty = 0.5;
-        dutySlewCoeff = DSP::slewCoeffFromTimeConstant(kDutySlewTauSec, sampleRate);
+        dutySlewCoeff = DSP::slewCoeffFromTimeConstant(DSP::kDutySlewTauSec, sampleRate);
     }
 
     void OSC2::setFrequency(double hz)

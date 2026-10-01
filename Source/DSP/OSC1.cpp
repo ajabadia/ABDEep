@@ -13,7 +13,7 @@ namespace ABD
         phase = 0.0;
         phaseInc = 0.0;
         currentPwmDuty = 0.5;
-        pwmSlewCoeff = DSP::slewCoeffFromTimeConstant(kPwmSlewTauSec, sampleRate);
+        pwmSlewCoeff = DSP::slewCoeffFromTimeConstant(DSP::kPwmSlewTauSec, sampleRate);
     }
 
     void OSC1::setFrequency(double hz)

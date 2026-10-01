@@ -12,7 +12,8 @@
           initRoutingSettings, initPolyChainSettings, initFxPresetsSetting,
           initVelocityCurveSetting, initPedalPolaritySetting, initPedalSettings,
           initMasterTuneSetting, initTransposeSetting, initMidiChannelSetting,
-          initMidiClockSetting, initDeviceIdSetting, initAdvancedSettings,
+          initMidiClockSetting, initDeviceIdSetting, initProtectUnsavedEditsSetting,
+          initAdvancedSettings,
           initCalibrationSettings, initControllerCurves, initWriteAndBankButtons */
 
 function initSettingsAndModals() {

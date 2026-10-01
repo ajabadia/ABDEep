@@ -33,11 +33,22 @@
  *             desviación sin clasificar en modo dumps).
  */
 
-const path = require('path');
-const fs = require('fs');
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const RTE = require('../WebUI/js/roundtrip_equality.js');
-const REGISTRY = require('../WebUI/js/registry.gen.js');
+// En ESM no existe __dirname: se deriva de import.meta.url, igual que en el resto
+// de los scripts de CI.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// roundtrip_equality.js y registry.gen.js son UMD para seguir cargandose como
+// scripts clasicos en el navegador, asi que no pueden usar `export`: al
+// importarlos publican su API en globalThis (con type:module ya no hay `this`).
+import '../WebUI/js/roundtrip_equality.js';
+import '../WebUI/js/registry.gen.js';
+
+const RTE = globalThis.RoundTripEquality;
+const REGISTRY = globalThis.ParameterRegistry;
 
 const BANKS_DIR = path.resolve(__dirname, '..', 'resources', 'banks', 'Factory Banks V1.1.2');
 const PRESETS_PER_BANK = 128;

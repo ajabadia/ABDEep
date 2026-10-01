@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 'osc2_tpm_source': 0.0,
                 'osc2_aftertouch_pitch': 0.0,
                 'osc2_modwheel_pitch': Math.random() * 0.1,
-                'osc2_pitch_mod_select': 0.0,
 
                 'osc_sync_enable': Math.random() > 0.85 ? 1.0 : 0.0,
                 'noise_level': type === 'percussion' ? 0.3 : Math.random() * 0.05, // Ruido muy bajo
@@ -139,11 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 'drift_rate': 0.5,
                 'porta_osc_bal': 0.5,
                 'osc_key_reset': 0.0,
-                'osc_drift': 0.1,
 
                 // Desactivar Arp/Seq/Chord por defecto al generar un patch base aleatorio
                 'arp_rate': 0.4,
-                'arp_gate': 0.5,
+                'arp_gate_time': 0.5,
                 'arp_enable': 0.0,
                 'arp_hold': 0.0,
                 'arp_key_sync': 1.0,

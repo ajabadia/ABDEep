@@ -34,8 +34,13 @@
  * Exit code: 0 = OK · 1 = violaciones · 2 = error de uso.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+// En ESM no existe __dirname: se deriva de import.meta.url para que las rutas
+// relativas al repo sigan resolviendo igual.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ────────────────────────────────────────────────────────────────────────────
 // Contrato canónico: los 13 jobs de Fase 7 (plan v3.2 §7).
@@ -372,12 +377,10 @@ function finish(report, wantJson, exitCode) {
 }
 
 // Los tests (webui-ci) importan las constantes sin ejecutar el script: main()
-// solo corre cuando se invoca como CLI (node scripts/verify_docs_ci_jobs.js).
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { EXPECTED_JOBS, JOB_WORKFLOWS, JOB_WORKFLOW_JOBS, PLAN_JOB_RE, BASELINE_JOB_RE, extractSection, extractJobNames, extractJobBulletTexts, extractJobsFromWorkflow, setEquals };
-  if (require.main === module) {
-    main();
-  }
-} else {
+// solo corre cuando se invoca como CLI (node scripts/verify_docs_ci_jobs.js),
+// que en ESM se detecta comparando la URL del modulo con el argv del proceso.
+export { EXPECTED_JOBS, JOB_WORKFLOWS, JOB_WORKFLOW_JOBS, PLAN_JOB_RE, BASELINE_JOB_RE, extractSection, extractJobNames, extractJobBulletTexts, extractJobsFromWorkflow, setEquals };
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }

@@ -2,33 +2,45 @@
  * registryGen.test.js — Fase 1 · Paridad del registro generado (schemaVersion 1)
  *
  * Verifica que WebUI/js/registry.gen.js (artefacto .gen emitido por
- * scripts/registry_generator.js) es una proyección FIEL de sus tres fuentes:
+ * scripts/registry_generator.js) es una proyección FIEL de sus fuentes:
  *   - WebUI/js/bridge-param-maps.js   (PARAM_TO_BYTE_OFFSET / PARAM_TO_CC /
  *                                      BIPOLAR_BYTES / ENUM_BYTES — canónico)
  *   - WebUI/js/byte_map_data.js       (BYTE_MAP, 242 bytes físicos)
  *   - resources/parameters_spec.json  (metadatos legacy)
+ *   - Source/Core/ParametersSpec_*.cpp (el spec que declara el host)
  *
  * Cobertura:
  *   - schemaVersion === 1 e invariantes estructurales del esquema
  *   - Paridad de ids ↔ byteOffset con PARAM_TO_BYTE_OFFSET (sin pérdida/ganancia)
  *   - Paridad de codecType con BIPOLAR_BYTES / ENUM_BYTES
  *   - Paridad de cc con PARAM_TO_CC
- *   - Aliases conocidos {32, 88, 160} y sin colisiones NRPN nuevas
+ *   - Los TRES guards: ningún id del registro fuera del spec del host, ningún
+ *     byte con dos ids, ningún spec-only sin consumidor (§5c)
  *   - Categorías física / extendida / virtual
  *   - BYTE_MAP canónico: 242 entradas contiguas, regiones y desc preservadas
  *   - Metadatos legacy fusionados (name/desc/defaultValue) + specOnly
  *   - Coherencia rawToNormalized / normalizedToRaw del registro con el bridge
+ *   - sourceHashes calculados sobre la forma CANÓNICA de cada fuente (no los bytes
+ *     del fichero): formato/comentarios no re-sellan el registro
  */
 
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+
+// Implementación de REFERENCIA de la forma canónica (la que usan los generadores).
+import { canonicalizeSource } from '../../scripts/registry_core.ts';
 
 import registry from '../js/registry.gen.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
+// El spec del host. Son cinco ficheros, no uno: por eso se lee el directorio.
+const SPEC_CPP_DIR = path.join(ROOT, 'Source', 'Core');
 
 // ── Cargar fuentes reales (mismo sandbox que registry_generator.js) ──
 function loadJsGlobal(relPath) {
@@ -54,10 +66,14 @@ describe('registry.gen.js — estructura (schemaVersion 1)', () => {
     expect(registry.schemaVersion).toBe(1);
   });
 
-  it('expone generatedAt ISO y sourceHashes de las 3 fuentes', () => {
+  it('expone generatedAt ISO y sourceHashes de las 4 fuentes', () => {
+    // La cuarta es el spec del host (Source/Core/ParametersSpec_*.cpp). Se
+    // sella también: si el spec cambia y el registro no, el guard 1 lo ve, pero
+    // el hash deja constancia en el artefacto de que el registro se generó
+    // contra una versión del spec que ya no es la del repo.
     expect(registry.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(Object.keys(registry.sourceHashes).sort()).toEqual(
-      ['bridgeParamMaps', 'byteMapData', 'parametersSpec'].sort()
+      ['bridgeParamMaps', 'byteMapData', 'parametersSpec', 'parametersSpecCpp'].sort()
     );
     for (const h of Object.values(registry.sourceHashes)) {
       expect(h).toMatch(/^[0-9a-f]{64}$/);
@@ -123,28 +139,23 @@ describe('registry.gen.js — paridad byteOffset', () => {
     }
   });
 
-  it('los únicos grupos multi-id son los alias conocidos {32, 88, 160}', () => {
+  // El guard 2 del generador (NRPN_COLLISION) hace que un byte con dos ids sea
+  // un ERROR, no un alias conocido. Este test es el otro lado de la puerta: si
+  // alguien reintrodujera un byte con dos nombres, el generador ya lo impediría,
+  // y si alguien lo metiera por la puerta de atrás (editando el .gen a mano),
+  // este test lo vería.
+  it('ningún byte tiene dos ids (el guard 2 lo vuelve error)', () => {
     const multi = Object.entries(registry.byOffset).filter(([, ids]) => ids.length > 1);
-    expect(multi.map(([o]) => Number(o)).sort((a, b) => a - b)).toEqual([32, 88, 160]);
-    const expectedAliasPairs = [
-      ['osc2_pm_source', 'osc2_pitch_mod_select'],
-      ['voice_drift', 'osc_drift'],
-      ['arp_gate_time', 'arp_gate'],
-    ];
-    for (const [o, ids] of multi) {
-      const a = [...ids].sort();
-      const exp = expectedAliasPairs.find(([x, y]) => a.includes(x) && a.includes(y));
-      expect(exp, `grupo inesperado en ${o}`).toBeDefined();
-      expect(a).toEqual([...exp].sort());
-    }
-    // aliases registrados bidireccionalmente
+    expect(multi.map(([off, ids]) => `byte ${off}: ${ids.join(' + ')}`)).toEqual([]);
+    expect(registry.summary.aliasGroups).toBe(0);
+
+    // Y ningún parámetro arrastra un alias: con aliasGroups=0, aliases es siempre [].
     for (const p of registry.parameters) {
-      const others = registry.byOffset[p.byteOffset].filter((id) => id !== p.id);
-      expect([...p.aliases].sort()).toEqual([...others].sort());
+      expect(p.aliases, `${p.id} tiene aliases pero su byte es único`).toEqual([]);
     }
   });
 
-  it('categorías: 226 físicos · 3 extendidos (245-247) · 7 virtuales (300-306)', () => {
+  it('categorías: 223 físicos · 3 extendidos (245-247) · 7 virtuales (300-306)', () => {
     const ext = registry.parameters.filter((p) => p.category === 'extended');
     const virt = registry.parameters.filter((p) => p.category === 'virtual');
     expect(ext.map((p) => p.id).sort()).toEqual(['vcf_korg_submode', 'vcf_model', 'vcf_moog_submode']);
@@ -154,7 +165,7 @@ describe('registry.gen.js — paridad byteOffset', () => {
       'vcf_voicing_mode',
     ]);
     expect(virt.map((p) => p.byteOffset).sort()).toEqual([300, 301, 302, 303, 304, 305, 306]);
-    expect(registry.summary.physical).toBe(226);
+    expect(registry.summary.physical).toBe(223);
   });
 });
 
@@ -251,12 +262,13 @@ describe('registry.gen.js — fusión con parameters_spec.json', () => {
     expect(range.defaultValue).toBeCloseTo(0.5, 5);          // "8'" es el índice 1 de ["16'","8'","4'"]
   });
 
-  it('parámetros spec-only quedan registrados sin byte físico', () => {
-    expect(registry.specOnly.map((s) => s.id).sort()).toEqual(['slot_a_type', 'slot_b_type']);
-    for (const s of registry.specOnly) {
-      expect(registry.byId[s.id]).toBeUndefined();
-      expect(s.block).toBe('custom');
-    }
+  // El guard 3 (SPECONLY_UNCONSUMED) borra del spec lo que nadie consume. Los dos
+  // restos de otra nomenclatura (`slot_a_type` / `slot_b_type`, con opciones
+  // OSC1_Style/OSC2_Style que este synth no tiene) se borraron del spec y del
+  // JSON, así que ya no queda ningún spec-only en el JSON legacy.
+  it('no queda ningún spec-only en el JSON legacy', () => {
+    expect(registry.specOnly.map((s) => s.id)).toEqual([]);
+    expect(registry.summary.specOnlyCount).toBe(0);
   });
 
   it('warnings documentan las divergencias CC legacy (no fatales)', () => {
@@ -264,6 +276,118 @@ describe('registry.gen.js — fusión con parameters_spec.json', () => {
     for (const w of registry.warnings) {
       expect(w.code).toBe('CC_LEGACY_DIVERGENCE');
       expect(w.message).toContain('comparisonMode');
+    }
+  });
+});
+
+// ════════════════════════════════════════════════════════════════
+// 5c. Los tres guards: el registro no se contradice con el spec
+// ════════════════════════════════════════════════════════════════
+//
+// Estos tres son el otro lado de los guards del generador. El generador los
+// aplica al CONSTRUIR; estos comprueban el resultado ya escrito, así que también
+// cazan a alguien que edite un .gen a mano o que suba artefactos viejos.
+
+describe('los tres guards — el registro no se contradice con el spec del host', () => {
+  // El spec que declara el host: las entradas `{ "id", "Name", "block", "type" }`
+  // de Source/Core/ParametersSpec_*.cpp. El JSON legacy son 15 metadatos, no el
+  // spec, y compararlos daría 220 falsos positivos.
+  const SPEC_CPP_RE = /\{\s*"([a-z0-9_]+)"\s*,\s*"([^"]*)"\s*,\s*"([^"]*)"\s*,\s*"([a-z]+)"/g;
+  const specCppIds = fs
+    .readdirSync(SPEC_CPP_DIR)
+    .filter((f) => /^ParametersSpec(_[A-Za-z]+)?\.cpp$/.test(f))
+    .flatMap((f) => {
+      const text = fs.readFileSync(path.join(SPEC_CPP_DIR, f), 'utf8');
+      return [...text.matchAll(SPEC_CPP_RE)].map((m) => m[1]);
+    });
+  const specCppSet = new Set(specCppIds);
+
+  it('GUARD 1: todo id del registro lo declara el host (ninguna escritura sin destino)', () => {
+    const huerfanos = registry.parameters.filter((p) => !specCppSet.has(p.id));
+    expect(huerfanos.map((p) => `${p.id} @byte ${p.byteOffset}`)).toEqual([]);
+  });
+
+  it('GUARD 1: y tampoco hay ids sin declarar en PARAM_TO_CC', () => {
+    // El mapa del puente tiene DOS tablas de ids. Un id que solo aparece en la
+    // de CC es un CC que responde a un mando que el host no declara: el mismo
+    // defecto que el del byte, pero que además se puede mover desde el MIDI
+    // externo. El generador lo mira en las dos (CC_ID_NOT_IN_SPEC).
+    const huerfanosCC = Object.keys(BRIDGE.PARAM_TO_CC || {}).filter(
+      (id) => !specCppSet.has(id)
+    );
+    expect(huerfanosCC).toEqual([]);
+  });
+
+  it('GUARD 1: los CC sin byte son los globales de la APVTS, y están declarados', () => {
+    // Estos tres sí son legítimos: son de la APVTS y no tienen byte en el preset
+    // porque no son del sintet. No necesitan lista de escapes — están en el spec.
+    const ccSinByte = Object.keys(BRIDGE.PARAM_TO_CC || {}).filter(
+      (id) => !Object.prototype.hasOwnProperty.call(BRIDGE.PARAM_TO_BYTE_OFFSET, id)
+    );
+    expect(ccSinByte.sort()).toEqual(['global_tune', 'global_volume', 'transpose']);
+    for (const id of ccSinByte) expect(specCppSet.has(id)).toBe(true);
+  });
+
+  it('GUARD 1: los dos huérfanos que existían no vuelven', () => {
+    // `osc2_pitch_mod_select` pisaba el byte 32 de `osc2_pm_source`, que sí suena;
+    // `arp_gate` duplicaba el byte 160 y el CC 13 de `arp_gate_time`. Los dos
+    // estaban en el mapa del puente sin estar en el spec.
+    expect(specCppSet.has('osc2_pitch_mod_select')).toBe(false);
+    expect(specCppSet.has('arp_gate')).toBe(false);
+    expect(BRIDGE.PARAM_TO_BYTE_OFFSET['osc2_pitch_mod_select']).toBeUndefined();
+    expect(BRIDGE.PARAM_TO_BYTE_OFFSET['arp_gate']).toBeUndefined();
+    // El byte que pisaban sigue siendo del parámetro que sí suena.
+    expect(registry.byId.osc2_pm_source.byteOffset).toBe(32);
+    expect(registry.byId.arp_gate_time.byteOffset).toBe(160);
+  });
+
+  it('GUARD 2: ningún byteOffset aparece en dos ids', () => {
+    const byOffset = {};
+    for (const p of registry.parameters) (byOffset[p.byteOffset] ??= []).push(p.id);
+    const colisiones = Object.entries(byOffset).filter(([, ids]) => ids.length > 1);
+    expect(colisiones.map(([b, ids]) => `byte ${b}: ${ids.join(' + ')}`)).toEqual([]);
+  });
+
+  it('GUARD 2: los tres bytes que compartían ya no comparten', () => {
+    const byOffset = {};
+    for (const p of registry.parameters) (byOffset[p.byteOffset] ??= []).push(p.id);
+    // 32 = osc2_pm_source (+ el huérfano), 88 = voice_drift (+ osc_drift),
+    // 160 = arp_gate_time (+ arp_gate). Los tres se han repartido.
+    expect(byOffset[32]).toEqual(['osc2_pm_source']);
+    expect(byOffset[88]).toEqual(['voice_drift']);
+    expect(byOffset[160]).toEqual(['arp_gate_time']);
+    // Y `osc_drift` ya no está en el mapa del puente (el drift tiene tres
+    // parámetros vivos: voice_drift, param_drift, drift_rate).
+    expect(BRIDGE.PARAM_TO_BYTE_OFFSET['osc_drift']).toBeUndefined();
+  });
+
+  it('GUARD 3: ningún spec del host sin byte se queda fuera de la lista de consumidos', () => {
+    // Los 16 declarados-sin-byte que quedan son globales de la APVTS o ids que
+    // el motor construye por prefijo. Este test carga la MISMA lista que el
+    // generador, para que las dos no puedan separarse.
+    const consumidos = new Set(
+      fs
+        .readFileSync(path.join(ROOT, 'scripts', 'registry_generator.js'), 'utf8')
+        .match(/SPECONLY_CONSUMIDOS = new Map\(\[([\s\S]*?)\n\]\)/)[1]
+        .matchAll(/\['([a-z0-9_]+)'/g)
+        .map((m) => m[1]),
+    );
+    const sinByte = specCppIds.filter((id) => !Object.prototype.hasOwnProperty.call(BRIDGE.PARAM_TO_BYTE_OFFSET, id));
+    const sinConsumidor = sinByte.filter((id) => !consumidos.has(id));
+    expect(sinConsumidor).toEqual([]);
+    // Y la lista no tiene entradas muertas (SPECONLY_ALLOWLIST_STALE).
+    const muertas = [...consumidos].filter((id) => !sinByte.includes(id));
+    expect(muertas).toEqual([]);
+  });
+
+  it('GUARD 3: el byte 0 no se confunde con "sin byte"', () => {
+    // `lfo1_rate` está en el byte 0, y `!0` es `true`: un guard escrito con
+    // truthiness declararía sin byte al primer parámetro del registro. El
+    // generador usa hasOwnProperty por esto, y aquí se comprueba.
+    expect(BRIDGE.PARAM_TO_BYTE_OFFSET['lfo1_rate']).toBe(0);
+    expect(sinByte()).not.toContain('lfo1_rate');
+    function sinByte() {
+      return specCppIds.filter((id) => !Object.prototype.hasOwnProperty.call(BRIDGE.PARAM_TO_BYTE_OFFSET, id));
     }
   });
 });
@@ -305,6 +429,66 @@ describe('registry.gen.js — consistencia con schemas/parameter-registry.data.j
 });
 
 // ════════════════════════════════════════════════════════════════
+// 5b-bis. sourceHashes sobre la forma CANÓNICA (no los bytes)
+// ════════════════════════════════════════════════════════════════
+
+describe('registry.gen.js — sourceHashes canónicos (estables ante formato/comentarios)', () => {
+  // `canonicalizeSource` devuelve el VALOR canónico; el hash es de su JSON (igual que
+  // hacen los generadores: sha256(JSON.stringify(canonicalizeSource(fuente)))).
+  const hash = (value) => createHash('sha256')
+    .update(JSON.stringify(canonicalizeSource(value))).digest('hex');
+
+  it('coinciden con el hash de la forma canónica de cada fuente', () => {
+    // Como `canonicalizeSource` es la implementación de REFERENCIA (registry_core.ts),
+    // que el artefacto commiteado coincida prueba además que el generador .js (el que
+    // corre CMake) y el .ts canonicalizan exactamente igual.
+    expect(registry.sourceHashes.parametersSpec).toBe(hash(SPEC));
+    expect(registry.sourceHashes.bridgeParamMaps).toBe(hash(BRIDGE));
+    expect(registry.sourceHashes.byteMapData).toBe(hash(BYTE_MAP));
+  });
+
+  it('reformatear el JSON de la spec (indentación/espacios) NO cambia el hash', () => {
+    const fileText = fs.readFileSync(path.join(ROOT, 'resources', 'parameters_spec.json'), 'utf8');
+    // El generador hashea el ARRAY de parámetros (raw.parameters), no el envoltorio.
+    const value = JSON.parse(fileText).parameters;
+    // Serializaciones distintas (compacta, 2 y 8 espacios con saltos extra) que parsean
+    // al MISMO valor: el hash canónico debe ser idéntico en todas.
+    const variants = [
+      JSON.stringify(value),
+      JSON.stringify(value, null, 2) + '\n',
+      '\n\n' + JSON.stringify(value, null, 8) + '\n\n',
+    ];
+    expect(new Set(variants).size).toBe(variants.length); // los formatos difieren entre sí
+    expect(variants.some((t) => t !== fileText)).toBe(true); // y del fichero commiteado
+    for (const text of variants) {
+      expect(hash(JSON.parse(text))).toBe(registry.sourceHashes.parametersSpec);
+    }
+  });
+
+  it('un cambio REAL de datos (no de formato) SÍ cambia el hash', () => {
+    const tweaked = JSON.parse(JSON.stringify(SPEC));
+    tweaked[0].default = 'VALOR_DISTINTO';
+    expect(hash(tweaked)).not.toBe(registry.sourceHashes.parametersSpec);
+  });
+
+  it('el orden de las claves de un objeto no afecta al hash', () => {
+    // Mismas entradas que BRIDGE (los datos, sin las funciones) pero en orden INVERTIDO.
+    const entries = Object.entries(BRIDGE)
+      .filter(([, v]) => typeof v !== 'function')
+      .reverse();
+    expect(hash(Object.fromEntries(entries))).toBe(registry.sourceHashes.bridgeParamMaps);
+  });
+
+  it('el Set BIPOLAR_BYTES cuenta en el hash (JSON.stringify(Set) sería "{}")', () => {
+    // Guardia del caso `Set`: sin normalizarlo, el hash del bridge ignoraría en
+    // silencio la lista de bytes bipolares (que es la mitad del codec del bridge).
+    expect(JSON.stringify(BRIDGE.BIPOLAR_BYTES)).toBe('{}');
+    const tweaked = { ...BRIDGE, BIPOLAR_BYTES: new Set([...BRIDGE.BIPOLAR_BYTES].slice(1)) };
+    expect(hash(tweaked)).not.toBe(registry.sourceHashes.bridgeParamMaps);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════
 // 5c. Validación de regiones reservadas (RESERVED_BYTE_COLLISION)
 // ════════════════════════════════════════════════════════════════
 
@@ -314,26 +498,22 @@ describe('registry_generator.js — regiones reservadas del preset', () => {
   });
 
   it('el generador rechaza un parámetro físico en la región reservada (223-241)', () => {
-    const { execFileSync } = require('node:child_process');
-    const { tmpdir } = require('node:os');
-    const fsMod = require('node:fs');
-
     // Copia temporal del bridge con un parámetro que usurpa el byte 223
     const srcBridge = path.join(ROOT, 'WebUI', 'js', 'bridge-param-maps.js');
     const tmpBridge = path.join(tmpdir(), 'bridge-param-maps-reserved-test.js');
-    let code = fsMod.readFileSync(srcBridge, 'utf8');
+    let code = fs.readFileSync(srcBridge, 'utf8');
     expect(code).toContain("'fx_feedback_gain': 304"); // guardia: el replace debe tener efecto
     code = code.replace("'fx_feedback_gain': 304", "'fx_feedback_gain': 223");
-    fsMod.writeFileSync(tmpBridge, code);
+    fs.writeFileSync(tmpBridge, code);
 
     // Ejecuta el generador con REGISTRY_BRIDGE sobreescrito y artefactos de salida
     // APUNTANDO A UN DIR TEMPORAL (nunca toca los .gen commiteados aunque la
     // validación regresara y la generación llegara a completarse).
     const tmpOutDir = path.join(tmpdir(), 'registry-reserved-test-out');
-    fsMod.mkdirSync(tmpOutDir, { recursive: true });
-    const genSrc = fsMod.readFileSync(path.join(ROOT, 'scripts', 'registry_generator.js'), 'utf8');
+    fs.mkdirSync(tmpOutDir, { recursive: true });
+    const genSrc = fs.readFileSync(path.join(ROOT, 'scripts', 'registry_generator.js'), 'utf8');
     const tmpGen = path.join(tmpdir(), 'registry_generator-reserved-test.js');
-    fsMod.writeFileSync(tmpGen, genSrc
+    fs.writeFileSync(tmpGen, genSrc
       .replace('const ROOT = path.resolve(__dirname, \'..\');', 'const ROOT = ' + JSON.stringify(ROOT) + ';')
       .replace(
         "path.join(ROOT, 'WebUI', 'js', 'bridge-param-maps.js')",
@@ -369,9 +549,9 @@ describe('registry_generator.js — regiones reservadas del preset', () => {
     expect(output).toContain('fx_feedback_gain');
 
     // Limpieza
-    fsMod.rmSync(tmpBridge, { force: true });
-    fsMod.rmSync(tmpGen, { force: true });
-    fsMod.rmSync(tmpOutDir, { recursive: true, force: true });
+    fs.rmSync(tmpBridge, { force: true });
+    fs.rmSync(tmpGen, { force: true });
+    fs.rmSync(tmpOutDir, { recursive: true, force: true });
   });
 });
 

@@ -62,13 +62,12 @@ namespace ABD
 
     void DriftEngine::resetForNote(float /*voiceIndex*/)
     {
-        // Drift is a continuous background process — reset state on Note-On to start
-        // clean, which also ensures correct parameter scaling.
+        // Drift is a continuous background Brownian process — ONLY re-randomize
+        // the timing offset so drift continues smoothly without jumps.
+        // Do NOT reset currentValue/targetValue (that would cause audible clicks).
         for (auto* osc : { &osc1Pitch, &osc2Pitch, &vcfCutoff, &vcfResonance, &envTime })
         {
-            osc->currentValue = 0.0f;
-            osc->targetValue = 0.0f;
-            // nextRandomFloat() devuelve [-1, +1]; mapear a [0, 1] y escalar
+            // nextRandomFloat() returns [-1, +1]; map to [0, 1] and scale
             float r = nextRandomFloat() * 0.5f + 0.5f; // [0, 1]
             osc->samplesUntilNextTarget = osc->targetIntervalSamples * (0.5 + 0.5 * r);
         }

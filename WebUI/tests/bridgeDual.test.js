@@ -463,16 +463,17 @@ describe('DualMidiBridge – handleIncomingMidi()', () => {
       expect(handlerSpy).toHaveBeenCalledWith('vcf_cutoff', expect.closeTo(0.502, 2));
     });
 
-    it('resolves multiple paramIds for the same byteOffset', () => {
-      const handlerSpy = vi.spyOn(_currentBridge, 'handleParameterChangeFromBackend');
+    // El byte 88 tenía dos ids (voice_drift y osc_drift) y el handler avisaba a
+      // los dos. Eso era el defecto: un byte con dos respuestas. Ahora solo hay uno.
+      it('a byteOffset 88 le corresponde un único paramId', () => {
+        const handlerSpy = vi.spyOn(_currentBridge, 'handleParameterChangeFromBackend');
 
-      // byteOffset 88 maps to both 'voice_drift' and 'osc_drift' in reverse map
-      _sendNRPN(0, 88, 0, 128);
+        _sendNRPN(0, 88, 0, 128);
 
-      // rawValue = 128, normalized = 128/255 ≈ 0.502
-      expect(handlerSpy).toHaveBeenCalledWith('voice_drift', expect.closeTo(0.502, 2));
-      expect(handlerSpy).toHaveBeenCalledWith('osc_drift', expect.closeTo(0.502, 2));
-    });
+        // rawValue = 128, normalized = 128/255 ≈ 0.502
+        expect(handlerSpy).toHaveBeenCalledWith('voice_drift', expect.closeTo(0.502, 2));
+        expect(handlerSpy).toHaveBeenCalledTimes(1);
+      });
 
     it('handles running-status (same address, new CC38 without re-sending CC99/CC98)', () => {
       const handlerSpy = vi.spyOn(_currentBridge, 'handleParameterChangeFromBackend');

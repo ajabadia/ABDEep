@@ -37,7 +37,21 @@ set(ABDEEP_DSP_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/Source/Calibration/AudioABRecorder_Process.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/Calibration/AudioABVerdictEngine.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/Core/BankFileReader.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/CalibrationSpec.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/CalibrationSpec_Serialization.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParameterRegistry.gen.cpp"
+    # ParametersSpec* + RoundTripValidator: layout APVTS y validador SysEx del
+    # plugin nativo (ver bloque de exclusiones de la cabecera). Van en el build
+    # nativo SIEMPRE: PluginProcessor/SynthEngine los referencian y sin ellos el
+    # enlace de Standalone/VST3 falla con LNK2019 (ParametersSpec::createLayout,
+    # CalibrationSpec::*, RoundTripValidator::pack8to7).
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParametersSpec.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParametersSpec_FX.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParametersSpec_ModMatrix.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParametersSpec_SeqArp.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParametersSpec_Synth.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParametersSpec_Voice.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/RoundTripValidator.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/DriftEngine.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/Envelope.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/FX/FXAnalogTapeDelay.cpp"

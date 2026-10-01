@@ -200,6 +200,36 @@ describe('ARP — modo simulador sí arpegia', function() {
     expect(bridge.pianoNoteOn).toHaveBeenCalledWith(60, 100);
     expect(eng.stepIndex).toBe(1);
   });
+
+  it('una nota que la octava saca de 0-127 no suena ni queda activa', function() {
+    // Y POR QUE HACE FALTA ESTE CASO. El arpegiador octava las notas que
+    // tiene pulsadas, y una nota alta con octava positiva puede salirse del
+    // rango MIDI. Sin el, la guarda `outNote >= 0 && outNote <= 127` se
+    // puede quitar y el motor manda una nota 144, que no existe.
+    //
+    // Y POR QUE SE CAMBIA `_arpCalcStep`. El stub de arriba devuelve
+    // siempre `octaveOffset: 0`, que es justo el caso SIN octava: con el, la
+    // guarda no llega a tener nada que decidir.
+    const calcOriginal = globalThis._arpCalcStep;
+    try {
+      const bridge = makeBridge();
+      bridge.initArpEngine();
+      const eng = bridge._arpEngine;
+      eng.heldNotes = [{ note: 120, velocity: 100 }];
+      eng.running = true;
+      eng.intervalMs = 500;
+      bridge.parameterCache['arp_octave'] = 1.0; // tres octavas
+      globalThis._arpCalcStep = function() { return { noteIdx: 0, octaveOffset: 24 }; };
+
+      bridge._arpStep(bridge);
+
+      // 120 + 24 = 144: fuera de rango, asi que no suena ni se registra.
+      expect(bridge.pianoNoteOn).not.toHaveBeenCalled();
+      expect(bridge._arpActiveNotes).not.toContain(144);
+    } finally {
+      globalThis._arpCalcStep = calcOriginal;
+    }
+  });
 });
 
 describe('SEQ — modo controlador no secuencia', function() {

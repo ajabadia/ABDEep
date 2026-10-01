@@ -105,10 +105,22 @@ describe('classifyRow (CL-05c)', () => {
     expect(store.classifyRow('vcfpolemode', null, null)).toBe('stub');
   });
 
-  it('devuelve "alias-shared" para offsets de drift conocidos', () => {
+  it('devuelve "alias-shared" para el drift, cuyo byte tenía dos nombres', () => {
+    // `osc_drift` era el segundo id del byte 88 y `arp_gate` el del 160. Ese
+    // segundo nombre ya no existe: un byte con dos ids es un byte con dos
+    // RESPUESTAS, y el generador ahora lo rechaza con NRPN_COLLISION. Aquí solo
+    // queda el nombre canónico (con y sin guion), que es como lo escribe el
+    // texto de calibración.
     expect(store.classifyRow('voicedrift', 50, 50)).toBe('alias-shared');
-    expect(store.classifyRow('oscdrift', 50, 50)).toBe('alias-shared');
-    expect(store.classifyRow('oscdrift', 10, 99)).toBe('alias-shared');
+    expect(store.classifyRow('voice_drift', 50, 50)).toBe('alias-shared');
+    expect(store.classifyRow('voice_drift', 10, 99)).toBe('alias-shared');
+  });
+
+  it('el drift ya no es un byte con dos nombres: "osc_drift" cae en la categoría normal', () => {
+    // `osc_drift` salió del mapa del puente. Si alguien lo vuelve a escribir,
+    // tiene que caer en la categoría normal, no volver a ser un alias.
+    expect(store.classifyRow('oscdrift', 50, 50)).toBe('exact');
+    expect(store.classifyRow('osc_drift', 10, 99)).toBe('mismatch');
   });
 
   it('devuelve "info" cuando uno de los valores es null', () => {

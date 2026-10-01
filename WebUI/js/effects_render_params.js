@@ -1,131 +1,60 @@
 /**
- * @purpose Effects parameter renderer: reads FX params, generates template HTML, wires interactive controls.
- * Extracted from effects_templates.js.
+ * @purpose Punto de entrada de los mandos del rack de efectos: repinta o sincroniza.
+ * @classification UI Component Submodule
+ *
+ * QUE ES. El nombre viejo de esta funcion era `renderActiveEffectParams` y
+ * pintaba la pantalla de un solo hueco. Se queda con el mismo nombre porque hay
+ * ocho sitios que la llaman y todos esperan lo mismo: "el rack de efectos esta al
+ * dia". Lo que hace ahora esta en `fx_slot_knobs.js`.
+ *
+ * POR QUE REPINTA SOLO CUANDO HAY QUE REPINTA. Los ocho que la llaman lo hacen
+ * en cada cambio de parametro, y un repintado borra el DOM mientras el usuario
+ * tiene el raton encima de un mando: el arrastre se cortaria a mitad. Asi que
+ * aqui se distingue entre "ha cambiado el efecto de algún hueco" (hay que
+ * repintar, porque cambia quantos mandos se apagan) y "solo han cambiado los
+ * valores" (basta con mover los punteros).
  */
 
-function renderActiveEffectParams() {
-    const dynamicArea = document.getElementById('fx-dynamic-editor-area');
-    const activeSlotLabel = document.getElementById('fx-screen-active-slot');
-    if (!dynamicArea) {return;}
+(function () {
+    'use strict';
 
-    const selectedSlot = window._selectedFxSlot || 1;
-    const typeSelect = document.querySelector(`.fx-type-select[data-slot="${selectedSlot}"]`);
-    if (!typeSelect) {return;}
-    const effectType = parseInt(typeSelect.value);
+    const HUECOS = [1, 2, 3, 4];
 
-    const offsetStart = selectedSlot === 1 ? 167 : (selectedSlot === 2 ? 180 : (selectedSlot === 3 ? 193 : 206));
+    /** Los cuatro ids de efecto, en un solo texto, para ver si han cambiado. */
+    function firmaDeTipos() {
+        return HUECOS.map((hueco) => {
+            const select = document.querySelector('.fx-type-select[data-slot="' + hueco + '"]');
 
-    if (activeSlotLabel) {
-        const offsetGain = selectedSlot === 1 ? 218 : (selectedSlot === 2 ? 219 : (selectedSlot === 3 ? 220 : 221));
-        const gainVal = window._readFxParamValue(`fx${selectedSlot}_gain`, offsetGain, 1.0);
-        const paramsAll = [];
-        for (let p = 1; p <= 12; p++) {
-            paramsAll.push(window._readFxParamValue(`fx${selectedSlot}_param${p}`, offsetStart + p - 1, 0.5));
-        }
-        let displayName = window.FX_TYPE_NAMES[effectType] || 'Bypass';
-        if (effectType > 0 && typeof window.findMatchingFxPresetName === 'function') {
-            const matchedName = window.findMatchingFxPresetName(effectType / 56.0, gainVal, paramsAll);
-            if (matchedName) {
-                displayName = matchedName;
-            }
-        }
-        activeSlotLabel.innerText = `Slot: FX${selectedSlot} (${displayName})`;
+            return select ? select.value : '?';
+        }).join('|');
     }
 
-    const pVals = Array(8).fill(0.5);
-    for (let i = 0; i < 8; i++) {
-        pVals[i] = window._readFxParamValue(`fx${selectedSlot}_param${i+1}`, offsetStart + i, 0.5);
+    function hayRejillas() {
+        for (const hueco of HUECOS) {
+            if (!document.getElementById('fx' + hueco + '-knobs')) {return false;}
+        }
+
+        return true;
     }
 
-    dynamicArea.innerHTML = '';
-    
-    if (effectType === 0) { // BYPASS
-        dynamicArea.innerHTML = '<span style="color:var(--text-faint); font-size:12px; font-family:\'Share Tech Mono\', monospace; text-transform:uppercase;">Effect Bypassed</span>';
-        return;
+    function renderActiveEffectParams() {
+        if (typeof window.renderFxSlotKnobs !== 'function') {return;}
+
+        const firma = firmaDeTipos();
+
+        // Sin rejillas todavia (el modal acaba de abrirse) o con un efecto nuevo
+        // en algun hueco: hay que pintarlas enteras.
+        if (!hayRejillas() || firma !== window._fxSlotKnobSignature) {
+            window._fxSlotKnobSignature = firma;
+            window.renderFxSlotKnobs();
+            return;
+        }
+
+        // Mismos efectos, otros valores: solo los punteros. Repintar aqui seria
+        // cortar el arrastre que el usuario tiene en curso.
+        if (typeof window.syncFxSlotKnobPositions === 'function')
+            {window.syncFxSlotKnobPositions();}
     }
 
-    const renderer = window._getFXTemplateRenderer(effectType);
-    const templateHtml = renderer(pVals, effectType, selectedSlot);
-    dynamicArea.innerHTML = templateHtml;
-
-    dynamicArea.querySelectorAll('.v-slider').forEach((slider, idx) => {
-        const handle = slider.querySelector('.handle');
-        let isDragging = false;
-        
-        const updateVal = (clientY) => {
-            const rect = slider.getBoundingClientRect();
-            const handleHeight = 16;
-            const limit = rect.height - handleHeight;
-            let y = clientY - rect.top - (handleHeight / 2);
-            y = Math.max(0, Math.min(limit, y));
-            handle.style.top = y + 'px';
-
-            const val = 1.0 - (y / limit);
-            if (getBridge()) {
-                getBridge().setParameter(`fx${selectedSlot}_param${idx+1}`, val);
-            }
-        };
-
-        function onSliderMove(e) {
-            if (isDragging) {updateVal(e.clientY);}
-        }
-        function onSliderEnd() {
-            isDragging = false;
-            window.removeEventListener('mousemove', onSliderMove);
-            window.removeEventListener('mouseup', onSliderEnd);
-        }
-        slider.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            updateVal(e.clientY);
-            e.preventDefault();
-            e.stopPropagation();
-            window.addEventListener('mousemove', onSliderMove);
-            window.addEventListener('mouseup', onSliderEnd);
-        });
-    });
-
-    dynamicArea.querySelectorAll('.knob-ring').forEach((knob, idx) => {
-        const pointer = knob.querySelector('.knob-pointer');
-        let isDragging = false;
-        let startY = 0;
-        let startVal = 0.5;
-
-        if (pVals && pVals[idx] !== undefined) {
-            startVal = pVals[idx];
-        }
-
-        function onKnobMove(e) {
-            if (!isDragging) {return;}
-            const dy = startY - e.clientY;
-            let val = startVal + (dy / 150.0);
-            val = Math.max(0.0, Math.min(1.0, val));
-            
-            if (pointer) {
-                pointer.style.transform = `translateX(-50%) rotate(${(val * 270) - 135}deg)`;
-            }
-
-            if (getBridge()) {
-                getBridge().setParameter(`fx${selectedSlot}_param${idx+1}`, val);
-            }
-        }
-        function onKnobEnd(e) {
-            if (isDragging) {
-                isDragging = false;
-                const dy = startY - e.clientY;
-                const val = startVal + (dy / 150.0);
-                startVal = Math.max(0.0, Math.min(1.0, val));
-            }
-            window.removeEventListener('mousemove', onKnobMove);
-            window.removeEventListener('mouseup', onKnobEnd);
-        }
-        knob.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startY = e.clientY;
-            e.preventDefault();
-            e.stopPropagation();
-            window.addEventListener('mousemove', onKnobMove);
-            window.addEventListener('mouseup', onKnobEnd);
-        });
-    });
-}
-window.renderActiveEffectParams = renderActiveEffectParams;
+    window.renderActiveEffectParams = renderActiveEffectParams;
+})();

@@ -61,6 +61,13 @@ set(SRC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 # DeepMind target model: 0=Classic/MIDI, 2=Enhanced/Pro
 # ============================================================
 set(DEEP_TARGET_MODEL 2 CACHE STRING "Build target model: 0=Classic, 2=Enhanced")
+
+# Dev server del WebUI (Vite) para builds Debug: el editor carga esa URL en el
+# WebView2 y trabaja con HMR sobre el arbol crudo, sin `npm run bundle`. Release
+# compila sin ese camino (siempre el bundle embebido). Ver
+# Source/Plugin/PluginEditor_DevServer.cpp y WebUI/vite.config.js.
+set(ABDEEP_WEBUI_DEV_SERVER_URL "http://localhost:5311/" CACHE STRING
+    "URL del dev server de Vite en Debug (vacio = desactivado)")
 set(EEP_MODE_ENHANCED 1)
 
 # ============================================================
@@ -143,6 +150,7 @@ set(ABDEEP_RC_LIB_SOURCES
     ${SRC_ROOT}/Plugin/PluginEditor.cpp
     ${SRC_ROOT}/Plugin/PluginEditor_NativeFunctions.cpp
     ${SRC_ROOT}/Plugin/PluginEditor_ResourceProvider.cpp
+    ${SRC_ROOT}/Plugin/PluginEditor_DevServer.cpp
     ${SRC_ROOT}/Plugin/PatchController.cpp
 
     # ── Bridge Actions ──
@@ -156,17 +164,37 @@ set(ABDEEP_RC_LIB_SOURCES
 )
 
 # ============================================================
-# WebUI Binary Data Target (Recursively gathered)
+# WebUI Binary Data Target
 # ============================================================
-file(GLOB_RECURSE WEBUI_FILES 
-    "WebUI/*.html"
-    "WebUI/*.css"
-    "WebUI/*.js"
-    "WebUI/*.png"
-    "WebUI/*.jpg"
-    "WebUI/*.ttf"
-    "WebUI/*.json"
-)
+# El WebUI se empaqueta con Vite (scripts/build_webui.js -> WebUI/dist): dist ya
+# trae los bare imports @abdsynths/* (keybed compartido, fitStage) resueltos, que
+# es lo que el WebView2 necesita — sin bundle no hay node_modules en runtime.
+#
+# Con dist/ presente se embebe SOLO dist: juce_add_binary_data nombra los recursos
+# por basename, asi que embeber tambien el arbol crudo duplicaria nombres
+# (index_html, style_css...) y el provider serviria lo que no toca.
+#
+# Sin dist/ se embebe el arbol crudo como siempre (aviso, no error): asi el
+# configure sigue funcionando en CI y en chequeos que no construyen el WebUI,
+# aunque ese binario no podra montar el keybed compartido.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/WebUI/dist/index.html")
+    file(GLOB_RECURSE WEBUI_FILES "WebUI/dist/*")
+    message(STATUS "WebUI: embebiendo el bundle Vite (WebUI/dist)")
+else()
+    file(GLOB_RECURSE WEBUI_FILES
+        "WebUI/*.html"
+        "WebUI/*.css"
+        "WebUI/*.js"
+        "WebUI/*.png"
+        "WebUI/*.jpg"
+        "WebUI/*.ttf"
+        "WebUI/*.json"
+    )
+    message(WARNING
+        "WebUI/dist/index.html no existe: se embebe el arbol crudo. Los bare imports "
+        "@abdsynths/* NO resuelven en runtime (el keybed compartido no monta). "
+        "Ejecuta 'node scripts/build_webui.js' (o build.bat) antes de configurar CMake.")
+endif()
 
 juce_add_binary_data(ABDEep_WebUI SOURCES
     ${WEBUI_FILES}
@@ -354,6 +382,9 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         # lleva es la medicion del antes y el despues, con la copia congelada
         # del motor anterior dentro del propio test.
         ${SRC_ROOT}/DSP/FX/FXUnitTests_BbdChorus.cpp
+        # El bus de fx en la matriz de modulacion: los ocho destinos que nombra
+        # el manual, con sus codigos, y que el motor los lea de verdad.
+        ${SRC_ROOT}/DSP/FX/FXUnitTests_ModMatrix.cpp
 
         # ── AudioAB Tests ──
         ${SRC_ROOT}/Tools/UnitTests/AudioABComparatorUnitTests.cpp
@@ -454,3 +485,16 @@ foreach(WEBVIEW2_TARGET IN ITEMS ABDEep_Standalone ABDEep_VST3 ABDEepCalibration
         )
     endif()
 endforeach()
+
+# ── Dev server del WebUI (Debug) ──
+# El editor compila la URL del servidor de Vite SOLO en Debug (Release sirve
+# siempre el bundle embebido) y solo en los targets con editor web: el
+# Calibration Lab no monta el WebUI. Ver PluginEditor_DevServer.cpp.
+if(NOT ABDEEP_WEBUI_DEV_SERVER_URL STREQUAL "")
+    foreach(WEBUI_DEV_TARGET IN ITEMS ABDEep_Standalone ABDEep_VST3)
+        if(TARGET ${WEBUI_DEV_TARGET})
+            target_compile_definitions(${WEBUI_DEV_TARGET} PRIVATE
+                $<$<CONFIG:Debug>:ABDEEP_WEBUI_DEV_URL=${ABDEEP_WEBUI_DEV_SERVER_URL}>)
+        endif()
+    endforeach()
+endif()

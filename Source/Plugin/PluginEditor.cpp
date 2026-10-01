@@ -7,6 +7,10 @@ std::optional<juce::WebBrowserComponent::Resource> pluginResourceProvider (const
 juce::WebBrowserComponent::Options addPluginNativeFunctions (juce::WebBrowserComponent::Options opts,
                                                               ABDEepAudioProcessor& audioProcessor);
 
+// Dev server de Vite en Debug (HMR sobre el arbol crudo); vacio en Release,
+// desactivado o si el servidor no responde.
+juce::String getWebUiDevServerUrl();
+
 ABDEepAudioProcessorEditor::ABDEepAudioProcessorEditor (ABDEepAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
@@ -26,8 +30,14 @@ ABDEepAudioProcessorEditor::ABDEepAudioProcessorEditor (ABDEepAudioProcessor& p)
     webComponent = std::make_unique<juce::WebBrowserComponent> (options);
     addAndMakeVisible (*webComponent);
 
-    // Load main page from resource provider root (JUCE 8)
-    webComponent->goToURL (juce::WebBrowserComponent::getResourceProviderRoot());
+    // Pagina inicial: con el dev server de Vite arriba (Debug) se carga de ahi,
+    // asi que los cambios del arbol aparecen con HMR sin ejecutar el bundle.
+    // Sin servidor se sirve el WebUI por el resource provider: WebUI/dist si esta
+    // empaquetado y, si no, el arbol crudo (modo Debug clasico).
+    const auto devServerUrl = getWebUiDevServerUrl();
+
+    webComponent->goToURL (devServerUrl.isNotEmpty() ? devServerUrl
+                                                     : juce::WebBrowserComponent::getResourceProviderRoot());
 
     // Start timer to sync engine note events → WebUI at 30 Hz
     startTimerHz (30);
@@ -78,7 +88,9 @@ ABDEepAudioProcessorEditor::ABDEepAudioProcessorEditor (ABDEepAudioProcessor& p)
         if (webComponent != nullptr)
         {
             juce::String bankLetter = juce::String::charToString (juce::juce_wchar ('A' + bankIdx));
-            juce::String escapedReason = reason.replaceCharacter ('\'', "\\'");
+            // replaceCharacter solo cambia un caracter por otro: aqui se busca escaparla
+            // con una barra invertida delante, que son dos caracteres.
+            juce::String escapedReason = reason.replace ("'", "\\'");
             juce::String js = "if (typeof window._onBankLoadFailed === 'function') "
                             "  window._onBankLoadFailed(" + bankLetter.quoted() + ", " + escapedReason.quoted() + ");";
             webComponent->evaluateJavascript (js);

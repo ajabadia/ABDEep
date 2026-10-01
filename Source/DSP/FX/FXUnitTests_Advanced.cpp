@@ -218,6 +218,90 @@ public:
             }
             logMessage("Type " + juce::String(type) + " sweep: OK");
         }
+
+        //==============================================================================
+        beginTest("Space Echo RE-201 delay line advances (id 39)");
+
+        // The tape line used `kMaxDelay = 70560` as a BIT MASK. A mask only
+        // wraps when it is 2^n - 1, and 70560 is not one: its low five bits are
+        // zero, so `(writePos + 1) & delayMask` was 0 on the first sample and
+        // 0 forever after. Every sample went into the same cell, the reads
+        // landed on masked-off indices that had never been written, and the
+        // echo did not exist. Fire an impulse and check that it comes back at
+        // the head distance, at both ends of the time knob.
+        {
+            constexpr int numSamples = 48000;
+            constexpr int impulseAt  = 100;
+            constexpr int blockSize  = 256;
+
+            // Mode A is head 1 alone, at 33% of the delay. The time knob runs
+            // 0.12s to 1.5s of base, scaled to the 1.5s ceiling, so the head tap
+            // is 0.12 * 1.5 * 0.33 = 2620 samples at one end of the knob and
+            // 1.50 * 1.5 * 0.33 = 32744 at the other.
+            struct Case { float time; int echoAt; };
+            const Case cases[] = { { 0.0f, impulseAt + 2620 },
+                                   { 1.0f, impulseAt + 32744 } };
+
+            for (const auto& c : cases)
+            {
+                FXSpaceEchoRE201 echo;
+                echo.prepare(kTestSampleRate, blockSize);
+
+                echo.setParameter(0, 0.0f);  // Mode A: head 1 only
+                echo.setParameter(1, c.time);
+                echo.setParameter(2, 0.0f);  // Feedback 0: one echo, no runaway
+                echo.setParameter(3, 0.5f);
+                echo.setParameter(4, 0.5f);
+                echo.setParameter(5, 0.0f);  // Spring tank off
+
+                juce::AudioBuffer<float> in(2, numSamples);
+                juce::AudioBuffer<float> out(2, numSamples);
+                in.clear();
+                in.setSample(0, impulseAt, 1.0f);
+                in.setSample(1, impulseAt, 1.0f);
+
+                for (int pos = 0; pos < numSamples; pos += blockSize)
+                {
+                    const int n = juce::jmin(blockSize, numSamples - pos);
+                    echo.process(in.getReadPointer(0) + pos, in.getReadPointer(1) + pos,
+                                 out.getWritePointer(0) + pos, out.getWritePointer(1) + pos, n);
+                }
+
+                const juce::String where = "RE-201 time " + juce::String(c.time) + ": ";
+
+                // The dry path has to be alive, or "no echo" would prove nothing.
+                float dryPeak = 0.0f;
+                for (int s = impulseAt - 5; s <= impulseAt + 5; ++s)
+                    dryPeak = juce::jmax(dryPeak, std::abs(out.getSample(0, s)));
+                expect(dryPeak > 0.5f, where + "the dry path is dead (peak "
+                                    + juce::String(dryPeak) + ")");
+
+                // Tape wow and flutter drag the read position around by up to
+                // ~1.7%, so the window has to scale with the distance.
+                const int window = juce::jmax(150, (int)((c.echoAt - impulseAt) * 0.02f));
+
+                float echoPeak = 0.0f;
+                for (int s = c.echoAt - window; s <= c.echoAt + window; ++s)
+                    echoPeak = juce::jmax(echoPeak, std::abs(out.getSample(0, s)));
+                expect(echoPeak > 0.05f, where + "no echo at sample " + juce::String(c.echoAt)
+                                    + " (peak " + juce::String(echoPeak)
+                                    + "): the delay line is not advancing");
+
+                // And it only sounds where the head says it should. Everywhere
+                // else the line holds nothing but tape noise (~0.008), so this
+                // is what catches a mask that wraps without being the length of
+                // the buffer: the echo would land somewhere else entirely.
+                float strayPeak = 0.0f;
+                for (int s = impulseAt + 10; s < numSamples; ++s)
+                {
+                    if (s >= c.echoAt - window && s <= c.echoAt + window)
+                        continue;
+                    strayPeak = juce::jmax(strayPeak, std::abs(out.getSample(0, s)));
+                }
+                expect(strayPeak < 0.02f, where + "output of " + juce::String(strayPeak)
+                                    + " far from the head distance");
+            }
+        }
     }
 };
 

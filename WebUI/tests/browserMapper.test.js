@@ -131,7 +131,7 @@ BYTE_MAP[84] = bp(84, 'Note Priority',        'Voice','enum',      { enumLabels:
 BYTE_MAP[85] = bp(85, 'Voice Mode',           'Voice','enum',      { enumLabels: ENUM_VOICE_MODE });
 BYTE_MAP[86] = bp(86, 'Trigger Mode',         'Voice','enum',      { enumLabels: ENUM_TRIG_MODE });
 BYTE_MAP[87] = bp(87, 'Unison Detune',        'Voice','value',     { desc: '0=none…255=phat!' });
-BYTE_MAP[88] = bp(88, 'Voice Drift',          'Voice','value',     { desc: 'Also alias osc_drift' });
+BYTE_MAP[88] = bp(88, 'Voice Drift',          'Voice','value',     { desc: 'Vintage drift: antes compartía byte con osc_drift' });
 BYTE_MAP[89] = bp(89, 'Parameter Drift',      'Voice','value',     { desc: '0=none…255=max' });
 BYTE_MAP[90] = bp(90, 'Drift Rate',           'Voice','value',     { desc: 'How fast drift fluctuates' });
 BYTE_MAP[91] = bp(91, 'OSC Porta Balance',    'Voice','bipolar',   { desc: '128=center, <128=osc1, >128=osc2' });
@@ -175,7 +175,7 @@ BYTE_MAP[156] = bp(156, 'Arp Mode',           'Arp',  'enum',     { enumLabels: 
 BYTE_MAP[157] = bp(157, 'Arp Rate',           'Arp',  'value',    { desc: '0=20bpm…255=275bpm' });
 BYTE_MAP[158] = bp(158, 'Arp Clock Divider',  'Arp',  'enum',     { enumLabels: ENUM_ARP_CLOCK });
 BYTE_MAP[159] = bp(159, 'Arp Key Sync',       'Arp',  'toggle',   { desc: '0=Off, 1=On' });
-BYTE_MAP[160] = bp(160, 'Arp Gate Time',      'Arp',  'value',    { desc: 'Also alias arp_gate' });
+BYTE_MAP[160] = bp(160, 'Arp Gate Time',      'Arp',  'value',    { desc: 'Duración de la nota del arpegio: antes compartía byte con arp_gate' });
 BYTE_MAP[161] = bp(161, 'Arp Hold',           'Arp',  'toggle',   { desc: '0=Off, 1=On' });
 BYTE_MAP[162] = bp(162, 'Arp Pattern',        'Arp',  'value',    { desc: '0=None, 1-64=Presets' });
 BYTE_MAP[163] = bp(163, 'Arp Swing',          'Arp',  'value',    { desc: '0=50%…25=75%' });
@@ -247,7 +247,7 @@ const PARAM_TO_BYTE_OFFSET = {
     'osc1_pitch_mod': 21, 'osc1_pm_source': 22,
     'osc1_lfo_aftertouch': 23, 'osc1_lfo_modwheel': 24, 'osc1_pwm_amount': 25,
     'osc2_level': 26, 'osc2_pitch': 27, 'osc2_tone_mod': 28, 'osc2_pitch_mod': 29,
-    'osc2_aftertouch_pitch': 30, 'osc2_modwheel_pitch': 31, 'osc2_pitch_mod_select': 32,
+    'osc2_aftertouch_pitch': 30, 'osc2_modwheel_pitch': 31,
     'noise_level': 33,
     'global_portamento': 34, 'porta_mode': 35,
     'pitch_bend_up': 36, 'pitch_bend_down': 37, 'osc1_pm_mode': 38,
@@ -266,7 +266,7 @@ const PARAM_TO_BYTE_OFFSET = {
     'env3_sustain_curve': 78, 'env3_release_curve': 79,
     'vca_level': 80, 'vca_env_depth': 81, 'vca_vel_sens': 82, 'vca_pan_spread': 83,
     'note_priority': 84, 'voice_mode': 85, 'trigger_mode': 86,
-    'unison_detune': 87, 'voice_drift': 88, 'osc_drift': 88,
+    'unison_detune': 87, 'voice_drift': 88,
     'param_drift': 89, 'drift_rate': 90, 'porta_osc_bal': 91, 'osc_key_reset': 92,
     'mod_matrix_slot1_src': 93, 'mod_matrix_slot1_dest': 94, 'mod_matrix_slot1_depth': 95,
     'mod_matrix_slot2_src': 96, 'mod_matrix_slot2_dest': 97, 'mod_matrix_slot2_depth': 98,
@@ -285,9 +285,12 @@ const PARAM_TO_BYTE_OFFSET = {
     'seq_step_21': 143, 'seq_step_22': 144, 'seq_step_23': 145, 'seq_step_24': 146, 'seq_step_25': 147,
     'seq_step_26': 148, 'seq_step_27': 149, 'seq_step_28': 150, 'seq_step_29': 151, 'seq_step_30': 152,
     'seq_step_31': 153, 'seq_step_32': 154,
-    'chord_enable': 105, 'poly_chord_enable': 106, 'chord_key': 107, 'chord_type': 108,
+    // Virtuales (300-303) en el mapa real: el chord no tiene byte físico. Aquí
+    // estaban en 105-108, encima de mod_matrix_slot5/6, y eso era un cuarto
+    // grupo de colisión que el guard 2 tenía que cazar.
+    'chord_enable': 300, 'poly_chord_enable': 301, 'chord_key': 302, 'chord_type': 303,
     'arp_enable': 155, 'arp_mode': 156, 'arp_rate': 157, 'arp_clock_divider': 158,
-    'arp_key_sync': 159, 'arp_gate_time': 160, 'arp_gate': 160,
+    'arp_key_sync': 159, 'arp_gate_time': 160,
     'arp_hold': 161, 'arp_pattern': 162, 'arp_swing': 163, 'arp_octave': 164,
     'fx_routing': 165,
     'fx1_type': 166, 'fx1_param1': 167, 'fx1_param2': 168, 'fx1_param3': 169,
@@ -304,8 +307,8 @@ const PARAM_TO_BYTE_OFFSET = {
     'fx4_param8': 213, 'fx4_param9': 214, 'fx4_param10': 215, 'fx4_param11': 216, 'fx4_param12': 217,
     'fx1_gain': 218, 'fx2_gain': 219, 'fx3_gain': 220, 'fx4_gain': 221,
     'fx_mode': 222,
-    'fx_feedback_gain': 223,
-    'fx_send_level': 225
+    'fx_feedback_gain': 304,
+    'fx_send_level': 305
 };
 
 const PARAM_TO_CC = {
@@ -321,7 +324,7 @@ const PARAM_TO_CC = {
     'env2_attack': 42, 'env2_decay': 43, 'env2_sustain': 44, 'env2_release': 45,
     'env3_attack': 46, 'env3_decay': 47, 'env3_sustain': 48, 'env3_release': 49,
     'unison_detune': 28,
-    'arp_rate': 12, 'arp_gate_time': 13, 'arp_gate': 13,
+    'arp_rate': 12, 'arp_gate_time': 13,
     'global_volume': 7,
     'global_tune': 81,
     'transpose': 82
@@ -685,13 +688,18 @@ describe('PARAM_TO_BYTE_OFFSET — map integrity', function () {
         expect(count).toBeGreaterThanOrEqual(180);
     });
 
-    it('all byte offsets are valid (0-241)', function () {
+    it('all byte offsets are valid (0-241, 242-299, 300+)', function () {
+        // saying "0-241" era falso: el mapa tiene región extendida y virtual
+        // (300+) desde hace tiempo, y el fixture viejo las ocultaba poniendo los
+        // `chord_*` en 105-108. Lo que no vale es caer en 223-241, que es el
+        // nombre del patch y la cola del payload.
         for (const paramId in PARAM_TO_BYTE_OFFSET) {
             if (PARAM_TO_BYTE_OFFSET.hasOwnProperty(paramId)) {
                 const off = PARAM_TO_BYTE_OFFSET[paramId];
                 expect(typeof off).toBe('number');
                 expect(off).toBeGreaterThanOrEqual(0);
-                expect(off).toBeLessThanOrEqual(241);
+                expect(off).toBeLessThanOrEqual(306);
+                expect(off < 223 || off >= 242, `${paramId}=${off} cae en la región reservada (223-241)`).toBe(true);
             }
         }
     });
@@ -829,19 +837,18 @@ describe('PARAM_TO_CC — MIDI CC map integrity', function () {
 
     it('CC values are unique (no duplicate CC mapping)', function () {
         const seenCC = {};
+        const duplicados = [];
         for (const k in PARAM_TO_CC) {
             if (PARAM_TO_CC.hasOwnProperty(k)) {
                 const cc = PARAM_TO_CC[k];
-                if (seenCC[cc] !== undefined) {
-                    // Allow known duplicates: arp_gate (13) = arp_gate_time (13)
-                    // But flag unexpected duplicates
-                    if (k !== 'arp_gate' && seenCC[cc] !== 'arp_gate') {
-                        // Known alias, skip
-                    }
-                }
+                // `arp_gate` (13) duplicaba `arp_gate_time` (13) y se ha ido. Ya
+                // no queda ningún duplicado conocido por el que pasar, así que
+                // cualquier CC repetido se reporta.
+                if (seenCC[cc] !== undefined) duplicados.push(`CC ${cc}: ${seenCC[cc]} + ${k}`);
                 seenCC[cc] = k;
             }
         }
+        expect(duplicados).toEqual([]);
         // Just verify no values outside MIDI range — uniqueness is not enforced
         expect(true).toBe(true);
     });
@@ -1151,19 +1158,31 @@ describe('formatParamValue — enum edge cases', function () {
 
 describe('Parameter alias mappings', function () {
 
-    it('osc_drift and voice_drift both map to byte 88', function () {
-        expect(PARAM_TO_BYTE_OFFSET['osc_drift']).toBe(88);
+    // Los tres alias que había (bytes 32, 88 y 160) se han deshecho: un byte con dos
+    // ids es un byte con dos respuestas, no un alias. El generador ahora lo
+    // rechaza con NRPN_COLLISION y esto comprueba que no ha vuelto.
+    it('byte 88 es solo voice_drift (osc_drift ya no está)', function () {
         expect(PARAM_TO_BYTE_OFFSET['voice_drift']).toBe(88);
+        expect(PARAM_TO_BYTE_OFFSET['osc_drift']).toBeUndefined();
     });
 
-    it('arp_gate and arp_gate_time both map to byte 160', function () {
-        expect(PARAM_TO_BYTE_OFFSET['arp_gate']).toBe(160);
+    it('byte 160 es solo arp_gate_time (arp_gate ya no está)', function () {
         expect(PARAM_TO_BYTE_OFFSET['arp_gate_time']).toBe(160);
+        expect(PARAM_TO_BYTE_OFFSET['arp_gate']).toBeUndefined();
     });
 
-    it('osc2_pm_source and osc2_pitch_mod_select both map to byte 32', function () {
+    it('byte 32 es solo osc2_pm_source (osc2_pitch_mod_select ya no está)', function () {
         expect(PARAM_TO_BYTE_OFFSET['osc2_pm_source']).toBe(32);
-        expect(PARAM_TO_BYTE_OFFSET['osc2_pitch_mod_select']).toBe(32);
+        expect(PARAM_TO_BYTE_OFFSET['osc2_pitch_mod_select']).toBeUndefined();
+    });
+
+    it('ningún byteOffset tiene dos ids', function () {
+        const byOffset = {};
+        for (const [id, off] of Object.entries(PARAM_TO_BYTE_OFFSET)) {
+            (byOffset[off] = byOffset[off] || []).push(id);
+        }
+        const colisiones = Object.entries(byOffset).filter(([, ids]) => ids.length > 1);
+        expect(colisiones.map(([b, ids]) => `byte ${b}: ${ids.join(' + ')}`)).toEqual([]);
     });
 
 });

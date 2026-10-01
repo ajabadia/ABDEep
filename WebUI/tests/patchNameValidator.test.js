@@ -26,7 +26,9 @@ function loadJsGlobal(relPath) {
   return fn(sandbox.window);
 }
 
-const { PatchNameValidator, PatchNameRenderer, HardwareExporter } = require(path.join(ROOT, 'WebUI', 'js', 'patch_name.js'));
+// El modulo de fuente se IMPORTA: el interop de Vitest expone su module.exports
+// como exportaciones nombradas (require() bajo type:module daria {}).
+import { PatchNameValidator, PatchNameRenderer, HardwareExporter } from '../js/patch_name.js';
 const PACKER = loadJsGlobal('WebUI/js/browser_packer.js');
 
 function makePatch(name, filler) {

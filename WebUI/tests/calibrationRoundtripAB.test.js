@@ -64,25 +64,30 @@ if (typeof global.document === 'undefined') {
 }
 
 // ── Carga del stack de Calibration Lab (mismo patrón que audioABControls.test.js) ──
-require('../js/dom_sanitize.js');
-require('../js/calibration_store_data.js');
-require('../js/calibration_store_utils.js');
-require('../js/calibration_store_selectors.js');
-require('../js/calibration_store_actions.js');
-require('../js/calibration_store.js');
-require('../js/calibration_lab_format.js');
-require('../js/calibration_lab_patchdiff.js');
-require('../js/calibration_lab_validation.js');
-require('../js/calibration_lab_utils.js');
-require('../js/calibration_lab_template.js');
-require('../js/calibration_lab_page.js');
-require('../js/calibration_lab_tab_roundtrip.js');
-require('../js/calibration_lab_workflow.js'); // registra el custom element calibration-lab-page
+// Imports DINAMICOS y en orden: los modulos leen window/document/customElements al
+// evaluarse, asi que los stubs de arriba tienen que estar ya puestos.
+await import('../js/dom_sanitize.js');
+await import('../js/calibration_store_data.js');
+await import('../js/calibration_store_utils.js');
+await import('../js/calibration_store_selectors.js');
+await import('../js/calibration_store_actions.js');
+await import('../js/calibration_store.js');
+await import('../js/calibration_lab_format.js');
+await import('../js/calibration_lab_patchdiff.js');
+await import('../js/calibration_lab_validation.js');
+await import('../js/calibration_lab_utils.js');
+await import('../js/calibration_lab_template.js');
+await import('../js/calibration_lab_page.js');
+await import('../js/calibration_lab_tab_roundtrip.js');
+await import('../js/calibration_lab_workflow.js'); // registra el custom element calibration-lab-page
 
-// Fase 4: batería de igualdad + registro canónico (en Node exportan vía module.exports;
-// en el navegador index.html los asigna a window — aquí se replican para el helper).
-window.RoundTripEquality = require('../js/roundtrip_equality.js');
-window.ParameterRegistry = require('../js/registry.gen.js');
+// Fase 4: batería de igualdad + registro canónico. En el navegador index.html los
+// asigna a window; aquí se replican con el module.exports que expone el interop de
+// Vitest (`.default`), que es justo lo que devolvía el require() de antes.
+const RoundTripEqualityModule = await import('../js/roundtrip_equality.js');
+const ParameterRegistryModule = await import('../js/registry.gen.js');
+window.RoundTripEquality = RoundTripEqualityModule.default ?? RoundTripEqualityModule;
+window.ParameterRegistry = ParameterRegistryModule.default ?? ParameterRegistryModule;
 
 // El helper se expone en globalThis (como el resto de utilidades del Calibration Lab);
 // en Node globalThis !== window (objeto plano), así que se lee de globalThis.

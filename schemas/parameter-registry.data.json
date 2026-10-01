@@ -1,10 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-25T04:39:34.060Z",
+  "generatedAt": "2026-10-01T10:03:29.600Z",
   "sourceHashes": {
-    "parametersSpec": "6532174bcb2fb79cfd0bc1a0dc05f654126306550de7bcf0cbdd5d9ae45b94b1",
-    "bridgeParamMaps": "0deb5c47ea0d645988d7f406de8ce1e54d15dc282480ed4704b831e8be773b22",
-    "byteMapData": "44f4411d71dfbbb19069a6205f19aaa2028e0bc82ef0e875cdcb66454a5ca478"
+    "parametersSpec": "d20176fbca0a5c1ae66ccef41b879b9d7f6302ccc7fcf63bab9563973352223e",
+    "bridgeParamMaps": "0132336941c52f56959c6a5304f22869b1f9a52717ed30a81db9467351849785",
+    "byteMapData": "20e89936c53023766edfae356706dee3d5ac53239e7c6cbe8041f9dc23889b21",
+    "parametersSpecCpp": "ac0680219056701a7f5106ea30b472dcc2eaeb0a15d2855d9f262f2497cd93c3"
   },
   "parameters": [
     {
@@ -384,9 +385,7 @@
       "name": "OSC 2 Pitch Mod Select",
       "desc": null,
       "defaultValue": null,
-      "aliases": [
-        "osc2_pitch_mod_select"
-      ],
+      "aliases": [],
       "cppName": "Osc2PmSource",
       "index": 17
     },
@@ -691,35 +690,6 @@
       "index": 32
     },
     {
-      "id": "osc2_pitch_mod_select",
-      "byteOffset": 32,
-      "category": "physical",
-      "region": "OSC2",
-      "codecType": "enum",
-      "byteMapType": "enum",
-      "enumMax": 6,
-      "enumLabels": [
-        "LFO1",
-        "LFO2",
-        "VCA Env",
-        "VCF Env",
-        "Mod Env",
-        "LFO1 Uni",
-        "LFO2 Uni"
-      ],
-      "cc": null,
-      "legacyCC": null,
-      "ccConflict": false,
-      "name": "OSC 2 Pitch Mod Select",
-      "desc": null,
-      "defaultValue": null,
-      "aliases": [
-        "osc2_pm_source"
-      ],
-      "cppName": "Osc2PitchModSelect",
-      "index": 33
-    },
-    {
       "id": "noise_level",
       "byteOffset": 33,
       "category": "physical",
@@ -736,7 +706,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "NoiseLevel",
-      "index": 34
+      "index": 33
     },
     {
       "id": "global_portamento",
@@ -755,7 +725,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "GlobalPortamento",
-      "index": 35
+      "index": 34
     },
     {
       "id": "porta_mode",
@@ -789,7 +759,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "PortaMode",
-      "index": 36
+      "index": 35
     },
     {
       "id": "pitch_bend_up",
@@ -808,7 +778,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "PitchBendUp",
-      "index": 37
+      "index": 36
     },
     {
       "id": "pitch_bend_down",
@@ -827,7 +797,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "PitchBendDown",
-      "index": 38
+      "index": 37
     },
     {
       "id": "osc1_pm_mode",
@@ -846,7 +816,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Osc1PmMode",
-      "index": 39
+      "index": 38
     },
     {
       "id": "vcf_cutoff",
@@ -865,7 +835,7 @@
       "defaultValue": 1,
       "aliases": [],
       "cppName": "VcfCutoff",
-      "index": 40
+      "index": 39
     },
     {
       "id": "hpf_cutoff",
@@ -884,7 +854,7 @@
       "defaultValue": 0,
       "aliases": [],
       "cppName": "HpfCutoff",
-      "index": 41
+      "index": 40
     },
     {
       "id": "vcf_resonance",
@@ -903,7 +873,7 @@
       "defaultValue": 0,
       "aliases": [],
       "cppName": "VcfResonance",
-      "index": 42
+      "index": 41
     },
     {
       "id": "vcf_env_depth",
@@ -922,7 +892,7 @@
       "defaultValue": 0.5,
       "aliases": [],
       "cppName": "VcfEnvDepth",
-      "index": 43
+      "index": 42
     },
     {
       "id": "vcf_env_vel",
@@ -941,7 +911,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfEnvVel",
-      "index": 44
+      "index": 43
     },
     {
       "id": "vcf_pitch_bend",
@@ -960,7 +930,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfPitchBend",
-      "index": 45
+      "index": 44
     },
     {
       "id": "vcf_lfo_depth",
@@ -979,7 +949,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfLfoDepth",
-      "index": 46
+      "index": 45
     },
     {
       "id": "vcf_lfo_select",
@@ -998,7 +968,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfLfoSelect",
-      "index": 47
+      "index": 46
     },
     {
       "id": "vcf_aftertouch_lfo",
@@ -1017,7 +987,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfAftertouchLfo",
-      "index": 48
+      "index": 47
     },
     {
       "id": "vcf_modwheel_lfo",
@@ -1036,7 +1006,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfModwheelLfo",
-      "index": 49
+      "index": 48
     },
     {
       "id": "vcf_key_tracking",
@@ -1055,7 +1025,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfKeyTracking",
-      "index": 50
+      "index": 49
     },
     {
       "id": "vcf_env_polarity",
@@ -1074,7 +1044,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfEnvPolarity",
-      "index": 51
+      "index": 50
     },
     {
       "id": "vcf_pole_mode",
@@ -1093,7 +1063,7 @@
       "defaultValue": 1,
       "aliases": [],
       "cppName": "VcfPoleMode",
-      "index": 52
+      "index": 51
     },
     {
       "id": "hpf_boost_enable",
@@ -1112,7 +1082,7 @@
       "defaultValue": 0,
       "aliases": [],
       "cppName": "HpfBoostEnable",
-      "index": 53
+      "index": 52
     },
     {
       "id": "env1_attack",
@@ -1131,7 +1101,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env1Attack",
-      "index": 54
+      "index": 53
     },
     {
       "id": "env1_decay",
@@ -1150,7 +1120,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env1Decay",
-      "index": 55
+      "index": 54
     },
     {
       "id": "env1_sustain",
@@ -1169,7 +1139,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env1Sustain",
-      "index": 56
+      "index": 55
     },
     {
       "id": "env1_release",
@@ -1188,7 +1158,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env1Release",
-      "index": 57
+      "index": 56
     },
     {
       "id": "env1_trigger_mode",
@@ -1213,7 +1183,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env1TriggerMode",
-      "index": 58
+      "index": 57
     },
     {
       "id": "env1_attack_curve",
@@ -1232,7 +1202,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env1AttackCurve",
-      "index": 59
+      "index": 58
     },
     {
       "id": "env1_decay_curve",
@@ -1251,7 +1221,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env1DecayCurve",
-      "index": 60
+      "index": 59
     },
     {
       "id": "env1_sustain_curve",
@@ -1270,7 +1240,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env1SustainCurve",
-      "index": 61
+      "index": 60
     },
     {
       "id": "env1_release_curve",
@@ -1289,7 +1259,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env1ReleaseCurve",
-      "index": 62
+      "index": 61
     },
     {
       "id": "env2_attack",
@@ -1308,7 +1278,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env2Attack",
-      "index": 63
+      "index": 62
     },
     {
       "id": "env2_decay",
@@ -1327,7 +1297,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env2Decay",
-      "index": 64
+      "index": 63
     },
     {
       "id": "env2_sustain",
@@ -1346,7 +1316,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env2Sustain",
-      "index": 65
+      "index": 64
     },
     {
       "id": "env2_release",
@@ -1365,7 +1335,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env2Release",
-      "index": 66
+      "index": 65
     },
     {
       "id": "env2_trigger_mode",
@@ -1390,7 +1360,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env2TriggerMode",
-      "index": 67
+      "index": 66
     },
     {
       "id": "env2_attack_curve",
@@ -1409,7 +1379,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env2AttackCurve",
-      "index": 68
+      "index": 67
     },
     {
       "id": "env2_decay_curve",
@@ -1428,7 +1398,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env2DecayCurve",
-      "index": 69
+      "index": 68
     },
     {
       "id": "env2_sustain_curve",
@@ -1447,7 +1417,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env2SustainCurve",
-      "index": 70
+      "index": 69
     },
     {
       "id": "env2_release_curve",
@@ -1466,7 +1436,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env2ReleaseCurve",
-      "index": 71
+      "index": 70
     },
     {
       "id": "env3_attack",
@@ -1485,7 +1455,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env3Attack",
-      "index": 72
+      "index": 71
     },
     {
       "id": "env3_decay",
@@ -1504,7 +1474,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env3Decay",
-      "index": 73
+      "index": 72
     },
     {
       "id": "env3_sustain",
@@ -1523,7 +1493,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env3Sustain",
-      "index": 74
+      "index": 73
     },
     {
       "id": "env3_release",
@@ -1542,7 +1512,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env3Release",
-      "index": 75
+      "index": 74
     },
     {
       "id": "env3_trigger_mode",
@@ -1567,7 +1537,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env3TriggerMode",
-      "index": 76
+      "index": 75
     },
     {
       "id": "env3_attack_curve",
@@ -1586,7 +1556,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env3AttackCurve",
-      "index": 77
+      "index": 76
     },
     {
       "id": "env3_decay_curve",
@@ -1605,7 +1575,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env3DecayCurve",
-      "index": 78
+      "index": 77
     },
     {
       "id": "env3_sustain_curve",
@@ -1624,7 +1594,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env3SustainCurve",
-      "index": 79
+      "index": 78
     },
     {
       "id": "env3_release_curve",
@@ -1643,7 +1613,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Env3ReleaseCurve",
-      "index": 80
+      "index": 79
     },
     {
       "id": "vca_level",
@@ -1662,7 +1632,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcaLevel",
-      "index": 81
+      "index": 80
     },
     {
       "id": "vca_env_depth",
@@ -1681,7 +1651,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcaEnvDepth",
-      "index": 82
+      "index": 81
     },
     {
       "id": "vca_vel_sens",
@@ -1700,7 +1670,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcaVelSens",
-      "index": 83
+      "index": 82
     },
     {
       "id": "vca_pan_spread",
@@ -1719,7 +1689,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcaPanSpread",
-      "index": 84
+      "index": 83
     },
     {
       "id": "note_priority",
@@ -1742,7 +1712,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "NotePriority",
-      "index": 85
+      "index": 84
     },
     {
       "id": "voice_mode",
@@ -1775,7 +1745,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VoiceMode",
-      "index": 86
+      "index": 85
     },
     {
       "id": "trigger_mode",
@@ -1799,7 +1769,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "TriggerMode",
-      "index": 87
+      "index": 86
     },
     {
       "id": "unison_detune",
@@ -1818,7 +1788,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "UnisonDetune",
-      "index": 88
+      "index": 87
     },
     {
       "id": "voice_drift",
@@ -1833,34 +1803,11 @@
       "legacyCC": null,
       "ccConflict": false,
       "name": "Voice Drift",
-      "desc": "Also alias osc_drift",
+      "desc": "Vintage drift: antes compartía byte con osc_drift",
       "defaultValue": null,
-      "aliases": [
-        "osc_drift"
-      ],
+      "aliases": [],
       "cppName": "VoiceDrift",
-      "index": 89
-    },
-    {
-      "id": "osc_drift",
-      "byteOffset": 88,
-      "category": "physical",
-      "region": "Voice",
-      "codecType": "value",
-      "byteMapType": "value",
-      "enumMax": null,
-      "enumLabels": null,
-      "cc": null,
-      "legacyCC": null,
-      "ccConflict": false,
-      "name": "Voice Drift",
-      "desc": "Also alias osc_drift",
-      "defaultValue": null,
-      "aliases": [
-        "voice_drift"
-      ],
-      "cppName": "OscDrift",
-      "index": 90
+      "index": 88
     },
     {
       "id": "param_drift",
@@ -1879,7 +1826,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ParamDrift",
-      "index": 91
+      "index": 89
     },
     {
       "id": "drift_rate",
@@ -1898,7 +1845,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "DriftRate",
-      "index": 92
+      "index": 90
     },
     {
       "id": "porta_osc_bal",
@@ -1917,7 +1864,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "PortaOscBal",
-      "index": 93
+      "index": 91
     },
     {
       "id": "osc_key_reset",
@@ -1936,7 +1883,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "OscKeyReset",
-      "index": 94
+      "index": 92
     },
     {
       "id": "mod_matrix_slot1_src",
@@ -1955,7 +1902,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot1Src",
-      "index": 95
+      "index": 93
     },
     {
       "id": "mod_matrix_slot1_dest",
@@ -1974,7 +1921,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot1Dest",
-      "index": 96
+      "index": 94
     },
     {
       "id": "mod_matrix_slot1_depth",
@@ -1993,7 +1940,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot1Depth",
-      "index": 97
+      "index": 95
     },
     {
       "id": "mod_matrix_slot2_src",
@@ -2012,7 +1959,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot2Src",
-      "index": 98
+      "index": 96
     },
     {
       "id": "mod_matrix_slot2_dest",
@@ -2031,7 +1978,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot2Dest",
-      "index": 99
+      "index": 97
     },
     {
       "id": "mod_matrix_slot2_depth",
@@ -2050,7 +1997,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot2Depth",
-      "index": 100
+      "index": 98
     },
     {
       "id": "mod_matrix_slot3_src",
@@ -2069,7 +2016,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot3Src",
-      "index": 101
+      "index": 99
     },
     {
       "id": "mod_matrix_slot3_dest",
@@ -2088,7 +2035,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot3Dest",
-      "index": 102
+      "index": 100
     },
     {
       "id": "mod_matrix_slot3_depth",
@@ -2107,7 +2054,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot3Depth",
-      "index": 103
+      "index": 101
     },
     {
       "id": "mod_matrix_slot4_src",
@@ -2126,7 +2073,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot4Src",
-      "index": 104
+      "index": 102
     },
     {
       "id": "mod_matrix_slot4_dest",
@@ -2145,7 +2092,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot4Dest",
-      "index": 105
+      "index": 103
     },
     {
       "id": "mod_matrix_slot4_depth",
@@ -2164,7 +2111,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot4Depth",
-      "index": 106
+      "index": 104
     },
     {
       "id": "mod_matrix_slot5_src",
@@ -2183,7 +2130,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot5Src",
-      "index": 107
+      "index": 105
     },
     {
       "id": "mod_matrix_slot5_dest",
@@ -2202,7 +2149,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot5Dest",
-      "index": 108
+      "index": 106
     },
     {
       "id": "mod_matrix_slot5_depth",
@@ -2221,7 +2168,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot5Depth",
-      "index": 109
+      "index": 107
     },
     {
       "id": "mod_matrix_slot6_src",
@@ -2240,7 +2187,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot6Src",
-      "index": 110
+      "index": 108
     },
     {
       "id": "mod_matrix_slot6_dest",
@@ -2259,7 +2206,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot6Dest",
-      "index": 111
+      "index": 109
     },
     {
       "id": "mod_matrix_slot6_depth",
@@ -2278,7 +2225,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot6Depth",
-      "index": 112
+      "index": 110
     },
     {
       "id": "mod_matrix_slot7_src",
@@ -2297,7 +2244,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot7Src",
-      "index": 113
+      "index": 111
     },
     {
       "id": "mod_matrix_slot7_dest",
@@ -2316,7 +2263,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot7Dest",
-      "index": 114
+      "index": 112
     },
     {
       "id": "mod_matrix_slot7_depth",
@@ -2335,7 +2282,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot7Depth",
-      "index": 115
+      "index": 113
     },
     {
       "id": "mod_matrix_slot8_src",
@@ -2354,7 +2301,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot8Src",
-      "index": 116
+      "index": 114
     },
     {
       "id": "mod_matrix_slot8_dest",
@@ -2373,7 +2320,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot8Dest",
-      "index": 117
+      "index": 115
     },
     {
       "id": "mod_matrix_slot8_depth",
@@ -2392,7 +2339,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ModMatrixSlot8Depth",
-      "index": 118
+      "index": 116
     },
     {
       "id": "seq_enable",
@@ -2411,7 +2358,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqEnable",
-      "index": 119
+      "index": 117
     },
     {
       "id": "seq_clock",
@@ -2447,7 +2394,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqClock",
-      "index": 120
+      "index": 118
     },
     {
       "id": "seq_length",
@@ -2466,7 +2413,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqLength",
-      "index": 121
+      "index": 119
     },
     {
       "id": "seq_swing",
@@ -2485,7 +2432,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqSwing",
-      "index": 122
+      "index": 120
     },
     {
       "id": "seq_key_loop",
@@ -2508,7 +2455,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqKeyLoop",
-      "index": 123
+      "index": 121
     },
     {
       "id": "seq_slew_rate",
@@ -2527,7 +2474,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqSlewRate",
-      "index": 124
+      "index": 122
     },
     {
       "id": "seq_step_1",
@@ -2546,7 +2493,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep1",
-      "index": 125
+      "index": 123
     },
     {
       "id": "seq_step_2",
@@ -2565,7 +2512,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep2",
-      "index": 126
+      "index": 124
     },
     {
       "id": "seq_step_3",
@@ -2584,7 +2531,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep3",
-      "index": 127
+      "index": 125
     },
     {
       "id": "seq_step_4",
@@ -2603,7 +2550,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep4",
-      "index": 128
+      "index": 126
     },
     {
       "id": "seq_step_5",
@@ -2622,7 +2569,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep5",
-      "index": 129
+      "index": 127
     },
     {
       "id": "seq_step_6",
@@ -2641,7 +2588,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep6",
-      "index": 130
+      "index": 128
     },
     {
       "id": "seq_step_7",
@@ -2660,7 +2607,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep7",
-      "index": 131
+      "index": 129
     },
     {
       "id": "seq_step_8",
@@ -2679,7 +2626,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep8",
-      "index": 132
+      "index": 130
     },
     {
       "id": "seq_step_9",
@@ -2698,7 +2645,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep9",
-      "index": 133
+      "index": 131
     },
     {
       "id": "seq_step_10",
@@ -2717,7 +2664,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep10",
-      "index": 134
+      "index": 132
     },
     {
       "id": "seq_step_11",
@@ -2736,7 +2683,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep11",
-      "index": 135
+      "index": 133
     },
     {
       "id": "seq_step_12",
@@ -2755,7 +2702,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep12",
-      "index": 136
+      "index": 134
     },
     {
       "id": "seq_step_13",
@@ -2774,7 +2721,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep13",
-      "index": 137
+      "index": 135
     },
     {
       "id": "seq_step_14",
@@ -2793,7 +2740,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep14",
-      "index": 138
+      "index": 136
     },
     {
       "id": "seq_step_15",
@@ -2812,7 +2759,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep15",
-      "index": 139
+      "index": 137
     },
     {
       "id": "seq_step_16",
@@ -2831,7 +2778,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep16",
-      "index": 140
+      "index": 138
     },
     {
       "id": "seq_step_17",
@@ -2850,7 +2797,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep17",
-      "index": 141
+      "index": 139
     },
     {
       "id": "seq_step_18",
@@ -2869,7 +2816,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep18",
-      "index": 142
+      "index": 140
     },
     {
       "id": "seq_step_19",
@@ -2888,7 +2835,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep19",
-      "index": 143
+      "index": 141
     },
     {
       "id": "seq_step_20",
@@ -2907,7 +2854,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep20",
-      "index": 144
+      "index": 142
     },
     {
       "id": "seq_step_21",
@@ -2926,7 +2873,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep21",
-      "index": 145
+      "index": 143
     },
     {
       "id": "seq_step_22",
@@ -2945,7 +2892,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep22",
-      "index": 146
+      "index": 144
     },
     {
       "id": "seq_step_23",
@@ -2964,7 +2911,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep23",
-      "index": 147
+      "index": 145
     },
     {
       "id": "seq_step_24",
@@ -2983,7 +2930,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep24",
-      "index": 148
+      "index": 146
     },
     {
       "id": "seq_step_25",
@@ -3002,7 +2949,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep25",
-      "index": 149
+      "index": 147
     },
     {
       "id": "seq_step_26",
@@ -3021,7 +2968,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep26",
-      "index": 150
+      "index": 148
     },
     {
       "id": "seq_step_27",
@@ -3040,7 +2987,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep27",
-      "index": 151
+      "index": 149
     },
     {
       "id": "seq_step_28",
@@ -3059,7 +3006,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep28",
-      "index": 152
+      "index": 150
     },
     {
       "id": "seq_step_29",
@@ -3078,7 +3025,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep29",
-      "index": 153
+      "index": 151
     },
     {
       "id": "seq_step_30",
@@ -3097,7 +3044,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep30",
-      "index": 154
+      "index": 152
     },
     {
       "id": "seq_step_31",
@@ -3116,7 +3063,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep31",
-      "index": 155
+      "index": 153
     },
     {
       "id": "seq_step_32",
@@ -3135,7 +3082,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "SeqStep32",
-      "index": 156
+      "index": 154
     },
     {
       "id": "chord_enable",
@@ -3154,7 +3101,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ChordEnable",
-      "index": 157
+      "index": 155
     },
     {
       "id": "poly_chord_enable",
@@ -3173,7 +3120,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "PolyChordEnable",
-      "index": 158
+      "index": 156
     },
     {
       "id": "chord_key",
@@ -3192,7 +3139,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ChordKey",
-      "index": 159
+      "index": 157
     },
     {
       "id": "chord_type",
@@ -3211,7 +3158,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ChordType",
-      "index": 160
+      "index": 158
     },
     {
       "id": "arp_enable",
@@ -3230,7 +3177,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpEnable",
-      "index": 161
+      "index": 159
     },
     {
       "id": "arp_mode",
@@ -3261,7 +3208,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpMode",
-      "index": 162
+      "index": 160
     },
     {
       "id": "arp_rate",
@@ -3280,7 +3227,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpRate",
-      "index": 163
+      "index": 161
     },
     {
       "id": "arp_clock_divider",
@@ -3313,7 +3260,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpClockDivider",
-      "index": 164
+      "index": 162
     },
     {
       "id": "arp_key_sync",
@@ -3332,7 +3279,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpKeySync",
-      "index": 165
+      "index": 163
     },
     {
       "id": "arp_gate_time",
@@ -3347,34 +3294,11 @@
       "legacyCC": null,
       "ccConflict": false,
       "name": "Arp Gate Time",
-      "desc": "Also alias arp_gate",
+      "desc": "Duración de la nota del arpegio: antes compartía byte con arp_gate",
       "defaultValue": null,
-      "aliases": [
-        "arp_gate"
-      ],
+      "aliases": [],
       "cppName": "ArpGateTime",
-      "index": 166
-    },
-    {
-      "id": "arp_gate",
-      "byteOffset": 160,
-      "category": "physical",
-      "region": "Arp",
-      "codecType": "value",
-      "byteMapType": "value",
-      "enumMax": null,
-      "enumLabels": null,
-      "cc": 13,
-      "legacyCC": null,
-      "ccConflict": false,
-      "name": "Arp Gate Time",
-      "desc": "Also alias arp_gate",
-      "defaultValue": null,
-      "aliases": [
-        "arp_gate_time"
-      ],
-      "cppName": "ArpGate",
-      "index": 167
+      "index": 164
     },
     {
       "id": "arp_hold",
@@ -3393,7 +3317,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpHold",
-      "index": 168
+      "index": 165
     },
     {
       "id": "arp_pattern",
@@ -3412,7 +3336,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpPattern",
-      "index": 169
+      "index": 166
     },
     {
       "id": "arp_swing",
@@ -3431,7 +3355,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpSwing",
-      "index": 170
+      "index": 167
     },
     {
       "id": "arp_octave",
@@ -3450,7 +3374,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpOctave",
-      "index": 171
+      "index": 168
     },
     {
       "id": "fx_routing",
@@ -3480,7 +3404,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "FxRouting",
-      "index": 172
+      "index": 169
     },
     {
       "id": "fx1_type",
@@ -3499,7 +3423,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Type",
-      "index": 173
+      "index": 170
     },
     {
       "id": "fx1_param1",
@@ -3518,7 +3442,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param1",
-      "index": 174
+      "index": 171
     },
     {
       "id": "fx1_param2",
@@ -3537,7 +3461,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param2",
-      "index": 175
+      "index": 172
     },
     {
       "id": "fx1_param3",
@@ -3556,7 +3480,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param3",
-      "index": 176
+      "index": 173
     },
     {
       "id": "fx1_param4",
@@ -3575,7 +3499,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param4",
-      "index": 177
+      "index": 174
     },
     {
       "id": "fx1_param5",
@@ -3594,7 +3518,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param5",
-      "index": 178
+      "index": 175
     },
     {
       "id": "fx1_param6",
@@ -3613,7 +3537,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param6",
-      "index": 179
+      "index": 176
     },
     {
       "id": "fx1_param7",
@@ -3632,7 +3556,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param7",
-      "index": 180
+      "index": 177
     },
     {
       "id": "fx1_param8",
@@ -3651,7 +3575,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param8",
-      "index": 181
+      "index": 178
     },
     {
       "id": "fx1_param9",
@@ -3670,7 +3594,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param9",
-      "index": 182
+      "index": 179
     },
     {
       "id": "fx1_param10",
@@ -3689,7 +3613,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param10",
-      "index": 183
+      "index": 180
     },
     {
       "id": "fx1_param11",
@@ -3708,7 +3632,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param11",
-      "index": 184
+      "index": 181
     },
     {
       "id": "fx1_param12",
@@ -3727,7 +3651,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param12",
-      "index": 185
+      "index": 182
     },
     {
       "id": "fx2_type",
@@ -3746,7 +3670,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Type",
-      "index": 186
+      "index": 183
     },
     {
       "id": "fx2_param1",
@@ -3765,7 +3689,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param1",
-      "index": 187
+      "index": 184
     },
     {
       "id": "fx2_param2",
@@ -3784,7 +3708,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param2",
-      "index": 188
+      "index": 185
     },
     {
       "id": "fx2_param3",
@@ -3803,7 +3727,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param3",
-      "index": 189
+      "index": 186
     },
     {
       "id": "fx2_param4",
@@ -3822,7 +3746,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param4",
-      "index": 190
+      "index": 187
     },
     {
       "id": "fx2_param5",
@@ -3841,7 +3765,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param5",
-      "index": 191
+      "index": 188
     },
     {
       "id": "fx2_param6",
@@ -3860,7 +3784,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param6",
-      "index": 192
+      "index": 189
     },
     {
       "id": "fx2_param7",
@@ -3879,7 +3803,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param7",
-      "index": 193
+      "index": 190
     },
     {
       "id": "fx2_param8",
@@ -3898,7 +3822,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param8",
-      "index": 194
+      "index": 191
     },
     {
       "id": "fx2_param9",
@@ -3917,7 +3841,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param9",
-      "index": 195
+      "index": 192
     },
     {
       "id": "fx2_param10",
@@ -3936,7 +3860,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param10",
-      "index": 196
+      "index": 193
     },
     {
       "id": "fx2_param11",
@@ -3955,7 +3879,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param11",
-      "index": 197
+      "index": 194
     },
     {
       "id": "fx2_param12",
@@ -3974,7 +3898,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param12",
-      "index": 198
+      "index": 195
     },
     {
       "id": "fx3_type",
@@ -3993,7 +3917,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Type",
-      "index": 199
+      "index": 196
     },
     {
       "id": "fx3_param1",
@@ -4012,7 +3936,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param1",
-      "index": 200
+      "index": 197
     },
     {
       "id": "fx3_param2",
@@ -4031,7 +3955,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param2",
-      "index": 201
+      "index": 198
     },
     {
       "id": "fx3_param3",
@@ -4050,7 +3974,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param3",
-      "index": 202
+      "index": 199
     },
     {
       "id": "fx3_param4",
@@ -4069,7 +3993,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param4",
-      "index": 203
+      "index": 200
     },
     {
       "id": "fx3_param5",
@@ -4088,7 +4012,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param5",
-      "index": 204
+      "index": 201
     },
     {
       "id": "fx3_param6",
@@ -4107,7 +4031,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param6",
-      "index": 205
+      "index": 202
     },
     {
       "id": "fx3_param7",
@@ -4126,7 +4050,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param7",
-      "index": 206
+      "index": 203
     },
     {
       "id": "fx3_param8",
@@ -4145,7 +4069,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param8",
-      "index": 207
+      "index": 204
     },
     {
       "id": "fx3_param9",
@@ -4164,7 +4088,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param9",
-      "index": 208
+      "index": 205
     },
     {
       "id": "fx3_param10",
@@ -4183,7 +4107,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param10",
-      "index": 209
+      "index": 206
     },
     {
       "id": "fx3_param11",
@@ -4202,7 +4126,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param11",
-      "index": 210
+      "index": 207
     },
     {
       "id": "fx3_param12",
@@ -4221,7 +4145,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param12",
-      "index": 211
+      "index": 208
     },
     {
       "id": "fx4_type",
@@ -4240,7 +4164,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Type",
-      "index": 212
+      "index": 209
     },
     {
       "id": "fx4_param1",
@@ -4259,7 +4183,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param1",
-      "index": 213
+      "index": 210
     },
     {
       "id": "fx4_param2",
@@ -4278,7 +4202,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param2",
-      "index": 214
+      "index": 211
     },
     {
       "id": "fx4_param3",
@@ -4297,7 +4221,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param3",
-      "index": 215
+      "index": 212
     },
     {
       "id": "fx4_param4",
@@ -4316,7 +4240,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param4",
-      "index": 216
+      "index": 213
     },
     {
       "id": "fx4_param5",
@@ -4335,7 +4259,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param5",
-      "index": 217
+      "index": 214
     },
     {
       "id": "fx4_param6",
@@ -4354,7 +4278,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param6",
-      "index": 218
+      "index": 215
     },
     {
       "id": "fx4_param7",
@@ -4373,7 +4297,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param7",
-      "index": 219
+      "index": 216
     },
     {
       "id": "fx4_param8",
@@ -4392,7 +4316,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param8",
-      "index": 220
+      "index": 217
     },
     {
       "id": "fx4_param9",
@@ -4411,7 +4335,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param9",
-      "index": 221
+      "index": 218
     },
     {
       "id": "fx4_param10",
@@ -4430,7 +4354,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param10",
-      "index": 222
+      "index": 219
     },
     {
       "id": "fx4_param11",
@@ -4449,7 +4373,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param11",
-      "index": 223
+      "index": 220
     },
     {
       "id": "fx4_param12",
@@ -4468,7 +4392,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param12",
-      "index": 224
+      "index": 221
     },
     {
       "id": "fx1_gain",
@@ -4487,7 +4411,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Gain",
-      "index": 225
+      "index": 222
     },
     {
       "id": "fx2_gain",
@@ -4506,7 +4430,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Gain",
-      "index": 226
+      "index": 223
     },
     {
       "id": "fx3_gain",
@@ -4525,7 +4449,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Gain",
-      "index": 227
+      "index": 224
     },
     {
       "id": "fx4_gain",
@@ -4544,7 +4468,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Gain",
-      "index": 228
+      "index": 225
     },
     {
       "id": "fx_mode",
@@ -4567,7 +4491,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "FxMode",
-      "index": 229
+      "index": 226
     },
     {
       "id": "fx_feedback_gain",
@@ -4586,7 +4510,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "FxFeedbackGain",
-      "index": 230
+      "index": 227
     },
     {
       "id": "fx_send_level",
@@ -4605,7 +4529,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "FxSendLevel",
-      "index": 231
+      "index": 228
     },
     {
       "id": "vcf_model",
@@ -4624,7 +4548,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfModel",
-      "index": 232
+      "index": 229
     },
     {
       "id": "vcf_moog_submode",
@@ -4643,7 +4567,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfMoogSubmode",
-      "index": 233
+      "index": 230
     },
     {
       "id": "vcf_korg_submode",
@@ -4662,7 +4586,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfKorgSubmode",
-      "index": 234
+      "index": 231
     },
     {
       "id": "vcf_voicing_mode",
@@ -4681,7 +4605,7 @@
       "defaultValue": 0,
       "aliases": [],
       "cppName": "VcfVoicingMode",
-      "index": 235
+      "index": 232
     }
   ],
   "byteMap": [
@@ -5592,7 +5516,7 @@
       "param": "Voice Drift",
       "region": "Voice",
       "type": "value",
-      "desc": "Also alias osc_drift",
+      "desc": "Vintage drift: antes compartía byte con osc_drift",
       "enumLabels": null,
       "id": "voice_drift"
     },
@@ -6287,7 +6211,7 @@
       "param": "Arp Gate Time",
       "region": "Arp",
       "type": "value",
-      "desc": "Also alias arp_gate",
+      "desc": "Duración de la nota del arpegio: antes compartía byte con arp_gate",
       "enumLabels": null,
       "id": "arp_gate_time"
     },
@@ -7036,30 +6960,7 @@
       "id": null
     }
   ],
-  "specOnly": [
-    {
-      "id": "slot_a_type",
-      "name": "Slot A Osc Type",
-      "block": "custom",
-      "type": "enum",
-      "description": "Configura el motor asignado al Slot A del emulador",
-      "options": [
-        "OSC1_Style",
-        "OSC2_Style"
-      ]
-    },
-    {
-      "id": "slot_b_type",
-      "name": "Slot B Osc Type",
-      "block": "custom",
-      "type": "enum",
-      "description": "Configura el motor asignado al Slot B del emulador",
-      "options": [
-        "OSC1_Style",
-        "OSC2_Style"
-      ]
-    }
-  ],
+  "specOnly": [],
   "warnings": [
     {
       "code": "CC_LEGACY_DIVERGENCE",
@@ -7095,16 +6996,16 @@
     }
   ],
   "summary": {
-    "total": 236,
-    "physical": 226,
+    "total": 233,
+    "physical": 223,
     "extended": 3,
     "virtual": 7,
-    "aliasGroups": 3,
-    "enumCount": 50,
+    "aliasGroups": 0,
+    "enumCount": 49,
     "bipolarCount": 43,
-    "valueCount": 143,
-    "ccCount": 33,
-    "specOnlyCount": 2,
+    "valueCount": 141,
+    "ccCount": 32,
+    "specOnlyCount": 0,
     "warningCount": 8
   }
 }

@@ -81,27 +81,8 @@ function initEffectsControls() {
         });
     }
 
-    // Page buttons
-    const page1Btn = document.getElementById('fx-page-1-btn');
-    const page2Btn = document.getElementById('fx-page-2-btn');
-    if (page1Btn && page2Btn) {
-        page1Btn.addEventListener('click', () => {
-            page1Btn.classList.add('active');
-            page2Btn.classList.remove('active');
-            window._activeFxPage = 1;
-            if (typeof window.renderActiveEffectParams === 'function') {
-                window.renderActiveEffectParams();
-            }
-        });
-        page2Btn.addEventListener('click', () => {
-            page2Btn.classList.add('active');
-            page1Btn.classList.remove('active');
-            window._activeFxPage = 2;
-            if (typeof window.renderActiveEffectParams === 'function') {
-                window.renderActiveEffectParams();
-            }
-        });
-    }
+    // (Los botones de P1/P2 se fueron con la pantalla de un solo hueco: los
+    // doce mandos de un hueco se ven de una vez, asi que no hay dos paginas.)
 
     // Mode buttons (Insert / Send / Bypass)
     const modeIns = document.getElementById('fx-mode-ins-btn');

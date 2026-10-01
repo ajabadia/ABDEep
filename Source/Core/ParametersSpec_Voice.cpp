@@ -29,10 +29,5 @@ std::vector<ParametersSpec::ParamInfo> ParametersSpec::getVoiceSpecs()
         { "master_softclip_headroom", "Master Soft Clip Headroom", "performance", "float", 0.0f, 1.0f, 0.0f, -1, -1, {} },
         { "global_tune", "Global Tune", "performance", "float", -128.0f, 127.0f, 0.0f, -1, -1, {} },
         { "transpose", "Transpose", "performance", "float", -48.0f, 48.0f, 0.0f, -1, -1, {} },
-        { "osc_drift", "OSC Drift", "performance", "float", 0.0f, 1.0f, 0.0f, -1, -1, {} },
-
-        // Special Emulator Slots (no NRPN)
-        { "slot_a_type", "Slot A Osc Type", "custom", "enum", 0.0f, 1.0f, 0.0f, -1, -1, { "OSC1_Style", "OSC2_Style" } },
-        { "slot_b_type", "Slot B Osc Type", "custom", "enum", 0.0f, 1.0f, 1.0f, -1, -1, { "OSC1_Style", "OSC2_Style" } },
     };
 }

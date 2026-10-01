@@ -13,8 +13,14 @@
     "test:legacy": "echo All legacy tests have been migrated to Vitest — use \"npm test\" instead",
     "lint": "eslint WebUI/js/ WebUI/scripts/ --ext .js --max-warnings 0",
     "lint:ci": "eslint WebUI/js/ WebUI/scripts/ --ext .js --max-warnings 0",
+    "generate:registry": "node --loader ts-node/esm Scripts/registry_generator.ts",
+    "generate:registry:watch": "node --loader ts-node/esm --watch Scripts/registry_generator.ts",
+    "generate:fx-contract": "node scripts/generate_fx_contract.mjs",
+    "generate:fx-contract:check": "node scripts/generate_fx_contract.mjs --check",
     "calibration:export": "node WebUI/scripts/export-calibration-run.js",
-    "calibration:export:ci": "node WebUI/scripts/export-calibration-run.js --ci"
+    "calibration:export:ci": "node WebUI/scripts/export-calibration-run.js --ci",
+    "bundle": "node scripts/build_webui.js",
+    "dev": "npx vite --config WebUI/vite.config.js"
   },
   "repository": {
     "type": "git",
@@ -23,19 +29,23 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/ajabadia/ABDEep/issues"
   },
   "homepage": "https://github.com/ajabadia/ABDEep#readme",
   "dependencies": {
+    "@abdsynths/midi-keyb": "workspace:*",
+    "@abdsynths/shared": "workspace:*",
     "jspdf": "^4.2.1"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^1.6.1",
     "eslint": "^8.57.1",
     "midi": "^2.0.0",
-    "vite": "^6.4.3",
-    "vitest": "^4.1.10"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.21",
+    "vitest": "^1.6.1"
   }
 }

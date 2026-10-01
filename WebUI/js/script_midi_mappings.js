@@ -94,7 +94,6 @@ window.MIDI_NRPN_MAP = {
     'arp_clock_divider': 'NRPN 1:30',
     'arp_key_sync': 'NRPN 1:31',
     'arp_gate_time': 'NRPN 1:32 (CC 13)',
-    'arp_gate': 'NRPN 1:32 (CC 13)',
     'arp_hold': 'NRPN 1:33',
     'arp_pattern': 'NRPN 1:34',
     'arp_swing': 'NRPN 1:35',

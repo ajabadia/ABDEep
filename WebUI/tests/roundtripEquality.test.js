@@ -16,9 +16,12 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 
 import registry from '../js/registry.gen.js';
+// El corpus A-H necesita `fs` real: se carga el MISMO modulo por ESM (el interop
+// de Vitest expone module.exports como exportaciones nombradas). Con require()
+// bajo type:module el namespace sale vacio y loadCorpusFromBanks no existiria.
+import * as RTE_NODE from '../js/roundtrip_equality.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -33,11 +36,6 @@ function loadJsGlobal(relPath) {
 
 const RTE = loadJsGlobal('WebUI/js/roundtrip_equality.js').RoundTripEquality;
 const PACKER = loadJsGlobal('WebUI/js/browser_packer.js');
-
-// Instancia en contexto Node real (con `require`) para cargar el corpus A–H;
-// el sandbox `new Function` no expone `require` a los módulos UMD.
-const requireNode = createRequire(import.meta.url);
-const RTE_NODE = requireNode('../../WebUI/js/roundtrip_equality.js');
 
 // ── Corpus A–H (disponible en local y en CI roundtrip-corpus) ──
 const BANKS_DIR = path.join(ROOT, 'resources', 'banks', 'Factory Banks V1.1.2');

@@ -6,13 +6,11 @@ namespace ABD
 {
     FXSpaceEchoRE201::FXSpaceEchoRE201()
     {
-        delayBufL.resize(kMaxDelay + 1, 0.0f);
-        delayBufR.resize(kMaxDelay + 1, 0.0f);
-        delayMask = kMaxDelay;
+        delayBufL.assign(kDelaySize, 0.0f);
+        delayBufR.assign(kDelaySize, 0.0f);
 
-        reverbBufL.resize(kReverbSize + 1, 0.0f);
-        reverbBufR.resize(kReverbSize + 1, 0.0f);
-        reverbMask = kReverbSize;
+        reverbBufL.assign(kReverbSize, 0.0f);
+        reverbBufR.assign(kReverbSize, 0.0f);
 
         // RE-201 head configurations (normalized 0-1 within delay range)
         // Mode A: head1 only; B: head1+2; C: head1+3; D: head2+3; E: all three
@@ -73,11 +71,11 @@ namespace ABD
     float FXSpaceEchoRE201::readTape(const std::vector<float>& buf, float delaySamples) const
     {
         float readPos = (float)writePos - delaySamples;
-        if (readPos < 0.0f) readPos += (float)(delayMask + 1);
+        if (readPos < 0.0f) readPos += (float)(kDelayMask + 1);
         int idx0 = (int)readPos;
         float frac = readPos - (float)idx0;
-        idx0 &= delayMask;
-        int idx1 = (idx0 + 1) & delayMask;
+        idx0 &= kDelayMask;
+        int idx1 = (idx0 + 1) & kDelayMask;
         return buf[idx0] + frac * (buf[idx1] - buf[idx0]);
     }
 
@@ -93,8 +91,11 @@ namespace ABD
         int modeIdx = std::clamp((int)(paramMode * 4.99f), 0, 4);
         const ModeConfig& mc = modeConfigs[modeIdx];
 
-        // Delay time: 120ms to 1500ms
-        float maxDelay = std::min((float)(kMaxDelay - 1),
+        // Delay time: 120ms to 1500ms. The head never reads further than
+        // 0.65 * 1.5 = 0.975 of `maxDelay`, so this is also the guarantee that
+        // every read lands inside the line and the single wrap fixup in
+        // `readTape` is always enough.
+        float maxDelay = std::min((float)kDelayMask,
                                    (float)(sampleRate * 1.5));
         float baseDelay = 0.12f + paramTime * 1.38f;
         float delaySec = baseDelay * (maxDelay / (float)sampleRate);
@@ -152,18 +153,18 @@ namespace ABD
 
             delayBufL[writePos] = writeL;
             delayBufR[writePos] = writeR;
-            writePos = (writePos + 1) & delayMask;
+            writePos = (writePos + 1) & kDelayMask;
 
             // Simple reverb tank
             float revIn = (fbL + fbR) * 0.5f;
-            float revReadL = reverbBufL[(reverbWPos - (int)(sampleRate * 0.08f) + reverbMask + 1) & reverbMask];
-            float revReadR = reverbBufR[(reverbWPos - (int)(sampleRate * 0.11f) + reverbMask + 1) & reverbMask];
+            float revReadL = reverbBufL[(reverbWPos - (int)(sampleRate * 0.08f) + kReverbMask + 1) & kReverbMask];
+            float revReadR = reverbBufR[(reverbWPos - (int)(sampleRate * 0.11f) + kReverbMask + 1) & kReverbMask];
             float revDiff = (revReadL + revReadR) * 0.5f;
             float revNew = revIn * 0.4f - revDiff * 0.35f;
             reverbLP += bCoeff * (revNew - reverbLP);
             reverbBufL[reverbWPos] = reverbLP + tapeNoise() * 0.5f;
             reverbBufR[reverbWPos] = reverbLP * 0.97f + tapeNoise() * 0.5f;
-            reverbWPos = (reverbWPos + 1) & reverbMask;
+            reverbWPos = (reverbWPos + 1) & kReverbMask;
 
             // Output mix: dry + heads + reverb
             float dryGain = 0.75f;

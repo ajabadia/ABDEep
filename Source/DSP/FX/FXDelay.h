@@ -34,6 +34,31 @@ namespace ABD
         void setParameter(int index, float value) override;
         void reset() override;
         int getNumParameters() const override { return 12; }
+
+        /**
+         * Los parametros que mueve el destino `Fx N Parameters`: el TIEMPO
+         * (indice 1) y los dos FEEDBACK (9 y 10).
+         *
+         * Son estos y no los dos primeros porque los dos primeros son la mezcla
+         * y el tiempo: modular la mezcla con un LFO no hace nada musical, y el
+         * feedback es lo que de verdad cambia el timbre del retardo. Y los dos
+         * feedbacks van juntos porque un retardo con el feedback solo en el
+         * canal izquierdo no es un retardo, es un retardo cojo.
+         *
+         * Lo declara el propio efecto, asi que el bus no tiene que saber que
+         * este efecto es un retardo.
+         */
+        int getModulationParams(int* indices, int maxCount) const override
+        {
+            const int declarados[3] = { 1, 9, 10 };   // tiempo, feedback L, feedback R
+
+            const int n = juce::jmin(maxCount, 3);
+
+            for (int i = 0; i < n; ++i)
+                indices[i] = declarados[i];
+
+            return n;
+        }
         juce::String getEffectName() const override { return "Delay"; }
 
     private:

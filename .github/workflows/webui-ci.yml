@@ -15,7 +15,6 @@ on:
       - "WebUI/**"
       - "docs/**"
       - "package.json"
-      - "package-lock.json"
       - ".github/workflows/webui-ci.yml"
 
 permissions:
@@ -37,24 +36,31 @@ jobs:
       CALIBRATION_OUTPUT_DIR: artifacts/calibration-runs
       CALIBRATION_RUN_ID: ${{ github.run_id }}
 
+    # Todos los pasos de shell corren dentro de ABDEep; los paquetes compartidos
+    # quedan como hermanos suyos (ver el layout de los checkouts).
+    defaults:
+      run:
+        working-directory: ABDEep
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # ── Layout del monorepo ────────────────────────────────────────────────
+      # WebUI/js y los tests importan @abdsynths/shared y @abdsynths/midi-keyb,
+      # declarados como "workspace:*". Esos paquetes NO estan publicados en
+      # ningun registry: solo existen como hermanos dentro del workspace pnpm de
+      # la suite (en local, node_modules/@abdsynths/* son symlinks a ../).
+      # Sin ellos `pnpm install` no resuelve nada y no hay WebUI que testear.
+      # La accion vive en ABDSharedCode y es la MISMA que usa ABDMS2000; ya
+      # omite la descarga del Chromium de puppeteer (input con default true).
+      - name: Bootstrap pnpm workspace (multi-repo)
+        uses: ajabadia/ABDSharedCode/.github/actions/pnpm-workspace-bootstrap@master
         with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm install
+          project: ABDEep
 
       - name: Run JavaScript lint (zero warnings)
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Run full Vitest suite
-        run: npm test
+        run: pnpm test
 
       - name: Verify WebUI serves correctly
         run: |
@@ -87,7 +93,7 @@ jobs:
       - name: Export Calibration Lab reports
         if: steps.check_cal_inputs.outputs.has_inputs == 'true'
         run: >
-          npm run calibration:export:ci --
+          pnpm run calibration:export:ci --
           --input-dir "${CALIBRATION_INPUT_DIR}"
           --output-dir "${CALIBRATION_OUTPUT_DIR}"
           --run-id "${CALIBRATION_RUN_ID}"
@@ -99,12 +105,14 @@ jobs:
           find "${CALIBRATION_OUTPUT_DIR}" -maxdepth 2 -type f | sort
           test -f "${CALIBRATION_OUTPUT_DIR}/manifest.json"
 
+      # upload-artifact resuelve rutas desde la raiz del workspace, no desde el
+      # working-directory del job: por eso van con el prefijo ABDEep/.
       - name: Upload calibration artifact bundle
         if: steps.check_cal_inputs.outputs.has_inputs == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: calibration-runs-${{ github.run_id }}
-          path: artifacts/calibration-runs/
+          path: ABDEep/artifacts/calibration-runs/
           if-no-files-found: error
           retention-days: 14
 
@@ -116,13 +124,13 @@ jobs:
             echo "Verificando artefactos de Audio A/B generados durante las pruebas..."
             find artifacts/audio-ab -type f | sort
           else
-            echo "No se generaron corridas de Audio A/B físicas en el entorno headless de CI (esperado)."
+            echo "No se generaron corridas de Audio A/B fisicas en el entorno headless de CI (esperado)."
           fi
 
       - name: Upload Audio A/B artifact bundle
         uses: actions/upload-artifact@v4
         with:
           name: audio-ab-runs-${{ github.run_id }}
-          path: artifacts/audio-ab/
+          path: ABDEep/artifacts/audio-ab/
           if-no-files-found: ignore
           retention-days: 14

@@ -81,21 +81,43 @@ namespace ABD
         kEnv3Sustain,
         kEnv3Release,
 
-        // EFECTOS (FX)
-        kFx1Level,
-        kFx2Level,
-        kFx3Level,
-        kFx4Level,
-        kFx1Param1,
-        kFx1Param2,
-        kFx2Param1,
-        kFx2Param2,
-        kFx3Param1,
-        kFx3Param2,
-        kFx4Param1,
-        kFx4Param2,
+        // BUS DE EFECTOS (FX). Los ocho destinos que nombra el manual del
+        // DeepMind 12 --`Fx 1..4 Parameters` y `Fx 1..4 Level`-- y NUMERADOS
+        // COMO EL MANUAL (74-81), no con el correlativo del enum.
+        //
+        // Y POR QUE EL NUMERO ES EL DEL MANUAL Y NO EL DEL ENUM. El byte de
+        // destino ES el manual: la tabla que ve el usuario la escribe
+        // `modmatrix_data.js` con esos codigos y el motor castea el byte crudo
+        // tal cual (`static_cast<ModDestination>`). Con el bloque al final del
+        // enum, en 36-47, el motor ejecutaba una ruta distinta de la que el
+        // usuario acababa de elegir sin que nada lo dijera. Aqui el codigo del
+        // byte ES el valor del enum, asi que el casteo sigue siendo el de
+        // siempre y las dos historias cuentan lo mismo.
+        //
+        // Y POR QUE OCHO Y NO DOCE. El enum declaraba `kFx1Param1` Y
+        // `kFx1Param2`, dos parametros por hueco. El manual tiene UNO por
+        // hueco, `Fx 1 Parameters`: los doce eran de mas, y un destino de
+        // modulacion que el hardware no ejerce es un destino que el usuario
+        // elige y no pasa nada. Un `Fx N Parameters` mueve los dos parametros
+        // que cada efecto declare modulables (ver `FXBase::getModulationParams`).
+        kFx1Parameters = 74,
+        kFx2Parameters = 75,
+        kFx3Parameters = 76,
+        kFx4Parameters = 77,
+        kFx1Level     = 78,
+        kFx2Level     = 79,
+        kFx3Level     = 80,
+        kFx4Level     = 81,
 
-        kMaxDestinations
+        /**
+            El numero de codigos que cubre el enum, no el numero de destinos.
+
+            No es lo mismo porque el bloque de FX se numera con los codigos del
+            manual (74-81) y el enum es mas disperso que una cuenta corrida: por
+            eso los bucles que-barren destinos tienen que ir hasta aqui y no
+            hasta "cuantos hay".
+        */
+        kMaxDestinations = 82
     };
 
     struct ModRoute

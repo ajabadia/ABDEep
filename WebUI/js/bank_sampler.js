@@ -8,5 +8,7 @@
 // Re-export for CommonJS
 if (typeof module !== 'undefined' && module.exports) {
     const algo = require('./bank_sampler_algo.js');
-    module.exports = algo;
+    // Bajo ESM/Vitest el interop entrega el namespace del modulo requerido en
+    // `.default`, no sus claves: sin esto la facade exportaba un objeto vacio.
+    module.exports = algo && algo.default ? algo.default : algo;
 }

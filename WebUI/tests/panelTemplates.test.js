@@ -1,4 +1,12 @@
 import { describe, it, expect} from 'vitest';
+import path from 'node:path';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
+
+// El sandbox `vm` carga los templates como scripts clasicos: __dirname no existe
+// en ESM y se deriva de import.meta.url.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /**
  * Tests for WebUI/js/panel_templates.js — HTML template generators for panel editor
  *
@@ -45,9 +53,6 @@ try {
     // would be available via require. But the file uses window. assignment.
     // Let's use a simpler approach: define the key expectation tests
     // that check typeof on the actual module.
-    const path = require('path');
-    const fs = require('fs');
-    const vm = require('vm');
     const sandbox = { window: {}, console: console };
     vm.createContext(sandbox);
     // Load template files (core + vcf + performance)

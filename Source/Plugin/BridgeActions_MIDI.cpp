@@ -26,7 +26,7 @@ void requestMidiDump (ABDEepAudioProcessor& audioProcessor,
             if (pc.isBankLoaded (bank))
             {
                 auto& bankData = pc.getBankData (bank);
-                if (prog >= 0 && prog < BankFileReader::kPatchesPerBank)
+                if (prog >= 0 && prog < ABD::BankFileReader::kPatchesPerBank)
                 {
                     const auto& patchBytes = bankData.patches[prog];
                     auto sysex = MidiTranslationEngine::createProgramDumpSysex (patchBytes, bank, prog);

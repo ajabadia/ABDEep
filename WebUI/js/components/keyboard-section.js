@@ -50,7 +50,7 @@
             </div>
 
             <canvas class="chord-display-canvas" style="width:100%;height:48px;border:1px solid var(--border-dim);border-radius:var(--radius-xs);background:var(--bg-deepest);margin:2px 0"></canvas>
-            <div id="ivory-keys-bed"></div>
+            <div id="piano-keyboard"></div>
         </div>
     `;
 

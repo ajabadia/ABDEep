@@ -38,6 +38,11 @@ function initArpeggiatorModal() {
 
     // ── Step Pattern Editor ────────────────────────────────────
     const stepEditor = window.createArpStepGrid(stepsGrid, stepsLabels, function(index, isOn) {
+        // The pattern the user is drawing IS the pattern the arpeggiator plays. Before
+        // this, the grid painted 32 bars and the arpeggiator never looked at them.
+        if (window.dualMidiBridge && typeof window.dualMidiBridge.setArpPattern === 'function') {
+            window.dualMidiBridge.setArpPattern(stepEditor.getSteps());
+        }
         // LCD feedback on step toggle
         const lcdText = document.getElementById('lcd-text');
         if (lcdText) {
@@ -65,6 +70,14 @@ function initArpeggiatorModal() {
     // ── Control Listeners (extraídos a arpeggiator_controls.js) ──
     window.initArpControls(backdrop, stepEditor, {
         getSelectedPreset: function() { return selectedArpPreset; },
-        onPresetRender: function() { renderArpPresets(); }
+        onPresetRender: function() { renderArpPresets(); },
+        // The engine asks for the pattern whenever the selector moves; this is the
+        // hook that hands it over. Without it the selector had 65 options and the
+        // engine never looked at any of them.
+        onPatternResolved: function(steps) {
+            if (window.dualMidiBridge && typeof window.dualMidiBridge.setArpPattern === 'function') {
+                window.dualMidiBridge.setArpPattern(steps);
+            }
+        }
     });
 }

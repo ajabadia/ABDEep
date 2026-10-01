@@ -22,10 +22,18 @@
  * UMD: window.RoundTripEquality (navegador) / module.exports (Node).
  */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) { module.exports = factory(); }
-  else if (typeof window !== 'undefined') { window.RoundTripEquality = factory(); }
-  else { root.RoundTripEquality = factory(); }
-})(typeof self !== 'undefined' ? self : this, function () {
+  // El factory se invoca UNA vez y el resultado se publica por los tres canales
+  // que existen en este proyecto:
+  //   - navegador (index.html carga este fichero como script clasico) -> window.*;
+  //   - Node/CJS (require, y el interop de Vitest) -> module.exports;
+  //   - ESM nativo (import) -> root, que DEBE ser globalThis: en un modulo ES
+  //     `this` es undefined y la rama antigua reventaba con
+  //     "Cannot set properties of undefined (setting 'RoundTripEquality')".
+  const api = factory();
+  if (typeof module === 'object' && module.exports) { module.exports = api; }
+  else if (typeof window !== 'undefined') { window.RoundTripEquality = api; }
+  else { root.RoundTripEquality = api; }
+})(typeof self !== 'undefined' ? self : globalThis, function () {
   'use strict';
 
   // ────────────────────────────────────────────────────────────────
@@ -578,11 +586,17 @@
    * Requiere Node.js (fs). No disponible en navegador.
    */
   function loadCorpusFromBanks(banksDir, bankLetters) {
-    if (typeof require !== 'function' || typeof process === 'undefined') {
+    // Bajo ESM nativo (los scripts de CI con type:module) no existe `require`:
+    // process.getBuiltinModule lo cubre sin necesidad de import estatico, que
+    // romperia la carga clasica en el navegador.
+    const loadBuiltin = (id) => (typeof require === 'function')
+      ? require(id)
+      : process.getBuiltinModule(id);
+    if (typeof process === 'undefined' || typeof process.getBuiltinModule !== 'function' && typeof require !== 'function') {
       throw new Error('loadCorpusFromBanks solo disponible en Node.js');
     }
-    let fs = require('fs');
-    let path = require('path');
+    let fs = loadBuiltin('fs');
+    let path = loadBuiltin('path');
     let letters = bankLetters || ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
     let corpus = [];
 

@@ -2,36 +2,38 @@
  * ciSubprocessTests.test.js — auditoría de tests con subprocesos (plan v3.2 Fase 7).
  *
  * Algunos tests de la suite dependen de SCRIPTS EXTERNOS (child_process con
- * execFileSync/execSync, o `require`/string-literal de `scripts/*.js`). Este test
- * garantiza que TODOS ellos quedan recogidos por el job `vitest` de webui-ci
+ * execFileSync/execSync, o referencias a `scripts/*.js`). Este test garantiza que
+ * TODOS ellos quedan recogidos por el job `vitest` de webui-ci
  * (`.github/workflows/webui-ci.yml` → `npm test`):
  *
  *   1. Detección estática: todo test file de `WebUI/tests/` que use child_process o
  *      referencie un script de `scripts/` se detecta automáticamente (sin lista
  *      manual que mantener).
  *   2. Existencia: cada script del que depende un test existe en `scripts/`.
- *   3. Recogida real: `vitest list` (la misma colección que corre `npm test`) incluye
- *      cada test file detectado.
+ *   3. Recogida real: la colección que corre `npm test` incluye cada test file
+ *      detectado (la enumera `./support/vitestSuite.js`, que delega en el propio
+ *      glob/config de vitest: aplica include y exclusiones reales).
  *   4. Sin filtros: webui-ci ejecuta `npm test` y vitest.config.js NO define
- *      `include:` (usa la convención por defecto: todos los *.test.js de WebUI).
+ *      `include:` (usa la convención por defecto).
  *
  * Fuentes auditadas (esperadas): roundtripCorpusScript, fuzzRoundtripScript,
  * domSanitize (security_scan), verifyDocsCiJobs, registryGen, checkWasmBuild,
- * baselineGuard y exportCalibrationRun.
+ * hwDumpValidate y exportCalibrationRun. (baselineGuard ya NO lanza subprocesos:
+ * delega en el helper compartido `./support/vitestSuite.js`.)
  */
 
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
+
+import { enumerateSuite } from './support/vitestSuite.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const TESTS_DIR = path.join(ROOT, 'WebUI', 'tests');
 const SCRIPTS_DIR = path.join(ROOT, 'scripts');
 const WEBUI_SCRIPTS_DIR = path.join(ROOT, 'WebUI', 'scripts');
-const VITEST_BIN = path.join(ROOT, 'node_modules', 'vitest', 'vitest.mjs');
 const VITEST_CONFIG = path.join(ROOT, 'vitest.config.js');
 const WEBUI_WF = path.join(ROOT, '.github', 'workflows', 'webui-ci.yml');
 const SELF_FILE = path.basename(fileURLToPath(import.meta.url));
@@ -77,17 +79,6 @@ export function allScriptDependentTests() {
   return result.sort((a, b) => a.file.localeCompare(b.file));
 }
 
-/** Corre `vitest list` en subproceso (misma colección que `npm test`) y devuelve el stdout. */
-function vitestListOutput() {
-  try {
-    return execFileSync(process.execPath, [VITEST_BIN, 'list'], {
-      cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 180000,
-    });
-  } catch (err) {
-    throw new Error('vitest list (subproceso) falló: ' + String(err.stderr || err.message).slice(0, 500));
-  }
-}
-
 describe('auditoría de tests con subprocesos (webui-ci → npm test)', () => {
   it('detecta los tests dependientes de scripts conocidos (smoke)', () => {
     const all = allScriptDependentTests();
@@ -96,7 +87,7 @@ describe('auditoría de tests con subprocesos (webui-ci → npm test)', () => {
     expect(byFile['WebUI/tests/fuzzRoundtripScript.test.js']).toContain('fuzz_roundtrip.js');
     expect(byFile['WebUI/tests/domSanitize.test.js']).toContain('security_scan.js');
     expect(byFile['WebUI/tests/verifyDocsCiJobs.test.js']).toContain('verify_docs_ci_jobs.js');
-    expect(byFile['WebUI/tests/baselineGuard.test.js']).toContain('child_process');
+    expect(byFile['WebUI/tests/checkWasmBuild.test.js']).toContain('child_process');
   });
 
   it('todo script referenciado por un test existe en scripts/', () => {
@@ -111,18 +102,24 @@ describe('auditoría de tests con subprocesos (webui-ci → npm test)', () => {
     expect(missing).toEqual([]);
   });
 
-  it('todos los tests dependientes de scripts se recogen en vitest list (colección de npm test)', () => {
+  it('todos los tests dependientes de scripts se recogen en la colección de la suite', () => {
     const all = allScriptDependentTests();
     expect(all.length).toBeGreaterThanOrEqual(7);
-    const listing = vitestListOutput();
+
+    // `enumerateSuite` delega en el glob/config de vitest, así que la lista de
+    // FICHEROS es autoritativa en cualquier versión: si algún test file quedara fuera
+    // de la colección (include cambiado, exclusión que lo cubra), esto falla.
+    const suite = enumerateSuite();
+
     for (const { file } of all) {
-      expect(listing.includes(file), file + ' no aparece en la colección de vitest').toBe(true);
+      expect(suite.files.includes(file), file + ' no aparece en la colección de vitest').toBe(true);
     }
   }, 120000);
 
   it('webui-ci.yml corre `npm test` sin filtros de include en vitest.config.js', () => {
     const wf = fs.readFileSync(WEBUI_WF, 'utf8');
-    expect(wf).toMatch(/run:\s*npm test/);
+    // El gestor es pnpm en el workspace; el contrato es el script "test" sin filtros.
+    expect(wf).toMatch(/run:\s*(?:npm|pnpm) test/);
     expect(wf).not.toMatch(/vitest run [a-zA-Z0-9_./-]+/); // sin paths restringidos
     const config = fs.readFileSync(VITEST_CONFIG, 'utf8');
     expect(config).not.toMatch(/\binclude\s*:/); // convención por defecto de vitest

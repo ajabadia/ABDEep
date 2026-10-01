@@ -77,6 +77,24 @@ namespace ABD
         void setGain(float gain);
         float getGain() const { return gain; }
 
+        /**
+         * Modulacion de la matriz sobre ESTE hueco, para los dos destinos que
+         * el manual le da: `Fx N Level` y `Fx N Parameters`.
+         *
+         * @param level       Buffer de la modulacion de nivel, UNA muestra por
+         *                    bloque de audio, con la cantidad YA DENTRO
+         *                    (`fuente * profundidad`, bipolar). No se copia: lo
+         *                    consume `process` y el llamante lo rellena en su
+         *                    propio bucle. Con `nullptr` el nivel no se modula.
+         * @param paramAmount Cantidad, en bipolar, con la que se mueven los
+         *                    parametros que el efecto declare modulables
+         *                    (`FXBase::getModulationParams`). Es una CONSTANTE de
+         *                    todo el bloque, no otra serie: el efecto lee sus
+         *                    parametros una vez al procesar. Con 0 no se tocan.
+         * @param numSamples  Longitud de `level`.
+         */
+        void setMatrixModulation(const float* level, float paramAmount, int numSamples);
+
         void setMix(float mix);
         float getMix() const { return mix; }
 
@@ -98,6 +116,12 @@ namespace ABD
         float params[12] = {};        // Parámetros normalizados 0-1
         float gain = 1.0f;            // Ganancia de salida
         float mix = 0.5f;             // Mezcla wet/dry
+
+        // Modulación de la matriz. `levelMod` NO se copia: apunta al buffer del
+        // motor, que lo rellena muestra a muestra en el mismo bucle. `paramMod`
+        // es una constante por bloque, y el motivo está en `process`.
+        const float* levelMod = nullptr;
+        float paramMod = 0.0f;
 
         std::unique_ptr<FXBase> effect;
 

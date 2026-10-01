@@ -46,7 +46,7 @@ function buildBridgeParamMaps() {
     'osc1_pitch_mod': 21, 'osc1_pm_source': 22,
     'osc1_lfo_aftertouch': 23, 'osc1_lfo_modwheel': 24, 'osc1_pwm_amount': 25,
     'osc2_level': 26, 'osc2_pitch': 27, 'osc2_tone_mod': 28, 'osc2_pitch_mod': 29,
-    'osc2_aftertouch_pitch': 30, 'osc2_modwheel_pitch': 31, 'osc2_pitch_mod_select': 32,
+    'osc2_aftertouch_pitch': 30, 'osc2_modwheel_pitch': 31,
     'noise_level': 33,
     'global_portamento': 34, 'porta_mode': 35,
     'pitch_bend_up': 36, 'pitch_bend_down': 37, 'osc1_pm_mode': 38,
@@ -65,7 +65,7 @@ function buildBridgeParamMaps() {
     'env3_sustain_curve': 78, 'env3_release_curve': 79,
     'vca_level': 80, 'vca_env_depth': 81, 'vca_vel_sens': 82, 'vca_pan_spread': 83,
     'note_priority': 84, 'voice_mode': 85, 'trigger_mode': 86,
-    'unison_detune': 87, 'voice_drift': 88, 'osc_drift': 88,
+    'unison_detune': 87, 'voice_drift': 88,
     'param_drift': 89, 'drift_rate': 90, 'porta_osc_bal': 91, 'osc_key_reset': 92,
     'mod_matrix_slot1_src': 93, 'mod_matrix_slot1_dest': 94, 'mod_matrix_slot1_depth': 95,
     'mod_matrix_slot2_src': 96, 'mod_matrix_slot2_dest': 97, 'mod_matrix_slot2_depth': 98,
@@ -84,9 +84,13 @@ function buildBridgeParamMaps() {
     'seq_step_21': 143, 'seq_step_22': 144, 'seq_step_23': 145, 'seq_step_24': 146, 'seq_step_25': 147,
     'seq_step_26': 148, 'seq_step_27': 149, 'seq_step_28': 150, 'seq_step_29': 151, 'seq_step_30': 152,
     'seq_step_31': 153, 'seq_step_32': 154,
-    'chord_enable': 105, 'poly_chord_enable': 106, 'chord_key': 107, 'chord_type': 108,
+    // Los `chord_*` son VIRTUALES (300-303) en el mapa real: el chord no tiene byte
+    // físico en el preset, así que se guardan en la región extendida. Este fixture
+    // los tenía en 105-108, encima de mod_matrix_slot5/6, lo que además los
+    // convertía en el cuarto grupo de colisión que el guard 2 tenía que cazar.
+    'chord_enable': 300, 'poly_chord_enable': 301, 'chord_key': 302, 'chord_type': 303,
     'arp_enable': 155, 'arp_mode': 156, 'arp_rate': 157, 'arp_clock_divider': 158,
-    'arp_key_sync': 159, 'arp_gate_time': 160, 'arp_gate': 160,
+    'arp_key_sync': 159, 'arp_gate_time': 160,
     'arp_hold': 161, 'arp_pattern': 162, 'arp_swing': 163, 'arp_octave': 164,
     'fx_routing': 165,
     'fx1_type': 166, 'fx1_param1': 167, 'fx1_param2': 168, 'fx1_param3': 169,
@@ -103,8 +107,8 @@ function buildBridgeParamMaps() {
     'fx4_param8': 213, 'fx4_param9': 214, 'fx4_param10': 215, 'fx4_param11': 216, 'fx4_param12': 217,
     'fx1_gain': 218, 'fx2_gain': 219, 'fx3_gain': 220, 'fx4_gain': 221,
     'fx_mode': 222,
-    'fx_feedback_gain': 223,
-    'fx_send_level': 225
+    'fx_feedback_gain': 304,
+    'fx_send_level': 305
   };
 
   const PARAM_TO_CC = {
@@ -120,7 +124,7 @@ function buildBridgeParamMaps() {
     'env2_attack': 42, 'env2_decay': 43, 'env2_sustain': 44, 'env2_release': 45,
     'env3_attack': 46, 'env3_decay': 47, 'env3_sustain': 48, 'env3_release': 49,
     'unison_detune': 28,
-    'arp_rate': 12, 'arp_gate_time': 13, 'arp_gate': 13,
+    'arp_rate': 12, 'arp_gate_time': 13,
     'global_volume': 7,
     'global_tune': 81,
     'transpose': 82
@@ -411,27 +415,55 @@ describe('PARAM_TO_BYTE_OFFSET', () => {
     maps = buildBridgeParamMaps();
   });
 
-  it('has all known parameter IDs with valid byte offsets (0-241)', () => {
+  it('todos los byteOffset caen en una región legítima (0-241, 242-299, 300+)', () => {
+    // Este test decía "0-241" para todo, y era falso: existen las regiones
+    // extendida (242-299) y virtual (300+), y el mapa real las usa —`chord_*`,
+    // `fx_feedback_gain`, `fx_send_level`, `vcf_model` y compañía—. El fixture
+    // viejo tenía los `chord_*` en 105-108, con lo que la región virtual
+    // parecía vacía y el test pasaba sin mirar nada.
+    //
+    // Lo que NO vale es un offset en 223-241: ese tramo es el nombre del patch
+    // (223-238) y la cola del payload (239-241). El generador lo rechaza con
+    // RESERVED_BYTE_COLLISION; aquí se comprueba que el mapa lo respeta.
     for (const paramId in maps.PARAM_TO_BYTE_OFFSET) {
       const byteOff = maps.PARAM_TO_BYTE_OFFSET[paramId];
-      expect(byteOff).toBeGreaterThanOrEqual(0);
-      expect(byteOff).toBeLessThanOrEqual(241);
+      expect(Number.isInteger(byteOff), `${paramId} no es un entero`).toBe(true);
+      expect(byteOff, `${paramId}=${byteOff} es negativo`).toBeGreaterThanOrEqual(0);
+      expect(byteOff, `${paramId}=${byteOff} no está en región válida`).toBeLessThanOrEqual(306);
+      expect(
+        byteOff < 223 || byteOff >= 242,
+        `${paramId}=${byteOff} cae en la región reservada (223-241: nombre del patch / cola)`
+      ).toBe(true);
     }
   });
 
-  it('has alias pair: voice_drift and osc_drift both map to byte 88', () => {
+  // Los tres alias que había (bytes 32, 88 y 160) han desaparecido: un byte con dos
+  // ids no es un parámetro inactivo, es un byte con DOS respuestas — el
+  // PatchByteCodec resuelve con findParameterByOffset, que devuelve el primero.
+  // Ahora el generador los rechaza con NRPN_COLLISION, y esto comprueba que no
+  // han vuelto por la puerta de atrás.
+  it('byte 88 es solo voice_drift (osc_drift ya no está)', () => {
     expect(maps.PARAM_TO_BYTE_OFFSET['voice_drift']).toBe(88);
-    expect(maps.PARAM_TO_BYTE_OFFSET['osc_drift']).toBe(88);
+    expect(maps.PARAM_TO_BYTE_OFFSET['osc_drift']).toBeUndefined();
   });
 
-  it('has alias pair: arp_gate_time and arp_gate both map to byte 160', () => {
+  it('byte 160 es solo arp_gate_time (arp_gate ya no está)', () => {
     expect(maps.PARAM_TO_BYTE_OFFSET['arp_gate_time']).toBe(160);
-    expect(maps.PARAM_TO_BYTE_OFFSET['arp_gate']).toBe(160);
+    expect(maps.PARAM_TO_BYTE_OFFSET['arp_gate']).toBeUndefined();
   });
 
-  it('has alias: osc2_pitch_mod_select maps to byte 32 (same as osc2_pm_source)', () => {
-    expect(maps.PARAM_TO_BYTE_OFFSET['osc2_pitch_mod_select']).toBe(32);
+  it('byte 32 es solo osc2_pm_source (osc2_pitch_mod_select ya no está)', () => {
     expect(maps.PARAM_TO_BYTE_OFFSET['osc2_pm_source']).toBe(32);
+    expect(maps.PARAM_TO_BYTE_OFFSET['osc2_pitch_mod_select']).toBeUndefined();
+  });
+
+  it('ningún byteOffset del mapa tiene dos ids', () => {
+    const byOffset = {};
+    for (const [id, off] of Object.entries(maps.PARAM_TO_BYTE_OFFSET)) {
+      (byOffset[off] = byOffset[off] || []).push(id);
+    }
+    const colisiones = Object.entries(byOffset).filter(([, ids]) => ids.length > 1);
+    expect(colisiones.map(([b, ids]) => `byte ${b}: ${ids.join(' + ')}`)).toEqual([]);
   });
 
   it('spot-check: vcf_cutoff → byte 39', () => {
@@ -487,9 +519,9 @@ describe('PARAM_TO_CC', () => {
     expect(maps.PARAM_TO_CC['global_portamento']).toBe(5);
   });
 
-  it('has alias: arp_gate_time and arp_gate both map to CC 13', () => {
+  it('CC 13 es solo arp_gate_time (arp_gate ya no está)', () => {
     expect(maps.PARAM_TO_CC['arp_gate_time']).toBe(13);
-    expect(maps.PARAM_TO_CC['arp_gate']).toBe(13);
+    expect(maps.PARAM_TO_CC['arp_gate']).toBeUndefined();
   });
 });
 
@@ -504,17 +536,25 @@ describe('BYTE_OFFSET_TO_PARAM_IDS (reverse lookup)', () => {
     maps = buildBridgeParamMaps();
   });
 
-  it('maps byte offset 88 back to both voice_drift and osc_drift', () => {
+  it('byte offset 88 maps back to voice_drift alone', () => {
     const ids = maps.BYTE_OFFSET_TO_PARAM_IDS[88];
     expect(ids).toBeDefined();
-    expect(ids).toContain('voice_drift');
-    expect(ids).toContain('osc_drift');
+    expect([...ids]).toEqual(['voice_drift']);
   });
 
-  it('maps byte offset 160 back to arp_gate_time and arp_gate', () => {
+  it('byte offset 160 maps back to arp_gate_time alone', () => {
     const ids = maps.BYTE_OFFSET_TO_PARAM_IDS[160];
-    expect(ids).toContain('arp_gate_time');
-    expect(ids).toContain('arp_gate');
+    expect([...ids]).toEqual(['arp_gate_time']);
+  });
+
+  it('byte offset 32 maps back to osc2_pm_source alone', () => {
+    const ids = maps.BYTE_OFFSET_TO_PARAM_IDS[32];
+    expect([...ids]).toEqual(['osc2_pm_source']);
+  });
+
+  it('no hay ningún byte que mapee a más de un id', () => {
+    const colisiones = Object.entries(maps.BYTE_OFFSET_TO_PARAM_IDS).filter(([, ids]) => ids.length > 1);
+    expect(colisiones.map(([b, ids]) => `byte ${b}: ${ids.join(' + ')}`)).toEqual([]);
   });
 
   it('maps byte offset 39 back to vcf_cutoff', () => {

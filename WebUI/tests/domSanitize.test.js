@@ -18,6 +18,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { escapeHtml } from '../js/dom_sanitize.js';
+import { auditSource, scanDir } from '../../scripts/security_scan.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const JS_DIR = path.join(ROOT, 'WebUI', 'js');
@@ -28,11 +31,6 @@ function loadJsGlobal(relPath) {
   const fn = new Function('window', code + '\n;return window;');
   return fn(sandbox.window);
 }
-
-const { escapeHtml } = require(path.join(JS_DIR, 'dom_sanitize.js'));
-// Fuente de verdad única del audit (Fase 3 §4.1 + job CI security-scan):
-// scripts/security_scan.js exporta los patrones y el detector reutilizado aquí.
-const { auditSource, scanDir } = require(path.join(ROOT, 'scripts', 'security_scan.js'));
 
 // ════════════════════════════════════════════════════════════════
 // 1. Unit tests — escapeHtml canónico
@@ -159,12 +157,14 @@ describe('Audit estático Fase 3 — sinks de parches/visores sin escape', () =>
     expect(src).toMatch(/window\.escapeHtml|globalThis\.escapeHtml/);
   });
 
-  it('las 4 fuentes de escapeHtml producen salida idéntica (consolidación Fase 6)', () => {
+  it('las 4 fuentes de escapeHtml producen salida idéntica (consolidación Fase 6)', async () => {
     const canonical = escapeHtml; // de dom_sanitize.js
     const inputs = ['<b>hi</b>', 'a&b', "it's", '"q"', null, undefined, 42, '', 'plain'];
 
     // effects_presets_data.js — su escapeHtml exportado (module.exports) DEBE delegar en el canónico
-    const effectsData = require(path.join(JS_DIR, 'effects_presets_data.js'));
+    // Import dinámico en el punto exacto donde estaba el require: el módulo se
+    // evalua AQUI (despues de fijar el canonico), no al cargar el fichero de test.
+    const effectsData = await import('../js/effects_presets_data.js');
     expect(typeof effectsData.escapeHtml).toBe('function');
     for (const input of inputs) {
       expect(effectsData.escapeHtml(input)).toBe(canonical(input));

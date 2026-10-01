@@ -4,9 +4,9 @@
  */
 
 function playKeyLedAnimation(type) {
-    const keybed = document.getElementById('ivory-keys-bed');
+    const keybed = document.getElementById('piano-keyboard');
     if (!keybed) {return;}
-    const keys = Array.from(keybed.querySelectorAll('.key'));
+    const keys = Array.from(keybed.querySelectorAll('.kbd-white-key, .kbd-black-key'));
     // Sort left to right by MIDI note
     keys.sort((a, b) => parseInt(a.getAttribute('data-note')) - parseInt(b.getAttribute('data-note')));
     
@@ -16,8 +16,8 @@ function playKeyLedAnimation(type) {
         clearInterval(window._activeKeyLedAnimationInterval);
         window._activeKeyLedAnimationInterval = null;
         keys.forEach(k => {
-            k.classList.remove('pushed-anim');
-            k.style.removeProperty('--key-led-color');
+            k.classList.remove('kbd-led-sweep');
+            k.style.removeProperty('--kbd-led-color');
         });
     }
 
@@ -29,22 +29,22 @@ function playKeyLedAnimation(type) {
         const interval = setInterval(() => {
             if (i < totalSteps) {
                 const key = keys[i];
-                key.classList.add('pushed-anim');
-                key.style.setProperty('--key-led-color', '#ff0000');
+                key.classList.add('kbd-led-sweep');
+                key.style.setProperty('--kbd-led-color', '#ff0000');
                 setTimeout(() => {
-                    key.classList.remove('pushed-anim');
-                    key.style.removeProperty('--key-led-color');
+                    key.classList.remove('kbd-led-sweep');
+                    key.style.removeProperty('--kbd-led-color');
                 }, 180);
                 i++;
             } else if (i < totalSteps * 2) {
                 const revIdx = totalSteps * 2 - 1 - i;
                 const key = keys[revIdx];
                 if (key) {
-                    key.classList.add('pushed-anim');
-                    key.style.setProperty('--key-led-color', '#ff0000');
+                    key.classList.add('kbd-led-sweep');
+                    key.style.setProperty('--kbd-led-color', '#ff0000');
                     setTimeout(() => {
-                        key.classList.remove('pushed-anim');
-                        key.style.removeProperty('--key-led-color');
+                        key.classList.remove('kbd-led-sweep');
+                        key.style.removeProperty('--kbd-led-color');
                     }, 180);
                 }
                 i++;
@@ -65,11 +65,11 @@ function playKeyLedAnimation(type) {
                 const key = keys[idx];
                 if (key) {
                     const hue = Math.round((i / totalSteps) * 360);
-                    key.classList.add('pushed-anim');
-                    key.style.setProperty('--key-led-color', `hsl(${hue}, 100%, 50%)`);
+                    key.classList.add('kbd-led-sweep');
+                    key.style.setProperty('--kbd-led-color', `hsl(${hue}, 100%, 50%)`);
                     setTimeout(() => {
-                        key.classList.remove('pushed-anim');
-                        key.style.removeProperty('--key-led-color');
+                        key.classList.remove('kbd-led-sweep');
+                        key.style.removeProperty('--kbd-led-color');
                     }, 250);
                 }
                 i++;
@@ -95,11 +95,11 @@ function playKeyLedAnimation(type) {
                 for (let kIdx = 0; kIdx < groupSize; kIdx++) {
                     const key = keys[start + kIdx];
                     if (key) {
-                        key.classList.add('pushed-anim');
-                        key.style.setProperty('--key-led-color', `hsl(${hue}, 100%, 50%)`);
+                        key.classList.add('kbd-led-sweep');
+                        key.style.setProperty('--kbd-led-color', `hsl(${hue}, 100%, 50%)`);
                         setTimeout(() => {
-                            key.classList.remove('pushed-anim');
-                            key.style.removeProperty('--key-led-color');
+                            key.classList.remove('kbd-led-sweep');
+                            key.style.removeProperty('--kbd-led-color');
                         }, 300);
                     }
                 }
@@ -113,3 +113,5 @@ function playKeyLedAnimation(type) {
 }
 
 window.playKeyLedAnimation = playKeyLedAnimation;
+// El keybed es el componente compartido: las teclas son .kbd-white-key /
+// .kbd-black-key y el LED se pinta con --kbd-led-color.

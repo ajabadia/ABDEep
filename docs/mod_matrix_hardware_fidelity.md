@@ -48,7 +48,7 @@ referencia del byte**, que es lo que el equipo acepta y acepta de vuelta.
 
 | # | Dónde | Qué dice |
 |---|---|---|
-| 1 | `Source/DSP/ModulationMatrix.h` (motor) | enum `ModSource` (24) y `ModDestination` (**48**) |
+| 1 | `Source/DSP/ModulationMatrix.h` (motor) | enum `ModSource` (24) y `ModDestination` (**44**), con el bus de fx en 74–81 |
 | 2 | `WebUI/js/modmatrix_data.js` (vista) | 25 fuentes; 74 destinos + relleno a 133; `Fx 1..4 Level` en 129–132 |
 | 3 | `WebUI/js/components/mod-matrix-canvas_data.js` (vista de grafos) | **otra** copia: 25 fuentes y **237** destinos, con `Fx1` en el índice **233** |
 | 4 | `docs/sysex_format.md` + registro | bytes 93–116; fuente 0–22, destino 0–129, profundidad bipolar |
@@ -59,11 +59,23 @@ byte no llega. Nadie lo detectó porque no había nada que lo comprobara.
 
 **La divergencia 1 vs 4 es la más importante y sigue abierta:** el motor castea el
 byte crudo a su propio enum (`SynthEngine_Parameters.cpp`, `setRoute` con
-`static_cast<ModDestination>`), pero **el enum del motor (48 destinos) y la tabla
-del manual (133) solo coinciden en 1 de las primeras 48 posiciones**. Es decir: el
-orden del enum del motor **no es** el orden del manual. Los destinos 48–129 (82
+`static_cast<ModDestination>`), pero **el enum del motor (44 destinos) y la tabla
+del manual (133) solo coinciden en 1 de las primeras 44 posiciones**. Es decir: el
+orden del enum del motor **no es** el orden del manual. Los destinos 44–129 (86
 índices) no los cubre el motor. Esto significa que, hoy, la ruta que el usuario
 ve en la lista no es necesariamente la que el motor ejecuta.
+
+**Lo que sí se arregló en esta ronda es el bloque del bus de fx (74–81), que ya
+no es una divergencia sino un caso cerrado.** El enum los numera con los códigos
+del manual, la tabla del dato pone los mismos ocho nombres en esos ocho códigos, y
+el motor los lee (`Fx N Level` mueve la ganancia del hueco muestra a muestra;
+`Fx N Parameters` mueve los parámetros que el efecto declare modulables, y el
+retardo declara el tiempo y los dos feedbacks). Antes eran doce entradas en
+36–47 que nadie leía, más cuatro nombres inventados en la tabla (`Fx 1..4 Level`
+en 129–132, tres de ellos por encima del tope del byte). El caso cerrado es
+también el que **enseña el método**: cuando el motor y la tabla se numeran con el
+manual, el desacuerdo desaparece sin necesitar una tabla de traducción. Queda por
+hacer lo mismo con los destinos 44–73 y 82–129.
 
 ## 3. Decisiones tomadas en esta fase
 
@@ -93,8 +105,8 @@ ve en la lista no es necesariamente la que el motor ejecuta.
    deriva del contrato de bytes (cubre 0–22) en vez del 25 inventado.
 
 5. **El desacuerdo motor↔manual se AVISA, no se arregla aquí.** El guard imprime
-   en cada corrida cuántos destinos del byte no cubre el enum (hoy 82, del 48 al
-   129) y cuántos de los primeros 48 coinciden con la tabla del manual (hoy 1).
+   en cada corrida cuántos destinos del byte no cubre el enum (hoy 86, del 44 al
+   129) y cuántos de los primeros 44 coinciden con la tabla del manual (hoy 1).
    No es un fallo del guard: es una carencia real que arregla la **Fase 5** (la
    capa de traducción), y su número queda escrito para que la Fase 5 parta de un
    dato medido en vez de descubrirlo.
@@ -106,7 +118,7 @@ ve en la lista no es necesariamente la que el motor ejecuta.
 - Los **32 slots** del modo Pro: el modo clásico declara 8 buses, el manual habla
   de 8, y el guard mide 8. El modo Pro (`DEEP_TARGET_MODEL >= 2`) amplía a 32 en
   el motor pero no tiene contrato de byte ni aparecen en los bancos de fábrica.
-- Los nombres exactos de destinos 74–128: el hardware los ejerce (el guard lo
+- Los nombres exactos de destinos 82–128: el hardware los ejerce (el guard lo
   comprueba) pero no hay evidencia de su etiqueta, y la tabla dice `Dest N` a
   propósito. Una etiqueta honesta vale más que una inventada.
 

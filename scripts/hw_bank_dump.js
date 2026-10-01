@@ -31,9 +31,14 @@
  * Exit code: 0 = OK · 1 = captura incompleta o violación de hashes · 2 = uso.
  */
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+
+// En ESM no existe __dirname: se deriva de import.meta.url para que las rutas
+// relativas al repo sigan resolviendo igual.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DEFAULT_HASHES = path.resolve(__dirname, '..', 'schemas', 'corpus-hashes.json');
 const DEFAULT_OUT_ROOT = path.resolve(__dirname, '..', 'resources', 'hardware_dumps');
@@ -182,13 +187,22 @@ function hash0(h) { return String(h).slice(0, 12); }
 
 // ── Validación offline de dumps commiteados (sin hardware) ─────────────────
 
-/** Directorio de dumps más reciente bajo DEFAULT_OUT_ROOT (formato YYYYMMDD o YYYY-MM-DD). */
+/**
+ * Directorio de dumps más reciente bajo DEFAULT_OUT_ROOT (formato YYYYMMDD o YYYY-MM-DD).
+ *
+ * Solo cuentan los directorios con AL MENOS un `Synth Bank *.syx`: una captura
+ * abortada deja la carpeta vacía, y elegirla no valida nada (antes reventaba con
+ * "manifest.json ilegible" apuntando a un directorio que no es una captura). Una
+ * captura PARCIAL sí entra, para que su falta de manifest siga siendo un error
+ * explícito en vez de saltar silenciosamente a un dump más viejo.
+ */
 function findLatestDumpDir() {
   if (!fs.existsSync(DEFAULT_OUT_ROOT)) { return null; }
   const dirs = fs.readdirSync(DEFAULT_OUT_ROOT)
     .filter((d) => /^\d{8}$/.test(d) || /^\d{4}-\d{2}-\d{2}$/.test(d))
     .map((d) => ({ d, key: d.replace(/-/g, '') }))
     .filter((x) => fs.statSync(path.join(DEFAULT_OUT_ROOT, x.d)).isDirectory())
+    .filter((x) => fs.readdirSync(path.join(DEFAULT_OUT_ROOT, x.d)).some((f) => /^Synth Bank [A-H]\.syx$/.test(f)))
     .sort((a, b) => a.key.localeCompare(b.key));
   return dirs.length > 0 ? path.join(DEFAULT_OUT_ROOT, dirs[dirs.length - 1].d) : null;
 }

@@ -63,7 +63,6 @@
         { byte: 29, param: 'osc2_pitch_mod' },
         { byte: 30, param: 'osc2_aftertouch_pitch' },
         { byte: 31, param: 'osc2_modwheel_pitch' },
-        { byte: 32, param: 'osc2_pitch_mod_select',     scale: 6 },
 
         // ── Global / Noise (bytes 33-38) ──
         { byte: 33, param: 'noise_level' },

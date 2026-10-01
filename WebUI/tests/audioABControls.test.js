@@ -100,26 +100,31 @@ if (typeof global.document === 'undefined') {
   };
 }
 
-// Importar de forma diferida usando require para evitar hoisting
-// Nota: escapeHtml y otras utilidades globales se cargan desde calibration_store_utils.js y calibration_lab_utils.js
-require('../js/calibration_store_data.js');
-require('../js/calibration_store_utils.js');
-require('../js/calibration_store_selectors.js');
-require('../js/calibration_store.js');
-require('../js/calibration_lab_utils.js');
-require('../js/calibration_lab_template.js');
-require('../js/calibration_lab_render.js');
-require('../js/calibration_lab_page.js');    require('../js/calibration_lab_tab_audioab_render.js');
-    require('../js/calibration_lab_tab_audioab_events.js');
-    require('../js/calibration_lab_tab_audioab.js');
-require('../js/calibration_lab_tab_roundtrip.js');
-require('../js/calibration_lab_tab_live.js');
-require('../js/calibration_lab_tab_diff.js');
-require('../js/calibration_lab_tab_info.js');
-require('../js/calibration_lab_tabs.js');
-require('../js/calibration_lab_picker.js');
-require('../js/calibration_lab_drawer.js');
-require('../js/calibration_lab_workflow.js');
+// Carga del stack del Calibration Lab: imports DINAMICOS (no estaticos) porque
+// los modulos leen window/document/customElements al evaluarse, y los stubs de
+// arriba tienen que existir antes. El ORDEN es el de index.html: dom_sanitize.js
+// primero, que es quien deja el escapeHtml canonico en el global (sin el, la tab
+// de Audio A/B revienta con "escapeHtml is not defined").
+await import('../js/dom_sanitize.js');
+await import('../js/calibration_store_data.js');
+await import('../js/calibration_store_utils.js');
+await import('../js/calibration_store_selectors.js');
+await import('../js/calibration_store.js');
+await import('../js/calibration_lab_utils.js');
+await import('../js/calibration_lab_template.js');
+await import('../js/calibration_lab_render.js');
+await import('../js/calibration_lab_page.js');
+await import('../js/calibration_lab_tab_audioab_render.js');
+await import('../js/calibration_lab_tab_audioab_events.js');
+await import('../js/calibration_lab_tab_audioab.js');
+await import('../js/calibration_lab_tab_roundtrip.js');
+await import('../js/calibration_lab_tab_live.js');
+await import('../js/calibration_lab_tab_diff.js');
+await import('../js/calibration_lab_tab_info.js');
+await import('../js/calibration_lab_tabs.js');
+await import('../js/calibration_lab_picker.js');
+await import('../js/calibration_lab_drawer.js');
+await import('../js/calibration_lab_workflow.js');
 
 
 describe('CalibrationLabPage - Audio A/B Control Tab State Machine (AUD-05B)', () => {

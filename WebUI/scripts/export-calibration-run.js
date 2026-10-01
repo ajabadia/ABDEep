@@ -1,7 +1,13 @@
 // WebUI/scripts/export-calibration-run.js
 // CL-13.1: Copia JSON/CSV/SYX a artifacts/calibration-runs/, valida presencia mínima y escribe un manifest.json
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+
+// jspdf es una dependencia CJS que solo hace falta si hay que emitir PDFs: se
+// carga bajo demanda con un require real (que en ESM sigue existiendo).
+const require = createRequire(import.meta.url);
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -212,6 +218,7 @@ function generatePdfReport(outputDir, processedFiles, runId) {
   return pdfFiles;
 }
 
-if (require.main === module) {
+// Solo cuando se ejecuta `node WebUI/scripts/export-calibration-run.js`.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   run();
 }

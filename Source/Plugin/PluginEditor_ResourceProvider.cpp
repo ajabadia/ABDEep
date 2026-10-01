@@ -47,7 +47,27 @@ std::optional<juce::WebBrowserComponent::Resource> pluginResourceProvider (const
     // URL-decode the path (handles spaces encoded as %20, etc.)
     juce::String decodedPath = juce::URL::removeEscapeChars (path);
 
-    // 1. Try loading from disk (Development Mode)
+    // 0. Bundle de Vite (WebUI/dist): es el sitio que sirve el host cuando existe.
+    //    Trae los bare imports @abdsynths/* YA resueltos (keybed compartido,
+    //    fitStage); el arbol crudo no los puede resolver porque el WebView2 no
+    //    tiene node_modules. Se regenera con `node scripts/build_webui.js`.
+    //    dist y el arbol crudo comparten estructura de rutas, asi que lo que no
+    //    este en el bundle (assets sueltos, wasm) cae en los pasos siguientes.
+    juce::File distDir = webUiDir.getChildFile ("dist");
+    if (distDir.isDirectory())
+    {
+        juce::File distFile = distDir.getChildFile (decodedPath.replace ("/", "\\"));
+        if (distFile.existsAsFile())
+        {
+            juce::MemoryBlock mb;
+            distFile.loadFileAsData (mb);
+            std::vector<std::byte> data (mb.getSize());
+            std::memcpy (data.data(), mb.getData(), mb.getSize());
+            return juce::WebBrowserComponent::Resource { std::move (data), getMimeTypeForFilename (distFile.getFileName()).toStdString() };
+        }
+    }
+
+    // 1. Try loading from disk (Development Mode: arbol crudo, sin bundle)
     juce::File file = webUiDir.getChildFile (decodedPath.replace ("/", "\\"));
     bool fileExists = file.existsAsFile();
 

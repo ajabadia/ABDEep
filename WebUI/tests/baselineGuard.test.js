@@ -1,42 +1,45 @@
 /**
  * baselineGuard.test.js — guard de baseline (plan v3.2 Fase 0 / baseline_fase0_v32.md §2).
  *
- * Verifica que los counts documentados en `docs/baseline_fase0_v32.md` §2 (test files /
- * tests) coinciden con la suite real. El guard corre la suite en un subproceso
- * EXCLUYÉNDOSE a sí mismo (`SELF_FILE`, derivado de import.meta.url) y reconcilia:
+ * Verifica que los counts documentados en `docs/baseline_fase0_v32.md` §2 (nº de test
+ * files y de tests) no se desvían de la suite REAL. La enumeración de la suite vive en
+ * un único sitio compartido (`./support/vitestSuite.js`), que además declara qué puede
+ * hacer el vitest INSTALADO:
  *
- *     subproceso (sin guard) + propio archivo y tests == baseline documentada
+ *   - FICHEROS: siempre exactos y sin ejecutar nada (glob propio de vitest) → el nº de
+ *     test files se reconcilia en cualquier versión.
+ *   - TESTS: solo enumerables sin ejecutar la suite desde vitest 3 (`vitest list`). Con
+ *     vitest < 3 el recuento real exigiría ejecutar la suite entera — el flake de
+ *     contención que este guard eliminó — así que se avisa de que ese count no es
+ *     verificable con ese toolchain.
  *
- * Si el count real cambia (nuevo test file, nuevos tests, renombrado), este test
- * falla y obliga a actualizar §2 (y §7 si referencia counts) — es el anti-drift de
- * la baseline. La suite completa (`npm test`) incluye este guard: sus números
- * documentados cubren la suite completa (guard incluido).
+ * El recuento excluye este archivo (no se enumera a sí mismo) y luego se le suma
+ * `SELF_TEST_COUNT`; los números de §2 son los de la suite COMPLETA (guard incluido),
+ * que es lo que corre `npm test`.
  *
- * NOTA: este guard verifica COUNTS (nº de test files y tests), no que los tests
- * pasen — si un test se marca `.skip` el total se mantiene y el guard no lo detecta
- * (eso lo hace la propia suite al fallar).
+ * NOTA: este guard verifica COUNTS (nº de test files y tests), no que los tests pasen —
+ * si un test se marca `.skip` el total se mantiene (los skipped cuentan) y el guard no lo
+ * detecta; eso lo hace la propia suite al fallar.
  */
 
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
+
+import { enumerateSuite } from './support/vitestSuite.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const DOC = path.join(ROOT, 'docs', 'baseline_fase0_v32.md');
-const VITEST_BIN = path.join(ROOT, 'node_modules', 'vitest', 'vitest.mjs');
-const TESTS_DIR = path.join(ROOT, 'WebUI', 'tests');
 const SELF_FILE = path.basename(fileURLToPath(import.meta.url));
 
 /**
- * Nº de tests que declara ESTE archivo. Es una CONSTANTE verificada (no un parseo
- * del propio fuente, que sería frágil): 1 `it()` de reconcile + 3 unit tests del
- * parseo (`parseChildSummary`). Si se añade un test nuevo aquí, este número debe
- * subir en la misma proporción.
+ * Nº de tests que declara ESTE archivo. Es una CONSTANTE verificada (no un parseo del
+ * propio fuente, que sería frágil): hoy 1 `it()` (el de reconcile). Si se añade un test
+ * nuevo aquí, este número debe subir en la misma proporción.
  */
-const SELF_TEST_COUNT = 4;
+const SELF_TEST_COUNT = 1;
 expect(SELF_TEST_COUNT).toBeGreaterThan(0);
 
 /** Lee {files, tests} documentados en §2 de la baseline (formato `| Test files | **N** |`). */
@@ -54,135 +57,37 @@ function readDocBaseline() {
   return { files: Number(files[1]), tests: Number(tests[1]) };
 }
 
-/**
- * Parsea el resumen de un subproceso vitest ({files, tests}) tras limpiar ANSI.
- * `tests` = passed + skipped (el total documentado en §2 incluye los skipped).
- * Función pura y exportable para poder testearla con fixtures.
- */
-export function parseChildSummary(stdoutRaw) {
-  const stdout = String(stdoutRaw).replace(/\u001b\[[0-9;]*m/g, '');
-  const filesMatch = stdout.match(/Test Files\s+\d+ passed/);
-  const testsMatch = stdout.match(/Tests\s+\d+ passed(?:\s+\|\s+\d+ skipped)?/);
-  if (!filesMatch || !testsMatch) {
-    throw new Error('no se pudo parsear el resumen del subproceso vitest (últimas líneas):\n' + stdout.slice(-600));
-  }
-  const fileCount = Number(filesMatch[0].match(/\d+/)[0]);
-  const passed = Number(testsMatch[0].match(/\d+/)[0]);
-  const skippedMatch = testsMatch[0].match(/(\d+) skipped/);
-  const skipped = skippedMatch ? Number(skippedMatch[1]) : 0;
-  return { files: fileCount, tests: passed + skipped };
-}
-
-/**
- * Corre la suite real en subproceso con todos los test files EXCEPTO este guard.
- *
- * Estrategia anti-contención (flake de CPU documentado):
- *   1. `vitest list` enumera files + tests SIN ejecutarlos (~20s, sin presupuestos
- *      temporales que puedan fallar por contención con la suite principal).
- *   2. `vitest run --reporter=json` SOLO sobre los archivos con `skipIf` condicional
- *      (4 en la suite: checkWasmBuild/hwDumpValidate/roundtripCorpusScript/roundtripEquality)
- *      para contar los tests skipped reales del entorno — `vitest list` no los enumera
- *      y el total documentado de §2 sí los incluye.
- *
- * Antes se ejecutaba la suite COMPLETA anidada (vitest run), duplicando la carga de
- * los 104 archivos mientras la suite principal corría con N workers: eso saturaba la
- * CPU y los tests con presupuesto temporal (fuzzing 100ms/caso) fallaban por timeout.
- */
-function runChildSuite() {
-  const files = fs.readdirSync(TESTS_DIR)
-    .filter((f) => f.endsWith('.test.js') && f !== SELF_FILE)
-    .map((f) => 'WebUI/tests/' + f); // rutas relativas con '/' (filtros de vitest)
-
-  // ── Paso 1: enumerar (sin ejecutar) — files + tests ejecutables ──
-  let listOut = '';
-  try {
-    listOut = execFileSync(process.execPath, [VITEST_BIN, 'list', ...files], {
-      cwd: ROOT,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: 180000,
-    });
-  } catch (err) {
-    throw new Error(
-      'vitest list falló (exit ' + err.status + '): ' +
-      String(err.stderr || '').slice(0, 800),
-    );
-  }
-  const lines = String(listOut).split(/\r?\n/).filter((l) => l.trim().length > 0);
-  const fileSet = new Set(lines.map((l) => l.split(' > ')[0].trim()));
-  const listedTests = lines.length;
-
-  // ── Paso 2: contar skipped condicionales (solo archivos con skipIf — ligero) ──
-  const conditionalFiles = files.filter((f) => {
-    const src = fs.readFileSync(path.join(ROOT, 'WebUI', 'tests', path.basename(f)), 'utf8');
-    return /\bskipIf\b/.test(src);
-  });
-  let skippedTests = 0;
-  if (conditionalFiles.length > 0) {
-    let jsonOut = '';
-    try {
-      jsonOut = execFileSync(
-        process.execPath,
-        // --maxWorkers 1: huella mínima mientras la suite principal corre en paralelo.
-        [VITEST_BIN, 'run', '--reporter=json', '--maxWorkers', '1', ...conditionalFiles],
-        {
-          cwd: ROOT,
-          encoding: 'utf8',
-          stdio: ['ignore', 'pipe', 'pipe'],
-          timeout: 180000,
-        },
-      );
-      const report = JSON.parse(jsonOut);
-      // numPendingTests == tests skipped (describe.skipIf / it.skip evaluados en runtime).
-      skippedTests = report.numPendingTests || 0;
-    } catch (err) {
-      // Un fallo real en los archivos condicionales (p.ej. corpus roto) es un fallo
-      // de la suite — no se enmascara.
-      throw new Error(
-        'detección de skipped condicionales falló (exit ' + err.status + '): ' +
-        String(err.stderr || '').slice(0, 800),
-      );
-    }
-  }
-
-  return { files: fileSet.size, tests: listedTests + skippedTests };
-}
-
 describe('Baseline guard (baseline_fase0_v32.md §2 vs suite real)', () => {
-  it('los counts documentados coinciden con la suite real (subproceso + guard)',
-    () => {
-      const doc = readDocBaseline();
-      const child = runChildSuite();
+  it('los counts documentados coinciden con la suite real (colección + guard)', () => {
+    const doc = readDocBaseline();
+    const suite = enumerateSuite({ exclude: SELF_FILE, withSkipped: true });
 
-      // child.tests ya incluye los skipped del subproceso; al guard le sumamos sus
-      // propios tests (no hay skipped aquí).
-      const projectedFiles = child.files + 1; // este archivo no corre en el subproceso
-      const projectedTests = child.tests + SELF_TEST_COUNT;
+    // Nº de ficheros: exacto SIEMPRE (glob propio de vitest). +1 por este guard.
+    const projectedFiles = suite.files.length + 1;
 
-      const message =
-        'Baseline §2 documenta ' + doc.files + ' files / ' + doc.tests + ' tests, pero la suite ' +
-        'real proyecta ' + projectedFiles + ' files / ' + projectedTests + ' tests ' +
-        '(subproceso sin guard: ' + child.files + ' files / ' + child.tests + ' tests, +' +
-        SELF_TEST_COUNT + ' tests del guard). Actualiza docs/baseline_fase0_v32.md §2 (y §7 ' +
-        'si referencia counts).';
+    if (suite.tests === null) {
+      // vitest < 3: sin `list` no se pueden contar los tests sin ejecutar la suite (el
+      // flake de contención ya eliminado). Se reconcilia lo exacto y barato —el nº de
+      // ficheros— y se avisa de la parte no verificable.
+      console.warn('[baselineGuard] ' + suite.reason + ' — se reconcilia solo el nº de ' +
+        'ficheros; manten el total de tests de §2 a mano hasta que el toolchain exponga ' +
+        '`vitest list`.');
+      expect({ files: doc.files },
+        'Baseline §2 documenta ' + doc.files + ' files, pero la suite real proyecta ' +
+        projectedFiles + ' (' + suite.files.length + ' sin este guard, +1). ' +
+        'Actualiza docs/baseline_fase0_v32.md §2 (y §7 si referencia counts).')
+        .toEqual({ files: projectedFiles });
+      return;
+    }
 
-      expect({ files: doc.files, tests: doc.tests }, message)
-        .toEqual({ files: projectedFiles, tests: projectedTests });
-    },
-    240000); // vitest list (~20s) + barrido JSON de 4 archivos skipIf; holgado ante máquina cargada
-
-  it('parseChildSummary parses ANSI, passed and skipped counts', () => {
-    const raw = '\u001b[32m✓\u001b[0m file (1 test)\n\n Test Files  99 passed (99)\n' +
-      '      Tests  4647 passed | 2 skipped (4649)\n';
-    expect(parseChildSummary(raw)).toEqual({ files: 99, tests: 4649 });
-  });
-
-  it('parseChildSummary parses a summary without skipped tests', () => {
-    const raw = '\n Test Files  10 passed (10)\n      Tests  25 passed (25)\n';
-    expect(parseChildSummary(raw)).toEqual({ files: 10, tests: 25 });
-  });
-
-  it('parseChildSummary throws on a non-parseable summary', () => {
-    expect(() => parseChildSummary('some garbage output')).toThrow(/no se pudo parsear/);
-  });
+    // `suite.tests` ya suma los `describe.skipIf` en pending (el total de §2 los incluye).
+    const projectedTests = suite.tests + SELF_TEST_COUNT;
+    expect({ files: doc.files, tests: doc.tests },
+      'Baseline §2 documenta ' + doc.files + ' files / ' + doc.tests + ' tests, pero la suite ' +
+      'real proyecta ' + projectedFiles + ' files / ' + projectedTests + ' tests (' +
+      suite.files.length + ' files / ' + suite.tests + ' tests sin este guard, +' +
+      SELF_TEST_COUNT + ' de aquí). Actualiza docs/baseline_fase0_v32.md §2 (y §7 si ' +
+      'referencia counts).')
+      .toEqual({ files: projectedFiles, tests: projectedTests });
+  }, 240000);
 });

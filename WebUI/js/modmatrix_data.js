@@ -40,19 +40,32 @@ const MOD_DESTINATIONS = [
 ];
 
 // ── Full destinations (padded to index 132) ───────────────────
+//
+// LOS OCHO DEL BUS DE FX, EN 74-81. Los nombra el manual del DeepMind 12 (`Fx 1..4
+// Parameters` y `Fx 1..4 Level`) y se numeran con SUS codigos, que son los que
+// van al byte de destino. Antes el unico nombre de fx era `Fx 1 Level` en el 129
+// --el tope del byte-- y los otros tres en 130-132, donde no llega ningun byte:
+// cuatro nombres para tres destinations que el motor ni siquiera leia. Los ocho
+// van ahora donde los ejecuta `ModulationMatrix.h`, con el MISMO numero, asi que
+// el motor castea el byte y cae en el destino que el usuario eligio.
+const FX_BUS_DESTINATIONS = {
+    74: 'Fx 1 Parameters',
+    75: 'Fx 2 Parameters',
+    76: 'Fx 3 Parameters',
+    77: 'Fx 4 Parameters',
+    78: 'Fx 1 Level',
+    79: 'Fx 2 Level',
+    80: 'Fx 3 Level',
+    81: 'Fx 4 Level'
+};
+
 const FULL_MOD_DESTINATIONS = (function buildFullDestinations() {
     const arr = [];
     for (let i = 0; i <= 132; i++) {
         if (i < MOD_DESTINATIONS.length) {
             arr.push(MOD_DESTINATIONS[i]);
-        } else if (i === 129) {
-            arr.push('Fx 1 Level');
-        } else if (i === 130) {
-            arr.push('Fx 2 Level');
-        } else if (i === 131) {
-            arr.push('Fx 3 Level');
-        } else if (i === 132) {
-            arr.push('Fx 4 Level');
+        } else if (Object.prototype.hasOwnProperty.call(FX_BUS_DESTINATIONS, i)) {
+            arr.push(FX_BUS_DESTINATIONS[i]);
         } else {
             arr.push('Dest ' + i);
         }
@@ -83,6 +96,12 @@ function getDestCategoryColor(idx) {
     if (idx >= 20 && idx <= 23) {return 'var(--accent-pink)';}
     if (idx >= 24 && idx <= 62) {return 'var(--accent-green)';}
     if (idx === 63 || idx === 64) {return 'var(--color-gold)';}
+    // 74-81 es el bus de fx (los ocho de `FX_BUS_DESTINATIONS`). Antes caia en
+    // el `--text-dim` de relleno, que es lo que se ve cuando un destino no
+    // tiene familia: los ocho tienen nombre y los ejecuta el motor, asi que no
+    // pueden parecer un hueco. `--accent-red` es el unico acento que no es
+    // familia de ningun otro bloque, y por eso no confunde con los LFOs.
+    if (idx >= 74 && idx <= 81) {return 'var(--accent-red)';}
     return 'var(--text-dim)';
 }
 
@@ -154,6 +173,7 @@ function compactModMatrix(state) {
 globalThis.MOD_SOURCES = MOD_SOURCES;
 globalThis.MOD_DESTINATIONS = MOD_DESTINATIONS;
 globalThis.FULL_MOD_DESTINATIONS = FULL_MOD_DESTINATIONS;
+globalThis.FX_BUS_DESTINATIONS = FX_BUS_DESTINATIONS;
 globalThis.MOD_BLOCKS = MOD_BLOCKS;
 globalThis.compactModMatrix = compactModMatrix;
 globalThis.getSrcCategoryColor = getSrcCategoryColor;
@@ -166,6 +186,7 @@ if (typeof module !== 'undefined' && module.exports) {
         MOD_SOURCES,
         MOD_DESTINATIONS,
         FULL_MOD_DESTINATIONS,
+        FX_BUS_DESTINATIONS,
         MOD_BLOCKS,
         compactModMatrix,
         getSrcCategoryColor,

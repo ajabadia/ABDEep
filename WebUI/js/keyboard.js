@@ -1,196 +1,134 @@
 /**
- * @purpose Módulo de inicialización y control del teclado de piano virtual (Keybed),
- * ruedas de Pitch y Mod, y Octave Shift. Renderizado visual delegado a keyboard_render.js.
- * @purpose_en Initializes and manages the virtual piano keybed, Pitch/Mod wheels, octave shifting.
+ * @purpose Montaje del keybed COMPARTIDO de la suite (@abdsynths/midi-keyb) en
+ * ABDEep: configuracion "full experience" (marfil por tecla, desplazamiento por
+ * pitch bend, display de presion, color de LED por modo) + el enrutado de notas
+ * del host (bridge JUCE o simulador, arp/seq, chord memory) y las ruedas de
+ * Pitch/Mod y los botones de octava del chasis.
+ * @purpose_en ABDEep mount of the shared keyboard component.
+ *
+ * Es el UNICO modulo ESM de la app (el WebView2 de JUCE 8 sirve ESM); el resto
+ * de la UI son scripts clasicos que siguen llamando a
+ * window.initKeyboardAndWheels() en DOMContentLoaded (los modulos son deferred,
+ * asi que la funcion ya existe cuando el evento dispara).
+ *
+ * El keybed propio que vivia aqui (creacion de teclas, listeners, presion) lo
+ * sustituye el componente compartido; lo que queda es el CABLEADO del host.
  */
+import { createKeyboard } from '@abdsynths/midi-keyb';
+import '@abdsynths/midi-keyb/keyboard.css';
 
-function initKeyboardAndWheels() {
-    const keybed = document.getElementById('ivory-keys-bed');
-    if (!keybed) {return;}
+let keyboardInstance = null;
 
-    let octaveShift = 0;
-    const octUpBtn = document.getElementById('oct-up-btn');
-    const octDownBtn = document.getElementById('oct-down-btn');
+/** Bridge canonico (bridge-dual.js). */
+function bridge() {
+    return typeof getBridge === 'function' ? getBridge() : null;
+}
 
-    // Render octave button visuals via extracted function
+/**
+ * Curva de velocity del host (Settings > Velocity, en localStorage). El
+ * componente entrega la velocity cruda por posicion Y y la curva se aplica aqui
+ * en cada nota, para que cambiar el ajuste no exija recrear el keybed.
+ */
+function hostVelocityCurve(rawVelocity) {
+    let curve = 'normal';
+    try {
+        curve = localStorage.getItem('abd-eep-velocity-curve') || 'normal';
+    } catch (e) { /* almacenamiento bloqueado: curva neutra */ }
+
+    let velocity = rawVelocity;
+    if (curve === 'soft') { velocity = rawVelocity * rawVelocity; }
+    else if (curve === 'hard') { velocity = Math.sqrt(rawVelocity); }
+    else if (curve === 'linear') { velocity = rawVelocity; }
+    else if (curve === 'fixed') { velocity = 100 / 127; }
+    return Math.max(0.01, Math.min(1.0, velocity));
+}
+
+/**
+ * Estado de presion (aftertouch / modwheel / pitchbend) que el componente pinta
+ * sobre las teclas mantenidas. Mismo origen que el viejo keyboard_pressure.js:
+ * el estado de voces del bridge nativo o el cache de parametros del simulador,
+ * con las curvas de control del host aplicadas.
+ */
+function readPressureState() {
+    const b = bridge();
+    let aftertouch = 0.0;
+    let modWheel = 0.0;
+    let pitchBend = 0.0;
+
+    if (b) {
+        if (b.isJuce) {
+            if (b._lastVoiceStateRaw) {
+                aftertouch = b._lastVoiceStateRaw.aftertouch !== undefined ? b._lastVoiceStateRaw.aftertouch : 0.0;
+                modWheel = b._lastVoiceStateRaw.modWheel !== undefined ? b._lastVoiceStateRaw.modWheel : 0.0;
+                pitchBend = b._lastVoiceStateRaw.pitchBend !== undefined ? b._lastVoiceStateRaw.pitchBend : 0.0;
+            }
+        } else if (b.parameterCache) {
+            aftertouch = b.parameterCache['aftertouch'] !== undefined ? b.parameterCache['aftertouch'] : 0.0;
+            modWheel = b.parameterCache['mod_wheel'] !== undefined ? b.parameterCache['mod_wheel'] : 0.0;
+        }
+    }
+
+    aftertouch = Math.max(0, Math.min(1, aftertouch));
+    modWheel = Math.max(0, Math.min(1, modWheel));
+    pitchBend = Math.max(-1, Math.min(1, pitchBend));
+
+    if (typeof window.applyControllerCurve === 'function' && typeof window.getControllerCurve === 'function') {
+        aftertouch = window.applyControllerCurve(aftertouch, window.getControllerCurve('aftertouch'));
+        modWheel = window.applyControllerCurve(modWheel, window.getControllerCurve('modwheel'));
+    }
+    if (typeof window.applyBipolarCurve === 'function' && typeof window.getControllerCurve === 'function') {
+        pitchBend = window.applyBipolarCurve(pitchBend, window.getControllerCurve('pitchbend'));
+    }
+
+    return { aftertouch, modWheel, pitchBend };
+}
+
+/** Ruedas de octava del chasis: el componente es el dueno del desplazamiento. */
+function syncOctaveShift() {
+    const octave = (keyboardInstance && typeof keyboardInstance.getOctave === 'function')
+        ? keyboardInstance.getOctave() : 0;
+    const semitones = octave * 12;
+    window._currentOctaveShift = semitones;
+
+    const up = document.getElementById('oct-up-btn');
+    const down = document.getElementById('oct-down-btn');
     if (typeof window._renderOctaveButtons === 'function') {
-        window._renderOctaveButtons(octUpBtn, octDownBtn, octaveShift);
+        window._renderOctaveButtons(up, down, semitones);
     }
+    if (typeof window._updateOctaveLcd === 'function') {
+        window._updateOctaveLcd(semitones);
+    }
+}
 
-    if (octUpBtn) {
-        octUpBtn.addEventListener('click', () => {
-            octaveShift = Math.min(36, octaveShift + 12);
-            window._currentOctaveShift = octaveShift;
-            if (typeof window._updateOctaveLcd === 'function') {
-                window._updateOctaveLcd(octaveShift);
-            }
-            if (typeof window._renderOctaveButtons === 'function') {
-                window._renderOctaveButtons(octUpBtn, octDownBtn, octaveShift);
-            }
+function setupHostOctaveButtons() {
+    const up = document.getElementById('oct-up-btn');
+    const down = document.getElementById('oct-down-btn');
+
+    if (up) {
+        up.addEventListener('click', () => {
+            keyboardInstance.setOctave(keyboardInstance.getOctave() + 1);
+            syncOctaveShift();
         });
     }
-    if (octDownBtn) {
-        octDownBtn.addEventListener('click', () => {
-            octaveShift = Math.max(-36, octaveShift - 12);
-            window._currentOctaveShift = octaveShift;
-            if (typeof window._updateOctaveLcd === 'function') {
-                window._updateOctaveLcd(octaveShift);
-            }
-            if (typeof window._renderOctaveButtons === 'function') {
-                window._renderOctaveButtons(octUpBtn, octDownBtn, octaveShift);
-            }
+    if (down) {
+        down.addEventListener('click', () => {
+            keyboardInstance.setOctave(keyboardInstance.getOctave() - 1);
+            syncOctaveShift();
         });
     }
+    syncOctaveShift();
+}
 
-    window._currentOctaveShift = octaveShift;
-
-    const notes = [
-        { type: 'white', name: 'C' }, { type: 'black', name: 'C#' },
-        { type: 'white', name: 'D' }, { type: 'black', name: 'D#' },
-        { type: 'white', name: 'E' },
-        { type: 'white', name: 'F' }, { type: 'black', name: 'F#' },
-        { type: 'white', name: 'G' }, { type: 'black', name: 'G#' },
-        { type: 'white', name: 'A' }, { type: 'black', name: 'A#' },
-        { type: 'white', name: 'B' }
-    ];
-
-    let whiteKeyIndex = 0;
-    const totalOctaves = 4;
-    const baseMidiNote = 36;
-
-    for (let octave = 0; octave < totalOctaves; octave++) {
-        notes.forEach((note) => {
-            const originalMidiNote = baseMidiNote + (octave * 12) + notes.indexOf(note);
-            const whiteIdx = note.type === 'white' ? (++whiteKeyIndex) : whiteKeyIndex;
-            const key = typeof window._createKeyElement === 'function'
-                ? window._createKeyElement(note, originalMidiNote, whiteIdx)
-                : document.createElement('div');
-            if (!key.getAttribute('data-note')) {
-                key.classList.add('key', note.type);
-                key.setAttribute('data-note', originalMidiNote);
-            }
-
-            const noteOn = (e) => {
-                e.preventDefault();
-                key.classList.add('pushed');
-                key.classList.remove('pressure-release', 'pitch-bent');
-                key.style.removeProperty('--pb-offset');
-                const shiftedMidiNote = originalMidiNote + octaveShift;
-                const rect = key.getBoundingClientRect();
-                const relY = (e.clientY - rect.top) / rect.height;
-                const rawVelocity = Math.max(0.15, Math.min(1.0, 0.15 + relY * 0.85));
-                const vCurve = localStorage.getItem('abd-eep-velocity-curve') || 'normal';
-                let velocity = rawVelocity;
-                if (vCurve === 'soft') {
-                    velocity = rawVelocity * rawVelocity;
-                } else if (vCurve === 'hard') {
-                    velocity = Math.sqrt(rawVelocity);
-                } else if (vCurve === 'linear') {
-                    velocity = rawVelocity;
-                } else if (vCurve === 'fixed') {
-                    velocity = 100 / 127;
-                }
-                velocity = Math.max(0.01, Math.min(1.0, velocity));
-                key.style.setProperty('--velocity', velocity.toFixed(3));
-
-                // Determine LED color via extracted function
-                const ledColor = typeof window._resolveKeyLedColor === 'function'
-                    ? window._resolveKeyLedColor(getBridge())
-                    : 'var(--brand-accent)';
-                key.style.setProperty('--key-led-color', ledColor);
-
-                if (getBridge()) {
-                    if (getBridge()._seqEngine && (getBridge().parameterCache['seq_enable'] || 0) > 0.5) {
-                        getBridge()._seqEngine.addHeldNote(shiftedMidiNote, velocity);
-                    }
-
-                    if (typeof window._playPolyChordMemory === 'function') {
-                        const polyHandled = window._playPolyChordMemory(shiftedMidiNote, velocity);
-                        if (polyHandled) {return;}
-                    }
-
-                    if (typeof window._playChordMemory === 'function') {
-                        const handled = window._playChordMemory(shiftedMidiNote, velocity);
-                        if (handled) {return;}
-                    }
-
-                    if (getBridge()._arpEngine && (getBridge().parameterCache['arp_enable'] || 0) > 0.5) {
-                        getBridge()._arpEngine.addHeldNote(shiftedMidiNote, velocity);
-                        return;
-                    }
-
-                    getBridge().pianoNoteOn(shiftedMidiNote, velocity);
-                }
-            };
-
-            const noteOff = (e) => {
-                e.preventDefault();
-                key.classList.remove('pushed');
-                key.style.removeProperty('--velocity');
-                const shiftedMidiNote = originalMidiNote + octaveShift;
-                if (getBridge()) {
-                    if (getBridge()._seqEngine && (getBridge().parameterCache['seq_enable'] || 0) > 0.5) {
-                        getBridge()._seqEngine.removeHeldNote(shiftedMidiNote);
-                    }
-
-                    if (typeof window._stopPolyChordMemory === 'function') {
-                        window._stopPolyChordMemory(shiftedMidiNote);
-                    }
-
-                    if (typeof window._stopChordMemory === 'function') {
-                        window._stopChordMemory(shiftedMidiNote);
-                    }
-
-                    if (getBridge()._arpEngine && (getBridge().parameterCache['arp_enable'] || 0) > 0.5) {
-                        getBridge()._arpEngine.removeHeldNote(shiftedMidiNote);
-                        return;
-                    }
-
-                    getBridge().pianoNoteOff(shiftedMidiNote);
-                }
-
-                if (key.classList.contains('pressured') || key.classList.contains('pitch-bent')) {
-                    key.style.setProperty('--pressure', '0');
-                    key.style.setProperty('--mw-pressure', '0');
-                    key.style.setProperty('--pb-offset', '0px');
-                    key.classList.add('pressure-release');
-                    const releaseEnd = () => {
-                        key.classList.remove('pressure-release', 'pressured', 'pitch-bent');
-                        key.style.removeProperty('--pressure');
-                        key.style.removeProperty('--mw-pressure');
-                        key.style.removeProperty('--pb-offset');
-                    };
-                    key.addEventListener('transitionend', releaseEnd, { once: true });
-                    setTimeout(() => {
-                        if (key.classList.contains('pressure-release')) {
-                            key.classList.remove('pressure-release', 'pressured', 'pitch-bent');
-                            key.style.removeProperty('--pressure');
-                            key.style.removeProperty('--mw-pressure');
-                            key.style.removeProperty('--pb-offset');
-                            key.removeEventListener('transitionend', releaseEnd);
-                        }
-                    }, 500);
-                }
-            };
-
-            key.addEventListener('pointerdown', noteOn);
-            key.addEventListener('pointerup', noteOff);
-            key.addEventListener('pointerleave', noteOff);
-
-            keybed.appendChild(key);
-        });
-    }
-
-    // Start key pressure display loop (aftertouch/modwheel/pitchbend visual on keys)
-    if (typeof window._startKeyPressureDisplay === 'function') {
-        window._startKeyPressureDisplay();
-    }
-
-    // ── Wheel Setup ──
+/**
+ * Ruedas PITCH/MOD del chasis (sprites y slots del KeyboardSection). No son las
+ * del componente compartido: ABDEep las mando por MIDI directo al bridge.
+ */
+function setupHostWheels() {
     const setupWheel = (wheelId, isPitch) => {
         const slot = document.getElementById(wheelId);
-        if (!slot) {return;}
+        if (!slot) { return; }
         const wheel = slot.querySelector('.wheel');
+        if (!wheel) { return; }
         let isMoving = false;
 
         const updateWheel = (clientY) => {
@@ -202,16 +140,17 @@ function initKeyboardAndWheels() {
             const pos = (1.0 - pct) * (rect.height - wheelHeight);
             wheel.style.bottom = (rect.height - wheelHeight - pos) + 'px';
 
-            if (getBridge() && getBridge().midiOutput) {
-                const statusByte = (isPitch ? 0xE0 : 0xB0) | (getBridge().midiChannel - 1);
+            const b = bridge();
+            if (b && b.midiOutput) {
+                const statusByte = (isPitch ? 0xE0 : 0xB0) | (b.midiChannel - 1);
                 if (isPitch) {
                     const bendVal = Math.round(pct * 16383);
                     const lsb = bendVal & 0x7F;
                     const msb = (bendVal >> 7) & 0x7F;
-                    getBridge().midiOutput.send([statusByte, lsb, msb]);
+                    b.midiOutput.send([statusByte, lsb, msb]);
                 } else {
                     const modVal = Math.round(pct * 127);
-                    getBridge().midiOutput.send([statusByte, 1, modVal]);
+                    b.midiOutput.send([statusByte, 1, modVal]);
                 }
             }
         };
@@ -228,10 +167,10 @@ function initKeyboardAndWheels() {
         });
 
         slot.addEventListener('pointermove', (e) => {
-            if (isMoving) {updateWheel(e.clientY);}
+            if (isMoving) { updateWheel(e.clientY); }
         });
 
-        slot.addEventListener('pointerup', (_e) => {
+        slot.addEventListener('pointerup', () => {
             isMoving = false;
             if (isPitch) {
                 updateWheel(rectCenterY(slot));
@@ -241,24 +180,113 @@ function initKeyboardAndWheels() {
 
     setupWheel('wheel-pitch', true);
     setupWheel('wheel-mod', false);
-
-    // Delegate key pressure loop and bridge state patching to keyboard_pressure.js
-    if (typeof window.initKeyPressureLoop === 'function') {
-        window.initKeyPressureLoop();
-    }
 }
 
 /**
- * Muestra la nota MIDI presionada en el LCD del Programmer.
+ * Monta el keybed compartido sobre #piano-keyboard (franja de 185px del
+ * KeyboardSection). Sin contenedor no hay keybed: el componente devuelve su
+ * stub de no-op, asi que se evita llamarlo.
  */
-function _showKeyboardNoteOnLcd(midiNote, velocity) {
-    if (getBridge() && typeof getBridge()._showNoteOnLcd === 'function') {
-        getBridge()._showNoteOnLcd(midiNote, velocity);
-    }
+function initKeyboardAndWheels() {
+    if (keyboardInstance) { return; }
+    const container = document.getElementById('piano-keyboard');
+    if (!container) { return; }
+
+    keyboardInstance = createKeyboard({
+        containerId: 'piano-keyboard',
+        onNoteOn: (note, velocity) => {
+            const b = bridge();
+            if (!b) { return; }
+            const curvedVelocity = hostVelocityCurve(velocity);
+
+            if (b._seqEngine && (b.parameterCache['seq_enable'] || 0) > 0.5) {
+                b._seqEngine.addHeldNote(note, curvedVelocity);
+            }
+
+            if (typeof window._playPolyChordMemory === 'function') {
+                const polyHandled = window._playPolyChordMemory(note, curvedVelocity);
+                if (polyHandled) { return; }
+            }
+
+            if (typeof window._playChordMemory === 'function') {
+                const handled = window._playChordMemory(note, curvedVelocity);
+                if (handled) { return; }
+            }
+
+            if (b._arpEngine && (b.parameterCache['arp_enable'] || 0) > 0.5) {
+                b._arpEngine.addHeldNote(note, curvedVelocity);
+                return;
+            }
+
+            b.pianoNoteOn(note, curvedVelocity);
+        },
+        onNoteOff: (note) => {
+            const b = bridge();
+            if (!b) { return; }
+
+            if (b._seqEngine && (b.parameterCache['seq_enable'] || 0) > 0.5) {
+                b._seqEngine.removeHeldNote(note);
+            }
+
+            if (typeof window._stopPolyChordMemory === 'function') {
+                window._stopPolyChordMemory(note);
+            }
+            if (typeof window._stopChordMemory === 'function') {
+                window._stopChordMemory(note);
+            }
+
+            if (b._arpEngine && (b.parameterCache['arp_enable'] || 0) > 0.5) {
+                b._arpEngine.removeHeldNote(note);
+                return;
+            }
+
+            b.pianoNoteOff(note);
+        },
+        onPanic: () => {
+            const b = bridge();
+            if (b && typeof b.panic === 'function') { b.panic(); }
+        },
+        onOctaveChange: () => { syncOctaveShift(); },
+        config: {
+            numOctaves: 4,
+            startNote: 36,            // C2, el rango de siempre del keybed ABDEep
+            fixedOctaves: true,       // el layout no depende del ancho disponible
+            maxOctaveShift: 3,        // los botones del chasis llegan a +/-3 octavas
+            velocitySource: 'yPosition',
+            velocityCurve: 'linear',  // la curva del host se aplica en onNoteOn
+            enablePressureDisplay: true,
+            enablePitchBendDisplace: true,
+            enableIvoryTexture: true,
+            enableQwerty: true,
+            enableTouch: true,
+            enableResizeObserver: false,
+            // El chord memory de ABDEep es del MOTOR (parametros chord_*), no del
+            // componente; y no se genera aftertouch tactil (el host solo refleja
+            // el del bridge): ambas cosas quedan como estaban.
+            enableChordMemory: false,
+            enableAftertouch: false,
+            getLedColor: () => (typeof window._resolveKeyLedColor === 'function'
+                ? window._resolveKeyLedColor(bridge())
+                : 'var(--brand-accent)'),
+            getPressureState: readPressureState,
+        },
+    });
+
+    window.__kbd = keyboardInstance;
+    window.__abdKeyboard = keyboardInstance;
+
+    setupHostOctaveButtons();
+    setupHostWheels();
 }
 
 window.initKeyboardAndWheels = initKeyboardAndWheels;
-window._showKeyboardNoteOnLcd = _showKeyboardNoteOnLcd;
-// playKeyLedAnimation now defined in keyboard_led_animations.js
-// initKeyPressureLoop now defined in keyboard_pressure.js
-// Render functions (_renderOctaveButtons, _applyKeyIvoryTexture, etc.) now in keyboard_render.js
+/**
+ * Nota MIDI del keybed en el LCD del Programmer (lo usa el bridge al hacer echo
+ * del note-on del proprio keybed).
+ */
+window._showKeyboardNoteOnLcd = function (midiNote, velocity) {
+    const b = bridge();
+    if (b && typeof b._showNoteOnLcd === 'function') {
+        b._showNoteOnLcd(midiNote, velocity);
+    }
+};

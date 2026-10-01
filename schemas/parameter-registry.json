@@ -23,13 +23,13 @@
     "generatedAt": {
       "type": "string",
       "format": "date-time",
-      "description": "Timestamp UTC de generación (ISO 8601)."
+      "description": "Timestamp UTC (ISO 8601) del ultimo cambio de CONTENIDO del registro. El generador es idempotente: si nada cambia conserva el valor anterior en vez de reescribirlo, para que el build no produzca diffs espurios."
     },
     "sourceHashes": {
       "type": "object",
       "additionalProperties": { "type": "string" },
       "required": ["parametersSpec", "bridgeParamMaps", "byteMapData"],
-      "description": "SHA-256 de cada fuente de entrada para detectar registros obsoletos."
+      "description": "SHA-256 de la forma CANÓNICA de cada fuente de entrada (el valor ya parseado: claves ordenadas, arrays en su orden, `Set` como array ordenado, sin funciones), no de los bytes del fichero. Detecta registros obsoletos sin que un cambio de formato, indentación o comentarios los re-selle."
     },
     "parameters": {
       "type": "array",

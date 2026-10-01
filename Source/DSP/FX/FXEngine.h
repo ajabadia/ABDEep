@@ -42,6 +42,19 @@ namespace ABD
          *  Call this before process() each block. Pointers are consumed after process(). */
         void setModulatorBuffer(const float* modL, const float* modR, int numSamples);
 
+        /**
+         * Modulacion de la matriz para UN hueco: los dos destinos que el manual
+         * le da, `Fx N Level` y `Fx N Parameters`.
+         *
+         * @param slot        Hueco 0..3
+         * @param level       Buffer muestra a muestra del nivel, con la
+         *                    cantidad ya dentro, o `nullptr`
+         * @param paramAmount Cantidad para los parametros que el efecto declare
+         *                    modulables (`FXBase::getModulationParams`)
+         * @param numSamples  Longitud de `level`
+         */
+        void setSlotModulation(int slot, const float* level, float paramAmount, int numSamples);
+
         /** Procesa todo el bloque de audio a través de los 4 slots FX */
         void process(juce::AudioBuffer<float>& buffer);
 

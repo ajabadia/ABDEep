@@ -15,18 +15,18 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
+
+// Contrato canonico exportado por el propio script (el guard de CLI impide que
+// importarlo ejecute main()).
+import {
+  EXPECTED_JOBS, JOB_WORKFLOWS, JOB_WORKFLOW_JOBS, PLAN_JOB_RE, BASELINE_JOB_RE,
+  extractSection, extractJobNames, extractJobBulletTexts, extractJobsFromWorkflow, setEquals,
+} from '../../scripts/verify_docs_ci_jobs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const SCRIPT = path.join(ROOT, 'scripts', 'verify_docs_ci_jobs.js');
 const REAL_WORKFLOWS = path.join(ROOT, '.github', 'workflows');
-
-const require = createRequire(import.meta.url);
-const {
-  EXPECTED_JOBS, JOB_WORKFLOWS, JOB_WORKFLOW_JOBS, PLAN_JOB_RE, BASELINE_JOB_RE,
-  extractSection, extractJobNames, extractJobBulletTexts, extractJobsFromWorkflow, setEquals,
-} = require(SCRIPT);
 
 // Jobs por defecto para cada workflow sintético — DERIVADO de JOB_WORKFLOW_JOBS
 // (fuente de verdad) para que el test no duplique el contrato: workflow → [job IDs]
@@ -537,9 +537,12 @@ describe('verify_docs_ci_jobs.js — paridad de invocación en CI (docs-verifica
     }
   });
 
-  it('webui-ci.yml ejecuta `npm test` (suite vitest sin filtros) que incluye este test', () => {
+  it('webui-ci.yml ejecuta `test` (suite vitest sin filtros) que incluye este test', () => {
     const yml = fs.readFileSync(WEBUI_WF, 'utf8');
-    expect(yml).toMatch(/run:\s*npm test/);
+    // pnpm es el gestor del workspace (pnpm-lock.yaml + la composite action que
+    // hace el bootstrap), asi que el job lo invoca como `pnpm test`; ambos
+    // gestores ejecutan el MISMO script "test" = `vitest run` sin filtros.
+    expect(yml).toMatch(/run:\s*(?:npm|pnpm) test/);
   });
 
   it('la ruta de webui-ci invoca el MISMO script con los MISMOS args ([]) que docs-verification', () => {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "DSPHelpers.h"
 #include "OSC1.h"
 #include "OSC2.h"
 #include "Envelope.h"
@@ -137,7 +138,8 @@ namespace ABD
         float ampSmoothCoeff = 0.05f;     // per-sample coeff, recomputed in prepare() from DAW SR
         // Cutoff/amp smoothing time constant in seconds. Legacy per-sample coeff
         // was 0.05 @ 44.1 kHz: tau = -1/(ln(1-0.05)·44100) = 0.0004421 s.
-        static constexpr float kSmoothTauSec = 0.00044208f;
+        // Defined centrally in DSPHelpers.h as kCutoffSmoothTauSec / kAmpSmoothTauSec
+        static constexpr float kSmoothTauSec = DSP::kCutoffSmoothTauSec;
         int currentMidiNote = -1;
         int lastMidiNote = -1;  // preserved across force-stops (for portamento glide)
         int rootNoteTriggered = -1;  // root MIDI note that triggered this voice (for chord/poly release)

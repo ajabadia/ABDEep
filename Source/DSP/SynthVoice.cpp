@@ -16,8 +16,8 @@ namespace ABD
     {
         sampleRate = newSampleRate;
         invSampleRate = (sampleRate > 0.0) ? (1.0 / sampleRate) : 0.0;
-        cutoffSmoothCoeff = DSP::slewCoeffFromTimeConstant(kSmoothTauSec, sampleRate);
-        ampSmoothCoeff = DSP::slewCoeffFromTimeConstant(kSmoothTauSec, sampleRate);
+        cutoffSmoothCoeff = DSP::slewCoeffFromTimeConstant(DSP::kCutoffSmoothTauSec, sampleRate);
+        ampSmoothCoeff = DSP::slewCoeffFromTimeConstant(DSP::kAmpSmoothTauSec, sampleRate);
         osc1.prepare(sampleRate);
         osc2.prepare(sampleRate);
         vcf.prepare(sampleRate);

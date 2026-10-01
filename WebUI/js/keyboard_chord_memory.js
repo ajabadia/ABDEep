@@ -42,17 +42,14 @@ window._initChordMemory = function() {
 window._captureChordMemory = function() {
     const bridge = getBridge();
     if (!bridge) {return;}
-    const keybed = document.getElementById('ivory-keys-bed');
-    if (!keybed) {return;}
-    const pushedKeys = keybed.querySelectorAll('.key.pushed');
+    // Notas mantenidas: las reporta el keybed COMPARTIDO (notas BASE) y se
+    // trasponen con el desplazamiento actual, como hacia el DOM propio.
+    const kbd = window.__kbd;
+    if (!kbd || typeof kbd.getActiveNotes !== 'function') {return;}
     const octaveShift = window._currentOctaveShift || 0;
     
-    const notes = [];
-    pushedKeys.forEach(function(k) {
-        const midiNote = parseInt(k.getAttribute('data-note'));
-        if (!isNaN(midiNote)) {
-            notes.push(midiNote + octaveShift);
-        }
+    const notes = kbd.getActiveNotes().map(function(midiNote) {
+        return midiNote + octaveShift;
     });
     
     if (notes.length === 0) {

@@ -4,7 +4,533 @@
 
 ---
 
-## 0.2.49 — 🐛 Fix crítico de runtime: teclado no renderizaba (colisión global `let Logger` + recursión `escapeHtml`)
+## 0.2.57 — 🎛️ El Vel Gate del arpegiador por fin hace lo que dice
+
+> **Era el más caro de los 50 parámetros sin uso**, y no por estar sin cablear sino por **estar
+> visible**: el panel y el modal pintan un `<select>` con `Gate` / `Velocity` / `Seq`, y el
+> arpegiador hacía `pianoNoteOn(outNote, h.velocity)` sin mirar el parámetro.
+
+El selector prometía tres modos y no ejecutaba ninguno. Peor: el arpegiador **siempre** sonaba
+con la velocidad de la tecla, que es exactamente lo que dice la opción «Velocity». Es decir, el
+modo por defecto del spec (`0` = Gate) era el único que no existía.
+
+| Modo | Qué hace ahora |
+|---|---|
+| **Gate** | Velocidad constante (100), se toque como se toque |
+| **Velocity** | La salida es la de la tecla — lo que ya hacía, ahora porque lo dice |
+| **Seq** | Rampa triangular sobre las notas sostenidas (127 → 40 y vuelta), periodo 2n−2 |
+
+La política vive en `_arpVelocityFor` (`WebUI/js/bridge-engines-arp-modes.js`), **función pura**
+junto a `_arpCalcStep`, con el mismo «sin estado del bridge» por delante; `_arpStep` la usa al
+tocar. El `100` del modo Gate no es un número inventado: es el `velocity || 100` que ya usa
+`pianoNoteOn`. La rampa de Seq comparte periodo con el modo UP-DOWN de notas.
+
+Dos detalles que no son cosmetics: la rampa se calcula **después** del clamp de octava de
+`_arpStep`, que puede cambiar `noteIdx`, y con **una sola nota**_seq degenera a la velocidad de la
+tecla (un 127 fijo sería un salto del que no se puede salir).
+
+**POR QUÉ NO TIENE BYTE.** No es un parámetro virtual: el **byte 112** del preset real se llama
+«Arp Velocity Gate» (`docs/sysex_format.md` §4.12). Es *dual* con Mod Slot 7 Destination, igual
+que `arp_enable` (109), `arp_hold` (110) y `arp_key_sync` (111) — por eso el registro no puede
+darle ese byte sin romper la matriz.
+
+**Tests:** `WebUI/tests/arpVelocityGate.test.js`, 27 tests, cargando el fichero real (no una copia).
+El guard 3 (`SPECONLY_UNCONSUMED`) deja de tratarlo como deuda: la entrada se queda —el parámetro
+sigue sin byte propio— pero su «porqué» pasa a decir quién lo lee.
+
+---
+
+## 0.2.58 — 🎛️ El patrón del arpegiador, y un barrido que impide que vuelvan los residuos
+
+> **Dos cosas.** La primera cierra el último selector visible que no hacía nada: `arp_pattern`, con sus
+> **65** opciones, un editor de 32 pasos que funcionaba y un store de presets que nadie leía. La segunda
+> ataca la causa de los tres rondas anteriores de residuos: nada obligaba a que un parámetro borrado
+> no siguiera escrito en algún sitio.
+
+### `arp_pattern`: la rejilla de 32 pasos deja de ser decorativa
+
+El motor se recorría `arp_mode` sin mirar el patrón. Ahora el patrón es una **máscara de 32 pasos**
+sobre el ciclo: el paso `stepIndex % 32` suena si su casilla está encendida. Sin patrón suena todo, que
+es el comportamiento previo intacto.
+
+El cableado tiene tres puntos, y los tres estaban a medias:
+
+| Punto | Antes |
+|---|---|
+| `setArpPattern` / `resolveArpPattern` en el bridge | No existían. Ahora el índice (None + 32 Preset + 32 User) se resuelve a pasos concretos |
+| El editor de 32 pasos | Dibujaba barras que no cambiaban nada. Cada paso que dibujas va al motor |
+| El botón Load | Poner un patrón en la rejilla no lo ponía a sonar |
+
+Un patrón nuevo pone `stepIndex` a 0, y un paso apagado **avanza el índice**: si no, el arpegiador se
+quedaría mudo atascado en la primera casilla apagada.
+
+### El barrido: por qué es una lista de tablas y no un barrido de todo
+
+La primera versión barrió el repo entero buscando cadenas con forma de id y dio **10 falsos
+positivos**: `patch_dirty`, `midi_channel` y `protect_unsaved_edits` son parámetros **internos del
+bridge** — y llevan guion bajo igual que uno de verdad, así que la forma no los delata —, y
+`'seq_step_' + (i + 1)` es un id construido por prefijo como `"fx" + slot + "_mix"`. Un test que
+necesita excepciones para no fallar no se mantiene.
+
+Así que verifica las cuatro **tablas que declaran ids** (`bridge-param-maps`, `script_midi_mappings`,
+`edit_cache_mapper_data`, `script_randomizer`): esas son un contrato, y su contenido tiene que ser
+ids que existen. Los internos del bridge van en una lista nombrada, que es la que obliga a
+actualizarse cuando se renombra uno.
+
+**Y EL BARRIDO ENCONTRÓ UN RESIDUO MÁS.** `script_randomizer.js` seguía escribiendo
+`osc2_pitch_mod_select` en cada patch aleatorio: un byte que el host no declara, en cada patch que
+generaba la máquina. Fuera.
+
+### Verificado
+
+`WebUI/tests/arpPattern.test.js` (normalización, máscara, integración sobre el fuente real) y
+`WebUI/tests/registryIdsSweep.test.js` (que **se contrasta a sí mismo**: mete un residuo conocido y
+comprueba que lo ve, porque un barrido que nunca ha fallado no prueba que sirva). 124/124.
+
+---
+
+## 0.2.55 — 🧹 Los cinco parámetros muertos, borrados de verdad (y de donde nadie los ve)
+
+> Los tres que confirma el informe —`slot_a_type`, `slot_b_type` y `arp_gate`— ya estaban fuera del
+> spec y del mapa del puente. Lo que quedaba eran **residuos**, y son los que hacen que un borrado
+> parezca hecho y no esté.
+
+Un parámetro no desaparece de una línea: desaparece de todos los sitios que lo nombran. Para estos
+cinco fueron el spec de C++, el mapa del puente, el JSON legacy, el mapa de NRPN que ve el usuario y
+el randomizador de patches, más sus fixtures de test.
+
+| Residuo encontrado | Qué era |
+|---|---|
+| `script_midi_mappings.js` → `'arp_gate': 'NRPN 1:32 (CC 13)'` | El mapa que el usuario consulta para ver a qué NRPN va cada mando. Enseñaba un NRPN que ya no existe |
+| `scriptRandomizer.test.js` → `'arp_gate': 0.5` | Fixture que replica el generador de patches |
+| `scriptRandomizer.test.js` → `'osc_drift'` en la categoría *Voice / Unison* y en las aserciones | Resto del byte 88 duplicado |
+| `WebUI/resources/parameters_spec.json` | **Copia muerta del spec.** Nadie la leía (ni CMake, ni JS, ni fetch), llevaba los `slot_*` dentro desde el commit inicial, y le faltaba `vcf_voicing_mode`. El generador lee `resources/parameters_spec.json`. Borrada |
+
+**LO QUE MÁS SE ESCONDE ES EL FIXTURE.** Al borrar `arp_gate` del randomizador había que poner
+`arp_gate_time` en su lugar: el `arp_gate` borrado y el `arp_gate_time` que lo sustituye se
+diferencian en cinco caracteres, y un fixture desalineado no da error de compilación — falla por el
+recuento de parámetros, o peor, pasa comprobando el nombre viejo.
+
+**Y LO QUE MÁS CUESTA ES EL DUPLICADO.** Dos ficheros con el mismo nombre y el mismo formato que
+declaran lo mismo es el peor sitio posible para un borrado: se borra en uno, el otro sigue, y quien
+mire el equivocado conclude que el trabajo no se hizo.
+
+**`docs/fase1_registry.md`** tenía las cifras del registro viejo (236 parámetros, `aliasGroups: 3`)
+y documentaba los tres bytes con dos ids **como si fueran correctos**. Actualizado a los números
+reales (233, `aliasGroups: 0`) y con los tres guards en la política de validación.
+
+**Verificado:** generador exit 0 con `0 reescritos` (el registro ya estaba al día de estos borrados);
+526/526 tests en registro, randomizador, script core, mapa de parámetros y pipeline del bundle.
+
+---
+
+## 0.2.56 — 🚧 Los tres guards del registro: el generador ya compara las fuentes
+
+> **Salen de `docs/parametros_sin_uso.md` §«El guard que falta».** Ese informe_medía tres cosas que
+> el generador no miraba. Ahora las mira, y falla con exit 1 sin emitir artefactos.
+
+El generador sabía leer las tres fuentes y sabía avisar. Lo que no hacía era **compararlas**, y por
+eso llevaba meses emitiendo un registro donde tres bytes tenían dos nombres.
+
+### Los tres guards
+
+| Guard | Código | Qué falla |
+|---|---|---|
+| 1 | `REGISTRY_ID_NOT_IN_SPEC` | Un id de `PARAM_TO_BYTE_OFFSET` que el host no declara en `Source/Core/ParametersSpec_*.cpp` |
+| 1b | `CC_ID_NOT_IN_SPEC` | Un id de `PARAM_TO_CC` que el host no declara |
+| 2 | `NRPN_COLLISION` | Un `byteOffset` con dos ids |
+| 3 | `SPECONLY_UNCONSUMED` | Un id declarado en el spec, sin byte, que no está en `SPECONLY_CONSUMIDOS` |
+
+**El guard 1 mira las dos tablas de ids del puente.** `PARAM_TO_CC` es la segunda
+puerta: un identificador inventado colado ahí pasaba el generador entero, que es
+el mismo defecto con el extra de que además se mueve desde el MIDI externo. Los
+tres ids que viven solo en la tabla de CC (`global_volume`, `global_tune`,
+`transpose`) son de la APVTS y no tienen byte porque no son del sintet.
+
+**El guard 2 no era nuevo: estaba anulado.** Tenía una lista de escapes
+(`kKnownAliasOffsets = {32, 88, 160}`) que llamaba «alias intencionales» a los tres bytes con dos
+respuestas — o sea, llegaba exactamente a los tres defectos del informe. La lista está vacía ahora.
+
+### Los cuatro datos que los violaban
+
+| Fuera | Por qué |
+|---|---|
+| `osc2_pitch_mod_select` | En el puente, byte 32, pisando `osc2_pm_source`, que sí suena |
+| `arp_gate` | En el puente, byte 160 y CC 13, duplicando `arp_gate_time` |
+| `osc_drift` | En el puente, byte 88, pisando `voice_drift`. El drift ya tiene tres parámetros vivos |
+| `slot_a_type`, `slot_b_type` | Restos de una nomenclatura que este synth no tiene (`osc1_*`/`osc2_*`, no ranuras A y B). Fuera del spec de C++ y del JSON |
+
+### Por qué el guard mide contra el C++
+
+El spec que declara el host son los **247** ids de `Source/Core/ParametersSpec_*.cpp`; los **15** de
+`resources/parameters_spec.json` son metadatos legacy. Comparar el registro contra el JSON daría
+**220 falsos positivos**. El generador ahora lee los cinco `.cpp`, saca solo el conjunto de ids (que
+además entra en `sourceHashes` como cuarta fuente) y deja los metadatos viniendo del JSON, igual que
+antes.
+
+### El guard 3 no escanea el motor
+
+Los ids construidos por prefijo (`fx1_mix` sale de `"fx" + String(s + 1) + "_mix"`) no existen como
+literal. Un escaneo los daría por muertos. El guard compara contra una lista explícita de los **16**
+declarados-sin-byte vivos, cada uno con su porqué. Una entrada que ya no aplica avisa
+(`SPECONLY_ALLOWLIST_STALE`); lo que no esté en la lista es un error.
+
+### Un bug que los guards enseñan
+
+`!paramToOffset[id]` es `true` para el byte **0**: un guard con truthiness declararía «sin byte» al
+primer parámetro del registro (`lfo1_rate`). Corregido con `hasOwnProperty` en los tres sitios, con
+test.
+
+### Lo que encontró el guard mientras se ponía
+
+Los fixtures de `bridgeParamMaps.test.js` y `browserMapper.test.js` llevan su propia copia del mapa
+del puente, y esa copia estaba desfasada: los `chord_*` en 105-108 (encima de `mod_matrix_slot5/6`,
+un **cuarto** grupo de colisión) en vez de 300-303, y `fx_feedback_gain` en el **223**, el primer byte
+del nombre del patch. El generador no lo ve porque no lee tests; los tests no lo veían porque
+comparaban el fixture consigo mismo.
+
+### Resultado
+
+`registry_generator` pasa de 236 a **233** parámetros, `aliasGroups=0`, y es idempotente. Los cuatro
+artefactos `.gen` regenerados. `registryGen.test.js` §5c comprueba los tres guards sobre el
+artefacto **emitido**, no solo sobre las fuentes, así que también cazan a quien suba un `.gen` viejo.
+
+**Suite WebUI:** 4819 tests, 48 fallos, **0 introducidos por este cambio** (baseline en HEAD: 53).
+Los 3 fallos de carga (`domSanitize`, `verifyDocsCiJobs`, `checkWasmBuild`) son `SyntaxError` de
+cambios anteriores del working tree, ajenos a esto.
+
+---
+
+## 0.2.55 — 🎛️ El desplegable del rack también derivaba del contrato (fin de la desalineación, 2ª parte)
+
+> **El `FX_TYPE_NAMES` ya estaba arreglado en 0.2.52. Este era el que quedaba.** Ese arreglo quitó
+> la lista escrita a mano de `effects_data.js`, pero `WebUI/js/components/fx_modal_templates.js`
+> tenía **dos listas propias**: la cadena de `<option>` del desplegable y el objeto de etiquetas
+> cortas, las dos escritas a mano y las dos desplazadas respecto a `FXSlot_Factory.cpp`. Y esa es
+> justo la que tenía el usuario delante de los ojos.
+
+El desplegable no era un ids corrido con tres deslices: estaba **descolocado de verdad**.
+
+| id | decía | la fábrica construye | id | decía | la fábrica construye |
+|---:|---|---|---:|---|---|
+| 1 | Ambience | **Hall** | 22 | Delay | **Deep Verb** |
+| 2 | tcDeepVerb | **Plate** | 26 | DecimatorDelay | **Chamber** |
+| 3 | RoomRev | **Rich Plate** | 27 | ModDlyRev | **Room** |
+| 4 | VintageRoom | **Ambience** | 28 | Stereo Chorus | **Vintage** |
+| 5 | HallReverb | **Gated** | 6 | ChamberRev | **Reverse** |
+| 7-12 | Plate Reverb … DelayRev | Rack Amp … Mod Delay Verb | | | |
+
+De 64 opciones, **51 mal etiquetadas y 7 que no existen**. Esas 7 son los ids **57-63**
+("Slow Motion Chorus", "BBD Ensemble", "Phaser 8", "Micro Spat", "Multi Tap Chorus", "Tremolo
+Pan", "Auto Pan"): se podían elegir en el desplegable y **la ranura se quedaba muda**, porque la
+fábrica construye 1-56 y cae en `default: return nullptr`.
+
+- **`WebUI/js/components/fx_modal_templates.js`** — las dos listas salen ahora de
+  `window.FxEffectsContract`, el mismo binding del que ya bebe `effects_data.js`. Una sola
+  verdad: el desplegable no puede desalinearse porque ya no existe una segunda lista que
+  desalinear. **57 opciones, ordenadas por id, cero fantasmas.**
+- **Se construyen en el primer acceso, no al cargar.** Este script se carga en la línea 29 de
+  `index.html` y el contrato en la 336: montarlo aquí saldría vacío. Los tres exports
+  (`FX_TYPE_OPTIONS`, `FX_TYPE_LABELS`, `FX_MODAL_TEMPLATE`) pasan a ser `get`, de modo que
+  `fx-modal.js` y `fx_modal_presets.js` **no cambian ni una línea** y leen los nombres cuando
+  pintan, que es cuando el contrato ya está. Sin contrato avisa por consola y deja solo *Bypass*:
+  un desplegable vacío se ve enseguida, una lista vieja equivocada no se ve nunca.
+- **Ordenados por id a propósito.** El array `effects` del contrato va agrupado por familia y
+  **no** ordenado por id (acaba en 55, 39, 16, 19, 43, 49, 54, 56). Usarlo tal cual habría dado
+  un desplegable *de aspecto ordenado con el `value` equivocado en cada opción*, que es un fallo
+  peor que el que se arregla porque no se ve.
+- **El mini-display arrancaba mintiendo.** El HTML traía `id === 1 ? 'Ambience' : id === 2 ?
+  'VintageRoom'`, o sea contradiciendo el desplegable que tiene justo encima hasta que el usuario
+  tocaba algo. Ahora arrancan en *Bypass*, que es la verdad hasta que se cargue el estado.
+- **`WebUI/tests/fxContract.test.js`** — +8 tests en un `describe` nuevo: que no quede ninguna
+  lista escrita a mano en el fichero, que cada opción lleve el nombre del contrato, que salgan
+  exactamente los ids del contrato sin repetir, los diez reverbs en `1,2,3,4,5,6,22,26,27,28`, que
+  los dos grupos no se solapen, que sin contrato degrade a *Bypass* en vez de a una lista vieja, y
+  que las etiquetas cortas también salgan del contrato.
+
+- **Un bobo mío que salió a tiempo.** El segundo grupo de opciones no tenía `from`, así que se
+  comía los ids del primero y el desplegable salía con **93 opciones duplicadas**. Lo cazó la
+  aserción de "sin repetir" al verificar, antes de que llegara a la UI.
+
+**Verificado.** WebUI **112 files / 4847 tests, 0 fallos** (antes 4839). ESLint **0 errores / 0
+warnings**. `generate:fx-contract:check` al día (57 efectos). `npm run bundle` OK: el
+componente llega a `dist/` referencing `FxEffectsContract` y **cero** nombres viejos.
+Mutaciones comprobadas en las dos direcciones: quitando el `.sort()` del contrato el test salta
+(2 fallos), y colando un `"Ambience"` a mano en el id 1 también (2 fallos, con
+`1: desplegable=Ambience contrato=Hall`).
+
+**Contrato sin cambios**, como en 0.2.52: ni los ids, ni los nombres, ni las familias cambian. Lo
+que cambia es que la web por fin dice la verdad.
+
+---
+
+## 0.2.54 — 🛠️ La línea de retardo del Space Echo RE-201 estaba muerta (y su tanque de reverb)
+
+> **Bug de envolvente, no de DSP.** `FXSpaceEchoRE201` (id 39) usaba `kMaxDelay = 70560` como
+> **máscara de bits**, y una máscara solo envuelve si es `2^n - 1`. No lo era: `70560` es
+> `0b1_0001_0011_1010_0000`, y sus **cinco bits bajos son cero**, así que
+> `(writePos + 1) & delayMask` daba `0` en la primera muestra y `0` para siempre. Todas las
+> muestras se escribían en la misma celda, las lecturas caían en índices enmascarados que nunca
+> se habían escrito, y **el eco de cinta no existía**. El efecto era un paso a paso con la voz
+> seca. Llevaba así desde que se escribió, y era la razón declarada por la que el perfil del
+> RE-201 compartido (`Re201Profile`) se copió de JUNiO601 en vez de ABDEep.
+
+- **`Source/DSP/FX/FXSpaceEchoRE201.h`** — el tamaño pasa a ser potencia de dos y la máscara pasa a
+  ser `tamaño - 1`, que es el patrón que ya usan `FXSpectralDelay`, `FXTreemonster` y
+  `FXSolinaEnsemble` en este mismo directorio. `kDelaySize = 131072` (2^17) en vez de 70560. Se
+  elige 2^17 y no 2^16 porque el tope del retardo lo pone `sampleRate * 1.5` (66150 muestras a
+  44.1 kHz) y no esta constante: con 2^17 la expresión `maxDelay` devuelve **exactamente los
+  mismos números que antes**, así que lo único que cambia es que la línea avanza. Las dos
+  variables `delayMask` y `reverbMask` **desaparecen**: al ser `constexpr` no hay forma de volver
+  a poner una máscara equivocada, que es exactamente como se coló este bug.
+- **`Source/DSP/FX/FXSpaceEchoRE201.h`** — dos `static_assert` que dan **error de compilación** si
+  alguien vuelve a poner un tamaño que no sea potencia de dos. El fallo que acabamos de arreglar
+  no debería poder repetirse en silencio otra vez.
+- **El tanque de reverb tenía el mismo bug.** `kReverbSize = 16384` es 2^14, o sea una potencia
+  de dos usada donde tocaba la máscara: `(reverbWPos + 1) & 16384` alternaba entre 0 y 16384 en
+  vez de recorrer el búfer, y las lecturas se quedaban clavadas en el índice 0. La "reverb de
+  muelle" no era una reverb. Ahora es 2^15, que además cubre el retardo más largo del tanque
+  (0.11 s por el canal derecho) hasta ~298 kHz.
+- **`Source/DSP/FX/FXUnitTests_Advanced.cpp`** — test nuevo, **«Space Echo RE-201 delay line
+  advances (id 39)»**. Dispara un impulso y comprueba que vuelve a la distancia que dice el
+  cabezal, en los dos extremos del mando de tiempo (2620 y 32744 muestras), más que la vía seca
+  está viva y que fuera de esa ventana no suena nada. Tres cosas importante:
+  - **El efecto no tenía ninguna cobertura.** `FXUnitTests_Advanced.cpp` ya incluía la cabecera
+    desde hacía tiempo y no la usaba: los tests que pasaban antes eran los que comprueban que la
+    salida es `isfinite`, que es lo único que se puede afirmar de un eco que no existe.
+  - El test **falla con la máscara rota puesta a propósito** (pico 0 en la posición esperada, con
+    la vía seca pasando) y pasa con la arreglada. Comprobado en las dos direcciones.
+  - La ventana de búsqueda se escala con la distancia porque el wow y el flutter mueven la
+    posición de lectura hasta un ±1.7 %.
+- **`../ABDSharedCode/DspEffects/profiles/Re201Profile.h`** — la nota que justificaba copiar el
+  perfil de JUNiO601 decía que la línea de ABDEep estaba rota. Se marca que **se arregló** (y en
+  cuál versión) en vez de dejar un documento mintiendo. El motivo de fondo sigue en pie: la tabla
+  de modos de ABDEep son cinco modos escritos a mano frente a los doce del selector real, y eso no
+  se ha tocado.
+
+**Cambio audible en el id 39, y grande.** Pasa de ser un filtro paso a paso a ser, por fin, un eco
+de cinta: aparecen las repeticiones de los tres cabezales, el tiempo del retardo pasa a existir,
+y la reverb de muelle pasa a ser una reverb. Los presets que usen el 39 suenan bastante distinto,
+y van a sonar *bien*, que era el objetivo. El resto de efectos no se toca.
+
+**Ojo, que no es el único.** El mismo defecto —usar un tamaño que no es potencia de dos como
+máscara— está en **`FXAnalogTapeDelay` (52920), `FXDuckingDelay` (66150) y `FXShimmerDelay`
+(88200)**, más el tanque de reverb del Shimmer (`kReverbSize = 32768`). Los cinco búferes se
+quedan clavados en 0 desde la primera muestra, igual que la RE-201. **No se han tocado**: son
+otros tres efectos publicados y arreglar el 39 no es permiso para cambiar los otros tres sin
+decirlo. Queda pendiente decidir.
+
+**Verificado.** `ABDEep_UnitTests`: **147 suites / 3 689 380 aserciones / 0 fallos** (antes 146 /
+3 689 374: +1 suite, +6 aserciones).
+
+---
+
+## 0.2.53 — 🔌 Los cinco mandos de reverb del híbrido iban a los controles equivocados
+
+> **Bug de cableado, no de DSP.** `FXHybridReverb` reparte sus doce mandos: 0-5 al modulador
+> (flanger / chorus / delay) y 6-11 a la reverb, que es un `FXSimpleReverb(1)` (Hall). El bloque de
+> reverb del panel está **en el mismo orden que los cinco primeros mandos de una Hall**, así que el
+> reparto correcto es el de identidad: 6→0 preDelay, 7→1 decay, 8→2 size, 9→3 damping, 10→4
+> diffusion. Y no lo era: iban **6→1, 7→0, 8→4, 9→2 y 10→3**. Cuatro de los cinco knobs acababan
+> en un control que no era el suyo —preDelay movía el decay, decay movía el pre-retardo, size movía
+> la difusión, damping movía el tamaño y loCut movía el damping—, y dos de ellos (size y damping)
+> se perdían dentro de controles que sí tienen sentido oír, que es justo lo que lo hace pasar
+> desapercibido.
+
+- **`Source/DSP/FX/FXHybridReverb.cpp`** — el `switch` de los knobs 6-10, que pasa a ser el de
+  identidad. El quinto mando del panel es **loCut**, que el motor no tiene (ni loCut ni hiCut):
+  sigue yendo a *diffusion*, que es lo que hacía el reparto viejo y la única forma de que ese knob no
+  se quede muerto. El wet/dry del knob 11 es el del híbrido entero y no cambia: se sigue mezclando
+  al final de `process`.
+- **`Source/DSP/FX/FXUnitTests_ReverbParity.cpp`** — dos tests nuevos sobre el reparto:
+  - **«los cinco knobs del híbrido llegan a su control»** — para cada knob y para los tres
+    híbridos (23/24/25) monta la cadena que el híbrido *debería* tener —modulador, reverb con el
+    reparto correcto y el wet/dry del final— con la **copia congelada del motor**, y la compara
+    muestra a muestra con lo que hace el híbrido de verdad. Los knobs se mueven a 0.08 y a 0.93
+    sobre una base de cinco valores distintos (así un cruce no puede pasar por casualidad) y se
+    exige **0 ULPS**. Cuando falla, busca en cuál de los cinco controles fue el knob de verdad y lo
+    dice: *«el knob decay (7) a 0.93: 3.3e9 ULPS de diferencia, la peor en la muestra 7047. Debería
+    mover decay y ha movido preDelay»*.
+  - **«los cinco controles del híbrido no suenan igual»** — que los cinco controles se diferencien
+    entre sí. Sin esto, el test de arriba podría pasar sin comprobar nada: si dos controles
+    distintos dieran el mismo audio, un cruce volvería a colarse por debajo. Son 10 pares × 3
+    híbridos.
+
+**Cambio audible en 23, 24 y 25.** Estos tres efectos ya estaban publicados, y su sonido cambia:
+el knob de tamaño ahora alarga la cola en vez de cambiar la difusión, y el de pre-retardo retrasa
+de verdad en vez de cambiar el decay. El resto del motor, de los otros diez reverbs y de la
+extracción a `DspEffects` no se toca: la paridad de los reverbs sigue en 0 ULPS y los hashes
+congelados siguen cuadrando.
+
+**Verificado.** `ABDEep_UnitTests`: **146 suites / 3 689 374 aserciones / 0 fallos**. Y lo
+importante: con el reparto cruzado puesto a propósito, el test nuevo falla las **30** aserciones
+(5 knobs × 2 extremos × 3 híbridos) en vez de colarse. Se comprobó en las dos direcciones.
+
+---
+
+## 0.2.52 — 🔗 Los nombres de tipo de efecto salen del contrato compartido (fin de la desalineación)
+
+> **Bug de interfaz, no de texto.** `FX_TYPE_NAMES` era una lista de 57 nombres escrita a mano en
+> `WebUI/js/effects_data.js` que enumeraba los ids `0..56` **seguidos**, mientras que la fábrica
+> (`FXSlot_Factory.cpp`) construye `1,2,3,4,5,6,22,26,27,28` para los reverbs. O sea que a partir
+> del id 7 el desplegable del rack y el DSP llevaban tres ids distintos para el mismo efecto: la
+> web llamaba "Ambience" a un Hall, y el 22 (Deep Verb) figuraba como "Delay". No daba ningún
+> error, porque eran dos listas de enteros que nadie contrastaba.
+
+- **`WebUI/js/fx_contract.gen.js` (nuevo, AUTO-GENERATED)** — binding del contrato compartido
+  `ABDSharedAssets/contracts/fx-effects.json` al WebUI, con `names` indexado por id, `byId`,
+  `effects`, `families` y `sourceHash`. Mismo patrón que `registry.gen.js`: envoltorio UMD
+  (script clásico) + cabecera `DO NOT EDIT`.
+- **`scripts/generate_fx_contract.mjs` (nuevo)** — el generador. Idempotente (solo escribe si el
+  contenido cambia) y con `--check` para CI. Valida el contrato antes de emitir: ids numéricos,
+  sin repetidos, sin huecos y con nombre en todas las entradas.
+- **`WebUI/js/effects_data.js`** — el array de 57 nombres **fuera**. Ahora deriva de
+  `window.FxEffectsContract` y expone tres cosas: el contrato entero, `FX_TYPE_NAMES` (la lista
+  por id, congelada y copiada; se conserva porque seis módulos la leen por índice y renombrarla
+  aquí sería ruido) y `fxTypeName(id)` para el código nuevo.
+- **`WebUI/index.html`** — carga `fx_contract.gen.js` **antes** de `effects_data.js`. Si el orden
+  se invierte la lista se queda sin definir, que es justo el fallo silencioso que se quiere evitar.
+- **`WebUI/tests/fxContract.test.js` (nuevo, 13 tests)** — ata las tres capas que tienen que
+  saber el mismo número: el `.gen` commiteado es **byte a byte** lo que genera el script; el
+  contrato está alineado con el **`FXSlot_Factory.cpp` real** (se parsea el `.cpp`, no una copia:
+  comprueba que todo id que construye la fábrica existe en el contrato, y que los diez reverbs
+  salen en 1,2,3,4,5,6,22,26,27,28 con su `variant` correcta); y `effects_data.js` no vuelve a
+  escribir los nombres (busca un array grande y los nombres inventados de la lista vieja).
+- **`WebUI/tests/effects.test.js`** — segunda copia del array borrada. Ahora **evalúa los dos
+  scripts reales en un `window` falso** con `vm`, en el mismo orden que `index.html`, y saca la
+  lista del resultado: prueba lo que se carga en el WebView, no una copia que puede quedarse
+  vieja sin que nadie se entere.
+- **`package.json`** — `generate:fx-contract` y `generate:fx-contract:check`.
+- **`docs/baseline_fase0_v32.md`** — counts a **111 files / 4815 tests**.
+
+**Por qué un generador y no un `import` del contrato.** Los `effects_*.js` son scripts **clásicos**
+(`<script src>`, se hablan por `window`), no ESM; y el resource provider sirve el árbol crudo cuando
+no hay `dist/`, así que el contrato —que vive fuera del árbol— no tiene ruta que servir. El `.gen`
+es un fichero normal del árbol y por eso funciona igual en los tres modos de servicio (árbol crudo,
+dev server de Vite y bundle). `CMakeLists.txt` no cambia: `GLOB_RECURSE` ya lo recoge en las dos
+ramas.
+
+**Trampa documentada:** el array `effects` del contrato va **agrupado por familia** (bypass,
+reverb, delay, tape, …), **no ordenado por id** — al final se leen `55, 39, 16, 19, 43, 49, 54, 56`.
+Indexarlo por posición en vez de por id es un error fácil de cometer; hay un test que fija
+explícitamente esa propiedad.
+
+- **Tests:** WebUI **111 files / 4815 tests, 0 fallos**. ESLint **0 errores / 0 warnings**.
+  `npm run bundle` verificado: `dist/js/fx_contract.gen.js` presente y referenciado en
+  `dist/index.html`.
+
+---
+
+## 0.2.51 — 🧱 La familia de reverbs pasa a ABDSharedCode/DspEffects, con paridad bit a bit
+
+> **Sin cambios de sonido.** Las diez variantes de reverb del DeepMind 12 (ids 1, 2, 3, 4, 5,
+> 6, 22, 26, 27 y 28) dejan de tener su propio motor y lo toman prestado de
+> `ABDSharedCode/DspEffects`. Es la primera extraccion de la capa de efectos con la politica
+> inyectada: el motor se va al modulo y el reparto de mandos se queda aqui, que es lo unico
+> que es de ABDEep.
+
+- **`Source/DSP/FX/FXSimpleReverb_Process.cpp` (eliminado)** — el kernel (4 conbs + 3
+  allpass, pre-retardo mono, factor 0.2) se va tal cual a
+  `ABDSharedCode/DspEffects/DspSchroederReverb.h`. Sin cambios de algoritmo.
+- **`Source/DSP/FX/FXSimpleReverb.{h,cpp}`** — queda como envoltorio. `setDefaultsForType` y
+  `numParametersForType` (dos `switch` de diez casos) se sustituyen por una fila de tabla, y el
+  `switch` gigante de `setParameter` por una comparacion de indices. La maquina es
+  `abd::dsp::SchroederReverb`; los numeros vienen de `abd::dsp::ReverbProfile`.
+- **`Source/DSP/FX/FXUnitTests_ReverbParity.cpp` (nuevo)** — paridad en dos capas:
+  **estructural**, muestra a muestra contra una copia literal del kernel pre-extraccion
+  (las diez variantes, con mandos de fabrica y con tres pasadas de barrido incluyendo los
+  valores 0, 1 y 0.5, **0 ulps**), y **hashes congelados** FNV-1a por variante, calculados
+  sobre la copia y NO sobre el codigo nuevo (si los generase el codigo nuevo, regenerarlos
+  seria tautologia). Tambien cubre el tamano de bloque (1, 7, 64, 256, 1000 y el entero dan
+  el mismo audio) y que los hibridos 23/24/25 sigan sonando.
+- **`CMakeLists.txt`** — `ABDShared::DspEffects` en los cinco targets y
+  `ABDSHAREDCODE_BUILD_DSPEFFECTS_TESTS OFF` (los efectos se prueban desde aqui, que es donde
+  esta el original). **`DspSources.cmake`** — fuera el `.cpp` del kernel.
+
+### Lo que encontro la paridad
+
+El barrido de mandos fallo con **miles de ULPS** donde los valores de fabrica pasaban limpios,
+y la causa fue que `rebuild()` se fiaba de que `AudioBuffer::setSize` ya habia puesto a cero:
+**con el MISMO numero de muestras `setSize` no toca el contenido viejo**. El original llama a
+`clear()` despues de `setSize`, asi que vacia la cola haya cambiado el tamano o no. Solo se
+notaba cuando se movia un mando que NO cambia el tamano de los conbs (el pre-retardo, o el
+tamano si ya estaba ahi), y por eso sonaba casi igual y solo aparecia en el test. Arreglado en
+el modulo, con test de regresion que lo fija en las dos formas.
+
+### Lo que NO se ha tocado, a proposito
+
+Tres comportamientos del efecto publicado que la paridad obliga a conservar, porque
+corregirlos cambiaria el sonido de efectos ya publicados:
+
+1. Mover el mando de tamano o el de pre-retardo **redimensiona los conbs y borra la cola**.
+2. El pre-retardo real es `segundos x sampleRate x 0.2`, no `x 1`: pedir 100 ms retrasa 20 ms.
+3. "Reverse" (id 6) **niega solo el canal izquierdo**: no es una inversion de fase, es un
+   efecto Haas.
+
+- **Tests:** `ABDEep_UnitTests` completo en verde, **3689314 aserciones, 0 fallos**.
+
+---
+
+## 0.2.50 — ⚙️ Pipeline de build del WebUI: el bundle Vite que hace montar el keybed compartido
+
+> **Bug de produccion:** el keybed COMPARTIDO (`@abdsynths/midi-keyb`) ya se montaba en
+> `js/keyboard.js` (unico ESM de la app) y `js/fit-stage.js` importa `@abdsynths/shared`,
+> pero el WebView2 no tiene `node_modules`: los bare imports no resolvian en runtime, asi
+> que el teclado no aparecia en el binario. Ahora el WebUI se empaqueta con Vite.
+
+- **`scripts/build_webui.js` (nuevo)** — empaqueta el WebUI (`npm run bundle`) y verifica el
+  resultado: 0 bare imports `@abdsynths/*` sin resolver en dist, el keybed DENTRO del bundle
+  (`kbd-keys-wrapper`) y los ficheros que el runtime pide por ruta (`js/dsp-processor.js`,
+  `wasm/abdeep_dsp.js`, `wasm/abdeep_dsp.wasm`). Invoca Vite por su entrada JS
+  (`node_modules/vite/bin/vite.js`) en vez del shim de `npx`: identico en las tres
+  plataformas, sin `shell: true` ni DEP0190.
+- **`WebUI/vite.build.config.js` (nuevo)** — empaqueta SOLO las dos entradas ESM
+  (`js/keyboard.js`, `js/fit-stage.js`) con nombres ESTABLES (`assets/index.js|css`, sin
+  hash: el provider resuelve por ruta) y replica el arbol estatico a `dist/` con la misma
+  estructura (js/css/assets/wasm/data/resources/schemas/style.css), excluyendo las entradas
+  empaquetadas y las carpetas de desarrollo.
+- **`WebUI/vite.config.js` (nuevo)** — servidor de desarrollo (`npm run dev`, puerto 5311)
+  para el flujo en navegador: Vite resuelve los bare imports al vuelo.
+- **`PluginEditor_ResourceProvider.cpp`** — paso 0: si `WebUI/dist` existe y tiene el
+  fichero, se sirve de ahi ANTES del arbol crudo (que sigue sirviendo lo que no esta en el
+  bundle en Debug).
+- **`CMakeLists.txt`** — con `WebUI/dist/index.html` presenta se embebe SOLO dist (los
+  recursos de `juce_add_binary_data` se nombran por basename: embeber ambos arboles duplica
+  nombres). Sin dist cae al arbol crudo con `WARNING`, no `FATAL_ERROR`: el configure de CI
+  no se rompe.
+- **`build.bat`** — empaqueta el WebUI antes de configurar CMake (con aviso, no error, si no
+  hay node: el build sigue). **`WebUI/dist/`** ignorado por git.
+- **Tests:** `WebUI/tests/webuiBundlePipeline.test.js` (7: runner, config, provider, CMake,
+  gitignore, orden en build.bat y los deps `workspace:*`) + `keyboardSharedMount.test.js` (5).
+- **Deps:** `@abdsynths/midi-keyb` y `@abdsynths/shared` declarados `workspace:*` como en el
+  resto del monorepo (estaban como `file:../ABDSynthsWeb/node_modules/...`, una ruta
+  inexistente: el enlace de `node_modules` quedaba roto y el import no resolvia).
+- **Verificado:** bundle de 36 modulos → `assets/index.js` 41.23 kB + `assets/index.css`
+  113.86 kB; copia estatica de 283 `.js` + wasm/assets/datos; el CSS empaquetado lleva la
+  franja del chasis (185px) y el keybed (`.kbd-white-key`, `--kbd-led-color`); dev server
+  resuelve `@abdsynths/midi-keyb` a `ABDSharedCode/MidiKeyboard/src/keyboard.js`.
+
+- **Dev server en Debug (recarga en vivo):** con `npm run dev` en marcha, el editor del
+  plugin carga `http://localhost:5311/` en el WebView2 y trabaja sobre el arbol CRUDO con
+  HMR — sin `npm run bundle` en cada cambio. La URL la compila CMake solo en Debug
+  (`ABDEEP_WEBUI_DEV_SERVER_URL` -> `ABDEEP_WEBUI_DEV_URL`), es sobrescribible o apagable
+  con la variable de entorno del mismo nombre (otro puerto, otra maquina, `off`) y se
+  sondea con un HEAD de 200 ms antes de navegar: si el servidor no responde se sirve el
+  bundle/arbol como siempre, sin quedarse en blanco. **Release no compila ese camino.**
+  El puerto es fijo (`strictPort`) para que el editor no acabe en un servidor que no es.
+- **La define de la URL va sin comillas + `JUCE_STRINGIFY`:** un `/D` con comillas las
+  pierde al pasar por MSBuild -> cl (la macro llegaba como trozos de URL y no compilaba).
+- **Fix de compilacion en `PluginEditor.cpp` (preexistente en HEAD):** la linea que
+  escapaba las comillas del motivo de fallo llamaba a `replaceCharacter` con un literal
+  de cadena donde esa API pide un `juce_wchar` (error C2664), asi que el plugin no
+  compilaba. `replaceCharacter` cambia un caracter por otro y ahi hacen falta dos: ahora
+  la linea usa `replace` con la comilla y su version escapada, que es lo que pretendia.
+
+> **OJO (Debug sin dev server):** sin bundle, el arbol crudo no resuelve los bare imports
+> y el keybed no monta en el WebView2. Dos salidas: `npm run dev` + Debug (HMR), o
+> `npm run bundle` (y el host sirve `WebUI/dist`; build.bat ya lo hace).
+
+— 🐛 Fix crítico de runtime: teclado no renderizaba (colisión global `let Logger` + recursión `escapeHtml`)
 
 > **Bug de producción reportado:** en la build de las 11:00 el teclado MIDI no aparecía.
 > Causa raíz: colisión del **global lexical scope** de los scripts clásicos + recursión

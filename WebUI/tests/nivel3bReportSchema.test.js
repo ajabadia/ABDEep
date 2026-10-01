@@ -204,11 +204,15 @@ describe('resources/hardware_dumps/ — manifest.json y SHA-256 por banco', () =
   if (dumpDirs.length === 0) {
     throw new Error('no hay directorios de dumps en resources/hardware_dumps/ (YYYY-MM-DD)');
   }
-  const latestDump = dumpDirs[dumpDirs.length - 1];
-  const manifestPath = path.join(DUMPS_ROOT, latestDump.dir, 'manifest.json');
-  if (!fs.existsSync(manifestPath)) {
-    throw new Error(`manifest.json no encontrado en ${manifestPath}`);
+  // El directorio "mas reciente" es el ultimo que tiene manifest.json: una captura
+  // abortada deja una carpeta fechada VACIA, y elegirla reventaba el describe
+  // apuntando a un manifest que nunca existio.
+  const latestDump = [...dumpDirs].reverse()
+    .find((d) => fs.existsSync(path.join(DUMPS_ROOT, d.dir, 'manifest.json')));
+  if (!latestDump) {
+    throw new Error(`ningun directorio de dumps en ${DUMPS_ROOT} tiene manifest.json`);
   }
+  const manifestPath = path.join(DUMPS_ROOT, latestDump.dir, 'manifest.json');
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
   it('el manifest.json del directorio más reciente existe y parsea', () => {

@@ -21,8 +21,10 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 
-const { ABDError, SysExError, MidiError, PatchImportError, ERROR_CODES, asTypedError, isTypedError, createTypedError } =
-  require(path.join(ROOT, 'WebUI', 'js', 'typed_errors.js'));
+// El modulo de fuente se IMPORTA: su `module.exports` se expone como
+// exportaciones nombradas por el interop de Vitest, mientras que require() bajo
+// type:module devuelve un namespace vacio.
+import { ABDError, SysExError, MidiError, PatchImportError, ERROR_CODES, asTypedError, isTypedError, createTypedError } from '../js/typed_errors.js';
 
 // ════════════════════════════════════════════════════════════════
 // 1. Clases tipadas

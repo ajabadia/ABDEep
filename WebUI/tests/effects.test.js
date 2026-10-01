@@ -4,7 +4,8 @@
  * Run with: npx vitest run WebUI/tests/effects.test.js
  *
  * Covers:
- *   - FX_TYPE_NAMES array validation (57 names: 36 standard + 21 advanced, first="Bypass")
+ *   - FX_TYPE_NAMES derived from the shared contract (el numero sale de el)
+ *   - FX_TYPE_COUNT leido del tope del motor (FXSlot.cpp), no escrito aqui
  *   - escapeHtml (HTML sanitization)
  *   - _readFxParamValue (bridge cache → patch → default fallback)
  *   - saveFxPreset (localStorage, sanitize name, replace existing)
@@ -16,23 +17,59 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 
 // ══════════════════════════════════════════════════════════════════
 // Constants from effects.js
 // ══════════════════════════════════════════════════════════════════
 
-const FX_TYPE_NAMES = [
-  'Bypass', 'Ambience', 'tcDeepVerb', 'RoomRev', 'VintageRoom', 'HallReverb',
-  'ChamberRev', 'Plate Reverb', 'Rich Plate', 'Gated Reverb', 'Reverse Reverb',
-  'ChorusRev', 'DelayRev', 'FlangerRev', 'MidasEQ', 'Enhancer', 'FairComp',
-  'MBDistortion', 'RackAmp', 'Edison', 'AutoPan/Trem', 'NoiseGate', 'Delay',
-  '3Tap Delay', '4Tap Delay', 'T-RayDelay', 'DecimatorDelay', 'ModDlyRev',
-  'Stereo Chorus', 'Chorus-D', 'Stereo Flanger', 'Stereo Phaser', 'Mood Filter',
-  'Dual Pitch', 'Vintage Pitch', 'Rotary Speaker', 'BBD Chorus', 'Solina Ens', 'Ring Mod',
-  'Space Echo', 'Tape Delay', 'Shimmer Dly', 'Granular Dly', 'Pattern Frz', 'Duck Delay',
-  'Spectral Dly', 'Freq Shifter', 'HarmonicReso', 'Combulator', 'MB Vocoder',
-  'OS Distortion', 'WaveShaper', 'FDN Reverb', 'Zita Reverb', 'Nimbus', 'Bonsai', 'TreeMonster'
-];
+// Los nombres de tipo ya NO viven en una lista escrita aqui. Este fichero
+// evalua los dos scripts que se envian de verdad — `fx_contract.gen.js` y
+// `effects_data.js` — en un `window` falso, en el MISMO orden que `index.html`,
+// y saca la lista del resultado. Asi el test comprueba lo que se carga en el
+// WebView, no una copia que se puede quedar vieja sin que nadie se entere: que
+// es exactamente como paso con la lista anterior.
+const FX_TYPE_NAMES = loadFxTypeNames();
+const FX_CONTRACT = loadFxContract();
+
+/**
+ * Lee el contrato entero del mismo `window` falso de antes.
+ */
+function loadFxContract() {
+  const context = { window: null, self: null };
+  context.window = context;
+  context.self = context;
+
+  vm.createContext(context);
+  vm.runInContext(readFileSync(new URL('../js/fx_contract.gen.js', import.meta.url), 'utf8'), context, { filename: 'fx_contract.gen.js' });
+
+  return context.FxEffectsContract;
+}
+
+/**
+ * Evalua `fx_contract.gen.js` + `effects_data.js` como si fuera el WebView2.
+ *
+ * Los dos son scripts CLASICOS (envueltos en UMD, asignan a `window`), asi que
+ * hace falta un contexto con `window`/`self` como el navegador. Se usa `vm` en
+ * vez de `import` porque importar el .gen en vitest no ejecutaria el envoltorio
+ * UMD: el paquete es `"type": "module"` y el .gen no exporta nada.
+ */
+function loadFxTypeNames() {
+  const context = { window: null, self: null };
+  context.window = context;
+  context.self = context;
+
+  vm.createContext(context);
+
+  for (const file of ['fx_contract.gen.js', 'effects_data.js']) {
+    const source = readFileSync(new URL(`../js/${file}`, import.meta.url), 'utf8');
+
+    vm.runInContext(source, context, { filename: file });
+  }
+
+  return context.FX_TYPE_NAMES;
+}
 
 // ══════════════════════════════════════════════════════════════════
 // Fake DOM element factory (extended)
@@ -107,7 +144,36 @@ function _readFxParamValue(paramId, fallbackByte, defaultVal, bridge, currentAct
   return defaultVal;
 }
 
-  const FX_TYPE_COUNT = 56; // max raw value for the 57-type advanced selector (36 standard + 21 advanced)
+  // NO es el numero del contrato. Es el id mas alto que el MOTOR DE ESTE
+  // PRODUCTO sabe construir, y sale de ahi, no de aqui: `Source/DSP/FX/FXSlot.cpp`
+  // hace `std::clamp(newType, 0, 56)`. El contrato compartido llega a 60 porque
+  // las filas 57 a 60 las produce `ABDSharedCode/DspEffects`, que este producto
+  // todavia no instancia en sus cuatro huecos (esta el porque en el propio
+  // contrato, en la nota de las filas 57..60).
+  //
+  // Importa la distincion porque el divisor de la normalizacion va escrito en
+  // varios ficheros de la web (`val / 56.0`). Si el contrato sube y el motor no,
+  // subir el divisor aqui SIN migrar los presets guardados cambia el efecto de
+  // todos los presets: no es un numero que se pueda tocar por limpieza.
+  const FX_TYPE_COUNT = readEngineMaxFxTypeId();
+
+/**
+ * Saca el `std::clamp(newType, 0, N)` de `Source/DSP/FX/FXSlot.cpp`.
+ *
+ * Es un test que cruza dos languages a proposito: el divisor con el que la web
+ * normaliza el selector de tipo y el tope con el que el motor recorta el id
+ * tienen que ser el MISMO numero. Cuando no lo son el fallo es invisible: la web
+ * manda un normalizado que el motor recorta, y el usuario oye un efecto distinto
+ * del que eligio (o ninguno), sin error ni aviso.
+ */
+function readEngineMaxFxTypeId() {
+  const src = readFileSync(new URL('../../Source/DSP/FX/FXSlot.cpp', import.meta.url), 'utf8');
+  const match = src.match(/setType\s*\(\s*int\s+\w+\s*\)[\s\S]{0,400}?std::clamp\s*\(\s*\w+\s*,\s*0\s*,\s*(\d+)\s*\)/);
+  if (!match) {
+    throw new Error('no aparece el std::clamp del id de tipo en FXSlot::setType; si el motor cambio de forma, actualiza esta lectura');
+  }
+  return parseInt(match[1], 10);
+}
 
 function getSlotOffsets(slotNumber) {
   const typeByte = slotNumber === 1 ? 166 : (slotNumber === 2 ? 179 : (slotNumber === 3 ? 192 : 205));
@@ -232,16 +298,37 @@ function renderFxPresetList(containerEl, presets, applyFn, deleteFn, selectedSlo
 // ══════════════════════════════════════════════════════════════════
 
 describe('FX_TYPE_NAMES', () => {
-  it('has 57 entries (0=Bypass, 56=TreeMonster)', () => {
-    expect(FX_TYPE_NAMES.length).toBe(57);
+  // El numero sale del CONTRATO, no de aqui. Escribirlo a mano (57) es lo que
+  // dejo estos tests en rojo cuando las filas 57 a 60 entraron en el
+  // vocabulario: el test no habia detected el cambio, se habia quedado mintiendo.
+  it(`tiene tantas entradas como declara el contrato (0=Bypass, ${FX_CONTRACT.maxId}=${FX_TYPE_NAMES[FX_CONTRACT.maxId]})`, () => {
+    expect(FX_TYPE_NAMES.length).toBe(FX_CONTRACT.count);
+  });
+
+  it('los ids del contrato no tienen huecos: el indice ES el id', () => {
+    const ids = FX_CONTRACT.effects.map(e => e.id);
+    expect(Math.min(...ids)).toBe(0);
+    expect(Math.max(...ids)).toBe(FX_CONTRACT.count - 1);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('first entry is Bypass', () => {
     expect(FX_TYPE_NAMES[0]).toBe('Bypass');
   });
 
-  it('last entry is TreeMonster', () => {
-    expect(FX_TYPE_NAMES[56]).toBe('TreeMonster');
+  it('la ultima entrada es el efecto que el contrato pone el ultimo', () => {
+    const ultimo = FX_CONTRACT.effects[FX_CONTRACT.effects.length - 1];
+    expect(FX_TYPE_NAMES[ultimo.id]).toBe(ultimo.name);
+  });
+
+  it('el motor de ABDEep cubre todos los ids que el contrato le atribuye', () => {
+    // Las filas que este producto NO construye son las cuatro del modulo
+    // compartido, y el propio contrato las marca contandolas aparte. Este test
+    // no las prohibe (el contrato es el vocabulario de toda la suite), pero deja
+    // escrito que la web no puede ofrecer lo que el motor no construye.
+    const delMotorPropio = FX_CONTRACT.effects.filter(e => e.engine !== 'Reverb'
+      && e.engine !== 'Saturation' && e.engine !== 'SchroederReverb' && e.engine !== 'ShelfFilter');
+    expect(Math.max(...delMotorPropio.map(e => e.id))).toBeLessThanOrEqual(FX_TYPE_COUNT);
   });
 
   it('all entries are non-empty strings', () => {
@@ -251,9 +338,27 @@ describe('FX_TYPE_NAMES', () => {
     }
   });
 
-  it('spot-check: entry 11 is ChorusRev, entry 22 is Delay', () => {
-    expect(FX_TYPE_NAMES[11]).toBe('ChorusRev');
-    expect(FX_TYPE_NAMES[22]).toBe('Delay');
+  // Estos son la razon de que el test exista. La lista a mano decia 1 =
+  // "Ambience" y 22 = "Delay"; el contrato dice que el 1 es un Hall y el 22 un
+  // Deep Verb. El desplegable del rack y el DSP llevaban tres ids distintos
+  // para el mismo efecto. Ahora sale del contrato, asi que no puede volver.
+  it('spot-check: 1 is Hall, 22 is Deep Verb, 26 is Chamber', () => {
+    expect(FX_TYPE_NAMES[1]).toBe('Hall');
+    expect(FX_TYPE_NAMES[22]).toBe('Deep Verb');
+    expect(FX_TYPE_NAMES[26]).toBe('Chamber');
+  });
+
+  it('the reverb block keeps the ids the factory actually builds', () => {
+    // La fabrica construye 1, 2, 3, 4, 5, 6, 22, 26, 27 y 28. Estos diez nombres
+    // tienen que caer en esos ids, no en 1..10.
+    const byId = {
+      1: 'Hall', 2: 'Plate', 3: 'Rich Plate', 4: 'Ambience', 5: 'Gated',
+      6: 'Reverse', 22: 'Deep Verb', 26: 'Chamber', 27: 'Room', 28: 'Vintage',
+    };
+
+    for (const [id, name] of Object.entries(byId)) {
+      expect(FX_TYPE_NAMES[Number(id)]).toBe(name);
+    }
   });
 });
 
@@ -854,26 +959,36 @@ describe('initEffectsModal exports', () => {
 // ══════════════════════════════════════════════════════════════════
 
 describe('FX_TYPE_COUNT', () => {
-  it('equals 56 (max raw value for advanced selector, indices 0-56 = 57 types)', () => {
-    expect(FX_TYPE_COUNT).toBe(56);
+  it('es el tope del motor, leido de FXSlot.cpp, no un numero escrito aqui', () => {
+    // Si esto falla, el motor cambio de tope: o se actualiza la web (y los
+    // presets guardados, que guardan el NORMALIZADO) o no se toca.
+    expect(FX_TYPE_COUNT).toBe(readEngineMaxFxTypeId());
   });
 
   it('when used as Math.round(normalized * FX_TYPE_COUNT), type 0 returns 0 (Bypass)', () => {
     expect(Math.round(0 * FX_TYPE_COUNT)).toBe(0);
   });
 
-  it('when used as Math.round(normalized * FX_TYPE_COUNT), type 1 returns 56 (TreeMonster)', () => {
-    expect(Math.round(1 * FX_TYPE_COUNT)).toBe(56);
+  it('when used as Math.round(normalized * FX_TYPE_COUNT), type 1 returns the last id', () => {
+    expect(Math.round(1 * FX_TYPE_COUNT)).toBe(FX_TYPE_COUNT);
   });
 
   it('converts midpoint normalized value correctly', () => {
-    // Normalized 0.5 → raw 28
-    const raw = Math.round(0.5 * FX_TYPE_COUNT);
-    expect(raw).toBe(28);
+    expect(Math.round(0.5 * FX_TYPE_COUNT)).toBe(Math.round(FX_TYPE_COUNT / 2));
   });
 
-  it('FX_TYPE_NAMES has 57 entries (36 standard + 21 advanced)', () => {
-    expect(FX_TYPE_NAMES.length).toBe(57);
+  it('FX_TYPE_NAMES cubre al menos los ids que el motor construye', () => {
+    expect(FX_TYPE_NAMES.length).toBeGreaterThan(FX_TYPE_COUNT);
+  });
+
+  it('el desplegable se limita a los ids que el motor puede construir', () => {
+    // El fallo que esto vigila: con el contrato en 61 y el divisor en 56,
+    // elegir la fila 58 mandaba 58/56 = 1.03, JUCE lo recortaba a 1.0 y el
+    // motor devolvia el id 1. O sea, se ofrecian cuatro efectos que al elegir
+    // sonaban a Hall. Un desplegable con opciones que no existen es peor que
+    // uno corto.
+    const idsOferibles = FX_CONTRACT.effects.filter(e => e.id <= FX_TYPE_COUNT).map(e => e.id);
+    expect(Math.max(...idsOferibles)).toBe(FX_TYPE_COUNT);
   });
 });
 

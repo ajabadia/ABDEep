@@ -19,92 +19,56 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /* ================================================================
- * Functions under test (mirrored from browser_packer.js)
+ * Functions under test: CARGADAS DEL FICHERO REAL, no copiadas
+ * ================================================================
+ *
+ * Y POR QUE ESTO CAMBIO. Este test definia aqui mismo las cuatro funciones de
+ * `browser_packer.js` ("mirrored from"), o sea que no probaba el modulo: probaba
+ * una copia pegada al lado. Una correccion al empaquetado, un `& 0x7F` que se
+ * movia, un byte cambiado en la cabecera: el test seguia en verde probando el
+ * codigo viejo, y habria seguido en verde para siempre.
+ *
+ * Lo destapo el banco de mutaciones (`scripts/mutation_bank.js`): romper el
+ * unpack 8-a-7 de verdad no ponia este fichero en rojo. Una suite que prueba su
+ * propia copia tiene el poder de deteccion de una copia.
+ *
+ * Y POR QUE `vm` Y NO UN `import`. Los ficheros del WebUI se cargan por
+ * `<script>` y se enganchan a `window`, asi que no son modulos ESM que Node
+ * pueda importar. El camino fiel es ejecutar el fichero en un contexto y leer
+ * lo que deja en `window`, que es exactamente lo que hace `index.html`. Es el
+ * mismo patron que `modMatrixTables.test.js`.
+ *
+ * Y POR QUE SE INYECTAN LOS INTRINSICOS. Un contexto de `vm` tiene sus propios
+ * `Uint8Array`, y un `toEqual` entre uno y otro es una comparacion entre
+ * constructores distintos. Pasando los del host, los arrays que devuelve el
+ * codigo son los mismos que usa el test.
  * ================================================================ */
 
-function unpack7to8(packedBytes) {
-    const unpacked = new Uint8Array(242);
-    let writeIdx = 0;
-    for (let i = 0; i < packedBytes.length; i += 8) {
-        const msbFlags = packedBytes[i];
-        for (let k = 1; k < 8; k++) {
-            if (i + k >= packedBytes.length) {break;}
-            if (writeIdx >= 242) {break;}
-            let val = packedBytes[i + k];
-            if (msbFlags & (1 << (k - 1))) {
-                val |= 0x80;
-            }
-            unpacked[writeIdx++] = val;
-        }
-    }
-    return unpacked;
+const PACKER_JS = path.resolve(__dirname, '..', 'js', 'browser_packer.js');
+
+function cargarPacker() {
+    const sandbox = {
+        console, Uint8Array, Uint8ClampedArray, Array, Object, String,
+        Number, Boolean, Math, JSON,
+    };
+    sandbox.globalThis = sandbox;
+    sandbox.window = sandbox;
+    vm.createContext(sandbox);
+    vm.runInContext(fs.readFileSync(PACKER_JS, 'utf8'), sandbox, { filename: PACKER_JS });
+    return sandbox;
 }
 
-function pack8to7(unpackedBytes) {
-    const packed = new Uint8Array(278);
-    let readIdx = 0;
-    let writeIdx = 0;
-    while (readIdx < 242 && writeIdx < 278) {
-        let msbFlags = 0;
-        const startWriteIdx = writeIdx;
-        writeIdx++;
-        for (let k = 1; k < 8; k++) {
-            if (readIdx >= 242) {break;}
-            let val = unpackedBytes[readIdx++];
-            if (val & 0x80) {
-                msbFlags |= (1 << (k - 1));
-                val &= 0x7F;
-            }
-            packed[startWriteIdx + k] = val;
-            writeIdx++;
-        }
-        packed[startWriteIdx] = msbFlags;
-    }
-    return packed;
-}
+const packer = cargarPacker();
 
-function extractNameFromRawSysex(rawSysex, baseOffset) {
-    baseOffset = baseOffset || 0;
-    // Nombre = unpacked 223-238 (16 chars). Cabecera de 10 bytes (base-10, idéntico a
-    // browser_packer.js): 265 (unpacked 223), 267-273 (unpacked 224-230),
-    // 275-281 (unpacked 231-237), 283 (unpacked 238). Para mensajes con cabecera de
-    // 8 bytes (cmd 0x04) se pasa baseOffset -2.
-    const rawOffsets = [265];
-    for (let j = 267; j <= 273; j++) {rawOffsets.push(j);}
-    for (let j = 275; j <= 281; j++) {rawOffsets.push(j);}
-    rawOffsets.push(283);
-
-    const nameChars = [];
-    for (let idx = 0; idx < rawOffsets.length; idx++) {
-        const c = rawSysex[baseOffset + rawOffsets[idx]];
-        if (c >= 32 && c < 127) {
-            nameChars.push(String.fromCharCode(c));
-        } else if (c === 0) {
-            break;
-        }
-    }
-    return nameChars.join('').trim();
-}
-
-function buildSingleSysex(patch) {
-    const packed = pack8to7(patch.unpackedBytes);
-    const syxMsg = new Uint8Array(291);
-    syxMsg[0] = 0xF0;
-    syxMsg[1] = 0x00;
-    syxMsg[2] = 0x20;
-    syxMsg[3] = 0x32;
-    syxMsg[4] = 0x20;
-    syxMsg[5] = 0x7F;
-    syxMsg[6] = 0x02;
-    syxMsg[7] = 0x07; // Banco por defecto (0 = A)
-    syxMsg[8] = 0x00; // Programa por defecto (0-127)
-    syxMsg[9] = 0x00; // Reservado (protocolo)
-    syxMsg.set(packed, 10);
-    syxMsg[290] = 0xF7;
-    return syxMsg;
-}
+const { unpack7to8, pack8to7, extractNameFromRawSysex, buildSingleSysex } = packer;
 
 /* ================================================================
  * HELPERS

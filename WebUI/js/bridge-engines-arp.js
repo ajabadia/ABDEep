@@ -20,6 +20,10 @@
             stepIndex: 0,
             timerId: null,
             currentDirection: 1,
+            /** Patrón de 32 pasos activo, o null si no hay ninguno. Lo escribe la UI. */
+            pattern: null,
+            /** Último índice de patrón pedido, para no releer el storage cada paso. */
+            patternIndex: -1,
 
             isRunning: function() {
                 return this.running;
@@ -119,6 +123,86 @@
         this._arpNoteOffTimers = {};
     };
 
+    /**
+     * Pone el patrón de 32 pasos que el arpegiador va a recitar.
+     *
+     * Antes esto no existía: el editor de patrones del modal dibujaba 32 barras, el
+     * botón Save las guardaba en el almacenamiento local, el selector pintaba 65
+     * opciones... y el motor se recorría `arp_mode` sin mirar nada de eso. El
+     * patrón era decorativo.
+     *
+     * @param {boolean[]|null} steps - Pasos encendidos, o null para ninguno
+     */
+    DualMidiBridge.prototype.setArpPattern = function(steps) {
+        if (!this._arpEngine) {return;}
+        const norm = (typeof window._arpNormalizePattern === 'function')
+            ? window._arpNormalizePattern(steps)
+            : (Array.isArray(steps) ? steps.map(Boolean) : null);
+        this._arpEngine.pattern = norm;
+        if (norm) {
+            // Un patrón nuevo empieza desde el principio: si no, el arpegiador
+            // seguiría en medio del anterior y el primer paso que «saltase» sería
+            // el que le tocase por azar, no el primero.
+            this._arpEngine.stepIndex = 0;
+        }
+        const Logger = globalThis.Logger || console;
+        if (norm) {
+            const on = norm.reduce(function(a, b) {return a + (b ? 1 : 0);}, 0);
+            Logger.log('[ArpEngine] Pattern set:', on + '/' + norm.length, 'steps on');
+        }
+    };
+
+    /**
+     * Resuelve el índice del selector `arp_pattern` a unos pasos concretos, y los
+     * pone en el motor.
+     *
+     * El enum son 65 opciones: 0 = None, 1..32 = Preset de fábrica, 33..64 = User.
+     * Los presets guardados por el usuario están en el almacenamiento local como
+     * una lista con nombre, así que «User N» es el N-ésimo de esa lista. Un índice
+     * sin patrón detrás (None, o un User que nadie ha guardado) deja el motor sin
+     * patrón, que es el mismo comportamiento que antes de existir esto.
+     *
+     * Lo llama el motor cuando el selector cambia (`_arpRequestPattern`), y el
+     * propio `arp-modal` cuando carga un preset desde la lista.
+     */
+    DualMidiBridge.prototype.resolveArpPattern = function(index) {
+        const Logger = globalThis.Logger || console;
+
+        if (index === 0) {
+            this.setArpPattern(null);
+            return null;
+        }
+
+        let steps = null;
+        try {
+            const presets = (typeof globalThis.loadUserArpPresets === 'function')
+                ? globalThis.loadUserArpPresets()
+                : [];
+            if (Array.isArray(presets)) {
+                if (index <= 32) {
+                    // Preset de fábrica: los tres que trae la máquina.
+                    const builtIn = (typeof globalThis.DEFAULT_ARP_PRESETS === 'function')
+                        ? globalThis.DEFAULT_ARP_PRESETS()
+                        : (globalThis.DEFAULT_ARP_PRESETS || []);
+                    const p = Array.isArray(builtIn) ? builtIn[index - 1] : null;
+                    steps = p ? p.steps : null;
+                } else {
+                    // User N: el N-32-ésimo de la lista guardada.
+                    const p = presets[index - 33];
+                    steps = p ? p.steps : null;
+                }
+            }
+        } catch (e) {
+            Logger.warn('[ArpEngine] Could not resolve pattern', index, e);
+        }
+
+        if (!steps) {
+            Logger.log('[ArpEngine] Pattern', index, 'has no steps behind it — arpeggios without mask');
+        }
+        this.setArpPattern(steps);
+        return steps;
+    };
+
     /** Internal: called by the arp timer. Generates one step of the arpeggio. */
     DualMidiBridge.prototype._arpStep = function(self) {
         if (!self) {self = this;}
@@ -138,10 +222,38 @@
         const arpMode = Math.round((self.parameterCache['arp_mode'] || 0) * 10);
         const arpOctave = Math.round((self.parameterCache['arp_octave'] || 0) * 3);
         const gateTime = self.parameterCache['arp_gate_time'] || 0.5;
+        // `arp_velocity_gate` es un enum de 3 opciones y llega normalizado a 0..1
+        // (el panel y el modal hacen `value / 2.0`), así que el índice es el valor
+        // por 2 redondeado — el mismo mapeo que `arp_mode` por 10 y `arp_octave`
+        // por 3.
+        const velGateMode = Math.round((self.parameterCache['arp_velocity_gate'] || 0) * 2);
+        // `arp_pattern` es un enum de 65 opciones (None + 32 Preset + 32 User) y
+        // llega normalizado a 0..1 (la UI manda `value / 64.0`), así que el índice
+        // es el valor por 64 redondeado. El patrón EN SÍ (los 32 pasos) lo pone la
+        // UI en `engine.pattern`; aquí solo se resuelve el número.
+        const patternIndex = Math.round((self.parameterCache['arp_pattern'] || 0) * 64);
         const _arpHold = (self.parameterCache['arp_hold'] || 0) > 0.5;
         const _arpKeySync = (self.parameterCache['arp_key_sync'] || 0) > 0.5;
 
+        // Si el selector ha cambiado de patrón y la UI aún no lo ha cargado, se
+        // pide. Es un camino muerto en cuanto la UI responde: el patrón se
+        // escribe en `engine.pattern` por `setArpPattern`.
+        if (patternIndex !== engine.patternIndex) {
+            engine.patternIndex = patternIndex;
+            if (typeof self._arpRequestPattern === 'function') {
+                self._arpRequestPattern(patternIndex);
+            }
+        }
+
         self._arpKillAllNotes();
+
+        // Máscara del patrón: si la casilla de este paso está apagada, el arpegiador
+        // NO suena, pero el índice avanza igual. Sin patrón, suena todo (null → true).
+        const enabledFn = (typeof window._arpStepEnabled === 'function') ? window._arpStepEnabled : _arpStepEnabledFallback;
+        if (!enabledFn(engine.pattern, engine.stepIndex)) {
+            engine.stepIndex++;
+            return;
+        }
 
         // Calcular paso via función extraída (bridge-engines-arp-modes.js)
         const calcFn = (typeof window._arpCalcStep === 'function') ? window._arpCalcStep : _arpCalcStepFallback;
@@ -162,8 +274,15 @@
             const h = held[noteIdx];
             const outNote = h.note + octaveOffset;
             if (outNote >= 0 && outNote <= 127) {
+                // La velocidad del paso la decide el selector Gate/Velocity/Seq.
+                // Antes sonaba siempre con la de la tecla, que es lo que hace el
+                // modo 1: el selector prometía tres modos y no ejecutaba ninguno.
+                // Se calcula aquí, no antes, porque el clamp de octava de arriba
+                // puede haber cambiado `noteIdx` y la rampa va por él.
+                const velFn = (typeof window._arpVelocityFor === 'function') ? window._arpVelocityFor : _arpVelocityForFallback;
+                const stepVelocity = velFn(velGateMode, h.velocity, noteIdx, held.length);
                 self._arpActiveNotes.push(outNote);
-                self.pianoNoteOn(outNote, h.velocity);
+                self.pianoNoteOn(outNote, stepVelocity);
 
                 if (gateTime < 0.95) {
                     const intervalMs = engine.intervalMs || 200;
@@ -191,6 +310,20 @@ function _arpCalcStepFallback(mode, stepIndex, heldLength, arpOctave) {
     const maxOct = Math.min(arpOctave, 4);
     if (off > maxOct * 12) { idx = 0; off = 0; }
     return { noteIdx: idx, octaveOffset: off };
+}
+
+/** Fallback: máscara de patrón si bridge-engines-arp-modes.js no está cargado.
+    Sin el fichero de modos no hay patrón que aplicar, así que suena todo. */
+function _arpStepEnabledFallback(pattern, stepIndex) {
+    return true;
+}
+
+/** Fallback: política de velocidad si bridge-engines-arp-modes.js no está cargado.
+    Sin el fichero de modos solo queda el caso seguro: copiar la velocidad de la
+    tecla, que es lo que hacía el motor antes de que existiera el selector. */
+function _arpVelocityForFallback(mode, playedVelocity, noteIdx, heldLength) {
+    if (mode === 1) {return Math.max(1, Math.min(127, Math.round(playedVelocity)));}
+    return Math.max(1, Math.min(127, Math.round(mode === 2 ? playedVelocity : 100)));
 }
 
 /** Kill all currently active arp-generated notes */

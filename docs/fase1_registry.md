@@ -47,17 +47,17 @@ JS y la documentación se compilen SIEMPRE desde la misma fuente validada
 
 ```
 schemaVersion: 1
-parámetros: 236  (físicos=226 · extendidos=3 · virtuales=7)
+parámetros: 233  (físicos=223 · extendidos=3 · virtuales=7)
 byteMap: 242 bytes físicos (contiguos 0..241)
-aliasGroups: 3  → {osc2_pm_source, osc2_pitch_mod_select}@32
-                  {voice_drift, osc_drift}@88
-                  {arp_gate_time, arp_gate}@160
-codec: enum=50 · bipolar=43 · value=143
-cc: 33 mapeos canónicos (PARAM_TO_CC)
+aliasGroups: 0   (antes eran 3: los bytes 32, 88 y 160 tenían dos ids cada uno;
+                  los tres se repartieron. Ver docs/parametros_sin_uso.md)
+codec: enum=49 · bipolar=43 · value=141
+cc: 32 mapeos canónicos (PARAM_TO_CC)
 extendidos (AbyssMind Pro): vcf_model=245, vcf_moog_submode=246, vcf_korg_submode=247
 virtuales: chord_enable=300, poly_chord_enable=301, chord_key=302, chord_type=303,
           fx_feedback_gain=304, fx_send_level=305, vcf_voicing_mode=306
-specOnly: slot_a_type, slot_b_type (universo legacy sin byte físico)
+specOnly: (ninguno — los restos `slot_a_type` / `slot_b_type` se borraron del spec;
+          ver docs/parametros_sin_uso.md)
 warnings: 8 divergencias CC legacy (comparisonMode §6)
 ```
 
@@ -82,8 +82,14 @@ El generador distingue **errores fatales** (exit 1, no emite nada) de
   (`cc` canónico, `legacyCC` de la spec, `ccConflict: true`). Hay **8** hoy
   (p.ej. `vcf_cutoff`: canónico 29 vs legacy 23). No son errores: son la divergencia
   exacta que el modo diagnóstico (§6) debe cuantificar antes de retirar legacy.
-- **Parámetros spec-only** (`slot_a_type`, `slot_b_type`): sin byte físico, quedan
-  documentados en `specOnly[]` para el emulador legacy.
+- **Parámetros spec-only**: sin byte físico, quedan documentados en `specOnly[]`
+  para el emulador legacy. Los dos que había (`slot_a_type`, `slot_b_type`,
+  con opciones `OSC1_Style`/`OSC2_Style` de una nomenclatura que este synth no
+  tiene) se borraron del spec y del JSON: no los leía nadie.
+- **Ningun id del mapa del puente fuera del spec, y ningun byte con dos ids.**
+  `REGISTRY_ID_NOT_IN_SPEC`, `CC_ID_NOT_IN_SPEC` y `NRPN_COLLISION` cortan la
+  generación antes de emitir. Ver `docs/parametros_sin_uso.md` §«Los tres
+  guards: puestos».
 
 ## 5. Regeneración y enlace
 

@@ -142,7 +142,7 @@ map[84] = bp(84, 'Note Priority',        'Voice','enum',      { enumLabels: ENUM
 map[85] = bp(85, 'Voice Mode',           'Voice','enum',      { enumLabels: ENUM_VOICE_MODE });
 map[86] = bp(86, 'Trigger Mode',         'Voice','enum',      { enumLabels: ENUM_TRIG_MODE });
 map[87] = bp(87, 'Unison Detune',        'Voice','value',     { desc: '0=none…255=phat!' });
-map[88] = bp(88, 'Voice Drift',          'Voice','value',     { desc: 'Also alias osc_drift' });
+map[88] = bp(88, 'Voice Drift',          'Voice','value',     { desc: 'Vintage drift: antes compartía byte con osc_drift' });
 map[89] = bp(89, 'Parameter Drift',      'Voice','value',     { desc: '0=none…255=max' });
 map[90] = bp(90, 'Drift Rate',           'Voice','value',     { desc: 'How fast drift fluctuates' });
 map[91] = bp(91, 'OSC Porta Balance',    'Voice','bipolar',   { desc: '128=center, <128=osc1, >128=osc2' });
@@ -195,7 +195,7 @@ map[156] = bp(156, 'Arp Mode',           'Arp',  'enum',     { enumLabels: ENUM_
 map[157] = bp(157, 'Arp Rate',           'Arp',  'value',    { desc: '0=20bpm…255=275bpm' });
 map[158] = bp(158, 'Arp Clock Divider',  'Arp',  'enum',     { enumLabels: ENUM_ARP_CLOCK });
 map[159] = bp(159, 'Arp Key Sync',       'Arp',  'toggle',   { desc: '0=Off, 1=On' });
-map[160] = bp(160, 'Arp Gate Time',      'Arp',  'value',    { desc: 'Also alias arp_gate' });
+map[160] = bp(160, 'Arp Gate Time',      'Arp',  'value',    { desc: 'Duración de la nota del arpegio: antes compartía byte con arp_gate' });
 map[161] = bp(161, 'Arp Hold',           'Arp',  'toggle',   { desc: '0=Off, 1=On' });
 map[162] = bp(162, 'Arp Pattern',        'Arp',  'value',    { desc: '0=None, 1-64=Presets' });
 map[163] = bp(163, 'Arp Swing',          'Arp',  'value',    { desc: '0=50%…25=75%' });

@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { selectStratifiedPresetSample, runStratifiedBankValidation } from '../js/bank_sampler.js';
+// Las funciones viven en bank_sampler_algo.js: bank_sampler.js es la facade
+// (navegador + CommonJS) y su reexport no sobrevive al interop de modulos.
+import { selectStratifiedPresetSample, runStratifiedBankValidation } from '../js/bank_sampler_algo.js';
 
 // Helper to create a fake patch
 function createFakePatch(index, name = '', unpackedBytes = null) {

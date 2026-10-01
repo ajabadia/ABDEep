@@ -29,16 +29,18 @@ window._handleEngineActiveNotes = function(notesJSON) {
         } catch (e) {}
     }
 
-    const allKeys = document.querySelectorAll('#ivory-keys-bed .key');
+    // El keybed es el COMPONENTE COMPARTIDO: sus teclas llevan data-note con la
+    // nota BASE (sin el desplazamiento de octava), asi que la nota del motor se
+    // busca ya trasladada, y el resaltado usa las clases/vars del componente.
+    const kbd = window.__kbd;
+    const octaveShift = (kbd && typeof kbd.getOctave === 'function') ? kbd.getOctave() * 12 : 0;
+    const allKeys = document.querySelectorAll('#piano-keyboard [data-note]');
     allKeys.forEach(k => {
         const keyMidi = parseInt(k.getAttribute('data-note'));
-        let matchedVelocity = null;
-        const found = activeNotes.find(nv => nv[0] === keyMidi);
-        if (found) {
-            matchedVelocity = found[1];
-        }
+        const found = activeNotes.find(nv => nv[0] === keyMidi + octaveShift);
+        const matchedVelocity = found ? found[1] : null;
         if (matchedVelocity !== null) {
-            k.style.setProperty('--velocity', matchedVelocity.toFixed(3));
+            k.style.setProperty('--kbd-velocity', matchedVelocity.toFixed(3));
             
             // Determinar color del LED para notas del motor
             let ledColor = 'var(--brand-accent)';
@@ -63,12 +65,12 @@ window._handleEngineActiveNotes = function(notesJSON) {
                     }
                 }
             }
-            k.style.setProperty('--key-led-color', ledColor);
-            k.classList.add('pushed');
+            k.style.setProperty('--kbd-led-color', ledColor);
+            k.classList.add('active');
         } else {
-            k.style.removeProperty('--velocity');
-            k.style.removeProperty('--key-led-color');
-            k.classList.remove('pushed');
+            k.style.removeProperty('--kbd-velocity');
+            k.style.removeProperty('--kbd-led-color');
+            k.classList.remove('active');
         }
     });
 
@@ -196,7 +198,7 @@ window.initChordDisplayCanvas = function() {
             canvas = document.createElement('canvas');
             canvas.className = 'chord-display-canvas';
             // CSS rule canvas.chord-display-canvas handles all sizing, border, radius, bg, margin
-            kbdSection.insertBefore(canvas, kbdSection.querySelector('#ivory-keys-bed') || kbdSection.firstChild);
+            kbdSection.insertBefore(canvas, kbdSection.querySelector('#piano-keyboard') || kbdSection.firstChild);
         }
     }
     if (!canvas || !window.ChordDisplayCanvas) {return;}

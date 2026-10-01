@@ -51,9 +51,23 @@ function docRanges() {
   };
 }
 
-/** Enum del motor: nombres de ModSource y ModDestination, en orden. */
+/**
+ * Enum del motor: nombres de ModSource y ModDestination, en orden.
+ *
+ * Y POR QUE SE QUITAN LOS COMENTARIOS ANTES DE MIRA. La extraccion es una
+ * regex sobre el texto del enum, y un enum bien documentado menciona nombres
+ * viejos en sus comentarios ("el enum declaraba `kFx1Param1` y `kFx1Param2`").
+ * Sin quitar los comentarios, esos dos nombres entran en la lista como si
+ * fueran destinos vivos, el recuento se infla y el guard miente en la direccion
+ * contraria: diria que el motor cubre mas destinos de los que cubre.
+ */
 function dspEnums() {
   const text = fs.readFileSync(HEADER, 'utf8');
+
+  const sinComentarios = (src) =>
+    (src ?? '')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/\/\/.*$/gm, ' ');
 
   const body = (name, terminator) => {
     const start = text.indexOf(`enum class ${name}`);
@@ -64,7 +78,7 @@ function dspEnums() {
   };
 
   const names = (src) =>
-    [...(src ?? '').matchAll(/\bk([A-Za-z0-9_]+)/g)]
+    [...sinComentarios(src).matchAll(/\bk([A-Za-z0-9_]+)/g)]
       .map((m) => m[1])
       .filter((n) => n !== 'MaxSources' && n !== 'MaxDestinations');
 
@@ -354,11 +368,63 @@ describe('modMatrixTables — la matriz de modulación contra el hardware', () =
   });
 
   describe('el enum del motor contra el byte (AVISO, no fallo)', () => {
-    // El motor implementa 48 destinos; el byte llega a 129. Es una carencia
+    // El motor implementaba 48 destinos y el byte llega a 129. Es una carencia
     // REAL, no un fallo de este guard: la cubre la capa de traducción de la
     // Fase 5. Aquí se fija un suelo verificado y se imprime el resto, para que
     // el número se conozca en vez de aparecer por sorpresa.
-    const MIN_COVERED_DESTINATIONS = 48;
+    //
+    // El suelo subio de 36 a 44 con el bus de fx: el bloque pasa a 74-81 y son
+    // ocho destinos mas que antes, con nombre y leidos por el motor.
+    const MIN_COVERED_DESTINATIONS = 44;
+
+    it('el bloque de fx del enum son los ocho del manual, en 74-81', () => {
+      // El byte de destino ES el manual y el motor lo castea tal cual, asi que
+      // el codigo del enum tiene que ser el del manual. Si esto se mueve, la
+      // ruta que elige el usuario y la que suena se separan en silencio.
+      const codigoDe = (dest) => dsp.destinations.indexOf(dest);
+
+      // Antes del bloque hay 36: `kNone`, 8 de osciladores, 6 de filtro, 3 de
+      // amplificador, 6 de LFO y 12 de envolventes.
+      expect(codigoDe('Fx1Parameters')).toBe(36);
+      expect(dsp.destinations.length).toBe(44);   // 36 + 8
+      expect(dsp.destinations.slice(36)).toEqual([
+        'Fx1Parameters', 'Fx2Parameters', 'Fx3Parameters', 'Fx4Parameters',
+        'Fx1Level', 'Fx2Level', 'Fx3Level', 'Fx4Level',
+      ]);
+    });
+
+    it('la tabla del dato nombra los ocho del bus en los mismos codigos', () => {
+      const full = tables.FULL_MOD_DESTINATIONS;
+
+      // Y POR QUE LOS NOMBRES ESTAN ESCRITOS AQUI Y NO SE LEEN DE LA TABLA.
+      // La version anterior hacia `expect(full[codigo]).toBe(nombre)` con el
+      // `nombre` sacado de `FX_BUS_DESTINATIONS`, o sea de la propia tabla: eso
+      // compara la tabla consigo misma y no puede fallar. Renombrar `Fx 1
+      // Level` a `Fx 1 Ganancia` en la tabla hacia que el segundo `nombre`
+      // el guard seguia en verde. Este bloque es el ANCLA: el nombre que ve el
+      // usuario esta aqui escrito, y la tabla tiene que coincidir con el.
+      const NOMBRES_DEL_MANUAL = [
+        'Fx 1 Parameters', 'Fx 2 Parameters', 'Fx 3 Parameters', 'Fx 4 Parameters',
+        'Fx 1 Level', 'Fx 2 Level', 'Fx 3 Level', 'Fx 4 Level',
+      ];
+
+      expect(Object.keys(tables.FX_BUS_DESTINATIONS)).toEqual(
+        ['74', '75', '76', '77', '78', '79', '80', '81'],
+      );
+
+      for (let i = 0; i < NOMBRES_DEL_MANUAL.length; i++) {
+        const codigo = 74 + i;
+        expect(tables.FX_BUS_DESTINATIONS[codigo], `bus fx ${codigo}`)
+          .toBe(NOMBRES_DEL_MANUAL[i]);
+        expect(full[codigo], `tabla del dato ${codigo}`)
+          .toBe(NOMBRES_DEL_MANUAL[i]);
+      }
+
+      // Y el 129, que antes era `Fx 1 Level` y ahora es un hueco del byte: un
+      // codigo no puede tener dos nombres, o el motor ejecuta una cosa y la
+      // lista enseña otra.
+      expect(full[129]).toBe('Dest 129');
+    });
 
     it('el enum del motor existe y tiene al menos los destinos que cubre hoy', () => {
       expect(dsp.destinations.length).toBeGreaterThanOrEqual(
@@ -367,7 +433,7 @@ describe('modMatrixTables — la matriz de modulación contra el hardware', () =
     });
 
     it('el enum del motor tiene el MISMO ORDEN que la tabla del manual', () => {
-      // Si el motor收到的 byte crudo y lo castea a este enum, el orden es el
+      // Si el motor recibe el byte crudo y lo castea a este enum, el orden es el
       // contrato. La tabla del dato lo llama en otro orden: esto NO falla
       // (es la Fase 5 la que lo traduce), pero el guard lo mide para que el
       // desacuerdo esté escrito y no se descubra oyendo un preset raro.

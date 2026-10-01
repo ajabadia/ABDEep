@@ -54,6 +54,20 @@ if not exist "Source\Core" mkdir "Source\Core"
 echo #define EEP_BUILD_VERSION "%build_no%" > "Source\Core\BuildVersion.h"
 echo #define EEP_BUILD_TIMESTAMP "%DATE% %TIME%" >> "Source\Core\BuildVersion.h"
 
+rem --- Bundle del WebUI (Vite): los bare imports @abdsynths/* (keybed
+rem     compartido, fitStage) tienen que llegar resueltos al WebView2. ---
+set "ABDEEP_NODE_OK="
+where node >nul 2>&1
+if %ERRORLEVEL%==0 set "ABDEEP_NODE_OK=1"
+
+if defined ABDEEP_NODE_OK (
+    echo [INFO] Empaquetando WebUI ^(vite build -^> WebUI/dist^)...
+    call node scripts\build_webui.js
+    if !ERRORLEVEL! NEQ 0 echo [WARNING] El bundle del WebUI fallo: el binario embebido usara el arbol crudo.
+) else (
+    echo [WARNING] node no encontrado: WebUI sin empaquetar ^(keybed compartido sin montar^).
+)
+
 echo [INFO] Configuring CMake...
 "%CMAKE_PATH%" -S . -B "%BUILD_DIR%" -G "Visual Studio 18 2026" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.26100.0 -D DEEP_TARGET_MODEL=%MODEL%
 if %ERRORLEVEL% NEQ 0 (

@@ -9,6 +9,8 @@ testsprite_tests/tmp/
 testsprite_tests/tmp/config.json
 # Artefactos temporales de tests de export (WebUI/tmp)
 WebUI/tmp/
+# Bundle Vite del WebUI (node scripts/build_webui.js)
+WebUI/dist/
 
 # JUCE clonado por CI (dsp-ci.yml) - no debe commitearse
 /JUCE/

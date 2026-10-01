@@ -76,6 +76,18 @@ The audio processing callback (e.g., `processBlock`) executes on a real-time thr
 - **Vanilla CSS Directives**: Avoid heavy CSS utility frameworks (like Tailwind/Bootstrap) inside embedded plugin WebViews to minimize layout latency and memory overhead. Use explicit CSS variables for tokens (`--border-dim`, `--bg-surface`, `--color-accent`).
 - **Hardware-Accurate UI Rendering**: Render LCD displays, LED indicators, faders, and rotary controls with sub-millisecond DOM updates.
 - **Throttling & High-Frequency Updates**: Throttle slider input events (`requestAnimationFrame` or debounced bridges) to avoid overwhelming the IPC message bridge when sending MIDI/NRPN updates.
+- **Bare ESM Imports Need the Vite Bundle**: the WebView2 runtime has no `node_modules`, so every
+  `import ... from '@abdsynths/*'` (shared keybed, `fitStage`) must reach the host with the specifier
+  already resolved. The ESM entries are bundled by `npm run bundle` (`scripts/build_webui.js` ->
+  `WebUI/dist/`), which the resource provider serves BEFORE the raw tree and CMake embeds. Putting a
+  bare import in a classic `<script>`, or editing the raw tree and forgetting to rebundle, leaves the
+  feature silently unmounted in the binary - that is how the shared keyboard went unrendered for years.
+  `WebUI/tests/webuiBundlePipeline.test.js` guards the four pieces of that pipeline.
+  In Debug the editor can instead load the Vite dev server (`npm run dev`, port 5311) for
+  live reload over the raw tree: CMake compiles `ABDEEP_WEBUI_DEV_URL` for Debug only
+  (Release always serves the embedded bundle), the URL is probed with a short HEAD request
+  and falls back to the resource provider when nothing answers. Keep the define UNQUOTED
+  and stringify it with `JUCE_STRINGIFY`: quotes are eaten on the way to cl.
 
 ---
 

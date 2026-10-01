@@ -153,24 +153,6 @@
       "midi_cc": 28,
       "default": false,
       "description": "Activa el circuito analógico Bass Boost"
-    },
-    {
-      "id": "slot_a_type",
-      "name": "Slot A Osc Type",
-      "block": "custom",
-      "type": "enum",
-      "options": ["OSC1_Style", "OSC2_Style"],
-      "default": "OSC1_Style",
-      "description": "Configura el motor asignado al Slot A del emulador"
-    },
-    {
-      "id": "slot_b_type",
-      "name": "Slot B Osc Type",
-      "block": "custom",
-      "type": "enum",
-      "options": ["OSC1_Style", "OSC2_Style"],
-      "default": "OSC2_Style",
-      "description": "Configura el motor asignado al Slot B del emulador"
     }
   ]
 }

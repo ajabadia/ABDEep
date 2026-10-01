@@ -1,0 +1,102 @@
+name: Mutation Bank
+
+# QUE COMPRUEBA Y POR QUE ES UN JOB APARTE. La suite puede estar entera en verde
+# y no servir para nada: un test que dejo de mirar algo sigue verde mientras
+# comprueba menos, y eso no se nota hasta que hay un fallo de verdad. Este job
+# rompe el codigo a proposito, una invariante por entrada, y exige que la suite
+# se ponga roja. Si alguna mutacion pasa con todo verde, el job falla: o el test
+# que deberia cazarla se quedo sin mirar, o la invariante ya no importa y hay
+# que decidirlo por escrito (cambiando el banco, no el codigo en silencio).
+#
+# ES UN JOB SEPARADO Y NO UN PASO DE webui-ci porque el coste es otro: aqui se
+# lanza la suite N veces (una por mutacion), mientras que la CI normal la lanza
+# una. Mezclarlos haria que fallar el banco pareciera un fallo de la suite.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "WebUI/js/**"
+      - "WebUI/tests/**"
+      - "scripts/mutation_bank.js"
+      - "scripts/mutation_bank.data.js"
+      - ".github/workflows/mutation-bank.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "WebUI/js/**"
+      - "WebUI/tests/**"
+      - "scripts/mutation_bank.js"
+      - "scripts/mutation_bank.data.js"
+      - ".github/workflows/mutation-bank.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-bank-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bank:
+    name: Mutation bank (WebUI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      CI: true
+      # Margen por mutacion: una suite de un solo fichero va en segundos, pero
+      # el limite tiene que existir porque un test colgado sin fin seria un job
+      # que se queda esperando hasta el timeout del workflow, sin decir nada.
+      MUTATION_BANK_TIMEOUT_MS: 300000
+
+    # Mismo layout que webui-ci: los pasos corren dentro de ABDEep y los paquetes
+    # compartidos quedan como hermanos suyos.
+    defaults:
+      run:
+        working-directory: ABDEep
+
+    steps:
+      # WebUI/js y los tests importan @abdsynths/shared y @abdsynths/midi-keyb,
+      # declarados como "workspace:*" y publicados en ningun registry. Sin el
+      # bootstrap no hay node_modules y el banco no tiene ni que mutar.
+      - name: Bootstrap pnpm workspace (multi-repo)
+        uses: ajabadia/ABDSharedCode/.github/actions/pnpm-workspace-bootstrap@master
+        with:
+          project: ABDEep
+
+      - name: List the bank
+        run: node scripts/mutation_bank.js --list
+
+      # El banco falla SOLO si una mutacion escapa o si alguna quedo rota. Un
+      # paso que sale en rojo aqui significa "la suite ya no ve esto", no "el
+      # codigo esta mal", y el mensaje de cada linea lo dice.
+      - name: Run the mutation bank
+        run: node scripts/mutation_bank.js --json artifacts/mutation-bank.json
+
+      # El informe se sube AUNQUE el paso anterior falle: cuando el banco
+      # detecta el hueco, la lista de mutaciones que escaparon es justo lo que
+      # hay que ir a mirar.
+      - name: Upload the bank report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-bank-${{ github.run_id }}
+          path: ABDEep/artifacts/mutation-bank.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # Si el runner se muere a mitad, el checkout de CI se tira entero y no
+      # queda un repositorio con codigo roto. Aun asi se comprueba: si alguien
+      # ejecuta el banco en local, el backup de node_modules/.cache tiene que
+      # haberse dejado vacio.
+      - name: Verify no mutated file was left behind
+        if: always()
+        run: |
+          if [ -d node_modules/.cache/mutation-bank ]; then
+            echo "::error::quedan copias de seguridad sin restaurar:"; \
+            ls -la node_modules/.cache/mutation-bank; exit 1
+          fi
+          git diff --stat -- WebUI/js | tail -1
+          echo "working tree de WebUI/js intacto"

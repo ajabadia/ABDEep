@@ -31,8 +31,13 @@
  * Exit code: 0 = OK · 1 = invariantes violados · 2 = error de uso.
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+// En ESM no existe __dirname: se deriva de import.meta.url para que el resto del
+// script (rutas relativas al repo) siga funcionando igual.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const REQUIRED_EXPORTS = [
   'wasm_init_engine',
@@ -354,16 +359,11 @@ function finish(report, wantJson, outFile, exitCode) {
 }
 
 // Los tests (webui-ci) importan las constantes sin ejecutar el script: main()
-// solo corre cuando se invoca como CLI (node scripts/check_wasm_build.js).
-if (typeof module !== 'undefined' && module.exports)
-{
-    module.exports = { REQUIRED_EXPORTS, MIN_INITIAL_PAGES, SOURCE_INVARIANT };
-    if (require.main === module)
-    {
-        main();
-    }
-}
-else
+// solo corre cuando se invoca como CLI (node scripts/check_wasm_build.js), que
+// en ESM se detecta comparando la URL del modulo con el argv del proceso.
+export { REQUIRED_EXPORTS, MIN_INITIAL_PAGES, SOURCE_INVARIANT };
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
 {
     main();
 }
