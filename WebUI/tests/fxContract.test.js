@@ -36,8 +36,12 @@
 
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import {
+  copyFileSync, existsSync, mkdirSync, mkdtempSync,
+  readFileSync, rmSync, statSync, writeFileSync
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -52,6 +56,7 @@ const FACTORY = join(repoRoot, 'Source', 'DSP', 'FX', 'FXSlot_Factory.cpp');
 const GENERATED = join(repoRoot, 'WebUI', 'js', 'fx_contract.gen.js');
 const EFFECTS_DATA = join(repoRoot, 'WebUI', 'js', 'effects_data.js');
 const INDEX_HTML = join(repoRoot, 'WebUI', 'index.html');
+const WORKFLOW = join(repoRoot, '.github', 'workflows', 'fx-contract-generation.yml');
 
 // ── El .gen tal cual lo carga el WebView ────────────────────────────────────
 
@@ -67,6 +72,49 @@ function loadGenerated () {
 }
 
 const generated = loadGenerated();
+
+/**
+ * Las claves de PROCEDENCIA: las que el generador tiene que copiar del
+ * contrato tal cual, sin inventar y sin omitir.
+ *
+ * Se comprueba que la lista no este vacia porque un `for` sobre una lista
+ * vacia no falla nunca: si alguien la vacia, el guard deja de mirar y sigue
+ * en verde. Ver el aserto que la comprueba.
+ */
+const CLAVES_DE_PROCEDENCIA = ['generatedFrom'];
+
+/**
+ * QUE PROCEDENCIA SE HA PERDIDO O INVENTADO, en texto.
+ *
+ * Devuelve una lista de problemas, vacia si todo cuadra. Es una FUNCION PURA a
+ * proposito —no un `it`— para que este mismo fichero le pueda dar un contrato y
+ * un .gen falsos y comprobar que los ve. Un guard que solo se puede evaluar
+ * contra los ficheros de verdad no se puede verificar: si un dia dejara de
+ * mirar nada, seguiria en verde y nadie lo notaria.
+ *
+ * La regla, en las dos direcciones, que es lo que la asercion original perdia:
+ * lo que el contrato declara, el .gen lo copia; y lo que el contrato NO declara,
+ * el .gen no puede aparecer con una. Con la clave ausente en ambos, comparar
+ * undefined con undefined era un test que no podia fallar.
+ */
+function problemasDeProcedencia (ctto, gen) {
+  const problemas = [];
+
+  for (const clave of CLAVES_DE_PROCEDENCIA) {
+    const delContrato = ctto[clave];
+    const delGen = gen[clave];
+
+    if (delContrato === undefined) {
+      if (delGen !== undefined) {
+        problemas.push(`${clave}: el contrato no lo declara y el .gen se lo ha inventado ("${delGen}")`);
+      }
+    } else if (delGen !== delContrato) {
+      problemas.push(`${clave}: el contrato declara "${delContrato}" y el .gen dice "${delGen}"`);
+    }
+  }
+
+  return problemas;
+}
 
 /** El sha256 de los BYTES del contrato, que es lo que hashea el generador. */
 function hashContrato () {
@@ -96,21 +144,19 @@ describe('fx_contract.gen.js esta al dia respecto al contrato compartido', () =>
     // pero el contrato ya NO trae esa clave, asi que comparaba undefined con
     // undefined y pasaba siempre: un test que no puede fallar.
     //
-    // Lo que se comprueba ahora es la regla que vale de verdad, en las dos
-    // direcciones: si el contrato declara una procedencia, el .gen tiene que
-    // copiarla; y si el contrato no la declara, el .gen no puede inventarse una.
-    // Hoy la segunda es la que aplica, y por eso esta en verde de verdad: hace
-    // un mes, con la clave en el contrato y ausente en el .gen, fallaria.
-    for (const clave of ['generatedFrom']) {
-      const delContrato = contract[clave];
-      const delGen = generated[clave];
+    // Ahora la regla vive en `problemasDeProcedencia`, en las dos direcciones,
+    // y este `it` solo mira que salga vacia. Que la regla sea correcta de verdad
+    // —que vea los dos fallos— lo comprueban los tests del final del fichero,
+    // que le dan un par de contrato/.gen falsos.
+    expect(problemasDeProcedencia(contract, generated)).toEqual([]);
+  });
 
-      if (delContrato === undefined) {
-        expect(delGen, `${clave}: el contrato no lo declara y el .gen se lo ha inventado`).toBeUndefined();
-      } else {
-        expect(delGen, `${clave}: el contrato lo declara y el .gen no lo lleva`).toBe(delContrato);
-      }
-    }
+  it('la comprobacion de procedencia mira AL MENOS una clave', () => {
+    // Un `for` sobre una lista vacia no falla nunca. Si alguien vacia
+    // CLAVES_DE_PROCEDENCIA, el aserto de arriba pasaria con los ficheros que
+    // hubiera y no miraria nada: verde y muerto. Esto es lo que le quita la
+    // ultima costura al guard para volverse adorno.
+    expect(CLAVES_DE_PROCEDENCIA.length).toBeGreaterThan(0);
   });
 
   it('el .gen tiene la cabecera AUTO-GENERATED y no una lista a mano', () => {
@@ -147,6 +193,229 @@ describe('fx_contract.gen.js esta al dia respecto al contrato compartido', () =>
     // arriba ya decia lo que hay que comprobar; aqui se comprueba de verdad,
     // hasheando el contrato otra vez.
     expect(generated.sourceHash).toBe(hashContrato());
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// EL GUARD VERIFICANDO AL GUARD
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Un guard en verde no prueba que mire. Estos tests le dan a cada guard un caso
+// que TIENE que estar roto, y exigen que lo detecte. Si alguno dejara de
+// detectar, el fallo sale aqui y no tres meses despues, cuando un contrato
+// cambie y nadie se entere.
+
+describe('el guard de procedencia ve los dos fallos', () => {
+  it('detecta que el .gen se inventa una procedencia que el contrato no tiene', () => {
+    // Este es el fallo que la asercion original no podia ver: comparaba
+    // undefined con undefined, asi que un .gen con una procedencia INVENTADA
+    // pasaba en verde.
+    const problemas = problemasDeProcedencia({}, { generatedFrom: 'inventado.js' });
+
+    expect(problemas).toHaveLength(1);
+    expect(problemas[0]).toMatch(/inventado/);
+  });
+
+  it('detecta que el .gen se calla una procedencia que el contrato declara', () => {
+    // Y el simetrico: el contrato dice de donde sale el .gen y el .gen no lo
+    // dice. Sin esto, nadie sabe de donde viene el fichero que lee la web.
+    const problemas = problemasDeProcedencia({ generatedFrom: 'FXSlot_Factory.cpp' }, {});
+
+    expect(problemas).toHaveLength(1);
+    expect(problemas[0]).toMatch(/FXSlot_Factory/);
+  });
+
+  it('detecta que el .gen se equivoca al copiar la procedencia', () => {
+    // El caso que no cubrian los dos anteriores: los dos lados la declaran,
+    // pero distinta. Un `toBe` entre los dos lados lo ve; compararlos solo
+    // contra "esta o no esta" no.
+    const problemas = problemasDeProcedencia(
+      { generatedFrom: 'la-fabrica.cpp' },
+      { generatedFrom: 'otro-fichero.cpp' }
+    );
+
+    expect(problemas).toHaveLength(1);
+  });
+
+  it('no inventa problemas cuando los dos lados coinciden', () => {
+    // El contrapeso: una funcion que siempre dice "problema" tambien es un
+    // guard que no sirve. Tiene que estar callada cuando de verdad cuadra.
+    expect(problemasDeProcedencia({}, {})).toEqual([]);
+    expect(problemasDeProcedencia({ generatedFrom: 'a.cpp' }, { generatedFrom: 'a.cpp' })).toEqual([]);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+
+describe('el --check del generador detecta un .gen desincronizado', () => {
+  /**
+   * Monta un arbol de dos repos en un temporal, con el .gen DELIBERADAMENTE
+   * desincronizado, y devuelve la raiz.
+   *
+   * Por que un temporal y no el arbol de verdad: porque el test tiene que
+   * comprobar que el `--check` SALTA cuando el .gen esta mal. Con el .gen real,
+   * que esta bien, el check pasaria tanto si mira como si no mira: en verde y
+   * sin decir nada. Aqui se le da algo roto a proposito y se le exige que lo
+   * note.
+   *
+   * No se toca el repo: el generador se copia, el contrato se copia y el .gen
+   * se escribe desde el bueno mas un cambio. Nada fuera del temporal se mueve.
+   */
+  function arbolConGenDesincronizado () {
+    const raiz = mkdtempSync(join(tmpdir(), 'fx-contract-check-'));
+
+    // El generador resuelve el contrato como HERMANO:
+    //   resolve(repoRoot, '..', 'ABDSharedAssets', 'contracts', 'fx-effects.json')
+    // asi que la estructura de directorios es parte del contrato con el.
+    mkdirSync(join(raiz, 'ABDEep', 'scripts'), { recursive: true });
+    mkdirSync(join(raiz, 'ABDSharedAssets', 'contracts'), { recursive: true });
+    mkdirSync(join(raiz, 'ABDEep', 'WebUI', 'js'), { recursive: true });
+
+    copyFileSync(GENERATOR, join(raiz, 'ABDEep', 'scripts', 'generate_fx_contract.mjs'));
+    copyFileSync(CONTRACT, join(raiz, 'ABDSharedAssets', 'contracts', 'fx-effects.json'));
+
+    // El .gen bueno + un byte. Suficiente para que no case, sin tocar el
+    // contenido que el generador lee.
+    const bueno = readFileSync(GENERATED, 'utf8');
+    writeFileSync(join(raiz, 'ABDEep', 'WebUI', 'js', 'fx_contract.gen.js'), bueno + '\n');
+
+    return raiz;
+  }
+
+  it('sale con 1 y dice STALE cuando el .gen no coincide', () => {
+    const raiz = arbolConGenDesincronizado();
+
+    try {
+      const r = spawnSync(process.execPath, ['scripts/generate_fx_contract.mjs', '--check'], {
+        cwd: join(raiz, 'ABDEep'),
+        encoding: 'utf8'
+      });
+
+      expect(r.status, 'el --check tendria que salir con 1').toBe(1);
+      expect(r.stderr).toMatch(/STALE/);
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
+  it('y sale con 0 cuando el .gen SI coincide', () => {
+    // El contrapeso del anterior: si el check fallara siempre, el primer test
+    // pasaria y el guard no valdria nada. Tiene que ser capaz de decir que si.
+    const raiz = mkdtempSync(join(tmpdir(), 'fx-contract-ok-'));
+
+    try {
+      mkdirSync(join(raiz, 'ABDEep', 'scripts'), { recursive: true });
+      mkdirSync(join(raiz, 'ABDSharedAssets', 'contracts'), { recursive: true });
+      mkdirSync(join(raiz, 'ABDEep', 'WebUI', 'js'), { recursive: true });
+
+      copyFileSync(GENERATOR, join(raiz, 'ABDEep', 'scripts', 'generate_fx_contract.mjs'));
+      copyFileSync(CONTRACT, join(raiz, 'ABDSharedAssets', 'contracts', 'fx-effects.json'));
+      copyFileSync(GENERATED, join(raiz, 'ABDEep', 'WebUI', 'js', 'fx_contract.gen.js'));
+
+      const r = spawnSync(process.execPath, ['scripts/generate_fx_contract.mjs', '--check'], {
+        cwd: join(raiz, 'ABDEep'),
+        encoding: 'utf8'
+      });
+
+      expect(r.status, 'el --check tendria que salir con 0').toBe(0);
+      expect(r.stdout).toMatch(/al dia/);
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
+  it('el --check NO ESCRIBE el .gen commiteado, ni siquiera con el mismo contenido', () => {
+    // ESTE ASERTO NECESITA LA FECHA, NO SOLO EL TEXTO, Y POR ESO.
+    //
+    // Comparar el contenido antes y despues parece suficiente y no lo es: si el
+    // `--check` reescribe el `.gen` con el contenido CORRECTO —que es
+    // exactamente lo que haria una "optimizacion" del tipo "si no cuadra, lo
+    // arreglo y aviso"—, el texto resultante es IDENTICO al de antes y la
+    // comparacion pasa en verde. Se comprobo: esa mutacion deja este test
+    // verde, y es justo la que hay que cazar.
+    //
+    // El sintoma que persigue es el mas dificil de ver de todo este modulo: un
+    // guard que se ARREGLA SOLO. El `.gen` queda al dia, el `--check` sale con
+    // el codigo que le toca, y el unico rastro es un fichero commiteado que se
+    // toco sin motivo. Nada rojo, nada que leer.
+    //
+    // Por eso se mira `mtimeMs`, que cambia con CUALQUIER escritura, y `size`,
+    // que es el segundo testigo por si el sistema de ficheros no resuelve bien
+    // el reloj. Se comparan los dos contra si mismos despues del `--check`.
+    const antesTexto = readFileSync(GENERATED, 'utf8');
+    const antesStat = statSync(GENERATED);
+
+    const r = spawnSync(process.execPath, [GENERATOR, '--check'], {
+      cwd: repoRoot,
+      encoding: 'utf8'
+    });
+
+    expect(r.status).toBe(0);
+
+    const despuesStat = statSync(GENERATED);
+
+    expect(readFileSync(GENERATED, 'utf8'), 'el --check ha MODIFICADO el contenido del .gen commiteado').toBe(antesTexto);
+    expect(despuesStat.mtimeMs, 'el --check ha REESCRITO el .gen (mtime cambiado)').toBe(antesStat.mtimeMs);
+    expect(despuesStat.size, 'el --check ha reescrito el .gen con otro tamano').toBe(antesStat.size);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+
+describe('CI corre este check de verdad, no solo el test', () => {
+  it('el workflow del contrato existe', () => {
+    // Sin esto, el unico guard es este fichero de test, que no corre en ningun
+    // sitio salvo que alguien lo lance a mano. El dia que este test pasara por
+    // alto en un CI, el contrato podria desincronizarse sin que nadie se entere
+    // hasta que un usuario mire el desplegable y vea mal las etiquetas.
+    expect(existsSync(WORKFLOW), `no esta el workflow ${WORKFLOW}`).toBe(true);
+  });
+
+  it('el workflow invoca el generador con --check', () => {
+    const yml = readFileSync(WORKFLOW, 'utf8');
+
+    // Se busca la invocacion real, no la palabra `--check` suelta: un workflow
+    // que menciona el check en un comentario y no lo corre pasaria con un
+    // `toContain('--check')`, que es justo el tipo de asercion de forma que
+    // este fichero acaba de dejar de usar.
+    const invoca = /run:.*generate_fx_contract\.mjs[^\n]*--check/.test(yml);
+
+    expect(invoca, 'el workflow no corre `generate_fx_contract.mjs --check` en ningun paso').toBe(true);
+  });
+
+  it('el workflow se dispara en push a main, no solo a mano', () => {
+    const yml = readFileSync(WORKFLOW, 'utf8');
+
+    // Solo `workflow_dispatch` seria un guard que nadie tira. Tiene que
+    // dispararse solo cuando llega un commit a main.
+    const seccionPush = /push:[\s\S]*?branches:[\s\S]*?main/.test(yml);
+
+    expect(seccionPush, 'el workflow no se dispara solo en push a main').toBe(true);
+  });
+
+  it('el workflow saca el contrato del repo HERMANO', () => {
+    const yml = readFileSync(WORKFLOW, 'utf8');
+
+    // El contrato vive en ABDSharedAssets. Un checkout que no lo traiga hace
+    // que el generador salga con su codigo 2 ("no se encuentra el contrato"), que
+    // es un fallo de infrastructure y no una prueba de nada.
+    expect(yml).toMatch(/repository:\s*ajabadia\/ABDSharedAssets/);
+  });
+
+  it('el workflow corre ESTE script, no otro generador', () => {
+    // Traba el ultimo cable flojo: que el job existente sea el de este script.
+    // Si alguien renombra `generate_fx_contract.mjs`, el paso del workflow se
+    // quedaapuntando a un fichero que no existe y el job falla por infraestructura,
+    // que es un fallo difícil de leer como "el nombre cambio".
+    const yml = readFileSync(WORKFLOW, 'utf8');
+
+    // El nombre sale del propio generador, de como se documenta a si mismo, y
+    // no de una constante escrita aqui al lado: si las dos fuentes se
+    // separan, este aserto compara el nombre viejo con el viejo y no lo nota.
+    const nombre = readFileSync(GENERATOR, 'utf8').match(/scripts\/generate_[a-z_]+\.mjs/);
+
+    expect(nombre, 'el generador ya no se documenta con su propia ruta').not.toBeNull();
+    expect(yml).toContain(nombre[0]);
   });
 });
 
