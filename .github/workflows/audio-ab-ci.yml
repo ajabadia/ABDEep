@@ -65,7 +65,14 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        # MEDIDO: con `actions/setup-node@v5` este paso sale con 1 y dice
+        # "Dependencies lock file is not found". No es un cambio de la v5 que
+        # afecte a los repos: ABDEep no tiene NINGUN lockfile versionado
+        # (ni package-lock.json ni pnpm-lock.yaml; el de pnpm vive en la raiz de
+        # la suite, que este workflow no clona), y `cache: npm` solo pasaba con
+        # la v4 por tolerancia. Se deja en v4 mientras se decide si la cache
+        # sobra, que es lo que ya hace la accion de bootstrap y por que.
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
