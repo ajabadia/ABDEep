@@ -41,3 +41,22 @@ WebUI/js/components/mod-matrix-canvas_data.js text eol=lf
 WebUI/js/components/mod-matrix-canvas.js text eol=lf
 WebUI/tests/modMatrixTables.test.js text eol=lf
 WebUI/tests/modmatrix.test.js text eol=lf
+
+# Los scripts de scripts/ se fuerzan a LF, y no por estetica. MEDIDO: un script
+# con shebang Y finales CRLF no lo puede cargar el runner de Vitest —ni de ahi ni
+# de ningun sitio—, y falla con `SyntaxError: Invalid or unexpected token`
+# apuntando a la linea de `import` del TEST que lo importa, que no tiene nada que
+# ver. Las tres variables, por separado, funcionan:
+#
+#   shebang + LF   -> OK
+#   sin shebang + CRLF -> OK
+#   shebang + CRLF -> SyntaxError
+#
+# La combinacion es lo que falla: `#!` solo es valido en el byte 0, y el runner
+# lo borra solo si sigue ahi tras transformar. Con CRLF la transformacion lo
+# desplaza y el shebang queda a mitad de fuente, donde V8 lo rechaza.
+#
+# Sin esto, un checkout en Windows con core.autocrlf=true (que es el estado por
+# defecto de cualquier dev con git instalado aqui) deja los scripts en CRLF y el
+# rojo aparece sin que nadie haya tocado nada.
+scripts/*.js text eol=lf
