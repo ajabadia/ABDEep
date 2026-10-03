@@ -62,7 +62,7 @@ jobs:
           Write-Host "WebView2 SDK listo en $env:RUNNER_TEMP/wv2"
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Setup Node.js
         # MEDIDO, Y NO ES DE LA v5: este paso sale con 1 con `v4` Y con `v5`,
@@ -104,7 +104,7 @@ jobs:
 
       - name: Archive Audio A/B artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: audio-ab-runs-${{ github.run_id }}
           path: |

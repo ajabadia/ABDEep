@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload report artifact (on failure)
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: security-scan-report
           path: /tmp/security-scan-report.json

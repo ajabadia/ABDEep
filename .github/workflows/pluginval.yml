@@ -68,7 +68,7 @@ jobs:
           Write-Host "WebView2 SDK listo en $env:RUNNER_TEMP/wv2"
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Configure CMake (model 2 — Enhanced)
         run: |
@@ -115,7 +115,7 @@ jobs:
 
       - name: Publish pluginval log (on failure diagnostics)
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pluginval-log-${{ github.run_id }}
           path: pluginval.log

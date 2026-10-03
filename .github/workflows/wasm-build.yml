@@ -63,7 +63,7 @@ jobs:
           node-version: 20
 
       - name: Setup Emscripten SDK
-        uses: myMindstorm/setup-emsdk@v14
+        uses: myMindstorm/setup-emsdk@v16
         with:
           # Versión PINNED (determinismo de CI — no `latest`): un cambio futuro de
           # Emscripten podría alterar la minificación de exports o el glue y
