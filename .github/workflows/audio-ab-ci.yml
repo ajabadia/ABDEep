@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -73,7 +73,7 @@ jobs:
         # `cache:` lo arregla, y es lo que ya hace `pnpm-workspace-bootstrap`
         # (su action.yml dice que va sin cache por esto mismo), pero es un cambio
         # sobre si la cache aporta algo y no viene con un salto de version.
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -104,7 +104,7 @@ jobs:
 
       - name: Archive Audio A/B artifacts
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: audio-ab-runs-${{ github.run_id }}
           path: |

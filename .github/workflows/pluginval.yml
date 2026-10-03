@@ -47,7 +47,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -115,7 +115,7 @@ jobs:
 
       - name: Publish pluginval log (on failure diagnostics)
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: pluginval-log-${{ github.run_id }}
           path: pluginval.log

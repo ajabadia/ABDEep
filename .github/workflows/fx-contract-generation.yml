@@ -110,12 +110,12 @@ jobs:
       # Es decir, necesita ABDSharedAssets un nivel por encima de ABDEep, y por
       # eso los dos checkouts van con `path:` explicito.
       - name: Checkout ABDEep
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           path: ABDEep
 
       - name: Checkout ABDSharedAssets (the contract lives here)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: ajabadia/ABDSharedAssets
           path: ABDSharedAssets
@@ -125,7 +125,7 @@ jobs:
       # hay una causa de diferencia que no es el fin de línea, y el job la
       # camufla. La versión es la misma que usa la suite.
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: '22.23.3'
 
