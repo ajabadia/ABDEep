@@ -4,7 +4,1767 @@
 
 ---
 
-## 0.2.57 — 🎛️ El Vel Gate del arpegiador por fin hace lo que dice
+## 0.2.77 — 🔐 El `critical` de `ABDBankManager` arriba, y no era solo el de la raíz
+
+> `npm audit --audit-level=high` es un job de `ci.yml` que llevaba tiempo en rojo
+> con un 1 y un critical. Sube vitest y el audit a cero... en cuatro ficheros, no
+> en uno, y por una razón que solo aparece si se ejecuta el install.
+
+### El origen del critical no estaba en la raíz
+
+El advisory es `GHSA-5xrq-8626-4rwp`: con el servidor UI de vitest escuchando,
+un fichero arbitrario se puede leer **y ejecutar**. Rango vulnerable `<=4.1.10`,
+y el arreglo que ofrece npm es vitest 5 —un salto de major desde el `^2.0.0` que
+declaraba el repo.
+
+Pero el dato que cambia el arreglo es otro: **`packages/contracts` y
+`packages/core` declaran su propio `vitest ^2.0.0` en `devDependencies`**. Con
+solo la raíz subida, npm sigue instalando vitest 2.1.9, vite 5.4.21 y esbuild
+0.21.5 **dentro** de esos dos miembros, y el audit devuelve exactamente las
+mismas cinco vulnerabilidades de antes. El primer intento dio «0
+vulnerabilidades» porque el sandbox tenía solo los dos JSON y ningún miembro del
+workspace: un cero obtenido sin mirar el árbol que lo produce.
+
+Los cuatro hermanos del workspace declaran `vite ^8.3.2` y `vitest ^4.1.11`, y
+`4.1.11` ya está **por encima** del rango vulnerable (`<=4.1.10`). No hace falta
+el 5 que sugiere npm: basta con subir al mismo número que los otros cuatro.
+
+### El import no declarado que vite 8 destapa
+
+`Scripts/build_contracts_web.js` y `Scripts/build_core_web.js` hacen
+`import { build } from 'esbuild'` **sin declarar esbuild**. Funcionaba porque
+vite 5 lo arrastraba como dependencia transitiva; con vite 8 desaparece y
+`npm run generate` —que ejecutan los tres jobs de `ci.yml` antes de nada— muere
+con `ERR_MODULE_NOT_FOUND`. Declararlo no es un parche para que el salto pase:
+es que un import directo tiene que estar en el manifiesto, y hasta ahora
+funcionaba por casualidad.
+
+### Medido, con A/B sobre el mismo árbol
+
+| | HEAD | con el arreglo |
+|---|---|---|
+| `npm audit --audit-level=high` | RC=1 — 1 critical, 1 high, 3 moderate | **RC=0 — 0 vulnerabilidades** |
+| `npm ci` | RC=0 | RC=0 |
+| `npm run generate` | RC=0 | RC=0 |
+| suite | 41 fallos / 788 de 829 | **41 / 788 / 829, los mismos 5 ficheros** |
+
+Y luego repetido con los **bytes exactos** del árbol real copiados a un sandbox
+nuevo (md5 idéntico comprobado), porque un sandbox construido a mano verifica el
+sandbox, no lo que se entrega.
+
+### Dos límites que hay que decir bien
+
+**`41` es la cifra de un sandbox hecho con `git archive HEAD`, no la del árbol de
+trabajo**, y no es un número estable: otro hilo está moviendo `fixtures/` ahora
+mismo —8 ficheros borrados y 19 modificados, incluidos los 8
+`Prophecy_Bank_*.sysex` que están en HEAD y ya no están en disco—, así que los
+mismos cinco tests en rojo pueden tener causas distintas a las de aquí. Lo que sí
+es prueba es el A/B: en el mismo árbol, vitest 2 y vitest 4 dan las mismas cifras
+y los mismos cinco ficheros.
+
+**No se ha corrido `npm ci` en el repo real**, solo en sandboxes: borra
+`node_modules` y habría destruido el entorno pnpm de la migración que otro hilo
+tiene a medias. El efecto secundario es que el árbol instalado sigue con vitest
+2.1.9 mientras el manifiesto ya dice `^4.1.11`: incoherente hasta que alguien
+instale, y conviene saberlo antes de lanzar `npm test` ahí.
+
+### Encima de una migración en curso, y sin commitear
+
+El `package.json` de la raíz lo está editando otro hilo, y su diff va justo en
+dirección contraria: borra `workspaces: ["packages/*"]`, quita
+`@tauri-apps/cli` y los scripts de tauri, y pone `packageManager: pnpm@10.25.0`.
+Los tres cambios se han aplicado **encima** con reemplazo puntual, sin reescribir
+el fichero, y su diff sigue entero. Los ficheros tocados son cuatro:
+
+| fichero | cambio |
+|---|---|
+| `package.json` | `vite ^8.2.2 → ^8.3.2`, `vitest ^2.0.0 → ^4.1.11`, `esbuild ^0.28.2` nuevo |
+| `packages/contracts/package.json` | `vitest ^2.0.0 → ^4.1.11` |
+| `packages/core/package.json` | `vitest ^2.0.0 → ^4.1.11` |
+| `package-lock.json` | regenerado, 222 entradas |
+
+**Sin commitear**, por acuerdo: HEAD sigue en `66dea52` y `origin/main` en
+`b5a3d9e`. Nada pusheado.
+
+Y el aviso de fondo, que es el mismo del 0.2.74: esto es un arreglo **de npm**
+sobre un repo que se está migrating a pnpm. Cuando aterrice, `ci.yml` tendrá que
+pasar `npm ci` → `pnpm install` y **`npm audit` → `pnpm audit`** —hoy son las
+líneas 28, 93 y 128, y la 262—, y este `package-lock.json` quedará obsoleto
+igual que ya lo está su borrado en el árbol.
+
+---
+
+## 0.2.76 — 🏟️ Los generadores corren en una arena: el `contracts/` real no se toca
+
+> El 0.2.75 cerró **la ventana de la restauración**. Quedaba la otra: mientras el
+> generador corre, escribe en `contracts/` de verdad, y quien este leyendo se
+> puede encontrar el fichero a medias. Aquí el generador deja de tocar el árbol,
+> así que esa ventana no es que sea más pequeña: es que no existe.
+
+### Por qué una arena y no un parámetro
+
+Los tres generadores resuelven sus rutas desde su propio fichero —`HERE =
+dirname(abspath(__file__))` en los tres—, así que no hay forma de decirles
+«escribe en otro sitio» sin tocar los tres, y tocar los tres para que el preflight
+no ensucie es cambiar los generadores por culpa del preflight.
+
+Lo que sí se puede es ponerlos en un sitio donde ese «otro sitio» sea una copia.
+La arena tiene **la misma forma que el repo**: `scripts/` y `contracts/` de verdad,
+y los hermanos del monorepo **enlazados**. El generador no se entera de nada y
+escribe donde escribiría, que es justo lo que hay que medir.
+
+Dos decisiones que no son de gusto:
+
+- **Los hermanos son enlaces, no copias.** Porque los generadores *leen* las
+  tablas de los synths (`ABDSharedCode/SynthCore/S950PatchFields.h`,
+  `ABDNeural/.../ModDestinationTable.h`, `ABDEep/WebUI/js/modmatrix_data.js`).
+  Copiar esas tablas sería una foto: el día que cambie una, la arena leería la
+  foto y el preflight compararía contra lo que el generador ve **hoy** en el
+  código de verdad. Con un enlace, la lectura es la de siempre.
+- **La lista de hermanos no está escrita en ningún sitio**: se lee el directorio
+  de al lado. MEDIDO: 26 en esta máquina, y un repo nuevo queda enlazado sin que
+  nadie tenga que acordarse.
+- **Está en `tmpdir()`, no dentro del repo**, porque los enlaces apuntan al
+  monorepo, y el monorepo contiene este repo. Un enlace a sí mismo dentro del
+  árbol es un bucle para cualquier cosa que lo recorra.
+- **`preserveTimestamps`**, que no es el de serie explícito: sin él los ficheros
+  de la arena tendrían fecha de ahora, y la detección de «qué ha escrito el
+  generador», que compara fechas, dejaría de funcionar —lo parecería todo
+  escrito—.
+
+### La red de seguridad se queda, pero ahora habla
+
+El respaldo y la restauración **no se borran**: siguen siendo la red para un
+generador que se escape por una ruta absoluta. Pero cambian dos cosas:
+
+- **Se restaura solo lo que se ha tocado.** Restaurar «por si acaso» eran
+  cuarenta `rename` por generador sobre el árbol de verdad, y ese trabajo no
+  hacía falta para nada.
+- **Y se dice lo que se ha tocado.** Antes un generador que escribiera en el
+  árbol real se deshacía **en silencio**, y un silencio así es un fallo que no se
+  ve hasta que alguien compara el contrato con el código del synth a mano. Ahora
+  es un problema más, con los nombres de los ficheros dentro.
+
+Con esto, el test de «escribe de más» ya no llega al árbol real (el fichero colado
+cae en la arena), así que se ha añadido el que sí lo alcanza: un generador
+temporal que escribe en `contracts/` por ruta absoluta, y se comprueba que se
+**denuncia**, que el colado desaparece y que el reescrito vuelve a tener su
+contenido y su fecha. `1737` tests.
+
+### La medición, y cómo se rompió la sonda dos veces
+
+`build/vigilar-contratos-reales.mjs` vigila el directorio con `fs.watch` mientras
+corre el preflight destructivo, y cuenta. El resultado que importa:
+
+| | eventos en el `contracts/` real | ficheros tocados |
+|---|---|---|
+| el 0.2.75 (`040bda6`) | **491** | **40** |
+| este | **0** | **0** |
+
+Los dos con 3 de 3 generadores produciendo y salida 0. El antiguo movía los
+cuarenta contratos casi cinco cientos veces en una sola corrida; el nuevo no
+escribe nada.
+
+**Y la sonda estuvo rota dos veces, que es la mitad de lo que hay que contar.**
+La primera versión lanzaba el preflight con `spawnSync`, que **bloquea el bucle
+de eventos** —y los eventos de `fs.watch` se entregan en el bucle—, así que el
+vigilante no podía ver nada mientras el hijo corría: daba 0 con cualquier código.
+No se detectó leyendo el resultado, sino porque **el código antiguo también dio
+0**, cuando el antiguo reescribía los cuarenta contratos. Un cero que no
+distingue dos cosas que son distintas no es un cero, es una sonda rota.
+
+La segunda: el guard de `main()` exige que el fichero se llame
+`check-generated-contracts.mjs`, así que una copia con otro nombre **no corría
+nada** —y salía con 0 y con «0 de 3», que es la señal que delata el vacío. Por
+eso la sonda imprime cuántos generadores dice que producen: un «0 de 3» con 0
+eventos no es un buen resultado, es un preflight que no se ha ejecutado.
+
+Y una corrección de una sonda, que es una regla para las mías: **la sonda que
+mide no puede ensuciar lo que mide**. El control escribía un contrato para
+comprobar que el vigilante funciona, y le cambiaba la fecha. Ahora restaura
+contenido y fecha, y lo dice.
+
+### Verificado
+
+| | |
+|---|---|
+| suite completa | **1737 tests, 40 ficheros, RC=0** |
+| `tests/generatedContractsPreflight.test.js` | 62 tests, RC=0 |
+| `npm run preflight` | RC=0 |
+| `--comprobar-generadores` | RC=0, 3 de 3 |
+| `contracts/` antes y después | **idéntico en md5, mtime y modo** |
+| rastros (arena ni temporal) | ninguno |
+
+**Sin commitear**: `scripts/check-generated-contracts.mjs` y
+`tests/generatedContractsPreflight.test.js` en el árbol de `ABDSharedAssets`.
+
+---
+
+## 0.2.75 — 🧯 La restauración de contratos ya no se ve a medias, y está medido que no se ve
+
+> El rojo intermitente de `schemaValidator.test.js` y `quarantineRule.test.js`
+> no era un test malo: era otro proceso leyendo un fichero que estaba a medio
+> escribir. Aquí se cierra **esa** ventana —la de la restauración— y se mide
+> cuánto vale, en vez de suponerlo.
+
+### La ventana, por escrito
+
+El `finally` de `generadorProduceLoQueDice`
+(`scripts/check-generated-contracts.mjs`) devolvía cada contrato con
+`writeFileSync(origen, bytes)`. Eso **trunca al abrir** y llena después, así que
+durante un rato el fichero en disco es un JSON a medias. A la vez, otro worker
+de vitest está leyendo `contracts/` por su cuenta —`readContract()` hace
+`JSON.parse(readFileSync(...))` sin ninguna espera— y se come ese JSON a medias:
+
+```
+SyntaxError: Unexpected end of JSON input
+```
+
+Reproducido dos veces antes de tocar nada: en `schemaValidator.test.js:990` y en
+`quarantineRule.test.js:256`, con dos contratos ilegibles a la vez.
+
+### Lo que se ha cambiado
+
+El contrato se escribe **entero en un temporal y se mueve encima con
+`rename`**. Un `rename` no tiene ventana: el lector que ya tenía el fichero
+abierto sigue leyendo el viejo entero, y el que abre después abre el nuevo
+entero.
+
+Tres detalles que no son adornos y que deciden dónde va el temporal:
+
+- **No puede ir en `tmpdir()`.** `rename` solo es atómico dentro del mismo
+  sistema de ficheros, y en Windows `tmpdir()` está en `C:` mientras que el repo
+  vive en `D:`. Ahí el `rename` daría `EXDEV`, que es exactamente la escritura
+  no atómica que se viene a evitar.
+- **No puede ir dentro de `contracts/`.** `fechasDeContratos()` lista **todo** lo
+  que encuentra ahí, sin filtrar. Un temporal dentro se contaría como un
+  fichero más que el generador ha escrito y aparecería un problema que no existe:
+  «escribe X, que NO está en sus salidas declaradas».
+- **Va en un directorio con punto en la raíz del repo**, que nadie enumera, y
+  `rmSync` se lo lleva en cuanto termina.
+- **Los permisos se vuelven a poner a mano** (`chmodSync`): un `rename` cambia el
+  inodo, así que el temporal no los hereda.
+
+### El detalle que salió por el camino: en Windows el `rename` da EPERM
+
+Primera versión: cinco reintentos seguidos, sin dormir, «que la ventana dura
+poco». **Fallo en las tres corridas, siempre al principio**: en Windows un
+fichero no se puede sustituir mientras otro proceso lo tiene abierto, y el lector
+de contratos lo tiene abierto constantemente:
+
+```
+Error: EPERM: operation not permitted, rename '...\preflight-tmp\x.json'
+  -> '...\contracts\x.json'
+```
+
+Cinco reintentos a pelo no arreglan eso. Lo que lo arregla es **esperar de
+verdad** entre intentos (`Atomics.wait`, 20 ms, hasta 25 veces). Y no es un
+detalle de robustez: sin esa espera, un `rename` que no cuela marcaba
+`restaurado = false` y el preflightaba con «no se ha podido restaurar
+`contracts/`», que es un rojo **inventado**.
+
+### La medición
+
+`build/ventana-contratos.mjs`: copia `contracts/` a un temporal, y un proceso
+hijo lee y parsea sin parar mientras el padre escribe con cada estrategia. Es la
+misma carrera del rojo intermitente, pero forzada a proposito. Tres corridas:
+
+| escritura | lecturas | rotas | % roto | vueltas en 2,5 s |
+|---|---|---|---|---|
+| `writeFileSync` | 4060 / 4022 / 4100 | **60 / 58 / 60** | 1,46 / 1,42 / 1,44 % | 198 / 194 / 195 |
+| `rename` | 4360 / 3960 / 4160 | **0 / 0 / 0** | 0 % | 45 / 43 / 48 |
+
+**El coste, medido también.** Con un lector machacando, la vía atómica hace unas
+**4 veces menos vueltas** en la misma ventana (43-48 frente a 194-198): se queda
+esperando a que el lector suelte el fichero. Sin contención —que es el caso real,
+donde el lector es un test y no un bucle— el peaje son unos milisegundos por
+restore.
+
+### Lo que queda abierto, dicho antes de que se lea como cerrado
+
+Esto cierra la ventana de **la restauración**, que es la grande: un preflight
+restaura ~40 contratos por generador y corre cuatro veces. **La ventana del
+generador sigue abierta**: los tres `.py` escriben en `contracts/` en sitio, con
+su propio truncar-y-llenar, mientras dura la regeneración. Cerrarla de verdad
+pediría correrlos contra una copia del repo en vez de contra el real, que es un
+cambio de arquitectura de la función y no un detalle de este arreglo.
+
+### Verificado
+
+| | |
+|---|---|
+| `tests/generatedContractsPreflight.test.js` | 61 tests, RC=0 |
+| suite completa | **1736 tests, 40 ficheros, RC=0** |
+| `npm run preflight` | RC=0 |
+| `--comprobar-generadores` (el camino que restaura de verdad) | RC=0 |
+| `contracts/` antes y después | **idéntico en md5, mtime y modo**, 40 ficheros |
+| rastro `.preflight-restaurar-*` | ninguno |
+
+**Commiteado**: `040bda6` en `ABDSharedAssets`, un solo fichero
+(`scripts/check-generated-contracts.mjs`, +86/−4). Nada pusheado.
+
+---
+
+## 0.2.74 — 🔧 Los dos installs de la auditoría: uno reproducido, uno arreglado, y lo que había debajo
+
+> La auditoría de installs (SAG013) dejó dos repos con el install puzzling y un
+> tercero con el fallo ya confirmado. Los tres se han ejecutado esta vez, no
+> razonado. Uno estaba arreglado con borrar un fichero; otro **no estaba roto**
+> —la pagina siguiente explica el fallo de la propia auditoria—; y el tercero
+> tenía lo que de verdad había debajo.
+
+### Lo reproducido, no lo inferido
+
+**`ABDEep`** sin `package-lock.json` en la raíz, ejecutado desde HEAD en un
+directorio temporal limpio:
+
+```
+npm ci  ->  RC=1
+npm error code EUSAGE
+npm error The npm ci command can only install with an existing package-lock.json
+```
+
+Por semántica de npm tenía que fallar, pero fallaba por una razón distinta a la
+que se suponía: no es que el lockfile esté desfasado, es que **no hay lockfile**, y
+`npm ci` no genera uno. Es la razón por la que este repo instala con `pnpm` y
+hereda el lockfile del workspace.
+
+**`ABDAudioLab` NO ERA UN FALLO, y el error era mío.** La auditoría dijo que su
+job de contratos corría `pnpm install --frozen-lockfile` sobre una raíz sin
+`package.json`. La raíz del repo efectivamente no tiene manifiesto —eso es
+cierto, y sigue siendo cierto—, pero **ese job no corre ahí**: el job
+`contracts-preflight` lleva
+
+```yaml
+defaults:
+  run:
+    working-directory: ABDSharedAssets
+```
+
+Es decir, instala el `ABDSharedAssets` que acaba de hacer checkout, que sí tiene
+`package.json` y `pnpm-lock.yaml`. La lectura se fue al repo cuyo nombre aparece
+en el `checkout` y no al directorio de trabajo. Reproducido desde el SHA que el
+job fija (`065ca6c`, `ABDSharedAssets`):
+
+```
+pnpm install --frozen-lockfile   (pnpm 10.25.0)  ->  RC=0   252 paquetes
+pnpm run preflight                                ->  RC=0
+    copia al dia   ABDAudioLab/contracts/hardware (40 ficheros iguales)
+```
+
+La puerta hace justo lo que fue construida para hacer. **No se toca el workflow.**
+
+Y con esto hay que señalar una segunda cosa, porque el primer rojo también mentía:
+ejecutado con el pnpm de esta máquina (12.8.1) el mismo install sale **RC=1** con
+`ERR_PNPM_IGNORED_BUILDS` —el bloque de scripts de `esbuild`—, y con el 10.25.0
+que fija el workflow sale RC=0 con un simple aviso. Un instalador mas nuevo es un
+rojo que aqui no existe, y si se hubiera arreglado «el job de ABDAudioLab»
+con ese RC delante, se habria tocado un workflow que funciona.
+
+### El arreglo: `ABDBankManager`, commit `66dea52`
+
+Aquí sí estaba confirmado: los tres jobs de `ci.yml` que usan `npm ci`
+(`schema-validation`, `registry-generation`, `vitest`) morían en
+`Missing: fake-indexeddb@6.2.5 from lock file`. El `package.json` de HEAD declara
+`fake-indexeddb@^6.2.5`, pero el `package-lock.json` commiteado es de un día
+anterior y no lo tiene.
+
+Un detalle que casi se lleva el arreglo: `npm install --package-lock-only` **sobre
+el lockfile viejo dice `up to date`** y parece que arregla. No arregla nada: solo
+parchea. Borrándolo antes, el lockfile sale de cero y difiere en **758 líneas**.
+El commiteado es el de cero.
+
+| | antes | después |
+|---|---|---|
+| entradas en `packages` | 238 | 238 |
+| `fake-indexeddb` | *ausente* | **`6.2.5`** |
+| `eslint-visitor-keys` | 3.4.3 (anidado dos veces) | **4.2.1** (anidado una, bajo `@eslint-community/eslint-utils`) |
+| líneas | 3351 | **3405** (LF, CRLF=0) |
+| diff | — | 328 inserciones / 274 borrados |
+
+**Y el radio de impacto, que no es solo una entrada añadida.** Regenerar desde
+cero vuelve a resolver *todos* los rangos `^` contra el registro de hoy: **61
+paquetes cambian de versión**, casi todos transitivos. Los que se ven:
+`rollup 4.62.5 → 4.64.0` (y sus 24 binarios por plataforma),
+`@tauri-apps/cli 2.11.4 → 2.12.1`, `typescript-eslint 8.68.0 → 8.71.0`,
+`prettier 3.9.6 → 3.9.9`, `dexie 4.4.5 → 4.4.6`, `jszip 3.10.1 → 3.10.2`,
+`postcss`, `nanoid`, `brace-expansion`. También se **eliminan 2 entradas**
+(`eslint/node_modules/eslint-visitor-keys` y
+`espree/node_modules/eslint-visitor-keys`), sustituidas por la de
+`@eslint-community/eslint-utils`.
+
+Es más cambio del que sugiere «arreglar un install», y se ha elegido a
+propósito: la variante mínima —`npm install --package-lock-only` sobre el
+lockfile viejo, que solo añade lo que falta— también funciona, pero deja el
+árbol medio refrescado y el fichero sin forma de regenerarse de manera
+reproducible. Antes de pushear, conviene saber que este commit mueve
+dependencias, no solo metadatos de install.
+
+Verificado sobre el **blob commiteado**, con `git archive HEAD` a un temporal
+limpio, que es lo que baja el runner:
+
+```
+npm ci              ->  RC=0   176 paquetes, fake-indexeddb@6.2.5
+npm run generate    ->  RC=0   los 5 artefactos de registry-generation, no vacios
+```
+
+**Por qué (a) y no migrar `ci.yml` a pnpm**: no es cuestión de gusto, la opción
+(b) es imposible desde HEAD. `pnpm install --frozen-lockfile` responde
+`ERR_PNPM_OUTDATED_LOCKFILE` porque en HEAD no existe `pnpm-workspace.yaml`, así
+que pnpm tampoco instala. La migración a pnpm que hay **en curso en el árbol de
+trabajo** no está commiteada: ni `pnpm-workspace.yaml` ni el `pnpm-lock.yaml`
+nuevo. El commit toca un solo fichero y no roza los 130 modificados ni los 90
+sin seguimiento de ese trabajo.
+
+### Lo que había debajo del install, y que no lo arregla este commit
+
+Con `npm ci` en verde por fin se ve lo que había detrás. La suite de HEAD da
+**33 fallos que no tienen nada que ver con el install**:
+
+- **1 suite que ni arranca**: `packages/contracts/tests/casioCzAdapter.test.js`
+  importa `@contracts/Adapters/sysexUtils`, y ese módulo **no existe** —ni en HEAD
+  ni en el árbol de trabajo—. El alias apunta a `Source/Contracts`, donde hay ocho
+  adaptadores y ninguno es `sysexUtils`.
+- **32 tests** en `packages/contracts/tests/rolandJunoAdapter.test.js`: el
+  adaptador identifica `Juno60_Bank_A.syx` como `roland-juno106`, y de ahí se
+  descuelgan los 64-vs-60 patches, el `originAddress` de `undefined` y los
+  checksums.
+
+Y una causa de ruido que **no es de este repo**: `fixtures/` está en
+`.gitignore` (línea 43), así que 8 ficheros de fábrica de Korg Prohecy viven solo
+en esta máquina. Ejecutando la suite sin ellos son 41 fallos; copiándolos al
+temporal, 33. Los 8 sobrantes son míos, no del repo.
+
+Los mismos adaptadores que fallan (`rolandJunoAdapter.ts`,
+`korgMs2000Adapter.ts`, `Models/casio-cz.ts`, `Models/korg-ms2000.ts`) los está
+modificando otro hilo en el árbol de trabajo. No se han tocado.
+
+### Y el `security-scan` ya estaba rojo antes
+
+`npm audit --audit-level=high` es un job que tampoco depende de este arreglo, y
+salía rojo igual. Se ha medido contra los dos lockfiles para no atribuirlo a
+quien regenera:
+
+| lockfile | vulnerabilidades | RC |
+|---|---|---|
+| el viejo | 6 (3 moderate, **2 high**, 1 critical) | 1 |
+| el nuevo | 5 (3 moderate, **1 high**, 1 critical) | 1 |
+
+Preexistente, y la regeneración lo deja algo mejor, pero **sigue en rojo**: 1
+critical y 1 high pendientes de arreglar, que es trabajo de dependencias y no de
+lockfiles.
+
+### Estado
+
+Commit `66dea52` en `ABDBankManager`, un solo fichero (`package-lock.json`).
+`ABDEep` y `ABDAudioLab` sin tocar. Nada pusheado.
+
+---
+
+## 0.2.73 — 🔓 El último hueco: el lockfile propio de ABDSharedAssets ya instala vite 8
+
+> Era el punto 4 del baseline y el único que quedaba abierto de verdad: los otros
+> tres eran mediciones que faltaban, este era un **fichero que había que
+> regenerar**. `ABDSharedAssets` es el único de los cinco con un
+> `pnpm-lock.yaml` propio y commiteado, y su CI instala de ese fichero. Estaba
+> en `vite 5.4.21` y `vitest 1.6.1` con el `package.json` ya diciendo `^8.3.2` y
+> `^4.1.11`. Ahora instala lo que dice.
+
+### El problema, en una frase
+
+El salto estaba **declarado pero no instalado** en el único repo cuyo CI no
+hereda el lockfile de la raíz. En local todo verde porque pnpm sube al workspace y
+encuentra el 4.1.11 de la raíz; en el runner, `pnpm install --frozen-lockfile` no
+podía colocar lo declarado. Por eso el 0.2.69 dejó el `package.json` sin tocar
+deliberadamente: meter el salto antes habría roto el install del CI **antes de
+llegar a ningún test**.
+
+### Cómo se regenera sin reescribir el de la raíz
+
+```bash
+pnpm install --lockfile-only --ignore-workspace   # en ABDSharedAssets
+```
+
+`--ignore-workspace` es lo importante: sin él, pnpm sube a
+`D:/desarrollos/ABDSynths/`, reconoce el workspace de cinco miembros y toca el
+lockfile de la raíz —que en el 0.2.69 se regeneró a mano y no se toca por
+casualidad—. MEDIDO: el md5 del lockfile de la raíz **no cambia**
+(`ae7191e0…`), y el propio pasa de `28300c54…` a `601fa8e8…`.
+
+| | antes | después |
+|---|---|---|
+| `vite` | `5.4.21` | **`8.3.2`** |
+| `vitest` | `1.6.1` | **`4.1.11`** |
+| `vite-node` | `1.6.1` | *desaparece* |
+| `esbuild` | `0.21.5` | *desaparece* |
+
+Los dos que se van no son un efecto secundario: **vite 8 usa Rolldown, no
+Rollup**, y vitest 4 ya no arrastra `vite-node`. El install lo confirma bajando
+`@rolldown/binding-win32-x64-msvc`.
+
+### La prueba es sobre el blob, no sobre la copia de trabajo
+
+Es la diferencia entre «a mí me funciona» y «funciona en el runner». El commit
+normaliza EOL (`core.autocrlf=true` avisa), así que lo que se verifica es lo que
+el runner va a bajar:
+
+```
+git show HEAD:pnpm-lock.yaml  ->  CRLF=0, LF=1581
+pnpm install --frozen-lockfile  ->  RC=0
++ jsdom 24.1.3   + mermaid 12.0.0   + vite 8.3.2   + vitest 4.1.11
+```
+
+Sin ese paso, un blob con CRLF habría pasado la prueba local y fallado en CI.
+
+### Y la suite, que es lo que corre después
+
+**1736 tests, 40 ficheros, RC=0**, contra vitest 4.1.11 y vite 8.3.2.
+
+De paso, una cifra del 0.2.69 era más grande de lo que la suite corre:
+`@abdsynths/shared` tiene `include: ['tests/**/*.test.js']` y en `tests/` hay
+**40** ficheros, no 268 — los 268 contaban `.test.js` de fuera de `tests/`, que
+el `include` siempre ha excluido. El número que importa, **1736 tests**, coincide
+exacto en todas las mediciones.
+
+### Estado
+
+Commit `5ea9941` en `ABDSharedAssets`, un solo fichero (`pnpm-lock.yaml`).
+Los **cinco** miembros instalan ya el mismo par vite 8 / vitest 4, y **ninguno**
+de los cuatro huecos del salto queda abierto. Nada pusheado.
+
+---
+
+## 0.2.72 — 🧭 Un guard para que dos repos del workspace no declaren vitest distinto
+
+> Ya habia un guard de vitest, `vitestInstaladoCoincide.test.js`, y mira una sola
+> columna: que lo instalado en disco caiga dentro de lo que declara **este** repo.
+> Le falta la otra mitad, que es comparar **entre repos**. Sin esto, los cinco
+> paquetes del workspace pueden declarar cinco versiones distintas a la vez y
+> todos los guards siguen en verde, porque cada repo es coherente consigo mismo.
+
+### Lo que mira
+
+`WebUI/tests/vitestEnElWorkspace.test.js`, 24 tests, verde en la suite completa.
+
+| Fichero | `devDependencies.vitest` | version base |
+|---|---|---|
+| `package.json` (raiz) | `4.1.11` | 4.1.11 |
+| `ABDEep` | `^4.1.11` | 4.1.11 |
+| `ABDSharedAssets` | `^4.1.11` | 4.1.11 |
+| `ABDSharedCode/MidiKeyboard` | `^4.1.11` | 4.1.11 |
+| `ABDMS2000` | `^4.1.11` | 4.1.11 |
+| `ABDCZ101` | `^4.1.11` | 4.1.11 |
+
+**Compara la version base, no la cadena**, y no es un matiz: la raiz lo fija
+exacto a proposito —su lockfile gobierna a todos los miembros— y los miembros
+ponen el caret que necesitan. Un guard que comparara las cadenas a pelo estaria
+en rojo desde el primer dia por una diferencia de formalismo. Lo que **no** se
+exige es el mismo operador: decidir el rango es cosa de quien hace el salto; lo
+que este guard dice es que no queden dos numeros distintos repartidos.
+
+### De donde sale la lista
+
+De `pnpm-workspace.yaml`, leido de la raiz del workspace, **no escrito aqui como
+constante**. Una lista copiada a mano se queda vieja el dia que entre un sexto
+miembro, y un guard que vigila cuatro de cinco no dice nada.
+
+Quedan fuera `ABDBankManager` (vitest ^2.0.0) y `ABDScope` (^2.1.8), que declaran
+vitest y estan en el mismo disco: ninguno es miembro del workspace, y
+`ABDBankManager` es ademas un workspace pnpm interno que pnpm no anida. Si alguno
+entra en `packages:`, el guard lo coge sin que nadie tenga que acordarse.
+
+### Cuando un hermano no esta en disco
+
+Un checkout de un solo repo no tiene con quien compararse, y ahi el guard no tiene
+sujeto. Un miembro ausente se cuenta como ausente y se nombra, y no como
+discrepancia: un guard que se pone rojo porque el CI no clona un repo enseña a
+la gente a correrlo con `--exclude` y a no mirarlo nunca. Pero tampoco se deja
+pasar en silencio — hay un test que exige que se lean **al menos dos**
+declaraciones e imprime cuales se han leido y cuales no.
+
+### Probado con dientes, y con dos agujero de por medio
+
+Un guard de consistencia que devuelve `[]` siempre pasa igual. Aqui se le da algo
+roto a proposito y se le exige que lo note:
+
+```
+md5 antes:  94aca471266c09391f646e7a645787e0
+desfasado:  ABDMS2000 dice ^1.6.1
+--- test con ABDMS2000 desfasado: RC=1
+    × ningun miembro declara una version distinta
+    +   "ABDMS2000 declara \"^1.6.1\" (base 1.6.1) y la raiz va en 4.1.11"
+restaurado: 94aca471266c09391f646e7a645787e0 (identico: true)
+```
+
+El `package.json` de un repo ajeno, editado **como texto** —reserializar con
+`JSON.stringify` reordena las claves y devuelve el fichero distinto aunque el
+contenido sea el mismo— y restaurado byte a byte, que el md5 comprueba. La sonda
+restaura siempre, pase lo que pase con el test.
+
+Dos cosas que aparecieron al probarlo, y que no habria salido sin mirar:
+
+1. **El parser aceptaba miembros que no existen.** `- ABDNeural  # todavia no`
+   empieza por `- ` igual que un miembro de verdad, asi que el guard vigilaba un
+   miembro llamado `ABDNeural  # todavia no` y se ponia en verde. La regla ahora
+   es `- ` seguido de **un token sin espacios**, porque un miembro es una ruta y
+   una ruta no lleva espacios dentro. Lo destapo un test, no un fallo de suite.
+2. **La sonda daba un falso negativo, no un negativo.** Con `npx`, en Windows,
+   `execFileSync` no arranca `npx.cmd`: reventaba con ENOENT, que llegaba como
+   `status === undefined` y se leia como codigo de salida de vitest. Decía «el
+   guard no muerde» con el test claramente en rojo. Ahora invoca el binario con
+   el node del propio proceso. Un instrumento mal hecho es peor que no medir.
+
+Y un tercero que no era del guard: `npm run lint` es `--max-warnings 0`, y las dos
+llaves sin corrochete que yo habia escrito salian como dos warnings de `curly`.
+Arregladas; el lint del proyecto pasa con RC=0.
+
+### Lo que ha tenido que moverse
+
+`docs/baseline_fase0_v32.md` §2: **130 → 131 ficheros** y **5173 → 5197 tests**.
+Los 24 tests nuevos. El `baselineGuard` es el que avisa de esto, y avisa bien: la
+suite salio en rojo pidiendo exactamente `131 / 5197`, y el doc se actualizo a eso.
+
+---
+
+## 0.2.71 — 🧪 `--coverage` bajo vitest 4: medido, y no hubo nada que arreglar
+
+> El último hueco de la lista del salto a vitest 4 era «`@vitest/coverage-v8` no se
+> ha corrido». Se ha corrido dos veces. **No falló nada**, y ese es el titular: el
+> hueco se cerraba solo. Lo que sí sale de correrlo es una cifra que hasta ahora
+> nadie tenía, y un aviso sobre cómo hay que leerla.
+
+### El titular: cero arreglos
+
+`@vitest/coverage-v8` está en **4.1.11**, la versión exacta que el peer de vitest
+4.1.11 exige, y `vitest.config.js` no declara configuración de cobertura: se usan
+los defaults. Dos corridas completas, y las dos con lo mismo:
+
+| | RC | `Test Files` | `Tests` | Avisos del proveedor |
+|---|---|---|---|---|
+| corrida 1 | **0** | 130 / 130 | 5171 passed, 2 skipped | **0** |
+| corrida 2 | **0** | 130 / 130 | 5171 passed, 2 skipped | **0** |
+
+`Coverage enabled with v8` en la cabecera de los dos logs, y **cero** avisos: ni
+`unsupported`, ni `istanbul`, ni `nyc`. La tabla sale idéntica cifra por cifra en
+las dos —`56.49 | 46.43 | 64.08 | 58.12`— y **no hizo falta tocar ni una línea
+de código ni de test**.
+
+### Lo que sale: 56,49 % de statements
+
+| | % Stmts | % Branch | % Funcs | % Lines |
+|---|---|---|---|---|
+| **All files** (56 ficheros) | **56.49** | **46.43** | **64.08** | **58.12** |
+| `WebUI/js` | 65.12 | 50.75 | 66.51 | 67.46 |
+| `WebUI/tests` | 76.62 | 75 | 95.83 | 77.94 |
+| `scripts` | 21.84 | 20.75 | 28.39 | 22 |
+
+Genera `coverage/` —`clover.xml` (221 KB), `coverage-final.json` (1,0 MB) y el
+HTML—, que está en `.gitignore` desde la línea 19. Medido: la corrida **no escribió
+una sola ruta** fuera de `coverage/`, y con `coverage/` ya en disco la suite sigue
+recogiendo **130** ficheros, ni uno más.
+
+### Y un aviso sobre cómo hay que leer esa cifra
+
+**El 21,84 % de `scripts/` no significa que esos scripts estén sin probar.**
+Significa que el proveedor no los instrumentó. Casi todos corren como **proceso
+hijo** desde un test, y v8 no ve dentro de un proceso que no es el suyo.
+`check_wasm_build.js` es el caso extremo: **4,14 % y 0 % de funciones**, cuando
+precisamente es de los scripts que más se ejecutan.
+
+Los cinco ficheros con 100 % son casi todos helpers de test, no producto. O sea:
+**esta cifra mide el WebUI, no el repo.** Sirve para saber que `WebUI/js` está en
+65 % y para ver qué se ha dejado sin tocar; tomarla por «cobertura del proyecto»
+sería un error, y por eso va escrita aquí con su cifra al lado.
+
+### El coste: tres corridas alternas
+
+| Corrida | `Duration` |
+|---|---|
+| sin cobertura, `coverage/` ausente | 34,73 s |
+| **con `--coverage`** | **37,83 s** |
+| sin cobertura, `coverage/` ya en disco | 33,48 s |
+
+**+3 s, ~9 %**, del orden del ruido de la máquina: una corrida posterior tardó 51 s
+con la suite en verde y 216 s de CPU de tests, contra 135 s de las anteriores. Cabe
+de sobra en un runner si algún día se quiere, y ese día **no ha llegado**:
+`--coverage` sigue sin correr en ningún workflow. Ni `webui-ci.yml`, ni
+`dsp-ci.yml`, ni el `docs-audit.yml` de los hermanos.
+
+### Un cambio, y no es un arreglo
+
+`vitest.config.js` declara ahora `'**/coverage/**'` en `exclude`. Hoy **no hace
+falta**, y conviene decirlo con precisión: el informe escribe una página por
+fichero cubierto y se llaman `algo.test.js.html`, que no casa con el include por
+defecto `**/*.{test,spec}.?(c|m)[jt]s?(x)` porque no termina en `.js`, y dentro de
+`coverage/` no hay ni un `*.test.*`. Se declara por el mismo motivo que `build/`, y
+el precedente está escrito en ese mismo fichero: las copias de ABDSharedCode que
+alguien dejó en `build/` se convirtieron en parte de la suite y aportaron 502 tests
+rojos. Suite verificada después del cambio: 130/130, 5171 passed, RC=0.
+
+### Lo que sigue abierto
+
+- El **punto 4** del baseline: regenerar el `pnpm-lock.yaml` propio de
+  `ABDSharedAssets`, que es lo único que impide que el salto a vitest 4 llegue a su
+  CI. Diagnosticado y escrito desde el 0.2.70; falta ejecutarlo.
+- `schemaValidator.test.js` tiene un rojo intermitente (verde aislado 140/140, rojo
+  en paralelo). **No ha reaparecido en las cinco corridas de hoy** —5171 passed,
+  0 fallos en todas— y sigue sin investigarse a fondo.
+
+Detalle largo en `docs/baseline_fase0_v32.md`, sección «Lo que NO se ha podido
+medir», punto 3.
+
+---
+
+## 0.2.70 — 🚧 El rojo de `check:guardas` ya no era local, y el sitio donde se escondía el lockfile
+
+> El rojo era `check:guardas no esta en ningun inventario del preflight`, y al
+> ir a cerrarlo resulto que **ya estaba cerrado** y que lo que quedaba era otra
+> cosa: un rojo en CI, medido con los SHA que el workflow tiene fijados, que no
+> se ve desde el arbol de trabajo. Y de paso, un agujero del 0.2.69.
+
+### El rojo que ya no existia
+
+El inventario es `GENERADOS_FUERA` en `scripts/check-generated-contracts.mjs`, y
+`check:guardas` **ya estaba dentro**, con un comentario que explica hasta por que
+va ahi siendo el unico que necesita los tres hermanos clonados. El test
+`tests/generatedContractsPreflight.test.js` pasa **61/61**.
+
+Lo que si se ha hecho es comprobarlo, porque un arreglo de inventario que no
+está verificado es una suposición con Tapices:
+
+```
+roto:  md5 ccfed3029ab5a64e2b03080e683920d9 -> 6c4ef79105ddf3dd635cf9d6824788b6
+vuelta: md5 ccfed3029ab5a64e2b03080e683920d9  (byte a byte)
+rc=1
+AssertionError: check:guardas no esta en ningun inventario del preflight: expected [ 'check:mod-contracts', …(5) ] to include 'check:guardas'
+  378|       expect(declarados, `${c} no esta en ningun inventario del prefli…
+```
+
+Quitar la entrada lo devuelve a rojo **con su mensaje**, y el fichero se restaura
+byte a byte. El test caza; no se limitaba a mirar.
+
+### El rojo de verdad: CI, y no se ve desde aqui
+
+Los tres `guardasDeEscritura.test.js` eran ficheros **untracked** en sus repos, y
+`docs-audit.yml` no clona `main`: clona un **SHA fijo**. En local el `--check` sale
+verde porque el fichero existe en el arbol de trabajo; en CI el checkout llega al
+SHA y el fichero no esta. Los dos verdes no son el mismo verde.
+
+Medido materializando los tres repos en el SHA que tiene el workflow, no en el
+arbol de trabajo:
+
+| Repos clonados en | `pnpm run preflight` | el paso de las guardas |
+|---|---|---|
+| los SHA de hoy | **RC=1** | **RC=1** |
+| los commits de hoy | **RC=0** | **RC=0** |
+
+```
+[guardas] ABDEep:    DESFASADO — scripts/guardasDeEscritura.test.js no existe.
+[guardas] ABDMS2000: DESFASADO — WebUI\tests\guardasDeEscritura.test.js no existe.
+[guardas] ABDNeural: DESFASADO — WebUI\tests\guardasDeEscritura.test.js no existe.
+```
+
+Y con los SHA de hoy ese es el **único** rojo: el `s950_*_fields.json` que tambien
+sale no existe en el sandbox porque la sonda no materializa `ABDSharedCode`, que
+CI si clona. Un rojo que se ve en la sonda y no en CI no se reporta como rojo.
+
+### Los cuatro commits
+
+| Repo | Commit | Que mete |
+|---|---|---|
+| ABDEep | `d565b89` | `scripts/guardasDeEscritura.test.js` |
+| ABDMS2000 | `6cb98cb8d` | `WebUI/tests/guardasDeEscritura.test.js` |
+| ABDNeural | `cb431a4` | `WebUI/tests/guardasDeEscritura.test.js` |
+| ABDSharedAssets | `4bb6176` | el motor, la entrada de `GENERADOS_FUERA`, el paso de CI y los dos scripts de npm |
+
+**Los `ref` de `docs-audit.yml` NO se han tocado**, a proposito: un SHA que no esta
+pusheado no lo puede clonar `actions/checkout`, y subirlos antes de tiempo
+cambia un rojo por un error de checkout. El orden es: **pushear los tres commits
+de los hermanos, y despues subir los `ref`.**
+
+Y una casi-incidente que dejo written: el primer `git commit` en ABDEep se llevo
+**cuatro ficheros borrados** que otro hilo tenia ya en el indice. Un
+`git commit` a secas commitea el indice entero, no lo que uno cree que esta
+commiteando. Deshecho con `reset --soft` —que no toca el indice— y rehecho con
+rutas explicitas. Los cuatro borrados ajenos siguen en el indice, intactos.
+
+### Y el agujero del 0.2.69: un lockfile que no es el del monorepo
+
+`ABDSharedAssets` es el **unico** de los cinco con un `pnpm-lock.yaml` **propio y
+commiteado**, y su `docs-audit.yml` hace `pnpm install --frozen-lockfile` con el
+directorio de trabajo en el propio repo. O sea que su CI instala **de ese
+lockfile**, no del de la raiz del monorepo. Y ese lockfile sigue diciendo:
+
+```
+vite:
+  specifier: ^5.4.0
+  version: 5.4.21
+vitest:
+  specifier: ^1.6.0
+  version: 1.6.1
+```
+
+Consecuencia, dicha sin rodeos: **el salto a vitest 4 de `ABDSharedAssets` esta
+declarado pero no installed en su CI.** Localmente corre con 4.1.11 porque pnpm
+sube hasta la raiz del monorepo y encuentra alli el lockfile correcto; en el
+runner no hay raiz de monorepo, y sale con 1.6.1.
+
+Por eso el commit `4bb6176` **no lleva el salto a vitest 4**: meterlo en
+`package.json` sin regenerar ese lockfile habria roto `--frozen-lockfile` antes
+de llegar a ningun test. Queda pendiente, y es el siguiente paso natural:
+regenerar `ABDSharedAssets/pnpm-lock.yaml` y commitearlo con el salto.
+
+### Cuentas
+
+`ABDSharedAssets` dos corridas seguidas: **1736/1736, 0 fallos**. `ABDEep`:
+**130 ficheros, 5171 tests, 0 fallos**, y `eslint --max-warnings 0` en verde.
+Apareció un rojo suelto en `schemaValidator.test.js` —verde aislado, 140/140, y
+rojo en la pasada en paralelo— que no se ha vuelto a ver en dos corridas. Es de
+la misma familia que el intermitente que ya se persiguio en el 0.2.68.
+
+---
+
+## 0.2.69 — 🪜 Los cuatro hermanos ya no son de otra versión
+
+> Cuatro paquetes del workspace seguían en **vitest 1.6.1** y tres en **vite
+> 5.4.x**, y vitest 4 no acepta vite 5 (`^6 || ^7 || ^8`). Se había medido que
+> **funcionaban**, pero no estaba declarado: los `package.json` no lo decían. Ahora
+> lo dicen, y además resulta que **uno de los dos fallos que quedaban abiertos
+> durante la medición no eran fallos**.
+
+### Lo que se toca, exactamente
+
+Dos ficheros por paquete, y solo dos:
+
+| Fichero | Cambio |
+|---|---|
+| los 4 `package.json` hermanos | `vitest: ^1.6.0` → `^4.1.11`; en 3 de ellos `vite: ^5.4.0\|^5.4.21` → `^8.3.2` |
+| `pnpm-lock.yaml` de la raíz del monorepo | regenerado |
+
+MidiKeyboard **no declara vite**, así que en ese solo se toca `vitest`. El
+`package.json` de la raíz **no se ha tocado**: su md5 sigue siendo
+`424ccdbe262a3f9e31f75ecdbac9b817`, el de antes de empezar.
+
+Ni un `test`, ni un script, ni un workflow. Los cinco miembros del workspace
+resuelven ya **vitest 4.1.11** y **vite 8.3.2**, y:
+
+```
+$ pnpm install --frozen-lockfile
+Scope: all 6 workspace projects
+✓ Lockfile passes supply-chain policies (verified 5h ago)
+Lockfile is up to date, resolution step is skipped
+Done in 287ms using pnpm v12.8.1
+```
+
+> **AO: esto es el workspace, no el CI de cada repo.** `ABDSharedAssets` tiene un
+> `pnpm-lock.yaml` PROPIO y commiteado, y su workflow corre
+> `pnpm install --frozen-lockfile` ahi dentro: ese sigue en vite 5 y vitest 1.
+> Medido y escrito en 0.2.70.
+
+RC=0, que es lo que mira CI.
+
+> **Un detalle del lockfile que parece un bug y no lo es.** `pnpm-lock.yaml` ha
+> pasado de 4053 a 3854 líneas, y el diff parece haber reescrito el fichero
+> entero. Lo que ha pasado es que **pnpm 12 escribe un YAML de dos documentos**:
+> el primero es el lockfile de su propio binario (`packageManagerDependencies`,
+> los `@pnpm/exe.*` de todas las plataformas, ~160 líneas nuevas) y el segundo,
+> separado por `---`, es el de siempre. Se comprueba leyendo el **último**
+> documento: los 5 importadores con `vite` y `vitest` dentro.
+
+### Las cuatro suites, con su binario local ya declarado
+
+| Paquete | ficheros | tests | fallos |
+|---|---|---|---|
+| `@abdsynths/midi-keyb` | 74 | 340 | **0** |
+| `abd-cz101-emulator` | 116 | 389 | **0** |
+| `abdms2000` | 61 | 177 | **0** |
+| `@abdsynths/shared` | 268 | 1736 | **0** |
+
+Los mismos números de tests que con vitest 1.6.1, uno a uno. Eso es lo que
+importa: un salto que deja de recoger ficheros sale en verde y no lo dice.
+
+### El fallo que no era un fallo
+
+`@abdsynths/shared` fallaba con `check:guardas no esta en ningun inventario del
+preflight`. Se dio por bueno como fallo preexistente —y lo era— y resultaba ser
+**un timeout**: ese script lanza Python, y se comía el default de 5 s de vitest.
+Con `--testTimeout=120000` desaparece ese mismo test sin tocar el manifiesto del
+preflight.
+
+Como un rojo que depende de la carga de la máquina es un rojo que nadie sabe
+reproducir, `ABDSharedAssets/vitest.config.js` declara ya `testTimeout: 120000` y
+`hookTimeout: 120000`. Con la config puesta, **dos corridas seguidas**:
+
+```
+corrida 1: RC=0  ficheros=268  ok=268  tests=1736  ok=1736  fail=0  skip=0
+corrida 2: RC=0  ficheros=268  ok=268  tests=1736  ok=1736  fail=0  skip=0
+```
+
+Sin flag por línea de órdenes. Ese fichero es el **único** punto de este salto
+que no sea un `package.json`.
+
+### El build también, porque el número de tests no prueba nada
+
+Un bundler puede fusionar entradas sin que ningún test se entere, así que
+`node Scripts/build_webui.js` se mide aparte. Con vite 8 da **RC=0 en los dos**,
+y sus `rollupOptions` — que solo usan `entryFileNames`, `chunkFileNames` y
+`assetFileNames` — sí los soporta Rolldown.
+
+| Build | vite 5 | vite 8 | |
+|---|---|---|---|
+| `ABDMS2000` | 54 ficheros | **53** | vite 8 fusiona `index2.js` dentro de `index.js`. Comprobado que el bundle de vite 8 **no menciona `index2` en absoluto**: el `import("./index2.js")` que aparecía era del de vite 5. |
+| `ABDCZ101` | 408 ficheros | **408** | Sin cambios, ni de nombres ni de cuenta. |
+
+### Un test que hubo que reescribir: `wasmBridge.test.js`
+
+El build de `ABDMS2000` obligaba a tocar su test. El aserto era:
+
+```js
+expect(bundle).not.toMatch(new RegExp(`${flagName}=!0`))
+```
+
+Es decir: «en el bundle no puede aparecer `nombreDeLaBandera=!0`». Bajo vite 8 es
+**insostenible**, porque el minificador nombró la bandera `n` y hay 11 `n=!0` en
+el bundle que son de otros símbolos. El bundle es correcto; el aserto es el que
+estaba escrito de una forma que no se puede sostener.
+
+Ahora recorre **todos** los usos de `debug:<flag>` y exige, en cada uno,
+`(const|let|var) <flag>=!1`. Probado con dientes: se añade un segundo uso `debug:`
+con `=!0` y el aserto cae con el mensaje correcto; luego el bundle se restaura
+byte a byte.
+
+### El rojo que era mío
+
+MidiKeyboard tiene un test que descubre hosts **recorriendo el workspace
+entero**, y su `SKIP_DIRS` salta el directorio `build` exacto pero no `build-m`,
+ni `build-m2`, ni `build-m4`: los tres directorios de medición de **422 MB** cada
+uno que había creado dentro de ABDEep para medir builds. El test tardaba **225 s**
+y caía por timeout. Borrados, tardó **48 s** y pasó 340/340.
+
+> **Ningún rojo se investiga sin mirar antes el `git status` de lo que uno mismo
+> ha escrito.** Los directorios de medición se crean con nombre nuevo para no
+> pisar nada, y un `SKIP_DIRS` con un nombre exacto no los ve venir.
+
+### Limpieza
+
+`pnpm store prune` quitó 14 paquetes (2,9 MB). Tres directorios huérfanos de
+`node_modules/.pnpm` (`vite@5.4.21_*` y dos `vitest@1.6.1_*`) hubo que borrarlos a
+mano, porque `prune` no ve el store virtual. `.pnpm` queda en 418 MB y solo
+contiene vite 8 y vitest 4.
+
+### Estado final
+
+Cada hermano tiene **exactamente +1 cambio suyo** (su `package.json`; en
+`ABDSharedAssets`, además, su `vitest.config.js`), encima de los que ya traía sin
+comitear de antes (4, 11, 98 y 1). Nada de lo que se corrió escribió un solo
+fichero: se midió el md5 de los `__snapshots__` antes y después, y son idénticos.
+**Nada comiteado.**
+
+ABDEep intacto: suite `RC=0, files 963/963, tests 5173, fail 0, skip 2` y
+`eslint WebUI/js/ WebUI/scripts/ --max-warnings 0` con RC=0.
+
+---
+
+## 0.2.68 — 🕸️ El guard tenía un agujero, y el rojo intermitente lo encontró
+
+> Un guard que no vigila lo que dice vigilar sale en verde, y eso es peor que no
+> tenerlo: entrena a la gente a no mirarlo. Este tenía **dos** puntos ciegos, y los
+> encontró un rojo que salía **1 vez de cada 2** corridas sin decir por qué.
+
+### El síntoma que lo delató
+
+`recuentoPorRecoleccion` y `contratosDeDependencias` se caían de forma
+intermitente con `STACK_TRACE_ERROR`. Ese nombre no es un error: es el sentinel
+que **vitest lanza cuando el test expira**. O sea que el rojo era un **timeout**, y
+el timeout era el de los 5 s por defecto.
+
+Aislados miden **1100 ms** y **964 ms**. En la suite, con 130 ficheros lanzando
+procesos a la vez, se pasan de 5 s. MEDIDO también: con 60 s de timeout en cada
+`it` **se caían igual**.
+
+### Punto ciego 1: el spawn vive en un módulo importado
+
+El patrón real no era `describe(() => execFileSync(...))`:
+
+```
+// recuentoPorRecoleccion.test.js
+import { collectedDetail } from './support/vitestSuite.js';
+describe('...', () => { it('...', () => collectedDetail([SELF])); });
+```
+
+El `execFileSync` está en `vitestSuite.js`. El guard ahora **sigue los imports
+relativos** (hasta tres saltos) y resuelve qué función importada lanza.
+
+### Punto ciego 2: los helpers se llaman entre sí
+
+Y aquí estaba el segundo, más sutil:
+
+```
+function correrScript(...) { return execFileSync(...); }   // lanza
+function formaDelSpec() { return correrScript(...); }      // también
+describe('CONTRATO 2', () => { it('...', () => formaDelSpec()); });
+```
+
+Ese `describe` no contiene ni un `execFileSync` ni una llamada a
+`correrScript`: llama a `formaDelSpec`, y ahí se rompía la cadena. Los helpers
+ahora se resuelven a **punto fijo**, no de un solo salto.
+
+### El bug de orden que hacia el resto inútil
+
+Antes de nada funcionar, el detector de comentarios quitaba **primero** las líneas
+que empiezan por `*` y **después** el bloque `/* … */`. Al haberse llevado los
+cierres de los JSDoc, la apertura de la cabecera se quedaba sin cerrar y el patrón
+se comía código de verdad: `recuentoPorRecoleccion.test.js` se leían **0 imports
+de los 1 que tiene**. Ahora es un escáner con estado y el orden ya no puede
+importarle.
+
+### Un falso positivo que también hubo que arreglar
+
+La regla gruesa era «si el módulo importado lanza, todos sus nombres lanzan».
+Eso marcaba `registryGen.test.js:440`, donde `canonicalizeSource` viene de
+`scripts/registry_generator.js` — un módulo que sí lanza, pero **en otras
+funciones**. Ese bloque solo calcula hashes.
+
+Obligar a poner un timeout donde no hace falta es exactamente como se deja de
+mirar un guard, así que ahora se resuelve **por función**: una función importada
+es lanzadora si su cuerpo llama a `execFileSync` de verdad, o si llama a otra
+función del mismo módulo que lo hace. Las cadenas se siguen a punto fijo.
+
+### Y un arreglo que era una falsehood
+
+El guard prometía aceptar «timeout en el `describe` **o** en el `it`», pero solo
+miraba el del `describe`. `baselineGuard.test.js` cierra su bloque con
+`}, 240000);` en el `it` y con `});` en el `describe`: tenía el timeout puesto y
+bien puesto, y el guard lo listaba como ofensor. Ahora cuenta cualquiera de los dos,
+que es lo que decía.
+
+### Los dos ficheros reparados
+
+El timeout se ha movido **al `describe`**, y a **240 s**, que es lo que ya usa
+`baselineGuard` para la misma pasada anidada:
+
+| Fichero | Bloque | Por qué |
+|---|---|---|
+| `recuentoPorRecoleccion.test.js` | `recuento por recolección…` | el `it` tenía 120 s; el `describe` no tenía nada |
+| `contratosDeDependencias.test.js` | `CONTRATO 2 — la forma de…` | sin timeout en ninguna parte |
+
+240 s y no 60 porque `vitestSuite.js` **reintenta una vez** cuando el vitest hijo no
+escribe el JSON: un `it` de 60 s no cubre ni siquiera dos intentos.
+
+### La sonda con dientes, aplicada a los dos casos
+
+Un guard que no encuentra nada porque no busca nada también sale en verde, así que
+los dos Pathways nuevos se comprueban quitando el timeout ya puesto:
+
+```
+rc=1  restaurado=true
+el guard cita CONTRATO 2=true
+linea citada=contratosDeDependencias.test.js:187  CONTRATO 2 — la forma de lo que devuelve…
+
+rc=1  restaurado byte a byte=true
+linea citada=gitattributesGuard.test.js:132  el .gitattributes protege de verdad, y se ve
+```
+
+### El recuento
+
+El guard pasa de **8 a 12 tests** (imports, cadenas de helpers, falsos positivos y
+timeout del `it`). Suite completa: **130 ficheros, 5173 tests**.
+
+```
+corrida 1: RC=0  files 963/963  tests 5173  fail 0
+corrida 2: RC=0  files 963/963  tests 5173  fail 0
+corrida 3: RC=0  files 963/963  tests 5173  fail 0
+```
+
+Antes de esto la misma suite era **1 fallo de cada 2**. El intermitente no era de
+contención: era este timeout, y estos dos timeout.
+
+---
+
+
+## 0.2.67 — ⏱️ El techo del job de CI era 45, y no era por el segundo binario
+
+> La pregunta era si `bundle-in-binary` se habia quedado corto al compilar **DOS**
+> artefactos. **MEDIDO: no, y la premisa era al reves.** El segundo binario cuesta
+> **un minuto**, no medio job: el VST3 hereda cada `.obj` que compilo el Standalone y
+> solo recompila el *plugin client* de JUCE. El techo de 45 no estaba corto por el
+> VST3 — estaba justo por el Standalone, que ya se comia 23 min solo.
+
+### La medicion: build en frio, tres paralelismos
+
+Arbol de build nuevo en cada caso, JUCE 8.0.12, `Release`, los mismos dos objetivos
+en el mismo orden que el job:
+
+| Paso | `/m:2` (proxy del runner) | `/m:4` | `/m` ilimitado |
+|---|---|---|---|
+| CMake configure | 2.05 min | 1.46 min | 1.68 min |
+| **Build Standalone** | **23.28 min** | 15.49 min | 20.46 min |
+| **Build VST3** | **1.00 min** | 0.40 min | 0.45 min |
+| Empaquetar WebUI (vite 8) | 0.08 min | (local) | 0.08 min |
+
+**Por qué `/m:2` es la columna que manda.** Los 4 vCPU de un `windows-2022` de Azure
+son **2 nucleos fisicos con hiperhilo**, y esta caja es un i7-11370H de **4 fisicos /
+8 logicos**: la mitad de nucleos es lo mas parecido al runner que se puede medir sin
+tener el runner. Con eso medido y los pasos no reproducibles aqui (bootstrap del
+workspace pnpm, clonado de JUCE, los dos downloads, los setups) estimados **al
+alza**, el job sale en **38.6 min**. El 45 daba **16% de margen**.
+
+### La trampa en la que no se ha caido
+
+`/m:4` es **5 min mas rapido aqui** que `/m` ilimitado. Suena a que hay que
+pinarlo, y seria lo contrario: esta caja tiene 4 nucleos fisicos y 8 logicos, y
+darle a MSBuild todos los logicos **revienta los fisicos**. En CI los 4 vCPU **ya
+son** hyperthreads, asi que ahi `/m:4` probablemente seria mas lento. Un numero
+medido en la maquina equivocada es un numero que no se traslada, y este era el
+sitio exacto donde hacerlo.
+
+### `timeout-minutes: 45` → `60`
+
+55% de margen sobre el total medido. Un dia malo de host es justo cuando el rojo
+llega como un *timeout*, y un timeout no dice nada de que paso.
+
+Lo que esto **no** reproduce, y hay que decirlo: esta maquina tiene **39.7 GB de
+RAM** y el runner **16**, asi que la columna no simula presion de memoria. Es un
+**piso**, no una prediccion exacta — y por eso, si dentro de un ano el job pasa en
+mucho menos de 60, el margen se puede bajar, pero con una medicion nueva, no con
+una sensacion.
+
+### Lo demas, medido y sin peso en la balanza
+
+`node scripts/build_webui.js` con **vite 8 / Rolldown**: **4.6 s** en frio, 367
+ficheros en `dist`. Clonar JUCE 8.0.12 con `--depth 1`: **100 MiB**. Los dos
+`verify_embedded_bundle.js`: **0.2 s** entre los dos. Los dos vitest que cierran el
+job: **3.5 s** en local.
+
+El arbol del job, su `timeout-minutes` y la justificacion completa viven en
+`.github/workflows/webui-bundle-ci.yml` y en `docs/baseline_fase0_v32.md`.
+
+---
+
+
+## 0.2.66 — 🚨 El guard que prohibe esperar cinco segundos a un subproceso
+
+> **Un `describe` que lanza un subproceso y no lleva timeout no es lento: es una bomba con
+> mecha de 5 s.** El default de vitest son 5 s, y con el pool `forks` de vitest 4, un test
+> que tarda 485 ms aislado tarda **5355 ms** en la corrida completa: casi **11x**. Ese
+> margen se lo come la competicion entre los 130 ficheros. Este guard lo hace visible en
+> la linea que lo introduce, en lugar de dejar que lo descubra un rojo suelto en CI.
+
+### Lo que hace el guard
+
+`WebUI/tests/timeoutDeSubprocesos.test.js`, **8 tests**. Detecta los `describe` de
+**nivel superior** —las dos formas que aparecen en el repo, `describe(` y
+`describe.skipIf(cond)(`— cuyo cuerpo lanza un subproceso y cuyo cierre **no** lleva
+timeout, y falla diciendo **que fichero, que linea y que bloque**.
+
+Dos cosas que lo hacen funcionar en vez de salir en verde sin hacer nada:
+
+**Resuelve UN nivel de indireccion.** El patron real del repo no es
+`describe(() => execFileSync(...))`, es un helper a nivel de modulo:
+`function runScript(){ execFileSync(...) }` y el bloque que lo llama. Un guard que solo
+mire el cuerpo del `describe` no ve nada. `helpersQueLanzan()` busca los helpers cuyo
+cuerpo lanza y cuenta como «lanza» al bloque que los invoca.
+
+**Filtra cadenas, no solo comentarios.** Sin esto el guard **se detecta a si mismo**:
+sus propios fixtures llevan `execFileSync` dentro de una cadena. `soloCodigo()` vacia
+comentarios (`//`, `*`) y contenido de cadenas antes de mirar.
+
+Acepta timeout de `describe` **o** de `it`: el requisito real es no quedarse en el
+default, no la sintaxis concreta.
+
+### Los 6 ofensores reales que encontro
+
+Ninguno era un bug; todos eran **una bomba con mecha de 5 s**, y todos receiving
+`}, 30000);` —30 s, la misma convencion que ya usan `baselineGuard` (240 s) y
+`ciSubprocessTests` (120 s).
+
+| Fichero | Linea | MEDIDO aislado |
+|---|---|---|
+| `checkWasmBuild.test.js` | 243 | 204 ms |
+| `fuzzRoundtripScript.test.js` | 46 | **368 ms** — el peor |
+| `inyeccionSafeDirectory.test.js` | 96 | 46 ms |
+| `verifyDocsCiJobs.test.js` | 270 / 310 / 523 | 90 ms |
+
+368 ms aislado contra un techo de 5000 ms: un margen de 13x que se evapora en cuanto
+la maquina tiene trabajo que hacer.
+
+### El timeout va en el `describe`, no en cada `it`
+
+Ponerlo test a test es Whac-A-Mole con el pool: el que se te olvide hereda el default
+y nadie se entera. En el bloque es una sola decision que cubre todo lo que cuelga de
+el.
+
+### Sonda con dientes
+
+Un guard que no encuentra nada porque no busca nada tambien sale en verde. El fichero
+lleva su propio test de que el detector mira de verdad (`ficheros > 5`, `helpers > 2`,
+`bloquesQueLanzan > 2`, `conTimeout > 0`), y ademas la sonda de fuera **quita un
+timeout ya puesto** y comprueba que el guard cae citando el fichero:
+
+```
+rc=1
+restaurado byte a byte=true
+cita el fichero=true
+linea citada=inyeccionSafeDirectory.test.js:96  inyeccion de safe.directory
+SONDA CON DIENTES OK
+```
+
+### De paso: un rojo que no se podia leer
+
+Al meter el guard en la suite aparecieron 2 fallos **intermitentes** en
+`recuentoPorRecoleccion.test.js` — `STACK_TRACE_ERROR`, que no dice absolutamente
+nada. No era un fallo del guard: `vitestSuite.js` lanza un **vitest anidado**, y en la
+corrida completa ese hijo compite por el proceso con las docenas de hermanos que
+tambien lanzan subprocesos. MEDIDO: **1 fallo en 2 corridas completas, 0 en 5 en
+solitario.** El sintoma era la competicion, no la pasada.
+
+Dos arreglos en `vitestSuite.js`:
+
+1. **Un reintento, y solo uno.** Tapa la transitorio sin camuflar un fallo de verdad:
+   si el segundo tampoco escribe el JSON, el error dice que paso.
+2. **El error dice que paso.** Antes salia `STACK_TRACE_ERROR` a secas; ahora incluye
+   `status`, `signal` y los ultimos 1200 caracteres de lo que dijo el hijo. Un rojo
+   que no se puede leer no se puede arreglar.
+
+---
+
+
+## 0.2.65 — 📦 El build real con Vite 8: el bundle sale igual, y ahora está demostrado
+
+> **El último hueco del salto a vitest 4 está cerrado.** Era el más importante de los
+> tres que quedaban, porque el resto dealERTarían solos y este no: `vite 8` usa
+> **Rolldown**, no Rollup, y `build_webui.js` resuelve `@abdsynths/*` desde el workspace
+> del monorepo. Si eso se rompía, el binario se distributedía **con el árbol crudo
+> dentro** —sin bundle— y no lo diría nadie: los pasos del job siguen siendo ciertos.
+
+### El build, con su verdad completa
+
+```
+[INFO] Visual Studio: C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools
+[INFO] Empaquetando WebUI (vite build -> WebUI/dist)...
+[OK] WebUI empaquetado en WebUI/dist.
+[INFO] Configuring CMake...
+[INFO] Building VST3 and Standalone...
+[SUCCESS] ABD Eep - Enhanced (Expanded Synthesis) built successfully.
+[INFO] WASM: si, decidido por el tercer argumento.
+[ERROR] El WASM fallo con el codigo 1.
+[ERROR] Build failed.
+```
+
+El código de salida fue **1**, y **no es un fallo del salto**: el build llegó a
+`[SUCCESS]` y falló **después**, en el paso del WASM, con
+`"emcmake" no se reconoce como un comando interno o externo`.
+
+**MEDIDO: esta máquina no tiene Emscripten.** Ni `emcc` ni `emcmake` en el PATH, ni
+`emsdk` en ninguna ruta habitual, ni una entrada de emscripten en el PATH de la
+máquina. Con `no` en el tercer argumento —uno de los tres valores que `build.bat`
+acepta— el paso se salta y el build continúa.
+
+### Los dos binarios, verificados por ruta
+
+`verify_embedded_bundle.js --binario <ruta>`, con **ruta explícita** en los dos: sin
+ella el descubridor siempre devolvería el Standalone y el paso del VST3 acabaría
+comprobando dos veces el mismo fichero.
+
+| Binario | Tamaño | RC |
+|---|---|---|
+| `Standalone/ABD Eep.exe` | 9,8 MB | **0** |
+| `VST3/ABD Eep.vst3/Contents/x86_64-win/ABD Eep.vst3` | 9,2 MB | **0** |
+
+Cinco comprobaciones cada uno: las tres marcas presentes
+(`assets/keyboard.js`, `assets/fit-stage.js`, `assets/keyboard.css`),
+`src="js/keyboard.js"` **ausente** —la firma del árbol crudo— y el bundle sin imports
+desnudos.
+
+### El bundle cambia de bytes, y eso es lo que faltaba mirar
+
+`verify_embedded_bundle.js` comprueba los **nombres** de los recursos, y esos son
+iguales con vite 5 y con vite 8. Un binario con el bundle viejo pasaría el mismo
+check, así que por sí solo no demuestra que se haya reempaquetado.
+
+Medido: el `keyboard.js` de vite 8 **empieza distinto**. Rolldown genera una tabla de
+lookup de identificadores donde Rollup inlineaba el código.
+`30.995` bytes con vite 8 frente a `31.495` con vite 5. Es una diferencia de
+minificador, no de comportamiento: los 354 ficheros del `dist` tienen **los mismos
+nombres** en las dos versiones, las tres marcas están, y el bundle nuevo carga sin
+excepción.
+
+Con una firma tomada del bundle nuevo —y **verificada como ausente en el de vite 5**,
+que es lo que la hace una firma y no una coincidencia—:
+
+```
+Standalone (9.8 MB)  contiene el bundle de Vite 8: SI
+VST3      (9.2 MB)  contiene el bundle de Vite 8: SI
+```
+
+### Y el verificador se comprobó con dientes
+
+Que dos binarios salgan en verde no prueba nada si el comprobador pasa siempre. Con una
+**copia** del binario a la que se le metió la marca del árbol crudo, sale con **rc=1**.
+El original no se toca.
+
+---
+
+## 0.2.64 — 🔧 El store de pnpm tenía permisos rotos y tumbaba los 129 ficheros
+
+> **Un `Startup Error` de `ERR_INVALID_PACKAGE_CONFIG` que apuntaba a cuatro tests
+> tumbaba los 129 ficheros de la suite**, incluido `fitStage.test.js`, que son seis
+> asserts sin ninguna relación con vitest. El síntoma y la causa no tienen el mismo
+> tamaño, y confundirlos cuesta un día.
+
+### Lo que pasó
+
+Del store de pnpm, **51 de 200** ficheros `package.json` eran ilegibles desde el
+sandbox (25 %). Agrupados por familia: 41 de `eslint`, 11 de `@eslint/eslintrc`, 9 de
+`get-intrinsic`, 6 de `vitest`, 5 de `ajv`… y `magic-string`, que es el que salía en
+el error.
+
+`magic-string` lo necesita vitest para resolver sus `exports`, así que sin poder leer
+ese fichero **no arranca nada**: no un test, no una suite, ni un fichero de seis asserts.
+
+### Descartado, con el dato que lo descarta
+
+| Hipótesis | Resultado |
+|---|---|
+| Solo los contratos nuevos | Falso: también `ciSubprocessTests` y `fitStage` |
+| Permiso de carpeta | Falso: la carpeta se **lista** bien |
+| Permisos del fichero mal puestos | Falso: `-rw-r--r--`, y el propietario es el usuario |
+| Problema del shell | Falso: PowerShell da `GetContentReaderUnauthorizedAccessError` |
+| `node_modules` a medias por el salto | Falso: el lockfile pedía 0.30.21 y ese es el instalado |
+
+Que PowerShell **también** falle, y que no se pueda ni leer la ACL
+(`Get-Acl` → `UnauthorizedAccessException`), es lo que apunta a un bloqueo de Windows y
+no a una ACL de usuario. Y el dato que más lo cierra: los ficheros ilegibles eran del
+**6 de marzo** y los legibles de **hoy**, con `eslint` de septiembre entre ellos.
+
+### Por qué lanzar vitest como subproceso NO lo arreglaba
+
+Porque el subproceso tampoco puede leer el fichero:
+
+```
+$ node -e 'import("vitest/node")...'   # node limpio, desde ABDEep
+FALLA ERR_INVALID_PACKAGE_CONFIG
+```
+
+Es lo que ya hacían `glob-test-files.mjs` y `describe-spec-shape.mjs`. Sustituir imports
+por subprocesos habría movido código y dejado el resultado idéntico.
+
+### El arreglo
+
+**`pnpm install --force`** en la raíz del monorepo, desde consola con privilegios.
+**51 ilegibles → 0**, y con el `pnpm-lock.yaml` y el `package.json` de la raíz con el
+**mismo md5** antes y después.
+
+La suite entera pasa ahora en el sandbox, **sin elevación**:
+
+```
+Test Files  129 passed (129)
+     Tests  5159 passed | 2 skipped (5161)
+  RC=0
+```
+
+### Los contratos, verificados SIN elevación
+
+Con el store legible se pudieron cerrar las dos roturas que faltaban, y las cinco
+muerden:
+
+| Rotura | Cae |
+|---|---|
+| `forma` — `spec.moduleId` → `spec[1]` | 5 tests |
+| `protocol` — sin el marcador `__GLOB__` | 5 tests |
+| `surface` — llama a `globTestFiles` | 5 tests |
+| `entrada` — `VITEST_BIN` apunta a otro sitio | contrato 4 |
+| `shape` — `moduleId` deja de ser ruta | contrato 2, aislado |
+
+La quinta existe para separar el contrato 2 del 3: las otras cuatro tocan
+`glob-test-files.mjs`, así que sus efectos se propagan al protocolo y salía el mismo
+rojo. Ahora se distingue "se rompió la forma" de "se rompió el script".
+
+---
+
+## 0.2.63 — 🧷 Un salto a medias se pone rojo al principio, no a la mitad
+
+> **Un salto de versión a medias es invisible hasta que rompe, y en este repo era
+> invisible de verdad.** `package.json` decía `vitest: ^4.1.11` mientras lo instalado
+> seguía siendo **1.6.1**, porque los pines viven en el lockfile de la raíz del
+> monorepo, fuera de este proyecto. Los tests PASABAN: con 1.6.1 instalado y la 4
+> declarada, todo verde, y el código ya portado a la API de la 4 sin ejercitarse.
+
+### El fallo era invisible por una razón concreta
+
+El rango se escribe en **un** fichero y se aplica en **otro**, y no hay nada entre
+ellos que diga si llegaron a encontrarse. El salto queda declarado en un
+commit y efectivo en otro, y el guard de `vitest.config.js` que sube laPeer
+dependencia tampoco lo comprueba: es un pin, no una medición.
+
+Lo que lo delata ahora es comparar las DOS fuentes, que son independientes por
+construcción: el **rango** de `package.json` y la **versión que resuelve el repo**,
+vía `createRequire` —la misma resolución que usa el resto de la suite al importar
+`vitest`. Si coinciden, el código se está ejecutando contra la versión que el repo
+dice querer.
+
+### Tres formas de quedar a medias, y las tres se distinguen
+
+| Forma | Qué la delata |
+|---|---|
+| El rango no corresponde a lo instalado | Las dos cifras no concuerdan |
+| Lo instalado no es lo declarado | Las dos cifras no concuerden |
+| Declarado y **no instalado** | No hay manifest: el fallo sale como error de import en otro sitio |
+
+La tercera es la que más confunde, porque sin manifest no hay nada que comparar y
+el rojo aparece donde no está la causa. El mensaje dice qué falta y **dónde se
+arregla**: la raíz del monorepo.
+
+### Lo que el guard NO mide, a propósito
+
+**Que el store no tenga versiones viejas.** MEDIDO: este repo tiene dos
+`vitest@1.6.1` y un `vitest@4.1.11` en `.pnpm`, y es NORMAL — pnpm conserva lo que
+dejó de usar. Un guard que los contara se pondría rojo sin que nada esté mal. Lo
+que importa es a qué versión apunta el repo.
+
+### El comparador de rangos, contrastado contra semver de verdad
+
+`semver` no está en el árbol y no se ha añadido: una dependencia para comprobar
+tres números no compensa. Se implementa `^`, `~`, exacto y `*`… y **contra 390
+combinaciones** contra `semver` 7.8.5 instalado aparte (`build/contrastar-semver.mjs`),
+que encontró **dos** bugs reales en la primera versión:
+
+1. El techo del `^` se comparaba **componente a componente**, así que `4.1.11` no
+   cabía dentro de `^4.1.11`: el guard ponía rojo el árbol **sano**.
+2. `^0.0.x` fija el techo en el **patch** (`^0.0.3` no admite `0.0.4`), porque en
+   `0.0.x` cualquier cambio ya rompe la API. La primera implementación lo subía al
+   minor.
+
+Ambos están ahora cubiertos por tests, y el guard propio dice que el caso que lo
+rompió. **Un rango que no sabe leer LANZA** en vez de pasar: un guard que no
+entiende el formato y aun así pone verde, es un guard que no vigila.
+
+### Verificado con dientes
+
+`build/guard-version-sonda.mjs`: **13/13 en verde → 1 rojo al romper el rango → 13/13
+restaurado**, y cae el test correcto. `build/guard-version-real.mjs` reproduce el
+caso real en un árbol de mentira —rango `^4.1.11`, instalado **1.6.1**— sin tocar
+el `node_modules` de verdad, y nombra las dos cifras.
+
+---
+
+## 0.2.62 — 🧪 vitest 1.6.1 → 4.1.11: instalado, medido y en verde
+
+> **Tres majors de salto sobre 127 ficheros y 5130 tests, y lo que se rompió no fue ni un
+> test.** Fue la cadena de guards, que usa API interna de vitest, más un cambio de pool que
+> nadie había pedido. La medición se hizo con una instalación aislada de 4.1.11, porque
+> vitest 1 se resuelve desde el store de pnpm y da EPERM desde el sandbox.
+
+### Estado final, medido con el vitest DEL REPO
+
+```
+Test Files  127 passed (127)
+     Tests  5128 passed | 2 skipped (5130)
+  SUITE_RC=0
+```
+
+El `pnpm install` de la raíz del monorepo salió `Packages: +46 -19`, con **vitest
+4.1.11**, **vite 8.3.2** y **@vitest/coverage-v8 4.1.11** comprobados en
+`node_modules`, y **no tocó ningún fichero del repo**. El parche
+`docs/vitest4-raiz-monorepo.patch` se aplicó con `git apply` → RC=0.
+
+### 126 de 127 ficheros ya funcionaban
+
+Ni un fichero de test usaba una API que hubiera cambiado: **cero snapshots** (lo que
+elimina de golpe toda la clase de riesgo del cambio de formato de v3), cero `vi.mock`,
+cero `environmentMatchGlobs`, cero `poolOptions`, cero `// @vitest-environment`, cero
+`vitest.workspace`.
+
+### Lo que sí se rompió: `glob-test-files.mjs`
+
+| Qué | En 1.6.1 | En 4.1.11 |
+|---|---|---|
+| El método | `vitest.globTestFiles()` | `vitest.globTestSpecifications()` |
+| La forma | pares `[proyecto, ruta]` | objetos `TestSpecification`, ruta en `moduleId` |
+| `createVitest()` | `opts` opcional | `opts` ya **no** es opcional |
+
+La segunda es la peligrosa: con la fórmula vieja, `spec[1]` sobre un objeto devuelve
+`undefined` **sin lanzar ningún error**. La lista saldría vacía, el recuento sería 0, y
+un cero no se parece a un fallo: el `baselineGuard` se quedaría mirando un documento en
+blanco sin decir nada. Por eso el script lee `moduleId` explícitamente y **comprueba que
+no haya ninguna entrada sin ruta**.
+
+Es la cabeza de `baselineGuard` → `vitestSuite.enumerateSuite()` → `collectedTestFiles()`
+→ ese script. Si se rompe, el recuento del baseline deja de existir y nadie se entera
+hasta que el número del documento se queda viejo.
+
+### El contrato de la recolección se sostiene, y el número no cambia
+
+`--outputFile` escribe el JSON, la forma del JSON es la misma, `numTotalTests` cuadra,
+y `-t <centinela>` sigue filtrando (0 ejecutados de 5130). **5130 tests en 127
+ficheros, idéntico a 1.6.1**: por eso los counts del baseline no cambian con el salto,
+y eso está medido en vez de supuesto.
+
+### El salto arrastra a vite, y vite 8 trae Rolldown
+
+vitest 4 exige `vite: ^6 || ^7 || ^8` como peer, y `@vitest/coverage-v8` pineado a su
+misma versión exacta. El repo tenía `vite: ^5.4.21`, así que el bundler sube con el
+framework de test. Decidido **vite 8.3.2**, medido con
+`build/vite8-sonda/prueba-humo.mjs` contra la forma exacta del build del WebUI.
+
+**vite 8 usa Rolldown, no Rollup**, y su resolutor aplica el campo `exports` con
+condiciones: más severo que el de vite 5. Se comprobó contra los paquetes reales —los
+dos subpaths que usa el WebUI (`@abdsynths/midi-keyb` y `@abdsynths/shared/components`)
+están declarados, y son mapeos de cadena sin condiciones, así que resuelven igual—.
+
+### Lo que faltaba de verdad: vitest 4 cambió el pool por defecto, de `threads` a `forks`
+
+Este no estaba en ninguna lista de riesgos, y salió de la propia corrida final. Con
+`forks`, 127 ficheros levantan **procesos hijo** a la vez y compiten por la CPU, así que
+los tests que lanzan `cmd.exe` se quedan esperando turno y se pasan de los 5 s por
+defecto.
+
+Medido, no supuesto: el test de `buildWebUiFailureDiagnostic` tarda **485 ms aislado** y
+**5355 ms en la suite** — unas 11×. Con el peor caso medido en todo el grupo
+(`roundtripCorpusScript`, **887 ms** aislado), la contención se va a ~10 s: el doble del
+default. Por eso el arreglo es de margen, no de optimize.
+
+Lo que NO se hizo, y es lo importante: **poner el timeout test a test**. La primera
+versión se lo puso al `it` que había fallado, y la corrida siguiente falló en el test
+**hermano**, del mismo bloque y por la misma causa. Arreglar de uno en uno es jugar a
+Whac-A-Mole con el pool: cada corrida saca un rojo distinto del mismo grupo. El timeout
+va en el `describe`, que es donde está la causa, y cubre **12 bloques en 8 ficheros**.
+
+Es la misma convención que ya usaban `baselineGuard` (240 s), `ciSubprocessTests` y
+`recuentoPorRecoleccion` (120 s). La forma está **verificada con dientes**: un test de
+sonda con `describe(..., 50)` cae a los 50 ms y su hermano sin timeout pasa a los
+135 ms.
+
+### Y el `baselineGuard`: un número que el propio guard exige
+
+Con el vitest del repo, el guard cae por su propia cuenta: documenta **126** ficheros y
+la suite real proyecta **127**. La fila `| Test files |` de `§2` pasa a **127 (127)**.
+El recuento de tests (5130) no se movió.
+
+### Lo que sigue SIN medir, dicho con sus nombres
+
+1. **Que el bundle real siga igual.** `build_webui.js` resuelve `@abdsynths/*` desde el
+   workspace y da EPERM desde aquí. La prueba de humo usa un paquete falso con el mismo
+   `exports`: demuestra que vite 8 funciona con esta forma de config, **no** que el
+   bundle del repo salga idéntico. El primer `build.bat` con vite 8 es lo que falta.
+2. **Los paquetes hermanos** del workspace: no medidos, y no medibles desde ABDEep.
+3. **`@vitest/coverage-v8`**: instalado, pero `--coverage` no corre en ningún workflow,
+   así que su comportamiento con v4 no está medido. Se sube el pin porque es peer de
+   vitest.
+4. **`timeout-minutes: 45`** del job `bundle-in-binary`, que ahora compila dos binarios
+   en vez de uno y nunca se ha medido con los dos.
+
+---
+
+## 0.2.61 — 🛡️ Los pasos que hacen útil el job, ya no se pueden perder en silencio
+
+> **El job `bundle-in-binary` ya tenía el paso que ejecuta
+> `scripts/verify_embedded_bundle.js`, y funciona.** Medido en local tal como lo
+> invoca el job —sin `--binario`, por auto-descubrimiento—: encuentra el
+> Standalone de 9,8 MB y sale con 0.
+
+Lo que faltaba era el **guard**. Ningún test del repo mencionaba ese paso, y
+`scripts/verify_docs_ci_jobs.js` comprueba los *IDs* de los 13 jobs del plan, no
+los pasos. Es decir: **el único paso que hace que el job no sea decorativo se
+podía borrar —o neutralizar— sin que nada se pusiera rojo**, que es exactamente lo
+que advierte el comentario que lo precede. Los cuatro pasos anteriores pasan
+igual con el árbol crudo dentro: el aviso de CMake, el chequeo del CSS y la
+compilación son los tres ciertos con el árbol crudo.
+
+### Tres degradaciones, y la tercera no se ve leyendo el YAML
+
+| Degradación | Por qué importa |
+|---|---|
+| **Borrar el paso** | El job sigue verde: los otros tres pasos son ciertos con el árbol crudo dentro |
+| **Neutralizarlo** — `continue-on-error`, `|| true`, `|| echo` | Peor que borrarlo: el paso corre, el log enseña las comprobaciones, y el job pasa. **El log miente** |
+| **Degradar el comprobador** a que solo mire el `dist` | Los marcadores del `dist` son los mismos, así que **el texto del paso no cambia** |
+
+### Tres tests que ejecutan el comprobador, no que lo leen
+
+`WebUI/tests/bundleEnElBinario.test.js`, 9 tests. Tres de ellos **ejecutan**
+`verify_embedded_bundle.js` contra un binario de mentira:
+
+- **árbol crudo** → tiene que salir distinto de cero **y decir qué falta**;
+- **bundle** → tiene que confirmar las tres marcas. Es el control positivo: sin él
+  el de arriba pasaría con un comprobador que falla siempre;
+- **binario inexistente** → tiene que **fallar**, no decir que «nada que
+  comprobar». Es la degradación más silenciosa: un `--binario` mal escrito
+  dejaría el job en verde sin haber mirado nada.
+
+Medido con `build/romper-bundle.mjs`, seis roturas del workflow, y **las seis
+muerden**: borrar el paso (3 tests), `continue-on-error` (1), `|| true` (1),
+`|| echo` (1), verificar antes de compilar (1), y sacar el comprobador del filtro
+`paths` (1). Restaurado byte a byte.
+
+### El mismo falso positivo, por tercera vez
+
+Comparar `YAML.indexOf('verify_embedded_bundle.js')` da el paso equivocado: el
+nombre aparece **antes** en los filtros `paths`. Es el error que ya documenta
+`WebUI/tests/helpers/ejecucionEnWindows.js`, y aquí el guard compara **bloques
+de paso** en vez de índices. Y el arnés de controles negativos se cayó en la
+versión contraria de ese mismo error por el otro lado —una rotación insertaba el
+paso *después* de compilar, que es lo correcto y no degrada nada— y salió muda. El
+guard estaba bien; la rotación no era una degradación.
+
+Es **portable a propósito**: no hay `cmd.exe` en ninguna parte, así que lo corre
+`webui-ci.yml` con el resto de la suite, sin gastar un runner de Windows para
+vigilar un runner de Windows.
+
+### El hueco del VST3: cerrado
+
+El job compilaba y comprobaba **solo el Standalone**. El VST3 —el otro artefacto que
+se distribuye, con **otra ruta de incrustación**— no se construía ni se miraba. En
+local los dos llevaban el bundle, medido, pero eso no es una comprobación: es una
+suposición.
+
+Ahora se compilan los dos targets y se verifican los dos binarios, y lo que hace
+que eso no sea decorativo es el `--binario` **explícito**:
+
+> Sin ruta, el comprobador busca por orden de patrones y el Standalone va el
+> primero. Con dos binarios en el árbol, el paso del VST3 habría estado
+> comprobando **dos veces el Standalone** —en verde, sin haber mirado el VST3 una
+> sola vez*.
+
+Es la degradación invisible: el paso existe, dice lo que dice, y no comprueba lo
+que dice. Hay un test que exige las dos rutas explícitas.
+
+Medido con las rutas exactas del workflow, contra los binarios reales:
+
+| Binario | Resultado |
+|---|---|
+| Standalone (9,8 MB) | RC=0 |
+| VST3 (9,2 MB) | RC=0 |
+
+### El guard pasa a los cinco pasos, no a uno
+
+`bundleEnElBinario.test.js` pasa de 7 a **9 tests**. La comprobación de «no se
+neutraliza» recorre los **cinco** pasos críticos —empaquetar, el CSS, el configure,
+compilar y verificar— porque el mismo `|| echo` puesto en el del CSS deja el job
+verde con el desplegable de efectos vacío en el keybed, que es el fallo todavía no
+dado. Y hay un test de **orden**: en el orden contrario el fallo sale en el sitio
+equivocado, y configurar antes de empaquetar incrusta el árbol crudo sin que nadie
+se entere hasta que el keybed no monta en el host.
+
+Nueve controles negativos medidos con `build/romper-bundle.mjs`, y **los nueve
+muerden**: borrar la verificación del VST3, verificarlo sin `--binario`,
+verificar el Standalone sin `--binario`, borrar su compilación,
+`continue-on-error` en el CSS, `|| echo` en el Standalone, `continue-on-error` en el
+VST3, verificar antes de compilar, y sacar el comprobador del filtro `paths`.
+
+Las tres primeras son las que **no se ven leyendo el workflow**: el texto del paso
+no cambia, solo lo que deja de comprobarse.
+
+El YAML se validó con `js-yaml` (que ya venía con el ESLint de la sonda): 15
+pasos, en orden.
+
+## 0.2.60 — 🧹 Los nueve `curly`, y con ellos el último rojo del baseline
+
+> **La puerta de ESLint era la única que quedaba en rojo**, y `--max-warnings 0` convierte un
+> aviso de estilo en un fallo de pipeline. Nueve warnings, los nueve de la misma regla, los nueve
+> en un único fichero: cuerpos de una sola sentencia sin llaves.
+
+```
+WebUI/scripts/export-calibration-run.js
+  136:30  170:27  172:27  272:24  301:18  346:32  348:31  356:32  357:28
+  warning  Expected { after 'for-of' / 'if' condition   (curly)
+```
+
+Es la forma más mecánica que existe de aviso: un `for` o un `if` con un cuerpo de
+una línea y sin llaves. Se ponen las llaves y no se toca nada más. **+18 líneas**,
+que son 9 sitios × 2.
+
+### Por qué a mano y no con `eslint --fix`
+
+Porque el fichero está **modificado sin commitear por otra sesión** —282 líneas
+suyas—, y `--fix` aplica *todas* las reglas arreglables, no solo `curly`. El
+resultado son exactamente 18 líneas añadidas sobre su trabajo, ni una de ellas
+toca lógica: ni una condición, ni un orden, ni un nombre.
+
+Ahora: **0 warnings sobre 281 ficheros**.
+
+### Un «0 avisos» solo vale si la comprobación muerde
+
+Con la puerta en verde no se ha cerrado nada: una sonda que no lintea nada
+también dice cero. `build/sondear-eslint.mjs` **quita una de las nueve llaves**,
+comprueba que la puerta se pone roja con un solo aviso, y restaura el fichero
+byte a byte. Medido:
+
+```
+1. puerta tal cual              rc=0 avisos=0
+2. con UNA violacion de curly   rc=1 avisos=1
+3. restaurado                   rc=0 avisos=0
+```
+
+ESLint se pudo correr sin elevación instalando un `eslint@8.57.1` aislado en
+`build/eslint-sonda/`: el del repo se resuelve desde el store de pnpm y da EPERM
+desde el sandbox. `.eslintrc.json` no usa `extends` ni plugins —solo reglas del
+núcleo—, así que un ESLint pelado con la config del repo reproduce la puerta
+exacta, mismos directorios y mismo `--max-warnings 0`.
+
+---
+
+## 0.2.59 — 🏗️ `build.bat` ya se puede correr sin nadie delante
+
+> **El guion acababa en un `choice` que no se podía esquivar.** No por falta de
+> ganas: `choice` lee de la *consola* y no de la entrada estándar, así que
+> `echo N | build.bat` no lo esquivaba. Con una consola pegada —un `start /b`, un
+> runner que deja sesión— el guion se quedaba esperando una tecla que no iba a
+> llegar. Un `build.bat` que necesita a alguien delante no vale para un runner.
+
+### Tres vías, y el `choice` sigue siendo el plan por defecto
+
+```
+build.bat 2 build yes     1) tercer argumento
+set ABDEEP_WASM=yes       2) variable de entorno
+build.bat 2 build         3) el choice de siempre, si no hay ninguna de las dos
+```
+
+El **orden es el contrato**: el argumento gana al entorno. El runner puede dejar
+`ABDEEP_WASM` puesto para toda la máquina, y si se invirtieran un `yes` residual
+pisaría el `no` explícito de quien lanza el build, sin que nada lo dijera.
+
+Valen `S si yes y 1` y `N no 0`, sin distinguir mayúsculas. El `choice` **se
+conserva**: sin supervisión hay alguien delante, y esa pregunta es la que compila
+el WASM sin que nadie lo pidiera.
+
+### Un valor desconocido PARA, y no se salta el WASM en silencio
+
+Tratar lo que no se reconoce como «no» sería un fallo silencioso de manual: el
+WASM se saltaría, el guion no pondría nada, y el log acabaría en `[SUCCESS]` como
+si se hubiera compilado todo. Un salto que nadie ve es peor que un error. Sale por
+`:error_uso` con código **2**, que no es el 1 de `Build failed.`: la parte de
+MSBuild ya había ido bien, y un runner tiene que poder distinguir «no compilaba»
+de «lo invocaron mal».
+
+### Arreglado de paso: el WASM que fallaba salía con código 0
+
+`build_wasm.bat` se llama, se captura su `ERRORLEVEL` **antes** de ningún `echo`,
+y si no es 0 el guion dice cuánto era y cierra en error. Es la **tercera** vez que
+este script se come un `ERRORLEVEL` por leerlo tarde, después del empaquetado del
+WebUI y del configure de CMake.
+
+### Un `goto` sin etiqueta no es un error de compilación
+
+Al escribir esto se añadió el `goto wasm_inicio` sin su `:wasm_inicio`. cmd avisa
+por pantalla **y sigue**: el guion se caía de la cola del WASM sin que nada se
+pusiera rojo. De ahí el invariante más barato del fichero de tests — seis líneas:
+
+> TODO `goto` tiene su etiqueta
+
+**Tests:** 11 nuevos en `WebUI/tests/buildToolchainDiagnostic.test.js` (5 de texto,
+6 de comportamiento en Windows). Medidos con `build/romper-wasm.mjs`, cuatro
+roturas del guion: sin etiqueta 7 tests caen; valor desconocido en silencio 2;
+entorno ignorado 2; WASM fallido declarado bueno 2.
+
+La primera es la que un test sobre la *existencia* de la etiqueta no habría visto:
+con la etiqueta todavía ahí y el `goto` redirigido, pasaba en verde. Por eso el
+de texto fija el **enrutado**, no la etiqueta.
+
+El cuelgue en sí **no es reproducible desde un test** —hace falta consola, y un
+`spawnSync` no la tiene—, así que no se finge un test que lo reproduzca: se fija
+el texto de las tres vías y que la vía desatendida no pregunte.
+
+---
 
 > **Era el más caro de los 50 parámetros sin uso**, y no por estar sin cablear sino por **estar
 > visible**: el panel y el modal pintan un `<select>` con `Gate` / `Velocity` / `Seq`, y el
