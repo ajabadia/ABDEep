@@ -56,7 +56,7 @@ jobs:
           Write-Host "WebView2 SDK listo en $env:RUNNER_TEMP/wv2"
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Install clang-format & cppcheck
         run: |
@@ -120,7 +120,7 @@ jobs:
           Write-Host "WebView2 SDK listo en $env:RUNNER_TEMP/wv2"
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Install clang-format & cppcheck
         run: |
@@ -212,7 +212,7 @@ jobs:
           Write-Host "WebView2 SDK listo en $env:RUNNER_TEMP/wv2"
 
       - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Install clang-format & cppcheck
         run: |
