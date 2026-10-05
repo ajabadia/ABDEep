@@ -87,7 +87,7 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const CARPETAS = [
   path.join(RAIZ, "scripts"),
-  path.join(RAIZ, "WebUI\\scripts"),
+  path.join(RAIZ, "WebUI/scripts"),
 ];
 
 /**
