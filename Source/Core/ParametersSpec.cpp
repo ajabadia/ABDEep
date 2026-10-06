@@ -21,7 +21,7 @@ std::vector<ParametersSpec::ParamInfo> ParametersSpec::getSpecs()
     append(getVoiceSpecs());
     append(getModMatrixSpecs());
     append(getSeqSpecs());
-    append(getArpChordSpecs());
+    append(getArpSpecs());
     append(getFxSpecs());
 
     return specs;

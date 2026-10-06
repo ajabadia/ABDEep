@@ -134,7 +134,7 @@ std::vector<ParametersSpec::ParamInfo> ParametersSpec::getVcaSpecs()
         { "vca_level", "VCA Level", "amplificador", "float", 0.0f, 1.0f, 0.8f, 36, 80, {} },
         { "vca_env_depth", "VCA Env Depth", "amplificador", "float", 0.0f, 1.0f, 1.0f, -1, 81, {} },
         { "vca_vel_sens", "VCA Vel Sens", "amplificador", "float", 0.0f, 1.0f, 0.5f, -1, 82, {} },
-        { "vca_pan_spread", "VCA Pan Spread", "amplificador", "float", 0.0f, 1.0f, 0.0f, -1, 83, {} },
+        { "vca_pan_spread", "VCA Pan Spread", "amplificador", "float", 0.0f, 1.0f, 0.5f, -1, 83, {} },
         { "vca_mode", "VCA Mode", "amplificador", "enum", 0.0f, 1.0f, 0.0f, -1, -1, { "Transparent", "Ballsy" } },
     };
 }
