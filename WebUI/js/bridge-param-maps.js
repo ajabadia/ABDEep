@@ -18,6 +18,15 @@ window.BRIDGE_PARAM_MAPS = (function() {
         2: 6, 3: 1, 4: 1, 9: 6, 10: 1, 11: 1, 14: 2, 15: 2, 16: 5, 17: 5, 18: 1, 19: 1, 20: 1, 22: 6, 32: 6,
         35: 9, 38: 1, 46: 1, 50: 1, 51: 1, 52: 1,
         57: 4, 66: 4, 75: 4, 84: 2, 85: 12, 86: 3, 92: 1,
+        // Matriz de modulación (93-116). EL VALOR DEL ENUM ES EL CÓDIGO DEL BYTE
+        // (ModulationMatrix.h: kNone=0, LFO 1-8, ... y 129 el último destino
+        // alcanzable), así que estas 16 entradas son SELECTORES indexados, no
+        // faders: fuente 0..22 (23 códigos) y destino 0..129 (130 códigos).
+        // Con el códec value (raw/255) el selector de fuente usaba solo el 8,6%
+        // del recorrido y el de destino el 50,6%, y round(norm*22) daba 2 para
+        // el código 22: 20 de las 23 fuentes eran inalcanzables desde la UI.
+        93: 22, 94: 129, 96: 22, 97: 129, 99: 22, 100: 129, 102: 22, 103: 129,
+        105: 22, 106: 129, 108: 22, 109: 129, 111: 22, 112: 129, 114: 22, 115: 129,
         117: 1, 118: 15, 119: 31, 121: 2, 155: 1, 156: 10, 158: 12, 159: 1, 161: 1, 162: 64, 164: 3, 165: 9,
         166: 49, 179: 49, 192: 49, 205: 49,         222: 2,
         245: 2,
@@ -76,8 +85,7 @@ window.BRIDGE_PARAM_MAPS = (function() {
         'seq_step_21': 143, 'seq_step_22': 144, 'seq_step_23': 145, 'seq_step_24': 146, 'seq_step_25': 147,
         'seq_step_26': 148, 'seq_step_27': 149, 'seq_step_28': 150, 'seq_step_29': 151, 'seq_step_30': 152,
         'seq_step_31': 153, 'seq_step_32': 154,
-        'chord_enable': 300, 'poly_chord_enable': 301, 'chord_key': 302, 'chord_type': 303,
-        'arp_enable': 155, 'arp_mode': 156, 'arp_rate': 157, 'arp_clock_divider': 158,
+        'arp_enable': 155, 'poly_chord_enable': 301, 'chord_enable': 300, 'chord_type': 303, 'arp_mode': 156, 'arp_rate': 157, 'arp_clock_divider': 158,
         'arp_key_sync': 159, 'arp_gate_time': 160,
         'arp_hold': 161, 'arp_pattern': 162, 'arp_swing': 163, 'arp_octave': 164,
         'fx_routing': 165,

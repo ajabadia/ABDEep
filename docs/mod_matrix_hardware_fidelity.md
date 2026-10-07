@@ -48,7 +48,7 @@ referencia del byte**, que es lo que el equipo acepta y acepta de vuelta.
 
 | # | Dónde | Qué dice |
 |---|---|---|
-| 1 | `Source/DSP/ModulationMatrix.h` (motor) | enum `ModSource` (24) y `ModDestination` (**44**), con el bus de fx en 74–81 |
+| 1 | `Source/DSP/ModulationMatrix.h` (motor) | enum `ModSource` (23 códigos, 0–22) y `ModDestination` (**133**, 0–132) — numerados con los **códigos del byte** del manual |
 | 2 | `WebUI/js/modmatrix_data.js` (vista) | 25 fuentes; 74 destinos + relleno a 133; `Fx 1..4 Level` en 129–132 |
 | 3 | `WebUI/js/components/mod-matrix-canvas_data.js` (vista de grafos) | **otra** copia: 25 fuentes y **237** destinos, con `Fx1` en el índice **233** |
 | 4 | `docs/sysex_format.md` + registro | bytes 93–116; fuente 0–22, destino 0–129, profundidad bipolar |
@@ -57,13 +57,17 @@ referencia del byte**, que es lo que el equipo acepta y acepta de vuelta.
 distintos de los de la vista de lista, y situaba `Fx1` en un índice (233) donde el
 byte no llega. Nadie lo detectó porque no había nada que lo comprobara.
 
-**La divergencia 1 vs 4 es la más importante y sigue abierta:** el motor castea el
+**La divergencia 1 vs 4 era la más importante y ya está cerrada:** el motor castea el
 byte crudo a su propio enum (`SynthEngine_Parameters.cpp`, `setRoute` con
-`static_cast<ModDestination>`), pero **el enum del motor (44 destinos) y la tabla
-del manual (133) solo coinciden en 1 de las primeras 44 posiciones**. Es decir: el
-orden del enum del motor **no es** el orden del manual. Los destinos 44–129 (86
-índices) no los cubre el motor. Esto significa que, hoy, la ruta que el usuario
-ve en la lista no es necesariamente la que el motor ejecuta.
+`static_cast<ModDestination>`), así que **el número del enum es lo que suena** y no
+queda más remedio que numerarlo con el manual. Ya lo está: `ModDestination` tiene
+**133 entradas y va de 0 a 132 con los códigos del manual** (0 = ninguno, 1–8 LFO,
+9–19 osciladores, 20–23 filtro, 24–34 envolventes, 35–58 cada envolvente, 59–63
+amplificador, 64–72 comunes, 73–80 los ocho buses, 81–128 los parámetros de los
+cuatro huecos de efecto, 129–132 el nivel de salida de los cuatro huecos), y el
+byte de destino llega a 129. Los destinos 0–132 (133 índices) los cubre el motor,
+y la medición de este mismo run lo confirma contando los códigos que el enum
+declara en vez de restar longitudes.
 
 **Lo que sí se arregló en esta ronda es el bloque del bus de fx (74–81), que ya
 no es una divergencia sino un caso cerrado.** El enum los numera con los códigos
@@ -74,8 +78,20 @@ retardo declara el tiempo y los dos feedbacks). Antes eran doce entradas en
 36–47 que nadie leía, más cuatro nombres inventados en la tabla (`Fx 1..4 Level`
 en 129–132, tres de ellos por encima del tope del byte). El caso cerrado es
 también el que **enseña el método**: cuando el motor y la tabla se numeran con el
-manual, el desacuerdo desaparece sin necesitar una tabla de traducción. Queda por
-hacer lo mismo con los destinos 44–73 y 82–129.
+manual, el desacuerdo desaparece sin necesitar una tabla de traducción. Ese mismo
+método se aplicó después al resto del enum, que hoy cubre 0–132 completo.
+
+**Y la última pieza la puso la capa de traducción (`conversionVersion: 2`).** Con
+el motor y la tabla numerados por el manual, quedaba un cabo suelto en el puente:
+los 16 bytes de `src`/`dest` (93–116) se decodificaban con el códec `value`
+(`raw/255`) en vez de como selectores, así que un destino de código 129 llegaba a
+la UI como `129/255 = 0,506` y **la mitad alta de la lista era inalcanzable** (y en
+las fuentes solo se usaba el 8,6 % del recorrido: `round(0,0863 * 22) = 2` para el
+código 22, con 20 de las 23 fuentes fuera de alcance). El ida y vuelta seguía
+funcionando, así que ningún test de round-trip lo veía: era un defecto de
+**mapeo**, no de pérdida de datos. Ahora el spec los declara `enum` con
+`wireMax` 22/129, el `ENUM_BYTES` del puente los tiene, y el selector cubre 0..1
+entero.
 
 ## 3. Decisiones tomadas en esta fase
 
