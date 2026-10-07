@@ -1,8 +1,34 @@
 #include "SynthEngine.h"
 #include <algorithm>
 
+// El códec de bytes del preset. Vive en Core porque lo usan tambien el
+// plugin (PatchController) y el banco de pruebas, y por eso no puede
+// depender de que se haya cargado el plugin.
+#include "PatchByteCodec.h"
+
+// La capa de traduccion wire <-> dominio. El motor consume DOMINIO: los numeros
+// magicos (raw/255*10, 0.035*e^(7.5t), *6.59f) ya no viven aqui, viven en el spec
+// versionado (schemas/parameter-conversion.json) y llegan por este header.
+#include "ParameterConversion.gen.h"
+
 namespace ABD
 {
+namespace
+{
+    // Dado un id del spec de conversion y el valor 0..1 que entrega la APVTS,
+    // devuelve el valor fisico (segundos, Hz) que usa el DSP. Cambiar "como se
+    // traduce" es cambiar el spec, no este fichero.
+    //
+    // findConversionById es de hilo de control: se llama desde updateParameters()
+    // (bloque de parametros, no bucle de muestra), nunca por muestra.
+    float domainOf (const char* id, float normalizedValue) noexcept
+    {
+        if (const auto* e = Registry::Conversion::findConversionById (id))
+            return Registry::Conversion::normalizedToDomain (*e, normalizedValue);
+        return normalizedValue;
+    }
+}
+
     float SynthEngine::lfoArpSyncHzFromRate(float rateNorm, float bpm)
     {
         // Tabla de Clock Divide del hardware DM12 (docs lfos.md:23-48): 20 divisiones
@@ -32,6 +58,12 @@ namespace ABD
     void SynthEngine::setVoiceMode(int mode)
     {
         voiceMode = std::clamp(mode, 0, 12);
+    }
+
+    void SynthEngine::setEnv1Times(float attack, float decay, float sustain, float release)
+    {
+        for (int i = 0; i < kNumVoices; ++i)
+            voices[i].env1VCA.setParameters(attack, decay, sustain, release);
     }
 
     void SynthEngine::setUnisonDetune(float detune)
@@ -65,6 +97,28 @@ namespace ABD
         const int os = std::clamp(oversample, 0, 2);
         for (int i = 0; i < kNumVoices; ++i)
             voices[i].params.vcfOversample = os;
+    }
+
+    void SynthEngine::setVcfCutoff(float cutoff)
+    {
+        const float c = juce::jlimit(0.0f, 1.0f, cutoff);
+        for (int i = 0; i < kNumVoices; ++i)
+        {
+            voices[i].params.vcfCutoff = c;
+            voices[i].smoothedCutoffLvl = c;
+        }
+    }
+
+    int SynthEngine::loadPatchBytes (const std::uint8_t* patch242,
+                                     juce::AudioProcessorValueTreeState& apvts)
+    {
+        jassert (patch242 != nullptr);
+        if (patch242 == nullptr)
+            return 0;
+
+        const int escritos = PatchByteCodec::applyToApvts (patch242, apvts);
+        updateParameters (apvts);
+        return escritos;
     }
 
     void SynthEngine::updateParameters(juce::AudioProcessorValueTreeState& apvts)
@@ -185,73 +239,62 @@ namespace ABD
             // Sincronizar drift engine de cada voz
             voices[i].drift.setDriftParams(p.voiceDrift, p.paramDrift, p.driftRate);
 
-            // Sincronizar Envelopes con mapeo lineal físico (hardware DM12: raw/255*10 = 0-10s)
-#if DEEP_TARGET_MODEL >= 2
-            const auto& cal = activeCalibration;
-#else
-            struct { struct { struct { float maxTimeSec; } envelopes;
-                               struct { float rateScale, rateExp; } lfo; } transfer; } cal;
-            cal.transfer.envelopes.maxTimeSec = 10.0f;
-            cal.transfer.lfo = { 0.041f, 7.3747f };
-#endif
-            auto mapEnvTime = [&cal](float rawVal) -> float {
-                float normVal = juce::jlimit(0.0f, 1.0f, rawVal);
-                return normVal * cal.transfer.envelopes.maxTimeSec;
-            };
-
+            // Envelopes: el motor consume DOMINIO (segundos), no normalizado. El
+            // mapeo raw*maxTimeSec y las curvas viven en el spec de conversion; aqui
+            // solo se pide el valor fisico. Bit-exacto con el mapeo anterior.
             voices[i].env1VCA.setParameters(
-                mapEnvTime(getFloat("env1_attack")),
-                mapEnvTime(getFloat("env1_decay")),
+                domainOf("env1_attack", getFloat("env1_attack")),
+                domainOf("env1_decay", getFloat("env1_decay")),
                 getFloat("env1_sustain"),
-                mapEnvTime(getFloat("env1_release"))
+                domainOf("env1_release", getFloat("env1_release"))
             );
             voices[i].env1VCA.setCurves(
-                (getFloat("env1_attack_curve") - 0.5f) * 2.0f,
-                (getFloat("env1_decay_curve") - 0.5f) * 2.0f,
-                (getFloat("env1_sustain_curve") - 0.5f) * 2.0f,
-                (getFloat("env1_release_curve") - 0.5f) * 2.0f
+                domainOf("env1_attack_curve", getFloat("env1_attack_curve")),
+                domainOf("env1_decay_curve", getFloat("env1_decay_curve")),
+                domainOf("env1_sustain_curve", getFloat("env1_sustain_curve")),
+                domainOf("env1_release_curve", getFloat("env1_release_curve"))
             );
 
             voices[i].env2VCF.setParameters(
-                mapEnvTime(getFloat("env2_attack")),
-                mapEnvTime(getFloat("env2_decay")),
+                domainOf("env2_attack", getFloat("env2_attack")),
+                domainOf("env2_decay", getFloat("env2_decay")),
                 getFloat("env2_sustain"),
-                mapEnvTime(getFloat("env2_release"))
+                domainOf("env2_release", getFloat("env2_release"))
             );
             voices[i].env2VCF.setCurves(
-                (getFloat("env2_attack_curve") - 0.5f) * 2.0f,
-                (getFloat("env2_decay_curve") - 0.5f) * 2.0f,
-                (getFloat("env2_sustain_curve") - 0.5f) * 2.0f,
-                (getFloat("env2_release_curve") - 0.5f) * 2.0f
+                domainOf("env2_attack_curve", getFloat("env2_attack_curve")),
+                domainOf("env2_decay_curve", getFloat("env2_decay_curve")),
+                domainOf("env2_sustain_curve", getFloat("env2_sustain_curve")),
+                domainOf("env2_release_curve", getFloat("env2_release_curve"))
             );
 
             voices[i].env3MOD.setParameters(
-                mapEnvTime(getFloat("env3_attack")),
-                mapEnvTime(getFloat("env3_decay")),
+                domainOf("env3_attack", getFloat("env3_attack")),
+                domainOf("env3_decay", getFloat("env3_decay")),
                 getFloat("env3_sustain"),
-                mapEnvTime(getFloat("env3_release"))
+                domainOf("env3_release", getFloat("env3_release"))
             );
             voices[i].env3MOD.setCurves(
-                (getFloat("env3_attack_curve") - 0.5f) * 2.0f,
-                (getFloat("env3_decay_curve") - 0.5f) * 2.0f,
-                (getFloat("env3_sustain_curve") - 0.5f) * 2.0f,
-                (getFloat("env3_release_curve") - 0.5f) * 2.0f
+                domainOf("env3_attack_curve", getFloat("env3_attack_curve")),
+                domainOf("env3_decay_curve", getFloat("env3_decay_curve")),
+                domainOf("env3_sustain_curve", getFloat("env3_sustain_curve")),
+                domainOf("env3_release_curve", getFloat("env3_release_curve"))
             );
 
-            // Sincronizar LFOs con mapeo físico real (DeepMind 12 specs)
+            // LFOs: rate y delay son DOMINIO (Hz, s) que da la capa de traduccion.
+            // El rate del modelo Enhanced viene del spec (0.035*e^(7.5t)); el modelo
+            // Classic conserva su propia curva porque el spec se sembro del Enhanced.
 #if DEEP_TARGET_MODEL >= 2
-            float lfo1RateHz = activeCalibration.transfer.lfo.rateScale * std::exp(activeCalibration.transfer.lfo.rateExp * getFloat("lfo1_rate"));
-            float lfo1DelaySec = getFloat("lfo1_delay") * 6.59f;
-            float lfo2RateHz = activeCalibration.transfer.lfo.rateScale * std::exp(activeCalibration.transfer.lfo.rateExp * getFloat("lfo2_rate"));
-            float lfo2DelaySec = getFloat("lfo2_delay") * 6.59f;
+            const float lfo1RateHz = domainOf("lfo1_rate", getFloat("lfo1_rate"));
+            const float lfo2RateHz = domainOf("lfo2_rate", getFloat("lfo2_rate"));
 #else
             static constexpr float kDefaultRateScale = 0.041f;
             static constexpr float kDefaultRateExp   = 7.3747f;
-            float lfo1RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo1_rate"));
-            float lfo1DelaySec = getFloat("lfo1_delay") * 6.59f;
-            float lfo2RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo2_rate"));
-            float lfo2DelaySec = getFloat("lfo2_delay") * 6.59f;
+            const float lfo1RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo1_rate"));
+            const float lfo2RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo2_rate"));
 #endif
+            const float lfo1DelaySec = domainOf("lfo1_delay", getFloat("lfo1_delay"));
+            const float lfo2DelaySec = domainOf("lfo2_delay", getFloat("lfo2_delay"));
 
             voices[i].lfo1.setRate(lfo1RateHz);
             voices[i].lfo1.setDelay(lfo1DelaySec);
@@ -270,20 +313,18 @@ namespace ABD
         lfo1MonoMode = getFloat("lfo1_mono_mode");
         lfo2MonoMode = getFloat("lfo2_mono_mode");
 
-        // Calcular mapeo físico para LFOs globales
+        // LFOs globales: mismo DOMINIO (Hz, s) que las voces, desde el spec.
 #if DEEP_TARGET_MODEL >= 2
-        float globalLfo1RateHz = activeCalibration.transfer.lfo.rateScale * std::exp(activeCalibration.transfer.lfo.rateExp * getFloat("lfo1_rate"));
-        float globalLfo1DelaySec = getFloat("lfo1_delay") * 6.59f;
-        float globalLfo2RateHz = activeCalibration.transfer.lfo.rateScale * std::exp(activeCalibration.transfer.lfo.rateExp * getFloat("lfo2_rate"));
-        float globalLfo2DelaySec = getFloat("lfo2_delay") * 6.59f;
+        const float globalLfo1RateHz = domainOf("lfo1_rate", getFloat("lfo1_rate"));
+        const float globalLfo2RateHz = domainOf("lfo2_rate", getFloat("lfo2_rate"));
 #else
         static constexpr float kDefaultRateScale = 0.041f;
         static constexpr float kDefaultRateExp   = 7.3747f;
-        float globalLfo1RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo1_rate"));
-        float globalLfo1DelaySec = getFloat("lfo1_delay") * 6.59f;
-        float globalLfo2RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo2_rate"));
-        float globalLfo2DelaySec = getFloat("lfo2_delay") * 6.59f;
+        const float globalLfo1RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo1_rate"));
+        const float globalLfo2RateHz = kDefaultRateScale * std::exp(kDefaultRateExp * getFloat("lfo2_rate"));
 #endif
+        const float globalLfo1DelaySec = domainOf("lfo1_delay", getFloat("lfo1_delay"));
+        const float globalLfo2DelaySec = domainOf("lfo2_delay", getFloat("lfo2_delay"));
 
         // Sincronizar LFOs globales con los mismos parámetros que las voces
         globalLfo1.setRate(globalLfo1RateHz);
@@ -307,7 +348,8 @@ namespace ABD
 
         // Leer parámetros de Voice Mode y Unison
         voiceMode = std::clamp(getInt("voice_mode"), 0, 12);
-        unisonDetune = getFloat("unison_detune");
+        unisonDetuneBase = getFloat("unison_detune");
+        unisonDetune = unisonDetuneBase;
         vcaPanSpread = getFloat("vca_pan_spread");
 
         // Propagar vcaPanSpread a todas las voces
@@ -347,20 +389,66 @@ namespace ABD
         masterSoftclipBypass = getBool("master_softclip_bypass");
         masterSoftclipHeadroom = std::clamp(getFloat("master_softclip_headroom"), 0.0f, 1.0f);
 
-        // Leer parámetros del arpegiador para Arp Sync de LFOs
-        float arpRate = getFloat("arp_rate");
-        int arpClockDiv = std::clamp(getInt("arp_clock_divider"), 0, 12);
+        // ── ARP/SEQ ────────────────────────────────────────────────────────
+        // El BPM maestro. OJO CON LAS UNIDADES: `arp_rate` esta declarado en el
+        // APVTS como float de 20.0 a 275.0 (`ParametersSpec_SeqArp.cpp`), o sea
+        // que getFloat YA DEVUELVE BPM y no un valor normalizado 0-1. El byte
+        // de 0-255 es lo que se mapea a ese rango, y es el mismo rango que da el
+        // manual (arp-sequencer.md:19). Por eso la cuenta de abajo divide por
+        // sesenta tal cual, y por eso el sync de los LFO puede recibirlo directo.
+        masterBpm = std::max(20.0f, getFloat("arp_rate"));
+
         // Multiplicadores = negras por pulso (1 / ratio de nota). Tabla hardware arp-sequencer.md:44-60.
         static const float clockMultipliers[13] = {
             0.5f, 2.0f / 3.0f, 0.75f, 1.0f, 4.0f / 3.0f, 1.5f, 2.0f,
             8.0f / 3.0f, 3.0f, 4.0f, 6.0f, 8.0f, 12.0f
         };
-        arpClockHz = (arpRate / 60.0f) * clockMultipliers[arpClockDiv];
+        const int arpClockDiv = std::clamp(getInt("arp_clock_divider"), 0, 12);
+        arpClockHz = (masterBpm / 60.0f) * clockMultipliers[arpClockDiv];
         arpClockHz = std::max(arpClockHz, 0.01f);
 
         // Propagar arpClockHz a todas las voces
         for (int i = 0; i < kNumVoices; ++i)
             voices[i].arpClockHz = arpClockHz;
+
+        // El arpegiador. El gate del panel se guarda aparte porque la matriz le
+        // suma encima muestra a bloque en `processBlock` (destino 71).
+        // El gate del panel llega en 0-255 y el arpegiador lo quiere en 0-1:
+        // el manual dice que 128 es medio paso, y 128/255 es esa mitad.
+        arpGateBase = getFloat("arp_gate_time") / 255.0f;
+        arpeggiator.setEnabled(getBool("arp_enable"));
+        arpeggiator.setMode(getInt("arp_mode"));
+        arpeggiator.setStepRateHz(arpClockHz);
+        arpeggiator.setGate(arpGateBase);
+        arpeggiator.setHold(getBool("arp_hold"));
+        arpeggiator.setKeySync(getBool("arp_key_sync"));
+        arpeggiator.setOctaves(getInt("arp_octave") + 1);   // el byte va de 0 a 3 = 1 a 4 octavas
+        arpeggiator.setSwing(getFloat("arp_swing") / 25.0f);   // el mando va de 0 a 25
+
+        // El secuenciador de control (NRPN 117-154).
+        controlSequencer.setEnabled(getBool("seq_enable"));
+        controlSequencer.setClockDivider(getInt("seq_clock"));
+        controlSequencer.setLength(getInt("seq_length") + 1);   // el byte va de 0 a 31 = 1 a 32 pasos
+        controlSequencer.setSwing(getFloat("seq_swing") / 25.0f);   // el mando va de 0 a 25
+        controlSequencer.setKeyLoopMode(getInt("seq_key_loop"));
+        controlSequencer.setSlewRate(getFloat("seq_slew_rate") / 255.0f);   // el mando va de 0 a 255
+        controlSequencer.setMasterBpm(masterBpm);
+
+        // Los 32 pasos. En el APVTS estan declarados como float de -1.0 a 1.0,
+        // que es justo el bipolar del manual (`valor - 128`), asi que getFloat
+        // lo devuelve como va y no hay que convertirlo otra vez.
+        static const char* kNombresPaso[32] = {
+            "seq_step_1",  "seq_step_2",  "seq_step_3",  "seq_step_4",
+            "seq_step_5",  "seq_step_6",  "seq_step_7",  "seq_step_8",
+            "seq_step_9",  "seq_step_10", "seq_step_11", "seq_step_12",
+            "seq_step_13", "seq_step_14", "seq_step_15", "seq_step_16",
+            "seq_step_17", "seq_step_18", "seq_step_19", "seq_step_20",
+            "seq_step_21", "seq_step_22", "seq_step_23", "seq_step_24",
+            "seq_step_25", "seq_step_26", "seq_step_27", "seq_step_28",
+            "seq_step_29", "seq_step_30", "seq_step_31", "seq_step_32"
+        };
+        for (int p = 0; p < 32; ++p)
+            controlSequencer.setStep(p + 1, getFloat(kNombresPaso[p]));
 
         // Leer Note Priority, Trigger Mode y Pitch Bend Range
         notePriority = std::clamp(getInt("note_priority"), 0, 2);
@@ -389,8 +477,8 @@ namespace ABD
         // (docs lfos.md:23-48), basada en el Master BPM, no en el reloj de arp.
         if (arpSyncActive)
         {
-            float lfo1SyncHz = SynthEngine::lfoArpSyncHzFromRate(getFloat("lfo1_rate"), arpRate);
-            float lfo2SyncHz = SynthEngine::lfoArpSyncHzFromRate(getFloat("lfo2_rate"), arpRate);
+            float lfo1SyncHz = SynthEngine::lfoArpSyncHzFromRate(getFloat("lfo1_rate"), masterBpm);
+            float lfo2SyncHz = SynthEngine::lfoArpSyncHzFromRate(getFloat("lfo2_rate"), masterBpm);
             globalLfo1ArpSyncHz = lfo1SyncHz;
             globalLfo2ArpSyncHz = lfo2SyncHz;
             for (int i = 0; i < kNumVoices; ++i)
@@ -429,10 +517,31 @@ namespace ABD
             int destVal = getInt(prefix + "_dest");
             float amount = getFloat(prefix + "_depth");
 
-            modMatrix.setRoute(slot, 
-                               static_cast<ModSource>(srcVal), 
-                               static_cast<ModDestination>(destVal), 
-                               amount);
+            // El byte de destino se castea tal cual porque SU VALOR ES EL
+            // CÓDIGO del destino (ver `ModDestination`), y por eso hay que
+            // mirarlo antes de mirar nada más.
+            //
+            // Y POR QUÉ HAY QUE COMPROBARLO. El enum tiene más entradas que
+            // códigos del byte: detrás de 132 hay tres capacidades del motor que
+            // el manual no da como destino de modulación (nivel del oscilador
+            // 1, nivel del sub-oscilador y seguimiento de teclado del filtro).
+            // Sin esta comprobación, un parche con un destino corrupto —o un
+            // destino escrito a mano por encima de 132— caería en una de las tres
+            // y modularía algo que el usuario no eligió. El bus se apaga en vez
+            // de sonar lo que no es.
+            //
+            // Lo mismo con la fuente: `getModulationValue` ya se salta los
+            // índices que no son fuente válida, pero un valor fuera de rango
+            // aquí significa un parche roto y conviene que no llegue al bus.
+            const ModDestination destino = (destVal >= 0 && destVal < static_cast<int>(ModDestination::kMaxDestinations))
+                                             ? static_cast<ModDestination>(destVal)
+                                             : ModDestination::kNone;
+
+            const ModSource fuente = (srcVal >= 0 && srcVal < static_cast<int>(ModSource::kMaxSources))
+                                          ? static_cast<ModSource>(srcVal)
+                                          : ModSource::kNone;
+
+            modMatrix.setRoute(slot, fuente, destino, amount);
         }
 
         // Actualizar FX Engine

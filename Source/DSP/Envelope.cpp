@@ -30,6 +30,16 @@ namespace ABD
         releaseCurve = std::clamp(releaseCrv, -1.0f, 1.0f);
     }
 
+    void Envelope::setSustainOffset(float desplazamiento)
+    {
+        sustainOffset = std::clamp(desplazamiento, -1.0f, 1.0f);
+    }
+
+    void Envelope::setCurveModulation(Stage stage, float modulacion)
+    {
+        curveModulation[(int)stage] = std::clamp(modulacion, -1.0f, 1.0f);
+    }
+
     void Envelope::trigger()
     {
         startLevel = currentLevel;
@@ -101,6 +111,11 @@ namespace ABD
         progressIncrement = 1.0 / (currentStageDurationSec * sampleRate * (double)scale);
     }
 
+    float Envelope::sustainEfectivo() const
+    {
+        return std::clamp(sustainLevel + sustainOffset, 0.0f, 1.0f);
+    }
+
     float Envelope::applyCurve(float progress, float curveAmount)
     {
         if (std::abs(curveAmount) < 0.005f)
@@ -133,12 +148,13 @@ namespace ABD
             if (std::abs(sustainCurve) > 0.005f)
             {
                 float progress = (float)currentProgress;
-                float curvedProgress = applyCurve(progress, sustainCurve);
+                float curvedProgress = applyCurve(progress,
+                                                  sustainCurve + curveModulation[(int)Stage::kSustain]);
                 // Desviación máxima: ±10% del sustain level
-                float deviation = (curvedProgress - progress) * sustainLevel * 0.1f;
+                float deviation = (curvedProgress - progress) * sustainEfectivo() * 0.1f;
                 curveMod = deviation;
             }
-            currentLevel = std::clamp(sustainLevel + curveMod, 0.0f, 1.0f);
+            currentLevel = std::clamp(sustainEfectivo() + curveMod, 0.0f, 1.0f);
             return currentLevel;
         }
 
@@ -151,7 +167,7 @@ namespace ABD
             if (currentStage == Stage::kAttack)
             {
                 startLevel = 1.0f;
-                targetLevel = sustainLevel;
+                targetLevel = sustainEfectivo();
                 changeStage(Stage::kDecay);
             }
             else if (currentStage == Stage::kDecay)
@@ -190,7 +206,7 @@ namespace ABD
             // Curva de ataque: norm 0 (internal -1) = exponential (subida rápida inicial),
             // norm 255 (internal +1) = logarithmic (subida lenta inicial). applyCurve(+,amount)
             // da exponent<1 → subida rápida inicial. Se niega para invertir la polaridad.
-            curvedProgress = applyCurve(progress, -attackCurve);
+            curvedProgress = applyCurve(progress, -(attackCurve + curveModulation[(int)Stage::kAttack]));
             currentLevel = startLevel + (targetLevel - startLevel) * curvedProgress;
         }
         else if (currentStage == Stage::kDecay)
@@ -198,14 +214,16 @@ namespace ABD
             // Curva de decay: norm 0 (internal -1) = exponential (caída rápida inicial),
             // norm 255 (internal +1) = logarithmic (caída lenta inicial). El complemento
             // 1-(1-p)^e con signo positivo da caída rápida inicial cuando decayCurve<0.
-            curvedProgress = 1.0f - applyCurve(1.0f - progress, decayCurve);
+            curvedProgress = 1.0f - applyCurve(1.0f - progress,
+                                               decayCurve + curveModulation[(int)Stage::kDecay]);
             currentLevel = startLevel + (targetLevel - startLevel) * curvedProgress;
         }
         else if (currentStage == Stage::kRelease)
         {
             // Misma semántica que decay: exponencial = caída rápida inicial (norm 0),
             // logarítmica = caída lenta inicial (norm 255).
-            curvedProgress = 1.0f - applyCurve(1.0f - progress, releaseCurve);
+            curvedProgress = 1.0f - applyCurve(1.0f - progress,
+                                               releaseCurve + curveModulation[(int)Stage::kRelease]);
             currentLevel = startLevel + (targetLevel - startLevel) * curvedProgress;
         }
 

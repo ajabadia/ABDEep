@@ -42,6 +42,16 @@ namespace ABD
         delayTime = std::max(0.0f, delaySec);
     }
 
+    void LFO::setDelayScale(float escala)
+    {
+        delayScale = std::clamp(escala, 0.0f, 20.0f);
+    }
+
+    void LFO::setSlewScale(float escala)
+    {
+        slewScale = std::clamp(escala, 0.0f, 20.0f);
+    }
+
     void LFO::setSlew(float slewAmount)
     {
         slew = std::clamp(slewAmount, 0.0f, 1.0f);
@@ -76,9 +86,17 @@ namespace ABD
         return phase;
     }
 
+    void LFO::setRateScale(float escala)
+    {
+        const float recortada = std::clamp(escala, 0.05f, 20.0f);
+        if (recortada == rateScale) return;  // hot-path guard
+        rateScale = recortada;
+        updatePhaseIncrement();
+    }
+
     void LFO::updatePhaseIncrement()
     {
-        phaseIncrement = rate / sampleRate;
+        phaseIncrement = (rate * rateScale) / sampleRate;
     }
 
     float LFO::nextRandomFloat()
@@ -133,7 +151,7 @@ namespace ABD
         float fadeGain = 1.0f;
         if (delayTime > 0.0f)
         {
-            double delaySamples = delayTime * sampleRate;
+            double delaySamples = (double) delayTime * delayScale * sampleRate;
             if (delaySamplesElapsed < delaySamples)
             {
                 double silentSamples = delaySamples * 0.4;
@@ -193,7 +211,7 @@ namespace ABD
         // 5. Slew rate limiting (sample-rate independent, time-domain constant)
         if (slew > 0.0f)
         {
-            float transitionTimeSec = slew * 0.5f;
+            float transitionTimeSec = slew * slewScale * 0.5f;
             if (transitionTimeSec > 0.0001f)
             {
                 float maxChangePerSample = 2.0f / (transitionTimeSec * static_cast<float>(sampleRate));
