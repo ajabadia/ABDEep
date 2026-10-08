@@ -2,19 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
-
-// ── Include del motor compartido ──────────────────────────────────────────
-// Ruta real de inclusión: el .cpp incluye "ABDSharedCode/SynthCore/ModMatrix.h";
-// este header solo es la capa de política (enum, escala HW, contrato público).
-// Si en el futuro este header necesita incluir directamente al shared, usar la
-// misma ruta que ya resuelve el CMake del projeto:
-//   #include "ABDSharedCode/SynthCore/ModMatrix.h"
-// (resuelve desde el CMake del progetto con la raíz ../ABDSharedCode).
-//
-// NOTA PENDIENTE (no asumida): `abd_shared_synthcore_export.h` no existe en este
-// workspace (ni en ABDDeep ni en ABDSharedCode/). Si en el futuro existe y debe
-// incluirse desde aquí, añadirlo y quitar este comentario. Hoy NO incluirlo
-// porque no hay archivo real que lo respalde.
+#include "SynthCore/ModMatrix.h"
 
 namespace ABD
 {
@@ -128,6 +116,8 @@ enum class ModDestination
     // modulación que el hardware no ejerce es un destino que el usuario
     // elige y no pasa nada. Un `Fx N Parameters` mueve los dos parámetros
     // que cada efecto declare modulables (ver `FXBase::getModulationParams`).
+    kArpGate       = 71, // Puerta del arpegiador (duración de la nota por reloj)
+    kSeqSlew       = 72, // Tasa de slew/glide del secuenciador de control
     kFx1Parameters = 74,
     kFx2Parameters = 75,
     kFx3Parameters = 76,
@@ -236,10 +226,20 @@ struct ModRoute
 class ModulationMatrix
 {
 public:
-    ModulationMatrix();
+#ifndef DEEP_TARGET_MODEL
+ #define DEEP_TARGET_MODEL 1
+#endif
+
+#if DEEP_TARGET_MODEL >= 2
+    static constexpr int kNumSlots = 32; // 32 buses de modulación (AbyssMind Pro)
+#else
+    static constexpr int kNumSlots = 8;  // 8 buses de modulación (DeepMind 12)
+#endif
+
+    ModulationMatrix() = default;
     ~ModulationMatrix() = default;
 
-    void clear();
+    void clear() noexcept;
 
     /**
      * Escribe una ruta en un slot.
@@ -253,7 +253,7 @@ public:
      * trata el id 0 como inerte, pero aquí lo reafirmamos para que la semántica
      * del enum sea explícita en este archivo).
      */
-    void setRoute(int slotIndex, ModSource src, ModDestination dest, float amount);
+    void setRoute(int slotIndex, ModSource src, ModDestination dest, float amount) noexcept;
 
     /**
      * @brief Suma de todas las rutas que apuntan a `dest`, por esta consulta.
@@ -264,28 +264,19 @@ public:
      *
      * El valor devuelto es la suma bipolar de las rutas en UNIDADES DEL DESTINO,
      * sin ningún escalado extra. Es exactamente lo que consumen SynthVoice.*
-     * (pitch en semitonos, cutoff en Hz, level en 선형, etc.).
+     * (pitch en semitonos, cutoff en Hz, level en línea, etc.).
      *
      * Si `sourceValues` es nullptr o `dest` es kNone, devuelve 0.0f (misma
      * guarda que la impl previa).
      */
-    float getModulationValue(ModDestination dest, const float* sourceValues) const;
+    [[nodiscard]] float getModulationValue(ModDestination dest, const float* sourceValues) const noexcept;
 
-#ifndef DEEP_TARGET_MODEL
- #define DEEP_TARGET_MODEL 1
-#endif
-
-#if DEEP_TARGET_MODEL >= 2
-    static constexpr int kNumSlots = 32; // 32 buses de modulación (AbyssMind Pro)
-#else
-    static constexpr int kNumSlots = 8;  // 8 buses de modulación (DeepMind 12)
-#endif
+    const abd::synth::ModMatrixT<kNumSlots, true>& getUnderlying() const noexcept { return matrix; }
+    abd::synth::ModMatrixT<kNumSlots, true>& getUnderlying() noexcept { return matrix; }
 
 private:
-    // El motor real: template compartido, sin política de nombres ni de escala.
-    class Impl;
-    Impl* impl() const;
-    mutable Impl* pImpl;
+    // El motor real: template compartido alojado por valor (zero-alloc, zero-indirection)
+    abd::synth::ModMatrixT<kNumSlots, true> matrix;
 };
 
 } // namespace ABD
