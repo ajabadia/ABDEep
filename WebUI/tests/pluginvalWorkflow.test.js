@@ -3,7 +3,7 @@
  *
  * Guard del workflow .github/workflows/pluginval.yml (la validación real la
  * ejecuta pluginval en el runner; aquí se blinda la configuración del job):
- *   - Runner windows-2022 y target de build ABDEep_Standalone_VST3.
+ *   - Runner windows-2025 y target de build ABDEep_Standalone_VST3.
  *   - pluginval PINNEA a v1.0.4 (determinismo CI, como JUCE 8.0.12 y Emscripten
  *     3.1.64) con asset pluginval_Windows.zip.
  *   - Invocación canónica del repo (scripts/verify_release.ps1):

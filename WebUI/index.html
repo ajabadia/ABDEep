@@ -124,6 +124,7 @@
     <script src="js/bridge-engines-arp.js"></script>
     <script src="js/bridge-engines-seq.js"></script>
     <script src="js/bridge-engines.js"></script>
+    <script src="js/arp_pattern_patch.js"></script>
     <script src="js/byte_map_data.js"></script>
     <script src="js/byte-map.js"></script>
     <script src="js/sysex_monitor_render.js"></script>
@@ -154,10 +155,9 @@
     <script src="js/keyboard_poly_chord.js"></script>
     <script src="js/keyboard_active_notes.js"></script>
     <script src="js/keyboard_led_animations.js"></script>
-    <script src="js/keyboard_pressure.js"></script>
     <script src="js/keyboard_render.js"></script>
     <script src="js/keyboard_render_core.js"></script>
-    <script src="js/keyboard.js"></script>
+    <script type="module" src="js/keyboard.js"></script>
     <script src="js/knobs.js"></script>
     <script src="js/settings_curves_draw.js"></script>
     <script src="js/settings_curves.js"></script>
@@ -320,11 +320,6 @@
     <script src="js/effects_presets_bank_extract.js"></script>
     <script src="js/effects_presets_render.js"></script>
     <script src="js/effects_presets.js"></script>
-    <script src="js/effects_renderers_reverbs.js"></script>
-    <script src="js/effects_renderers_eq_dynamics.js"></script>
-    <script src="js/effects_renderers_modulation.js"></script>
-    <script src="js/effects_renderers_delays_pitch.js"></script>
-    <script src="js/effects_theme.js"></script>
     <!-- Mandos por hueco de efectos: uno por parametro que el tipo CONECTA, y el
          resto declarado no conectable. Va ANTES de effects_render_params.js,
          que es quien llama a renderFxSlotKnobs(). No necesita ir despues del
@@ -332,7 +327,6 @@
          window.FxEffectsContract todavia no existe. -->
     <script src="js/fx_slot_knobs.js"></script>
     <script src="js/effects_render_params.js"></script>
-    <script src="js/effects_templates_renderers.js"></script>
     <script src="js/effects_templates.js"></script>
     <script src="js/effects_modal_sync.js"></script>
     <!-- Contrato de efectos compartido (ABDSharedAssets/contracts/fx-effects.json).
@@ -352,7 +346,5 @@
          viewport del chasis. Modulo ESM (el WebView2 los sirve); va al final:
          el DOM debe estar completo. -->
     <script type="module" src="js/fit-stage.js"></script>
-</body>
-</html>
 </body>
 </html>

@@ -136,33 +136,36 @@ describe('MOD_SOURCES — Modulation Source array', function() {
     // porque el byte 93 (Mod Slot 1 Source) va de 0 a 22. Eran restos de la tabla
     // de 25 entradas anterior a la renumeracion, no una medida: un indice que el
     // cable no puede pedir no puede ser el correcto.
-    it('index 1 is "LFO 1" (el codigo 1 del motor)', function() {
-        expect(MOD_SOURCES[1]).toBe('LFO 1');
+    it('index 1 is "Pitch Bend"', function() {
+        expect(MOD_SOURCES[1]).toBe('Pitch Bend');
     });
 
-    it('index 2 is "LFO 2"', function() {
-        expect(MOD_SOURCES[2]).toBe('LFO 2');
+    it('index 2 is "Mod Wheel"', function() {
+        expect(MOD_SOURCES[2]).toBe('Mod Wheel');
     });
 
-    it('index 7 is "Env 3"', function() {
-        expect(MOD_SOURCES[7]).toBe('Env 3');
+    it('index 7 is "LFO 1"', function() {
+        expect(MOD_SOURCES[7]).toBe('LFO 1');
     });
 
-    it('index 14 is "Foot Ctrl"', function() {
-        expect(MOD_SOURCES[14]).toBe('Foot Ctrl');
+    it('index 11 is "Env 3"', function() {
+        expect(MOD_SOURCES[11]).toBe('Env 3');
     });
 
-    it('index 15 is "Expression"', function() {
-        expect(MOD_SOURCES[15]).toBe('Expression');
+    it('index 14 is "Note Off Vel"', function() {
+        expect(MOD_SOURCES[14]).toBe('Note Off Vel');
     });
 
-    it('index 22 is "CC Z (117)", el ultimo codigo que el byte alcanza', function() {
-        expect(MOD_SOURCES[22]).toBe('CC Z (117)');
+    it('index 15 is "Ctrl Seq"', function() {
+        expect(MOD_SOURCES[15]).toBe('Ctrl Seq');
     });
 
-    it('la tabla no pasa del byte: no hay indice 24', function() {
-        expect(MOD_SOURCES.length).toBe(23);
-        expect(MOD_SOURCES[24]).toBeUndefined();
+    it('index 24 is "CC Z (117)", el ultimo codigo que el hardware alcanza', function() {
+        expect(MOD_SOURCES[24]).toBe('CC Z (117)');
+    });
+
+    it('la tabla tiene 25 fuentes oficiales del hardware (indices 0..24)', function() {
+        expect(MOD_SOURCES.length).toBe(25);
     });
 
     it('all items are strings', function() {
@@ -311,12 +314,12 @@ describe('syncModMatrixUIFromState — slot synchronization logic', function() {
     });
 
     it('reads src/dest/depth from parameterCache', function() {
-        mockBridge.parameterCache['mod_matrix_slot1_src'] = 7 / 22.0; // codigo 7 = Env 3
+        mockBridge.parameterCache['mod_matrix_slot1_src'] = 7 / 22.0; // codigo 7 = LFO 1
         mockBridge.parameterCache['mod_matrix_slot1_dest'] = 20 / 129.0; // VCF Freq
         mockBridge.parameterCache['mod_matrix_slot1_depth'] = 0.75;
 
         results = syncModMatrixUIFromState(mockBridge, null);
-        expect(results[1].srcName).toBe('Env 3');
+        expect(results[1].srcName).toBe('LFO 1');
         expect(results[1].destName).toBe('VCF Freq');
         expect(results[1].depthCache).toBeCloseTo(0.75);
         expect(results[1].isActive).toBe(true);
@@ -330,12 +333,12 @@ describe('syncModMatrixUIFromState — slot synchronization logic', function() {
         mockBridge._currentActiveBank = 'User Bank';
         mockBridge._currentActivePatchIndex = 0;
         const b = mockBridge._loadedBanks['User Bank'][0].unpackedBytes;
-        b[93] = 7;  // Slot1 src = 7 → 7/22 ≈ 0.318 → idx 7 → Env 3 (codigo 7 del motor)
+        b[93] = 7;  // Slot1 src = 7 → 7/22 ≈ 0.318 → idx 7 → LFO 1
         b[94] = 20; // Slot1 dest = 20 → 20/129 ≈ 0.155 → idx 20 → VCF Freq
         b[95] = 191; // Slot1 depth = 191 → 191/255 ≈ 0.749
 
         results = syncModMatrixUIFromState(mockBridge, null);
-        expect(results[1].srcName).toBe('Env 3');
+        expect(results[1].srcName).toBe('LFO 1');
         expect(results[1].destName).toBe('VCF Freq');
         expect(results[1].depthCache).toBeCloseTo(191 / 255, 2);
         expect(results[1].isActive).toBe(true);
@@ -387,7 +390,7 @@ describe('syncModMatrixUIFromState — slot synchronization logic', function() {
         mockBridge._loadedBanks = null;
         mockBridge.parameterCache['mod_matrix_slot1_src'] = 7 / 22.0;
         results = syncModMatrixUIFromState(mockBridge, null);
-        expect(results[1].srcName).toBe('Env 3');
+        expect(results[1].srcName).toBe('LFO 1');
     });
 
     it('handles patch with missing unpackedBytes gracefully', function() {

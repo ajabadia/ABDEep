@@ -77,15 +77,14 @@
                 this.workletNode.port.postMessage({ type: 'set_model', model: this._modelIndexForMode(newMode) });
             }
 
-            this._updateModeUI();
+            if (typeof window.refreshModMatrixSlots === 'function') {
+                window.refreshModMatrixSlots();
+            }
+            if (typeof window.refreshFxTypeOptions === 'function') {
+                window.refreshFxTypeOptions();
+            }
 
-            const lcdUpdate = window.lcdSafeUpdate || function() {};
-            const modeLabels = {
-                'deepmind_hw_controller': 'MODE: DM12 HW CONTROLLER',
-                'deepmind_web_standalone': 'MODE: DM12 WEB STANDALONE',
-                'abyssmind_pro': 'MODE: ABYSSMIND PRO (WEB+HW)'
-            };
-            lcdUpdate(modeLabels[newMode] || 'MODE: ABYSSMIND PRO (WEB+HW)');
+            this._updateModeUI();
         }
 
         _updateModeUI() {

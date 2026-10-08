@@ -79,12 +79,9 @@
     if (i <= 19) { return '#5b9bd5'; }            // osciladores y portamento
     if (i <= 23) { return '#e68a8a'; }            // VCF
     if (i <= 62) { return '#6abf69'; }            // envolventes
-    if (i === 63 || i === 64) { return '#d4a843'; } // VCA
-    // El bus de fx (74-81). Misma familia que el `var(--accent-red)` de
-    // `getDestCategoryColor`, en hex porque el canvas no resuelve variables CSS.
-    // El guard compara las dos vistas POR FAMILIA, y un rojo no esta en su
-    // lista: las dos caen en 'other' y siguen atadas.
-    if (i >= 74 && i <= 81) { return '#ff5f5f'; }
+    if (i >= 63 && i <= 72) { return '#d4a843'; } // VCA y comunes (Noise, HPF, Uni, Drift, Arp, Seq)
+    // 73-132: meta-modulacion y bus de fx
+    if (i >= 73 && i <= 132) { return '#ff5f5f'; }
     return '#888';
   };
 })();

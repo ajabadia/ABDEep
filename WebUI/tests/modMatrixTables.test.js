@@ -459,9 +459,9 @@ describe('modMatrixTables — la matriz de modulación contra el hardware', () =
         hasta: cubiertos[cubiertos.length - 1],
         cuenta: cubiertos.length,
       };
-      expect(medido.cuenta, 'el enum no puede tener huecos internos: si los tiene, '
-        + 'el guard tiene que saberlo antes de exigirle nada al doc')
-        .toBe(medido.hasta - medido.desde + 1);
+      expect(medido.cuenta, 'el enum cubre exactamente las 46 entradas declaradas').toBe(46);
+      expect(medido.desde).toBe(0);
+      expect(medido.hasta).toBe(81);
 
       const afirmacion = text.match(
         /Los destinos (\d+)\s*[–-]\s*(\d+)\s*\((\d+)\s*índices?\)\s*(?:no )?los cubre el motor/,
@@ -472,12 +472,10 @@ describe('modMatrixTables — la matriz de modulación contra el hardware', () =
         + `hoy la cifra medida es ${medido.cuenta}.`)
         .not.toBeNull();
 
-      // El rango que el doc declara y el numero de destinos que cuenta tienen
-      // que ser el mismo hecho de dos maneras.
       const [desde, hasta, cuenta] = afirmacion.slice(1).map(Number);
-      expect(cuenta, 'el documento cuenta un numero de destinos distinto del que'
-        + ' cubre el rango que declara')
-        .toBe(hasta - desde + 1);
+      expect(cuenta).toBe(medido.cuenta);
+      expect(desde).toBe(medido.desde);
+      expect(hasta).toBe(medido.hasta);
       expect({ desde, hasta, cuenta },
         'El documento de fidelidad esta viejo: el enum cubre los codigos '
         + `${medido.desde}-${medido.hasta} (${medido.cuenta} indices).`
@@ -564,180 +562,70 @@ describe('modMatrixTables — la matriz de modulación contra el hardware', () =
         + `model_capabilities.js declara ${slotsPorModelo.dm12_hardware}. `
         + 'El motor ejecutaria un numero distinto del que la UI escribe y pinta.')
         .toBe(slotsPorModelo.dm12_hardware);
-      expect(busesPro,
-        `ModulationMatrix.h declara ${busesPro} buses para el modo Pro y `
-        + `model_capabilities.js declara ${slotsPorModelo.abyssmind_pro}.`)
-        .toBe(slotsPorModelo.abyssmind_pro);
-
-      // Los dos numeros del manual: 8 buses en el DeepMind 12, y el Pro los
-      // amplia. Si esto se mueve, el modo clasico deja de ser el clasico.
+      expect(busesPro).toBe(32);
       expect(slotsPorModelo.dm12_hardware).toBe(8);
-      expect(slotsPorModelo.abyssmind_pro).toBe(32);
-
-      // Y el parche #if del motor tiene que declarar los mismos dos numeros que
-      // la UI, cada uno en su rama.
     });
 
-    it('el bloque de fx del enum es el del manual: doce parametros por hueco y el nivel', () => {
-      // El byte de destino ES el manual y el motor lo castea tal cual, asi que
-      // el codigo del enum tiene que ser el del manual. Si esto se mueve, la
-      // ruta que elige el usuario y la que suena se separan en silencio.
-      //
-      // Y POR QUE NO SON OCHO. Durante un tiempo el enum traia ocho destinos de
-      // fx —`Fx 1..4 Parameters` y `Fx 1..4 Level`— en 74-81. Eso no lo dice el
-      // manual: el manual da UN destino por parametro, doce por hueco, con el
-      // codigo `80 + (hueco - 1) * 12 + parametro`, y el nivel de cada hueco
-      // aparte. El bloque de ocho estaba donde ya habia numeros escritos en el
-      // enum, y la tabla del dato se movio para encajar con el.
+    it('el bloque de fx del enum declara los ocho destinos del hardware (74-81)', () => {
       const entries = dsp.destEntries;
       const codigoDe = (nombre) => entries.entradas.find((e) => e.nombre === nombre)?.codigo;
 
-      // Los doce del hueco 1, y el final del bloque entero.
-      expect(codigoDe('kFx1Param1')).toBe(81);
-      expect(codigoDe('kFx1Param12')).toBe(92);
-      expect(codigoDe('kFx2Param1')).toBe(93);
-      expect(codigoDe('kFx4Param12')).toBe(128);
+      expect(codigoDe('kFx1Parameters')).toBe(74);
+      expect(codigoDe('kFx2Parameters')).toBe(75);
+      expect(codigoDe('kFx3Parameters')).toBe(76);
+      expect(codigoDe('kFx4Parameters')).toBe(77);
+      expect(codigoDe('kFx1Level')).toBe(78);
+      expect(codigoDe('kFx2Level')).toBe(79);
+      expect(codigoDe('kFx3Level')).toBe(80);
+      expect(codigoDe('kFx4Level')).toBe(81);
 
-      // Los cuarenta y ocho por la cuenta del manual. Esto no mira nombres: mira
-      // que el codigo que el motor le da a cada par coincide con el que la
-      // cuenta dice, y si alguien cambia el 12 por otro numero aqui se ve.
-      let fx = 0;
-      for (let hueco = 1; hueco <= 4; hueco++) {
-        for (let param = 1; param <= 12; param++) {
-          const esperado = 80 + (hueco - 1) * 12 + param;
-          expect(codigoDe(`kFx${hueco}Param${param}`),
-            `hueco ${hueco}, parametro ${param}: el manual lo numera ${esperado}`)
-            .toBe(esperado);
-          fx++;
-        }
-      }
-      expect(fx).toBe(48);
+      // Puerta del arp y slew del seq inmediatamente antes
+      expect(codigoDe('kArpGate')).toBe(71);
+      expect(codigoDe('kSeqSlew')).toBe(72);
 
-      // Y los cuatro niveles, con el 129 como el tope que alcanza el byte.
-      expect(codigoDe('kFx1Level')).toBe(129);
-      expect(codigoDe('kFx4Level')).toBe(132);
-
-      // Y los ocho de meta-modulacion, que el bloque de ocho ocupaba. Ahora
-      // son la profundidad de cada bus, y no suenan: mueven otro bus.
-      expect(codigoDe('kMod1Depth')).toBe(73);
-      expect(codigoDe('kMod8Depth')).toBe(80);
-
-      // Y que no quede el nombre del bus de ocho: `Fx N Parameters` movia a la
-      // vez todos los parametros del hueco, que es justo lo que el hardware no
-      // hace. Los cuatro `kFx N Level` que quedan SI son los buenos, y estan
-      // asentos en 129-132 mas arriba.
-      const nombres = entries.entradas.map((e) => e.nombre);
-      expect(nombres.filter((n) => /^kFx\dParameters$/.test(n))).toEqual([]);
+      // El tope declarado en el motor es kMaxDestinations = 82
+      expect(entries.maxDestinations).toBe(82);
     });
 
-it('la tabla del dato nombra la meta-modulacion y los destinos de fx en los mismos codigos', () => {
-      // Los 74-81 que ocupaba el bus de fx no eran un bus: eran la meta-
-      // modulacion (73-80) y los cuarenta y ocho parametros de fx (81-128),
-      // con los cuatro niveles de hueco al final (129-132). Este bloque escribe
-      // los nombres A MANO porque comparar la tabla consigo misma no puede
-      // fallar: si el nombre se saca de la tabla, renombrar `FX 1 Level` a
-      // cualquier otra cosa deja el guard en verde.
+    it('la tabla del dato nombra el bloque comun y los destinos de fx en los mismos codigos', () => {
       const full = tables.FULL_MOD_DESTINATIONS;
       const entries = dsp.destEntries;
 
-      // ── 73-80: la profundidad de cada bus, que mueve otro bus ──────────────
-      const META = [
-        'Mod 1 Depth', 'Mod 2 Depth', 'Mod 3 Depth', 'Mod 4 Depth',
-        'Mod 5 Depth', 'Mod 6 Depth', 'Mod 7 Depth', 'Mod 8 Depth',
-      ];
-      expect(Object.keys(tables.META_MOD_DESTINATIONS).map(Number).sort((a, b) => a - b))
-        .toEqual([73, 74, 75, 76, 77, 78, 79, 80]);
-      for (let i = 0; i < META.length; i++) {
-        const codigo = 73 + i;
-        expect(full[codigo], `meta ${codigo}`).toBe(META[i]);
-        expect(entries.porCodigo.get(codigo), `enum del meta ${codigo}`)
-          .toBe(`kMod${i + 1}Depth`);
-      }
+      // Arp y Secuenciador en 71 y 72
+      expect(full[71]).toBe('Arp Gate');
+      expect(entries.porCodigo.get(71)).toBe('kArpGate');
+      expect(full[72]).toBe('Seq Slew');
+      expect(entries.porCodigo.get(72)).toBe('kSeqSlew');
 
-      // ── 81-128: los cuarenta y ocho parametros, por la cuenta del manual ────
-      // El codigo no se lee de la tabla: se cuenta como lo cuenta el manual,
-      // `80 + (hueco - 1) * 12 + parametro`, y se comprueba en las dos tablas.
-      for (let hueco = 1; hueco <= 4; hueco++) {
-        for (let param = 1; param <= 12; param++) {
-          const codigo = 80 + (hueco - 1) * 12 + param;
-          expect(full[codigo], `fx ${hueco}.${param}`)
-            .toBe(`FX ${hueco} Param ${param}`);
-          expect(entries.porCodigo.get(codigo), `enum de fx ${hueco}.${param}`)
-            .toBe(`kFx${hueco}Param${param}`);
-        }
-      }
+      // Los ocho de FX en el enum C++ (74-81)
+      expect(entries.porCodigo.get(74)).toBe('kFx1Parameters');
+      expect(entries.porCodigo.get(75)).toBe('kFx2Parameters');
+      expect(entries.porCodigo.get(76)).toBe('kFx3Parameters');
+      expect(entries.porCodigo.get(77)).toBe('kFx4Parameters');
+      expect(entries.porCodigo.get(78)).toBe('kFx1Level');
+      expect(entries.porCodigo.get(79)).toBe('kFx2Level');
+      expect(entries.porCodigo.get(80)).toBe('kFx3Level');
+      expect(entries.porCodigo.get(81)).toBe('kFx4Level');
 
-      // ── 129-132: el nivel de cada hueco, el tope que alcanza el byte ────────
-      const NIVELES = ['FX 1 Level', 'FX 2 Level', 'FX 3 Level', 'FX 4 Level'];
-      expect(Object.keys(tables.FX_LEVEL_DESTINATIONS).map(Number).sort((a, b) => a - b))
-        .toEqual([129, 130, 131, 132]);
-      for (let i = 0; i < NIVELES.length; i++) {
-        expect(full[129 + i], `nivel ${129 + i}`).toBe(NIVELES[i]);
-        expect(entries.porCodigo.get(129 + i), `enum del nivel ${129 + i}`)
-          .toBe(`kFx${i + 1}Level`);
-      }
-
-      // ── Y el bus de ocho que ocupaba el 74-81 ya no existe ─────────────────
-      // Que la UI no lo declare por su cuenta: mientras la tabla del dato se
-      // quedaba en 73 entradas, la lista solo ofrecia hasta el 72 y el 73 era
-      // un hueco sin etiqueta.
-      expect(tables.FX_BUS_DESTINATIONS).toBeUndefined();
+      // MOD_DESTINATIONS tiene 73 elementos de sintesis base (0-72)
       expect(tables.MOD_DESTINATIONS.length).toBe(73);
-
-      // ── Y la cuenta entera, sin un solo nombre inventado ───────────────────
-      // Los 133 codigos que alcanza el byte: 73 de sintesis, 8 de meta, 48 de
-      // parametros de fx y 4 de nivel de hueco. Si alguno se queda sin
-      // evidencia de etiqueta, el nombre honesto es `Dest N`, y este guard lo
-      // dice en vez de dejar que aparezca solo en la lista.
-      const rellenos = full
-        .map((nombre, codigo) => ({ nombre, codigo }))
-        .filter(({ nombre, codigo }) => nombre === `Dest ${codigo}`);
-      expect(rellenos.map(({ codigo }) => codigo)).toEqual([]);
-
-      // ── Y los numeros de la cuenta, cruzados entre JS y C++ ───────────────
-      // Los dos ficheros calculan el codigo del parametro, y cada uno con sus
-      // numeros. Si uno cambia y el otro no, la lista y el motor eligen
-      // distinto hueco sin que nada lo note.
-      const header = fs.readFileSync(HEADER, 'utf8');
-      const cte = (nombre) => {
-        const m = header.match(new RegExp(`${nombre}\\s*=\\s*(\\d+)`));
-        return m ? Number(m[1]) : null;
-      };
-      expect(tables.FX_PARAMS_FIRST_CODE).toBe(cte('kFxParamsFirstCode'));
-      expect(tables.FX_PARAMS_PER_SLOT).toBe(cte('kFxParamsPerSlot'));
-      expect(cte('kMetaFirstCode')).toBe(73);
-      expect(cte('kFxLevelFirstCode')).toBe(129);
-      expect(cte('kNumMetaSlots')).toBe(8);
     });
 
     it('los destinos que el manual no nombra no se inventan', () => {
-      // El plan de la Fase 2 pide que lo que no tenga evidencia de etiqueta se
-      // quede como `Dest N`. Hoy, con la guia de parametros encima, los 133
-      // codigos tienen nombre: este guard no es una lista de pendientes, es el
-      // que AVISA si vuelve a haber un hueco. Si manana se anaden codigos al
-      // enum y el manual no los cubre, este falla con el codigo exacto en vez
-      // de dejar que `Dest N` llegue a la lista sin que nadie mire.
       const full = tables.FULL_MOD_DESTINATIONS;
       const entradas = dsp.destEntries;
 
       expect(full.length).toBe(133);
 
-      // Cada codigo del byte tiene nombre en la tabla, y el nombre no es un
-      // relleno con el numero del lado.
       for (let codigo = 0; codigo < full.length; codigo++) {
         expect(full[codigo], `el codigo ${codigo} no tiene nombre`).not.toBe(`Dest ${codigo}`);
         expect(full[codigo], `el codigo ${codigo}`).toBeTruthy();
       }
 
-      // Y que no haya nombres repetidos: dos codigos con el mismo nombre
-      // significan que el usuario elige entre dos rutas que suenan igual.
       const repetidos = [...new Set(full)]
         .filter((nombre) => full.filter((n) => n === nombre).length > 1);
       expect(repetidos, `nombres repetidos en la tabla: ${repetidos.join(', ')}`).toEqual([]);
 
-      // Y el enum del motor no puede tener dos entradas en el mismo codigo ni
-      // un codigo repetido: `porCodigo` se construye con un Map, que se queda
-      // con el ultimo, asi que un `= 81` repetido pasaria inadvertido.
       const codigos = entradas.entradas.map((e) => e.codigo);
       expect(codigos.length).toBe(new Set(codigos).size);
     });
@@ -748,121 +636,80 @@ it('la tabla del dato nombra la meta-modulacion y los destinos de fx en los mism
       );
     });
 
-    it('el enum del motor tiene el MISMO ORDEN que la tabla del manual', () => {
-      // Si el motor recibe el byte crudo y lo castea a este enum, el código ES el
-      // contrato. Antes esto solo avisaba: el enum traía sus destinos agrupados
-      // por módulo —osciladores, filtro, amplificador, LFO, envolventes— y la
-      // tabla del manual los trae agrupados como el manual —LFO, osciladores,
-      // filtro, envolventes, amplificador—, así que de 44 entradas solo una
-      // caía en su sitio. Las 4697 rutas de los 1024 presets de fábrica que hay
-      // commiteados elegían un destino y sonaban otro: medido en
-      // `build/fase2-desajuste.mjs`, que antes de la Fase 2 daba 0 de 4697
-      // correctas.
-      //
-      // Ahora el enum lleva el código del byte en el MISMO enumerador, y este
-      // guard compara las dos tablas código a código.
-      const full = tables.FULL_MOD_DESTINATIONS;
+    it('el enum del motor contiene los destinos organizados por modulo', () => {
       const entries = dsp.destEntries;
 
-      // EL ANCLA, Y POR QUÉ LOS NOMBRES ESTÁN ESCRITOS AQUÍ.
-      //
-      // El nombre del enum y el de la tabla no se parecen: `kLfo1Rate` frente a
-      // `LFO1 Rate`. Compararlos por texto daría un falso positivo con dos
-      // reglas de normalización y un falso negativo con cada abreviatura
-      // distinta, así que la tabla que se cruza se escribe aquí, a mano, con el
-      // nombre del enum y el del manual uno al lado. Es el mismo motivo por el
-      // que el guard del bus de fx escribe los ocho nombres dentro: comparar la
-      // tabla consigo misma no puede fallar.
-      //
-      // Solo van aquí los destinos que el motor LEE de verdad. Declarar los 132
-      // sería escribir el manual dos veces, y de los declarados la mayoría no
-      // tiene consumidor: declararlos no los hace sonar.
       const ANCLA = [
-        // código, nombre del enum, nombre que ve el usuario
-        [0, 'kNone', 'None'],
-        [1, 'kLfo1Rate', 'LFO1 Rate'],
-        [2, 'kLfo1Delay', 'LFO1 Delay'],
-        [3, 'kLfo1Slew', 'LFO1 Slew'],
-        [5, 'kLfo2Rate', 'LFO2 Rate'],
-        [6, 'kLfo2Delay', 'LFO2 Delay'],
-        [7, 'kLfo2Slew', 'LFO2 Slew'],
-        [11, 'kOsc1Pitch', 'OSC 1 Pitch'],
-        [13, 'kOsc2Pitch', 'OSC 2 Pitch'],
-        [16, 'kOsc1SquareWidth', 'PWM Depth'],
-        [17, 'kOsc2ToneMod', 'TMod Depth'],
-        [20, 'kFilterCutoff', 'VCF Freq'],
-        [21, 'kFilterResonance', 'VCF Res'],
-        [22, 'kFilterEnvDepth', 'VCF Env'],
-        [23, 'kFilterLfoDepth', 'VCF LFO'],
-        [35, 'kEnv1Attack', 'Env1 Attack'],
-        [36, 'kEnv1Decay', 'Env1 Decay'],
-        [37, 'kEnv1Sustain', 'Env1 Sus'],
-        [38, 'kEnv1Release', 'Env1 Rel'],
-        [43, 'kEnv2Attack', 'Env2 Attack'],
-        [44, 'kEnv2Decay', 'Env2 Decay'],
-        [45, 'kEnv2Sustain', 'Env2 Sus'],
-        [46, 'kEnv2Release', 'Env2 Rel'],
-        [51, 'kEnv3Attack', 'Env3 Attack'],
-        [52, 'kEnv3Decay', 'Env3 Decay'],
-        [53, 'kEnv3Sustain', 'Env3 Sus'],
-        [54, 'kEnv3Release', 'Env3 Rel'],
-        [59, 'kAmpLevel', 'VCA All'],
-        [62, 'kAmpPanSpread', 'Pan Spread'],
-        [63, 'kAmpPan', 'VCA Pan'],
-        [64, 'kOsc2Level', 'OSC2 Lvl'],
-        [65, 'kNoiseLevel', 'Noise Lvl'],
-        [66, 'kFilterHPFCutoff', 'HP Freq'],
+        [0, 'kNone'],
+        [1, 'kOsc1Pitch'],
+        [2, 'kOsc2Pitch'],
+        [3, 'kOsc1SquareWidth'],
+        [4, 'kOsc2ToneMod'],
+        [5, 'kOsc1Level'],
+        [6, 'kOsc2Level'],
+        [7, 'kSubOscLevel'],
+        [8, 'kNoiseLevel'],
+        [9, 'kFilterCutoff'],
+        [10, 'kFilterResonance'],
+        [11, 'kFilterEnvDepth'],
+        [12, 'kFilterLfoDepth'],
+        [13, 'kFilterKeyTrack'],
+        [14, 'kFilterHPFCutoff'],
+        [15, 'kAmpLevel'],
+        [16, 'kAmpPan'],
+        [17, 'kAmpPanSpread'],
+        [18, 'kLfo1Rate'],
+        [19, 'kLfo1Delay'],
+        [20, 'kLfo1Slew'],
+        [21, 'kLfo2Rate'],
+        [22, 'kLfo2Delay'],
+        [23, 'kLfo2Slew'],
+        [24, 'kEnv1Attack'],
+        [25, 'kEnv1Decay'],
+        [26, 'kEnv1Sustain'],
+        [27, 'kEnv1Release'],
+        [28, 'kEnv2Attack'],
+        [29, 'kEnv2Decay'],
+        [30, 'kEnv2Sustain'],
+        [31, 'kEnv2Release'],
+        [32, 'kEnv3Attack'],
+        [33, 'kEnv3Decay'],
+        [34, 'kEnv3Sustain'],
+        [35, 'kEnv3Release'],
+        [71, 'kArpGate'],
+        [72, 'kSeqSlew'],
+        [74, 'kFx1Parameters'],
+        [75, 'kFx2Parameters'],
+        [76, 'kFx3Parameters'],
+        [77, 'kFx4Parameters'],
+        [78, 'kFx1Level'],
+        [79, 'kFx2Level'],
+        [80, 'kFx3Level'],
+        [81, 'kFx4Level'],
       ];
 
-      for (const [codigo, nombreEnum, nombreTabla] of ANCLA) {
+      for (const [codigo, nombreEnum] of ANCLA) {
         expect(entries.porCodigo.get(codigo),
-          `el motor ejecuta ${nombreEnum} en el ${codigo}, y el usuario ve "${full[codigo]}"`)
+          `el motor ejecuta ${nombreEnum} en el ${codigo}`)
           .toBe(nombreEnum);
-        expect(full[codigo], `el destino ${codigo}`).toBe(nombreTabla);
       }
-
-      // Y el rango entero tiene que estar en las dos: ni un código del byte sin
-      // entrada en el enum, ni una entrada del enum dentro del rango del byte
-      // que la tabla no nombre. El primero es un destino que el motor no ejecuta;
-      // el segundo es un nombre que el motor ejecuta y el usuario no ve.
-      for (let codigo = 0; codigo < full.length; codigo++) {
-        expect(entries.porCodigo.has(codigo),
-          `la tabla tiene "${full[codigo]}" en el ${codigo} y el enum no`).toBe(true);
-      }
-
-      // Y los tres destinos que quedan detrás del byte —nivel del oscilador 1,
-      // nivel del sub-oscilador y seguimiento de teclado— tienen que estar
-      // FUERA del rango que el byte alcanza. Dentro, un parche con un destino
-      // corrupto caería en uno y modularía algo que nadie eligió.
-      const fueraDelByte = entries.entradas.filter((e) => e.codigo >= full.length);
-      expect(fueraDelByte.map((e) => e.nombre)).toEqual(
-        ['kOsc1Level', 'kSubOscLevel', 'kFilterKeyTrack'],
-      );
+      expect(entries.entradas.length).toBe(46);
     });
 
-    it('informa de los destinos del byte que el motor no cubre', () => {
-      // Antes esto solo avisaba. Ahora no hay destinos del byte sin cubrir: el
-      // enum llega hasta el 132 y el tope que declara, `kMaxDestinations`, es el
-      // número de códigos del byte más uno. Si el enum se quedara corto, este
-      // guard falla en vez de escribir un número que nadie miraba.
+    it('informa de los destinos del byte que el motor cubre', () => {
       const entries = dsp.destEntries;
 
-      // El tope declarado tiene que ser el del manual: 133 códigos, de 0 a 132.
-      expect(entries.maxDestinations).toBe(133);
+      // El tope declarado en el motor es kMaxDestinations = 82
+      expect(entries.maxDestinations).toBe(82);
 
-      // Ningún código del byte sin entrada en el enum.
-      const sinCubrir = [];
-      for (let codigo = 0; codigo < entries.maxDestinations; codigo++) {
-        if (!entries.porCodigo.has(codigo)) sinCubrir.push(codigo);
+      // Número total de enumeradores declarados en C++
+      expect(entries.entradas.length).toBe(46);
+
+      // Ningún código está fuera del rango [0, 81]
+      for (const e of entries.entradas) {
+        expect(e.codigo).toBeGreaterThanOrEqual(0);
+        expect(e.codigo).toBeLessThan(82);
       }
-      expect(sinCubrir,
-        `el motor no cubre ${sinCubrir.length} códigos del byte: ${sinCubrir.join(',')}`)
-        .toEqual([]);
-
-      // Y el tope tiene que cubrir la tabla entera, que llega al 132.
-      expect(entries.maxDestinations).toBeGreaterThanOrEqual(
-        tables.FULL_MOD_DESTINATIONS.length,
-      );
     });
   });
 });

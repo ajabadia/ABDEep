@@ -20,6 +20,7 @@ function exportBankJson(bankName, fileName, bankPatches) {
             return patch ? {
                 name: patch.name || 'Patch',
                 params: patch.params || patch.parameterState || {},
+                meta: patch.meta,
                 unpackedBytes: Array.from(patch.unpackedBytes || [])
             } : null;
         })
@@ -45,6 +46,7 @@ function exportSinglePatchJson(patch, fileName) {
         isAdvanced: true,
         created: Date.now(),
         params: patch.params || patch.parameterState || {},
+        meta: patch.meta,
         unpackedBytes: Array.from(patch.unpackedBytes || [])
     };
     const jsonStr = JSON.stringify(patchData, null, 2);

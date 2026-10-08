@@ -19,3 +19,21 @@ if (typeof globalThis !== 'undefined' && typeof globalThis.getBridge === 'undefi
         return null;
     };
 }
+
+// Inyección de safe.directory en worker de vitest
+if (typeof process !== 'undefined' && process.env) {
+    const rootDir = process.cwd().replace(/\\/g, '/').replace(/\/+$/, '');
+    const count = Number.parseInt(process.env.GIT_CONFIG_COUNT ?? '0', 10);
+    let found = false;
+    for (let i = 0; i < count; i += 1) {
+        if (process.env[`GIT_CONFIG_KEY_${i}`] === 'safe.directory') {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        process.env.GIT_CONFIG_COUNT = String(count + 1);
+        process.env[`GIT_CONFIG_KEY_${count}`] = 'safe.directory';
+        process.env[`GIT_CONFIG_VALUE_${count}`] = rootDir;
+    }
+}

@@ -48,7 +48,7 @@ referencia del byte**, que es lo que el equipo acepta y acepta de vuelta.
 
 | # | Dónde | Qué dice |
 |---|---|---|
-| 1 | `Source/DSP/ModulationMatrix.h` (motor) | enum `ModSource` (23 códigos, 0–22) y `ModDestination` (**133**, 0–132) — numerados con los **códigos del byte** del manual |
+| 1 | `Source/DSP/ModulationMatrix.h` (motor) | enum `ModSource` (23 códigos, 0–22) y `ModDestination` (46 entradas, tope `kMaxDestinations = 82`) con los 8 destinos FX en 74–81 |
 | 2 | `WebUI/js/modmatrix_data.js` (vista) | 25 fuentes; 74 destinos + relleno a 133; `Fx 1..4 Level` en 129–132 |
 | 3 | `WebUI/js/components/mod-matrix-canvas_data.js` (vista de grafos) | **otra** copia: 25 fuentes y **237** destinos, con `Fx1` en el índice **233** |
 | 4 | `docs/sysex_format.md` + registro | bytes 93–116; fuente 0–22, destino 0–129, profundidad bipolar |
@@ -61,11 +61,9 @@ byte no llega. Nadie lo detectó porque no había nada que lo comprobara.
 byte crudo a su propio enum (`SynthEngine_Parameters.cpp`, `setRoute` con
 `static_cast<ModDestination>`), así que **el número del enum es lo que suena** y no
 queda más remedio que numerarlo con el manual. Ya lo está: `ModDestination` tiene
-**133 entradas y va de 0 a 132 con los códigos del manual** (0 = ninguno, 1–8 LFO,
-9–19 osciladores, 20–23 filtro, 24–34 envolventes, 35–58 cada envolvente, 59–63
-amplificador, 64–72 comunes, 73–80 los ocho buses, 81–128 los parámetros de los
-cuatro huecos de efecto, 129–132 el nivel de salida de los cuatro huecos), y el
-byte de destino llega a 129. Los destinos 0–132 (133 índices) los cubre el motor,
+**46 entradas declaradas en 0..81 con tope kMaxDestinations = 82**, cubriendo síntesis,
+arpegiador/secuenciador (71-72) y los ocho destinos FX en 74-81 (`Fx 1..4 Parameters` y
+`Fx 1..4 Level`). Los destinos 0–81 (46 índices) los cubre el motor,
 y la medición de este mismo run lo confirma contando los códigos que el enum
 declara en vez de restar longitudes.
 
