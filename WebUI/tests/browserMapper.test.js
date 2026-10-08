@@ -352,7 +352,8 @@ const BYTE_OFFSET_TO_PARAM_IDS = buildReverseMap();
 
 function rawToNormalized(byteOffset, rawValue) {
     if (BIPOLAR_BYTES.has(byteOffset)) {
-        return Math.max(0, Math.min(1, ((rawValue - 128) / 127.0 + 1) / 2));
+        const val = rawValue < 128 ? (rawValue / 128.0) * 0.5 : 0.5 + ((rawValue - 128) / 127.0) * 0.5;
+        return Math.max(0, Math.min(1, val));
     }
     if (ENUM_BYTES[byteOffset] !== undefined) {
         return Math.min(1, rawValue / ENUM_BYTES[byteOffset]);
@@ -362,8 +363,11 @@ function rawToNormalized(byteOffset, rawValue) {
 
 function normalizedToRaw(byteOffset, normalizedValue) {
     if (BIPOLAR_BYTES.has(byteOffset)) {
-        const val = ((normalizedValue * 2.0) - 1.0) * 127.0;
-        return Math.round(val + 128);
+        const n = Math.max(0, Math.min(1, normalizedValue));
+        if (n <= 0.5) {
+            return Math.round(n * 2.0 * 128.0);
+        }
+        return Math.round(128.0 + (n - 0.5) * 2.0 * 127.0);
     }
     if (ENUM_BYTES[byteOffset] !== undefined) {
         return Math.round(normalizedValue * ENUM_BYTES[byteOffset]);
@@ -894,9 +898,8 @@ describe('rawToNormalized — raw value conversion', function () {
         expect(rawToNormalized(42, 255)).toBeCloseTo(1.0, 5);
     });
 
-    it('bipolar type: raw 64 → normalized ~0.248', function () {
-        const expected = Math.max(0, Math.min(1, ((64 - 128) / 127.0 + 1) / 2));
-        expect(rawToNormalized(42, 64)).toBeCloseTo(expected, 5);
+    it('bipolar type: raw 64 → normalized 0.25', function () {
+        expect(rawToNormalized(42, 64)).toBeCloseTo(0.25, 5);
     });
 
     it('bipolar type: raw 192 → normalized ~0.752', function () {
@@ -947,10 +950,8 @@ describe('normalizedToRaw — normalized value conversion', function () {
         expect(normalizedToRaw(42, 0.5)).toBe(128);
     });
 
-    it('bipolar type: normalized 0.0 → raw 1 (clamped to minimum valid bipolar value)', function () {
-        // Bipolar range maps to raw 1-255 (center 128). raw=0 is outside bipolar range.
-        // normalizedToRaw(42, 0.0) → val = -127 → round(-127 + 128) = 1
-        expect(normalizedToRaw(42, 0.0)).toBe(1);
+    it('bipolar type: normalized 0.0 → raw 0 (full negative)', function () {
+        expect(normalizedToRaw(42, 0.0)).toBe(0);
     });
 
     it('bipolar type: normalized 1.0 → raw 255 (full positive)', function () {
@@ -999,10 +1000,9 @@ describe('Conversion roundtrip — raw→normalized→raw consistency', function
         expect(normalizedToRaw(42, n)).toBe(128);
     });
 
-    it('bipolar type: raw 0 → normalized → raw 1 (clamped to min bipolar valid value)', function () {
-        // raw=0 → clamped normalized=0 → raw=1 (bipolar valid range is 1-255)
+    it('bipolar type: raw 0 → normalized → raw 0 (roundtrip)', function () {
         const n = rawToNormalized(42, 0);
-        expect(normalizedToRaw(42, n)).toBe(1);
+        expect(normalizedToRaw(42, n)).toBe(0);
     });
 
     it('bipolar type: raw 255 → normalized → raw 255', function () {
@@ -1030,9 +1030,9 @@ describe('Conversion roundtrip — raw→normalized→raw consistency', function
         expect(normalizedToRaw(2, n)).toBe(0);
     });
 
-    it('seq step (bipolar): raw 0 → normalized → raw 1 (bipolar min valid value)', function () {
+    it('seq step (bipolar): raw 0 → normalized → raw 0 (roundtrip)', function () {
         const n = rawToNormalized(123, 0);
-        expect(normalizedToRaw(123, n)).toBe(1);
+        expect(normalizedToRaw(123, n)).toBe(0);
     });
 
     it('seq step (bipolar): raw 255 → normalized → raw 255', function () {

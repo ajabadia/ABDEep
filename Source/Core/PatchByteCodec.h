@@ -15,8 +15,8 @@ namespace PatchByteCodec
 /**
  * Convierte un byte físico del preset DM12 (0-255) al valor normalizado 0-1
  * que espera el parámetro APVTS. Réplica exacta de registry.gen.js:29-35
- * (rawToNormalized): bipolar → ((raw-128)/127+1)/2 saturado; enum → raw/enumMax;
- * value → raw/255. Los offsets sin entrada en el registro caen a raw/255.
+ * (rawToNormalized): bipolar → Fórmula C por tramos (raw < 128 ? (raw/128)*0.5 : 0.5+((raw-128)/127)*0.5);
+ * enum → raw/enumMax; value → raw/255. Los offsets sin entrada en el registro caen a raw/255.
  */
 inline float rawToNormalized (std::uint16_t byteOffset, std::uint8_t raw) noexcept
 {
@@ -26,11 +26,10 @@ inline float rawToNormalized (std::uint16_t byteOffset, std::uint8_t raw) noexce
 
     switch (p->codecType)
     {
-        case 1: // bipolar
-        {
-            const float v = ((static_cast<float> (raw) - 128.0f) / 127.0f + 1.0f) / 2.0f;
-            return std::clamp (v, 0.0f, 1.0f);
-        }
+        case 1: // bipolar (Fórmula C por tramos / piecewise)
+            if (raw < 128)
+                return (static_cast<float> (raw) / 128.0f) * 0.5f;
+            return 0.5f + ((static_cast<float> (raw) - 128.0f) / 127.0f) * 0.5f;
         case 2: // enum
             if (p->enumMax > 0)
                 return std::min (1.0f, static_cast<float> (raw) / static_cast<float> (p->enumMax));

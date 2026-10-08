@@ -192,7 +192,8 @@ window.BRIDGE_PARAM_MAPS = (function() {
         /** Convierte valor raw (0-255) a normalized (0-1). Maneja bipolares y enums. */
         rawToNormalized: function(byteOffset, rawValue) {
             if (BIPOLAR_BYTES.has(byteOffset)) {
-                return Math.max(0, Math.min(1, ((rawValue - 128) / 127.0 + 1) / 2));
+                const val = rawValue < 128 ? (rawValue / 128.0) * 0.5 : 0.5 + ((rawValue - 128) / 127.0) * 0.5;
+                return Math.max(0, Math.min(1, val));
             }
             if (ENUM_BYTES[byteOffset] !== undefined) {
                 return Math.min(1, rawValue / ENUM_BYTES[byteOffset]);
@@ -203,8 +204,11 @@ window.BRIDGE_PARAM_MAPS = (function() {
         /** Convierte valor normalized (0-1) a raw (0-255). Maneja bipolares y enums. */
         normalizedToRaw: function(byteOffset, normalizedValue) {
             if (BIPOLAR_BYTES.has(byteOffset)) {
-                const val = ((normalizedValue * 2.0) - 1.0) * 127.0;
-                return Math.round(val + 128);
+                const n = Math.max(0, Math.min(1, normalizedValue));
+                if (n <= 0.5) {
+                    return Math.round(n * 2.0 * 128.0);
+                }
+                return Math.round(128.0 + (n - 0.5) * 2.0 * 127.0);
             }
             if (ENUM_BYTES[byteOffset] !== undefined) {
                 return Math.round(normalizedValue * ENUM_BYTES[byteOffset]);
