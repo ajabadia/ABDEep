@@ -3,8 +3,11 @@
 #include <JuceHeader.h>
 #include <atomic>
 #include <array>
+#include <cstdint>
 #include "SynthVoice.h"
 #include "ModulationMatrix.h"
+#include "Arpeggiator.h"
+#include "ControlSequencer.h"
 #include "FX/FXEngine.h"
 #include "Core/DiagnosticSnapshots.h"
 #include "Core/CalibrationSpec.h"
@@ -55,6 +58,16 @@ namespace ABD
         void setVcaPanSpread(float spread);
         void setVcfModel(int model);
         void setVcfOversample(int oversample);
+        void setVcfCutoff(float cutoff);
+        void setEnv1Times(float attack, float decay, float sustain, float release);
+
+        /**
+         * Carga un patch DM12 de 242 bytes: lo escribe en la APVTS vía
+         * PatchByteCodec::applyToApvts y re-sincroniza el motor con
+         * updateParameters(). Devuelve el número de parámetros escritos.
+         */
+        int loadPatchBytes (const std::uint8_t* patch242,
+                            juce::AudioProcessorValueTreeState& apvts);
 
         /** Retorna el estado actual de las 12 voces para el DebugPanel (C++ → WebUI bridge) */
         /** Thread-safe: lee de un snapshot protegido por voiceStateLock */
@@ -144,6 +157,7 @@ namespace ABD
         // --- Voice Mode & Unison ---
         int voiceMode = 0;             // 0=Poly, 1=Uni2, 2=Uni3, 3=Uni4, 4=Uni6, 5=Uni12,
                                        // 6=Mono, 7=Mono2, 8=Mono3, 9=Mono4, 10=Mono6, 11=Poly6, 12=Poly8
+        float unisonDetuneBase = 0.0f; // valor crudo del parámetro unison_detune (0-1)
         float unisonDetune = 0.0f;     // normalized 0-1, symmetrical detune ±0..±50 cents
         float vcaPanSpread = 0.0f;     // normalized 0-1, stereo spread for stacked voices
 
@@ -226,6 +240,16 @@ namespace ABD
         // Arpeggiator clock frequency (Hz) para LFO Arp Sync y MIDI clock
         float arpClockHz = 1.0f;
         bool arpSyncActive = false;  // true si alguna voz tiene lfoArpSync activo (para global LFOs)
+
+        // ── ARP/SEQ: BPM maestro, gate base y módulos ────────────────────
+        // masterBpm viene de arp_rate (20-275, ya en BPM); lo consumen el reloj
+        // del arp, el secuenciador de control y el sync de los LFO.
+        float masterBpm = 120.0f;
+        // Gate del panel (0-1). La matriz le suma encima muestra a bloque en
+        // processBlock (destino 71), por eso el panel se guarda aparte.
+        float arpGateBase = 0.5f;
+        Arpeggiator arpeggiator;
+        ControlSequencer controlSequencer;
 
         // LFO Arp Sync rates desde la tabla de Clock Divide del hardware (lfo_rate → división)
         float globalLfo1ArpSyncHz = 1.0f;

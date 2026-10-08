@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstdint>
 
+#include <JuceHeader.h>
+
 #include "ParameterRegistry.gen.h"
 
 namespace ABD
@@ -36,6 +38,47 @@ inline float rawToNormalized (std::uint16_t byteOffset, std::uint8_t raw) noexce
         default: // value
             return static_cast<float> (raw) / 255.0f;
     }
+}
+
+} // namespace PatchByteCodec
+} // namespace ABD
+
+namespace ABD
+{
+namespace PatchByteCodec
+{
+
+/**
+ * Escribe un patch DM12 completo (242 bytes) en la APVTS: recorre el registro
+ * de parámetros, convierte cada byte físico a normalizado con rawToNormalized()
+ * y lo mete en el parámetro homónimo vía getRawParameterValue().
+ *
+ * No toca el host (sin setValueNotifyingHost): el caller re-sincroniza el
+ * motor con SynthEngine::updateParameters(), que es quien lee los raw values.
+ * Devuelve el número de parámetros escritos (0 si el registro no coincide
+ * con el árbol, p. ej. layout distinto).
+ */
+inline int applyToApvts (const std::uint8_t* patch242,
+                         juce::AudioProcessorValueTreeState& apvts)
+{
+    jassert (patch242 != nullptr);
+    if (patch242 == nullptr)
+        return 0;
+
+    int escritos = 0;
+    for (const auto& p : Registry::kParameters)
+    {
+        if (p.byteOffset >= Registry::kByteMapSize)
+            continue;
+
+        const float normalizado = rawToNormalized (p.byteOffset, patch242[p.byteOffset]);
+        if (auto* raw = apvts.getRawParameterValue (p.id))
+        {
+            raw->store (normalizado, std::memory_order_relaxed);
+            ++escritos;
+        }
+    }
+    return escritos;
 }
 
 } // namespace PatchByteCodec

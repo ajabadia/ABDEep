@@ -94,3 +94,11 @@ std::vector<ParametersSpec::ParamInfo> ParametersSpec::getArpSpecs()
                 { "Memory", "Major", "Minor", "Aug", "Dim", "Sus2", "Sus4", "7th" } },
     };
 }
+
+// Vista histórica Arp + Chord usada por SynthEngineUnitTests. Es el mismo
+// conjunto que getArpSpecs() (que ya agrupa ARPEGGIATOR + CHORD MEMORY),
+// declarado en ParametersSpec.h y antes sin cuerpo (LNK2019 en UnitTests).
+std::vector<ParametersSpec::ParamInfo> ParametersSpec::getArpChordSpecs()
+{
+    return getArpSpecs();
+}

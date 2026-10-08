@@ -24,6 +24,11 @@ namespace ABD
         void setParameters(float attackTimeSec, float decayTimeSec, float sustainLevel, float releaseTimeSec);
         void setCurves(float attackCurve, float decayCurve, float sustainCurve, float releaseCurve);
 
+        /** Desplazamiento del nivel de sustain (suma sobre sustainLevel, clamp 0..1). */
+        void setSustainOffset(float offset);
+        /** Modulación dinámica de curvatura por etapa (-1..1), sumada a la curva base. */
+        void setCurveModulation(Stage stage, float modAmount);
+
         void trigger();
         void release();
         void reset();
@@ -33,6 +38,9 @@ namespace ABD
         Stage getCurrentStage() const { return currentStage; }
         /** Nivel actual de la envolvente (para decisiones de robo de voz — MS2000 ladder). */
         float getCurrentLevel() const { return currentLevel; }
+
+        /** Nivel de sustain efectivo: clamp(sustainLevel + sustainOffset, 0, 1). */
+        float sustainEfectivo() const;
 
     private:
         double sampleRate = 44100.0;
@@ -49,6 +57,10 @@ namespace ABD
         float decayCurve = 0.0f;
         float sustainCurve = 0.0f;
         float releaseCurve = 0.0f;
+
+        // Desplazamiento del sustain (-1..1) y modulación de curva por etapa (-1..1)
+        float sustainOffset = 0.0f;
+        float curveModulation[5] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f }; // indexado por (int)Stage
 
         // Estado interno de la fase actual
         double currentProgress = 0.0; // 0.0 a 1.0 dentro de la fase actual

@@ -30,6 +30,16 @@ namespace ABD
         void setDelay(float delaySec);
         void setSlew(float slewAmount);
 
+        /**
+         * Escalas de rango para deep-dive/parametros extendidos (default 1.0 = comportamiento base):
+         * - rateScale: multiplica la frecuencia efectiva (hot-path, con guard).
+         * - delayScale: multiplica el delay/fade-in en segundos.
+         * - slewScale: multiplica el tiempo de transicion del slew limiter.
+         */
+        void setRateScale(float scale);
+        void setDelayScale(float scale);
+        void setSlewScale(float scale);
+
         void reset();
         void trigger();
         void setPhase(double newPhase);
@@ -45,6 +55,11 @@ namespace ABD
         bool keySync = true;
         float delayTime = 0.0f;
         float slew = 0.0f;
+
+        // Escalas de rango (default 1.0: sin alterar el comportamiento base)
+        float rateScale = 1.0f;
+        float delayScale = 1.0f;
+        float slewScale = 1.0f;
 
         double phase = 0.0;
         double phaseIncrement = 0.0;
