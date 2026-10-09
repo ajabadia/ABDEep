@@ -1,26 +1,33 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspAutoPan.h>
 
 namespace ABD
 {
     /**
-     * FXAutoPan: Efecto Auto Pan / Tremolo con LFO y envelope follower.
+     * @brief FXAutoPan: Efecto Auto Pan / Tremolo modulado con envelope follower interactivo.
      *
-     * Basado en el hardware DeepMind 12 (type=20).
-     * Modula la posición panorámica (Auto Pan) o el volumen (Tremolo)
-     * usando un LFO con control de forma de onda y offset estéreo.
+     * HARDWARE EMULADO:
+     *   - Efecto Auto Pan / Tremolo clásico (DeepMind 12 FX Type 20), inspirado en los
+     *     circuitos de trémolo optoelectrónico y paneo estéreo de amplificadores Fender
+     *     y pianos Rhodes Suitcase.
+     *   - Parámetros:
+     *     * Speed: Frecuencia de modulación (0.05 Hz a 5.0 Hz).
+     *     * Phase: Desfase estéreo entre canales (0° a 180°).
+     *     * Wave: Forma de onda suave continua (Triangular -> Sinusoidal -> Cuadrada).
+     *     * Depth: Profundidad de modulación (0 a 100%).
+     *     * EnvSpd: Modulación dinámica de la velocidad LFO por la amplitud de la señal entrante.
+     *     * EnvDepth: Modulación dinámica de la profundidad por la envolvente.
+     *     * Attack / Release: Balística temporal del seguidor de envolvente.
      *
-     * Parámetros (orden hardware, docs/deepmind_fx.md FX Type 20):
-     *   0: Speed    (0-1, 0.05-5.0 Hz, o tempo-synced)
-     *   1: Phase    (0-1, 0-180°, offset estéreo del LFO)
-     *   2: Wave     (0-1, triangular → cuadrado, simetría -50..+50)
-     *   3: Depth    (0-1, 0-100%, profundidad de modulación)
-     *   4: EnvSpd   (0-1, envelope modula la velocidad)
-     *   5: EnvDepth (0-1, envelope modula la profundidad)
-     *   6: Attack   (0-1, tiempo del envelope follower)
-     *   7: Hold     (0-1, almacenado — sin equivalente DSP)
-     *   8: Release  (0-1, tiempo del envelope follower)
+     * DIAGNÓSTICO DE FIDELIDAD ACTUAL:
+     *   - Motor subyacente delegado en `abd::dsp::DspAutoPan` (100% RT-Safe, C++20 puro).
+     *   - Paneo sinusoidal/cosenoidal equal-power para preservación de potencia acústica.
+     *
+     * LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *   - Modos adicionales de paneo lineal o balance estéreo personalizado.
+     *   - Sincronización MIDI Clock / BPM para tempo-synced chopping.
      */
     class FXAutoPan : public FXBase
     {
@@ -38,32 +45,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Auto Pan"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        // Parámetros (orden hardware)
-        float speed    = 0.3f;  // 0.05-5.0 Hz
-        float phase    = 0.0f;  // 0-180° offset estéreo (0-0.5 en ciclo)
-        float wave     = 0.5f;  // triangular (0) → cuadrado (1), con simetría
-        float depth    = 0.5f;  // 0-100%
-        float envSpd   = 0.0f;  // 0-100%, envelope → speed
-        float envDepth = 0.0f;  // 0-100%, envelope → depth
-        float hold     = 0.5f;  // almacenado
-        float attackParam   = 0.02f;  // 0-1 → factor de suavizado
-        float releaseParam  = 0.002f; // 0-1 → factor de suavizado
-
-        // Envelope follower state (detector de envolvente simple)
-        float envStateL = 0.0f;
-        float envStateR = 0.0f;
-        float envAttack  = 0.01f; // factor de suavizado (computado)
-        float envRelease = 0.001f;
-
-        // LFO state
-        double lfoPhaseL = 0.0;
-        double lfoPhaseR = 0.0;
-        float  lfoInc    = 0.0f; // incremento por muestra (Hz / sampleRate)
-
-        void updateLFOIncrement();
-        void updateEnvCoeffs();
-        float getLFOWave(double phase, float waveParam);
+        abd::dsp::DspAutoPan engine_;
     };
 }
