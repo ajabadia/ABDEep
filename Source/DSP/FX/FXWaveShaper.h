@@ -1,22 +1,44 @@
+/*
+  ==============================================================================
+
+    FXWaveShaper.h
+    Modelador de ondas no lineal (WaveShaper) con familias de curvas continuas.
+
+    ENVOLTORIO DE PRODUCTO: ABDEep
+    MOTOR DSP SUBYACENTE: abd::dsp::DspWaveShaper (ABDSharedCode/DspEffects/DspWaveShaper.h)
+
+    EMULACIÓN DE HARDWARE REAL:
+      - DeepMind 12 FX Type 51: Wave Shaper
+      - Algoritmo digital de conformación no lineal (Surge WaveShaperEffect / Korg Prophecy waveshaper).
+
+    DIAGNÓSTICO Y ARQUITECTURA DSP ACTUAL:
+      - Curvas de transferencia continuas: Soft-Clip (tanh), Wavefold y Sine-based.
+      - Control de simetría armónica (pares cuadráticos vs impares cúbicos).
+      - Filtro de tono pasabajos y control de mezcla Dry/Wet.
+      - 100% Real-Time Safe: sin asignaciones dinámicas en hilos de audio.
+
+    BRECHAS DE FIDELIDAD Y LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+      1. Aliasing en pliegues de onda (Wavefolding):
+         El plegado agresivo de ondas genera frecuencias que superan la frecuencia de Nyquist.
+         Se debe investigar añadir sobremuestreo opcional o algoritmos de anti-derivada (ADAA).
+
+    PARÁMETROS (Orden hardware DeepMind 12 - Type 51):
+      0: Shape    (0-1, familia de curvas de transferencia)
+      1: Symmetry (0-1, balance armónicos pares/impares)
+      2: Gain     (0-1, ganancia de entrada)
+      3: Tone     (0-1, filtro pasabajos post-shaper)
+      4: Mix      (0-1, dry/wet mix)
+
+  ==============================================================================
+*/
+
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspWaveShaper.h>
 
 namespace ABD
 {
-    /**
-     * FXWaveShaper: Non-linear waveshaper with multiple transfer curves.
-     *
-     * Implements soft-clip, hard-clip, fold, and sin-based transfer functions.
-     * Source: Surge WaveShaperEffect.
-     *
-     * Parameters:
-     *   0: Shape   (0-1, selects transfer curve family)
-     *   1: Symmetry(0-1, even/odd harmonic balance)
-     *   2: Gain    (0-1, input gain)
-     *   3: Tone    (0-1, post-shaper LPF)
-     *   4: Mix     (0-1, dry/wet mix)
-     */
     class FXWaveShaper : public FXBase
     {
     public:
@@ -33,12 +55,6 @@ namespace ABD
         juce::String getEffectName() const override { return "WaveShaper"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float shape = 0.3f, symmetry = 0.5f, gainParam = 0.5f, toneParam = 0.5f, mix = 0.4f;
-
-        float toneL = 0.0f, toneR = 0.0f;
-
-        float transfer(float x) const;
+        abd::dsp::DspWaveShaper shaper_;
     };
 }
