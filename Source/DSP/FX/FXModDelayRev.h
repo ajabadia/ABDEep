@@ -1,34 +1,42 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspModDelayRev.h>
 
 namespace ABD
 {
     /**
-     * FXModDelayRev: Modulated Delay + Reverb híbrido.
-     * Basado en DeepMind 12 (type=12). Modos Parallel/Serial.
-     * Usa delay modulado + reverb Schroeder (comb + allpass).
+     * @brief FXModDelayRev: Híbrido de retardo modulado con LFO y reverberación Schroeder.
      *
-     * Parámetros:
-     *   0: Time     (0-1, 1-1500ms)
-     *   1: Factor   (0-1, factor rítmico)
-     *   2: Feedback (0-1, 0-100%)
-     *   3: FeedHC   (0-1, 200-20000Hz)
-     *   4: Depth    (0-1, 0-100%)
-     *   5: Speed    (0-1, 0-10Hz)
-     *   6: Mode     (0=PAR, 1=SER)
-     *   7: Rtype    (0-1, AMB/CLUB/HALL)
-     *   8: Decay    (0-1, 1-10)
-     *   9: Damping  (0-1, 1-20kHz)
-     *   10: Balance (0-1, delay/reverb)
-     *   11: Mix     (0-1, 0-100%)
+     * HARDWARE EMULADO:
+     *   - Procesador híbrido de reverberación y retardo espacial (DeepMind 12 FX Type 12),
+     *     inspirado en algoritmos clásicos de Lexicon 224 y 480L.
+     *   - Parámetros:
+     *     * Time: Tiempo de retardo maestro (1 ms a 1500 ms).
+     *     * Factor: Fracción métrica rítmica (1/4 a 3/1).
+     *     * Feedback: Realimentación del bucle de retardo (0 a 95%).
+     *     * FeedHC: Amortiguación de agudos en el lazo de retardo (200 Hz a 20 kHz).
+     *     * Depth / Speed: Modulación sinusoidal del tiempo de retardo (0.1 Hz a 10 Hz).
+     *     * Mode: Topología de ruteo Paralelo (PAR) o Cascada (SER).
+     *     * Rtype: Perfil acústico de sala (Ambience, Club, Hall).
+     *     * Decay / Damping: Tiempo de caída y absorción de altas frecuencias en la reverb.
+     *     * Balance: Proporción de mezcla entre la componente de delay y la de reverb.
+     *     * Mix: Balance Dry/Wet global (0 a 100%).
+     *
+     * DIAGNÓSTICO DE FIDELIDAD ACTUAL:
+     *   - Motor delegado en `abd::dsp::DspModDelayRev` (100% RT-Safe, C++20 puro).
+     *   - 4 filtros de peine y 3 etapas allpass de difusión con búferes pre-asignados en prepare().
+     *
+     * LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *   - Modulación de los retardos de allpass para eliminación completa de resonancias metálicas.
      */
     class FXModDelayRev : public FXBase
     {
     public:
         FXModDelayRev();
         ~FXModDelayRev() override = default;
-        void prepare(double, int) override;
+
+        void prepare(double sampleRate, int samplesPerBlock) override;
         void process(const float* inL, const float* inR,
                       float* outL, float* outR, int numSamples) override;
         void setParameter(int index, float value) override;
@@ -37,33 +45,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Mod Delay Rev"; }
 
     private:
-        double sampleRate = 44100.0;
-        float time_ = 0.3f, feedback = 0.3f, feedHC = 0.8f;
-        float depth = 0.3f, speed = 0.3f, decay = 0.5f;
-        float damping = 0.5f, balance = 0.5f, mix = 0.3f;
-        int factor = 0, rType = 0, mode = 0;
-
-        // Delay line
-        juce::AudioSampleBuffer delayBufL, delayBufR;
-        int writePosL = 0, writePosR = 0, maxDelaySamples = 0;
-        int delaySamples = 0;
-
-        // LFO modulation
-        double lfoPhase = 0.0, lfoInc = 0.0;
-
-        // Feedback high-cut filter
-        float lpfL = 0.0f, lpfR = 0.0f, hcCoeff = 0.0f;
-
-        // Reverb (Schroeder simplificado): 4 comb + 3 allpass
-        juce::AudioSampleBuffer combBufL, combBufR;
-        int combPos = 0;
-        int combDelay[4] = {};
-        int allpassDelay[3] = {};
-        float combStateL[4] = {}, combStateR[4] = {};
-        float apStateL[3] = {}, apStateR[3] = {};
-        float dampCoeff = 0.0f;
-        float wetL = 0.0f, wetR = 0.0f;
-
-        void updateParams();
+        abd::dsp::DspModDelayRev engine_;
     };
 }

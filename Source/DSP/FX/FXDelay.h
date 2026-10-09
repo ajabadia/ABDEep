@@ -1,25 +1,34 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspStereoDelay.h>
 
 namespace ABD
 {
     /**
-     * FXDelay: Efecto de Delay estéreo con feedback y filtro pasa-bajos.
+     * @brief FXDelay: Efecto de Delay estéreo con realimentación y filtrado analógico.
      *
-     * Parámetros (orden hardware, docs/deepmind_fx.md FX Type 13):
-     *   0: Mix      (0-1, wet/dry — aplicado por FXSlot)
-     *   1: Time     (0-1, mapeado a 1ms - 2000ms)
-     *   2: Mode     (0-1, 0=ST, 1=X, 2=M, 3=P-P)
-     *   3: FactorL  (0-1, fracción rítmica del delay izquierdo)
-     *   4: FactorR  (0-1, fracción rítmica del delay derecho)
-     *   5: Offset   (0-1, -100ms a +100ms diferencia L/R)
-     *   6: LoCut    (0-1, almacenado — sin equivalente DSP)
-     *   7: HiCut    (0-1, mapeado al LPF del feedback)
-     *   8: FeedLC   (0-1, almacenado — sin equivalente DSP)
-     *   9: FeedL    (0-1, feedback canal izquierdo)
-     *   10: FeedR   (0-1, feedback canal derecho)
-     *   11: FeedHC  (0-1, mapeado al LPF del feedback)
+     * HARDWARE EMULADO:
+     *   - Procesador de retardo digital/analógico de rack vintage (DeepMind 12 FX Type 13),
+     *     inspirado en clásicos como el Roland SDE-3000 y el Korg SDD-3000.
+     *   - Parámetros de control:
+     *     * Time: Tiempo maestro de 1 ms a 2000 ms.
+     *     * Mode: 4 topologías de ruteo estéreo (ST, Cross-Feedback X, Mono Sum M, Ping-Pong P-P).
+     *     * Factor L / R: Fracción métrica rítmica por canal (1/4 a 3/1).
+     *     * Offset: Micro-desplazamiento temporal estéreo (-100 ms a +100 ms).
+     *     * Feed L / R: Realimentación por canal (0 a 99%).
+     *     * HiCut / FeedHC: Filtro paso-bajos analógico de 1-polo en la realimentación (200 Hz a 20 kHz).
+     *
+     * DESTINOS DE MATRIZ DE MODULACIÓN:
+     *   - Declara los índices {1, 9, 10} (Time, FeedL, FeedR) como destinos activos de `Fx N Parameters`.
+     *
+     * DIAGNÓSTICO DE FIDELIDAD ACTUAL:
+     *   - Motor subyacente delegado en `abd::dsp::DspStereoDelay` (100% RT-Safe, C++20 puro).
+     *   - Cero dependencias de JUCE en el núcleo DSP.
+     *
+     * LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *   - Modelado de saturación de etapa de entrada de previo analógico SDD-3000.
+     *   - Sincronización precisa con BPM de transporte DAW.
      */
     class FXDelay : public FXBase
     {
@@ -35,61 +44,18 @@ namespace ABD
         void reset() override;
         int getNumParameters() const override { return 12; }
 
-        /**
-         * Los parametros que mueve el destino `Fx N Parameters`: el TIEMPO
-         * (indice 1) y los dos FEEDBACK (9 y 10).
-         *
-         * Son estos y no los dos primeros porque los dos primeros son la mezcla
-         * y el tiempo: modular la mezcla con un LFO no hace nada musical, y el
-         * feedback es lo que de verdad cambia el timbre del retardo. Y los dos
-         * feedbacks van juntos porque un retardo con el feedback solo en el
-         * canal izquierdo no es un retardo, es un retardo cojo.
-         *
-         * Lo declara el propio efecto, asi que el bus no tiene que saber que
-         * este efecto es un retardo.
-         */
         int getModulationParams(int* indices, int maxCount) const override
         {
-            const int declarados[3] = { 1, 9, 10 };   // tiempo, feedback L, feedback R
-
+            const int declarados[3] = { 1, 9, 10 }; // tiempo, feedback L, feedback R
             const int n = juce::jmin(maxCount, 3);
-
             for (int i = 0; i < n; ++i)
                 indices[i] = declarados[i];
-
             return n;
         }
+
         juce::String getEffectName() const override { return "Delay"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        // Parámetros (orden hardware)
-        float mix = 0.3f;           // 0-1 (aplicado por FXSlot)
-        float timeParam = 0.5f;     // 0-1 → 1ms-2000ms
-        int   mode = 0;             // 0=ST, 1=X, 2=M, 3=P-P
-        float factorL = 0.5f;       // 0-1 → fracción rítmica 1/4..3
-        float factorR = 0.5f;       // 0-1 → fracción rítmica 1/4..3
-        float offsetParam = 0.5f;   // 0-1 → -100ms..+100ms
-        float feedbackL = 0.3f;     // 0-0.99
-        float feedbackR = 0.3f;     // 0-0.99
-        float lpfCutoff = 0.8f;     // 0-1 (HiCut/FeedHC)
-
-        // Buffers de delay circulares
-        juce::AudioSampleBuffer delayBufferL;
-        juce::AudioSampleBuffer delayBufferR;
-        int writePositionL = 0;
-        int writePositionR = 0;
-        int delaySamplesL = 0;
-        int delaySamplesR = 0;
-
-        // Filtro LPF de 1-polo para feedback
-        float lpfStateL = 0.0f;
-        float lpfStateR = 0.0f;
-        float lpfCoeff = 0.5f;
-
-        void updateDelaySamples();
-        void updateLPFCoeff();
-        float factorToScale(float normalized) const;
+        abd::dsp::DspStereoDelay engine_;
     };
 }

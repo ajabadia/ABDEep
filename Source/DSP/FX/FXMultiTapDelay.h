@@ -1,19 +1,35 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspMultiTapDelay.h>
 
 namespace ABD
 {
     /**
-     * FXMultiTapDelay: Delay con múltiples taps en paralelo y feedback.
-     * Soporta:
-     *   3-Tap Delay (14): 3 taps con ganancias, paneos y factores independientes.
-     *   4-Tap Delay (15): 4 taps con ganancias y factores independientes.
+     * @brief FXMultiTapDelay: Delay con múltiples tomas en paralelo y realimentación rítmica.
+     *
+     * HARDWARE EMULADO:
+     *   - Procesador de retardo digital multi-toma de estudio (DeepMind 12 FX Types 14 y 15),
+     *     inspirado en clásicos como el Lexicon PCM 70 y Roland SDE-330.
+     *   - Soporta dos modos según configuración:
+     *     * 3-Tap Delay (Tipo 14): Tres tomas con tiempos, ganancias y panoramas individuales.
+     *     * 4-Tap Delay (Tipo 15): Cuatro tomas con tiempos y ganancias individuales,
+     *       distribuidas en el espectro estéreo mediante el control Spread.
+     *     * Factores rítmicos independientes seleccionables: 1/4, 3/8, 1/2, 2/3, 1/1, 4/3, 3/2, 2/1, 3/1.
+     *     * Realimentación del último tap con opción de Cross-Feedback cruzado.
+     *
+     * DIAGNÓSTICO DE FIDELIDAD ACTUAL:
+     *   - Motor delegado en `abd::dsp::DspMultiTapDelay` (100% RT-Safe, C++20 puro).
+     *   - Búfer circular pre-asignado en prepare(), cero heap en process().
+     *
+     * LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *   - Filtro pasa-altos / pasa-bajos individual por tap.
+     *   - Difusión de los taps iniciales mediante redes allpass cruzadas.
      */
     class FXMultiTapDelay : public FXBase
     {
     public:
-        FXMultiTapDelay(int numTaps);
+        explicit FXMultiTapDelay(int numTaps);
         ~FXMultiTapDelay() override = default;
 
         void prepare(double sampleRate, int samplesPerBlock) override;
@@ -25,32 +41,6 @@ namespace ABD
         juce::String getEffectName() const override;
 
     private:
-        int numTaps;
-        double sampleRate = 44100.0;
-
-        // Parámetros comunes
-        float masterTime = 0.3f; // 0-1 → 1ms a 1500ms
-        float feedback = 0.3f;   // 0-1
-        bool xFeed = false;      // Cross-feedback
-        float mix = 0.5f;        // Dry/Wet
-
-        // Taps individuales
-        struct Tap
-        {
-            float factor = 1.0f; // Multiplicador de tiempo (0.25 a 3.0)
-            float gain = 0.5f;   // Nivel (0-1)
-            float pan = 0.0f;    // Paneo (-1 a 1, solo para 3-tap o derivado de spread)
-        };
-
-        Tap taps[4];
-        float spread = 0.5f; // Para 4-tap, distribuye los taps en el campo estéreo
-
-        // Buffers de delay circulares
-        juce::AudioSampleBuffer delayBufferL;
-        juce::AudioSampleBuffer delayBufferR;
-        int writePos = 0;
-        int maxDelaySamples = 0;
-
-        void updateTapTimes();
+        abd::dsp::DspMultiTapDelay engine_;
     };
 }

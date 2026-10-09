@@ -1,22 +1,30 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspAnalogTapeDelay.h>
 
 namespace ABD
 {
     /**
-     * FXAnalogTapeDelay: Warm analog tape delay with saturation.
+     * @brief FXAnalogTapeDelay: Retardo de cinta analógica vintage con saturación y wow/flutter.
      *
-     * Tape-style delay with soft clipping on write, wow/flutter
-     * modulation, and a warm low-pass on feedback path.
+     * HARDWARE EMULADO:
+     *   - Eco de cinta analógico vintage de bobina abierta (DeepMind 12 FX Type 40),
+     *     inspirado en el Roland RE-201 Space Echo y el Watkins Copicat.
+     *   - Parámetros:
+     *     * Mix: Balance Dry/Wet (0 a 100%).
+     *     * Time: Tiempo de retardo variable de 50 ms a 1200 ms.
+     *     * Feedback: Regeneración de repeticiones (0 a 95%).
+     *     * Wobble: Inestabilidad mecánica y arrastre de motor (wow & flutter).
+     *     * Saturation: Saturación no lineal suave de la cinta magnética.
+     *     * Tone: Amortiguación de agudos en las repeticiones (800 Hz a 18 kHz).
      *
-     * Parameters:
-     *   0: Mix       (0-1, dry/wet mix)
-     *   1: Time      (0-1, delay time 50ms-1200ms)
-     *   2: Feedback  (0-1, tape feedback amount)
-     *   3: Wobble    (0-1, wow/flutter depth)
-     *   4: Saturation(0-1, tape saturation amount)
-     *   5: Tone      (0-1, brightness of repeats)
+     * DIAGNÓSTICO DE FIDELIDAD ACTUAL:
+     *   - Motor delegado en `abd::dsp::DspAnalogTapeDelay` (100% RT-Safe, C++20 puro).
+     *   - Búfer circular estático de 65536 muestras con bitmasking rápido, cero heap.
+     *
+     * LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *   - Emulación de desgaste mecánico de cinta por fricción continua.
      */
     class FXAnalogTapeDelay : public FXBase
     {
@@ -34,26 +42,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Analog Tape Delay"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float paramMix = 0.35f;
-        float paramTime = 0.35f;
-        float paramFeedback = 0.4f;
-        float paramWobble = 0.3f;
-        float paramSaturation = 0.3f;
-        float paramTone = 0.5f;
-
-        static constexpr int kMaxDelay = 52920;
-        std::vector<float> delayBufL;
-        std::vector<float> delayBufR;
-        int delayMask = 0;
-        int writePos = 0;
-
-        float lpStateL = 0.0f;
-        float lpStateR = 0.0f;
-        uint32_t noiseSeed = 0xABCD1234u;
-
-        static float tapeSat(float x, float drive);
-        float noiseGenerate();
+        abd::dsp::DspAnalogTapeDelay engine_;
     };
 }

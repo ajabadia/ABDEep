@@ -1,22 +1,29 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspDuckingDelay.h>
 
 namespace ABD
 {
     /**
-     * FXDuckingDelay: Delay with sidechain ducking.
+     * @brief FXDuckingDelay: Retardo dinámico con atenuación inteligente (Ducking).
      *
-     * When the dry signal is loud, the delay is attenuated (ducked),
-     * creating space in the mix. When the dry signal is quiet,
-     * the delay rises.
+     * HARDWARE EMULADO:
+     *   - Procesador dinámico de retardo digital de estudio (DeepMind 12 FX Type 44),
+     *     inspirado en el TC Electronic 2290 Dynamic Digital Delay.
+     *   - Parámetros:
+     *     * Mix: Balance Dry/Wet (0 a 100%).
+     *     * Time: Tiempo de retardo variable de 50 ms a 1500 ms.
+     *     * Feedback: Regeneración de repeticiones (0 a 95%).
+     *     * Threshold: Umbral de entrada que activa la atenuación del retardo.
+     *     * Ratio: Intensidad y profundidad de reducción de ganancia (Ducking).
      *
-     * Parameters:
-     *   0: Mix       (0-1, dry/wet mix)
-     *   1: Time      (0-1, delay time 50ms-1500ms)
-     *   2: Feedback  (0-1, feedback amount)
-     *   3: Threshold (0-1, ducking threshold)
-     *   4: Ratio     (0-1, ducking ratio/depth)
+     * DIAGNÓSTICO DE FIDELIDAD ACTUAL:
+     *   - Motor delegado en `abd::dsp::DspDuckingDelay` (100% RT-Safe, C++20 puro).
+     *   - Búfer circular estático de 65536 muestras con bitmasking rápido, cero heap.
+     *
+     * LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *   - Constantes de tiempo de ataque y relajación configurables por el usuario.
      */
     class FXDuckingDelay : public FXBase
     {
@@ -34,29 +41,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Ducking Delay"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float paramMix = 0.35f;
-        float paramTime = 0.35f;
-        float paramFeedback = 0.45f;
-        float paramThreshold = 0.5f;
-        float paramRatio = 0.6f;
-
-        static constexpr int kMaxDelay = 66150;
-        std::vector<float> delayBufL;
-        std::vector<float> delayBufR;
-        int delayMask = 0;
-        int writePos = 0;
-
-        // Sidechain envelope follower
-        float envL = 0.0f;
-        float envR = 0.0f;
-        float duckGain = 1.0f;
-        static constexpr float kEnvAttack = 0.001f;
-        static constexpr float kEnvRelease = 0.05f;
-
-        uint32_t noiseSeed = 0xFEDCBA09u;
-
-        float noiseGenerate();
+        abd::dsp::DspDuckingDelay engine_;
     };
 }
