@@ -1,5 +1,6 @@
 #pragma once
 #include "DspCore/DspJunoVCF.h"
+#include "VcfVoicing.h"
 
 namespace ABD
 {
