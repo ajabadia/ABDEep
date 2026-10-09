@@ -4,60 +4,42 @@
 #include <cstdint>
 #include <bit>
 
+#include "SynthCore/PolyBLEP.h"
+#include "SynthCore/DSPUtils.h"
+
 namespace ABD
 {
 namespace DSP
 {
     /**
      * 2nd-order PolyBLEP residual for anti-aliasing at waveform discontinuities.
+     * Delegated to canonical abd::synth::PolyBLEP::getResidual.
      *
      * @param t  Current phase position in [0, 1).
      * @param dt Phase increment (freq / sampleRate).
      * @return   Correction sample to add/subtract near the discontinuity, 0 otherwise.
-     *
-     * Algorithm: two 2nd-order polynomial pieces (one on each side of the discontinuity)
-     * that smoothly remove the staircase error from bandlimited step functions.
-     * Cheaper than 4th-order (polyBlep4 in ABDJUNiO601) — sufficient for 2x oversampling
-     * and good enough for the junior dev team's DSP learning curve.
      */
     inline float polyBlep2(float t, float dt)
     {
-        // Near start discontinuity (phase wrap: jumps from +1 down to -1)
-        if (t < dt)
-        {
-            float n = t / dt;
-            return n + n - n * n - 1.0f;
-        }
-        // Near end discontinuity (approaching the wrap)
-        if (t > 1.0f - dt)
-        {
-            float n = (t - 1.0f) / dt;
-            return n + n + n * n + 1.0f;
-        }
-        return 0.0f;
+        return abd::synth::PolyBLEP::getResidual(t, dt);
     }
 
     /**
      * Sawtooth curvature — adds a parabolic bulge to a linear ramp [0, 1).
-     *
-     * At curvature = 0: pure linear ramp (ideal mathematical saw).
-     * At curvature > 0: the ramp is slightly bowed upward, being steeper near the
-     * midpoint and flatter near the ends. This models the slight nonlinearity of
-     * analog RC integration circuits (Juno-106, DeepMind, etc.).
-     *
-     * Default calibration value from ABDJUNiO601: 0.15.
+     * Delegated to canonical abd::synth::DSPUtils::sawCurvature.
      *
      * @param phase      Current phase in [0, 1).
-     * @param curvature  Bow amount, typically 0.0–0.3.
+     * @param curvature  Bow amount, typically 0.0–0.3 (default 0.15).
      * @return           Curved phase value in [0, 1).
      */
     inline float sawCurvature(float phase, float curvature)
     {
-        return phase * (1.0f + curvature * (1.0f - phase));
+        return abd::synth::DSPUtils::sawCurvature(phase, curvature);
     }
 
     /**
      * Simple 1-pole exponential smoother for slew limiting.
+     * Delegated to canonical abd::synth::DSPUtils::slewLimit.
      *
      * @param current   Current value.
      * @param target    Target value.
@@ -66,28 +48,21 @@ namespace DSP
      */
     inline float slewLimit(float current, float target, float coeff)
     {
-        return current + (target - current) * coeff;
+        return abd::synth::DSPUtils::slewLimit(current, target, coeff);
     }
 
     /**
      * Convert a smoothing time constant (in seconds) to the per-sample
      * coefficient of a 1-pole exponential smoother.
+     * Delegated to canonical abd::synth::DSPUtils::slewCoeffFromTimeConstant.
      *
-     * A 1-pole smoother with per-sample coefficient c has time constant
-     *   tau = -1/ln(1-c) samples = -1/(ln(1-c)·sr) seconds,
-     * so the coefficient that realizes a given tau at sample rate sr is
-     *   c(tau, sr) = 1 - exp(-1/(tau·sr)).
-     *
-     * Use the DAW-provided sample rate here (prepare()/setSampleRate()), never a
-     * hardcoded rate: this keeps the physical response identical across sample
-     * rates. Tuning constants are expressed in seconds (legacy 44.1 kHz values
-     * are converted to seconds at the call sites, with the conversion documented).
-     * Call once in prepare()/setSampleRate(), never per-sample (exp is hot).
+     * @param tauSeconds Time constant in seconds.
+     * @param sampleRate Current sample rate in Hz.
+     * @return           Per-sample smoothing coefficient.
      */
     inline float slewCoeffFromTimeConstant(float tauSeconds, double sampleRate)
     {
-        const double sr = std::max(1.0, sampleRate);
-        return 1.0f - static_cast<float>(std::exp(-1.0 / (static_cast<double>(tauSeconds) * sr)));
+        return abd::synth::DSPUtils::slewCoeffFromTimeConstant(tauSeconds, sampleRate);
     }
 
     /**

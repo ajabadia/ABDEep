@@ -14,8 +14,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #   cmake --build wasm/build
 # ============================================================
 
-# --- Rutas ---
-set(JUCE_PATH "C:/JUCE" CACHE PATH "Path to JUCE")
+if(NOT DEFINED JUCE_PATH OR NOT EXISTS "${JUCE_PATH}/modules/juce_core/juce_core.h")
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../JUCE/modules/juce_core/juce_core.h")
+        set(JUCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../JUCE" CACHE PATH "Path to JUCE" FORCE)
+    elseif(DEFINED ENV{JUCE_PATH})
+        set(JUCE_PATH "$ENV{JUCE_PATH}" CACHE PATH "Path to JUCE" FORCE)
+    else()
+        set(JUCE_PATH "C:/JUCE" CACHE PATH "Path to JUCE")
+    endif()
+endif()
 set(SRC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../Source")
 
 # --- Lista compartida single-source (anti-drift) con el build nativo ---
