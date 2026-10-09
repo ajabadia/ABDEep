@@ -188,9 +188,11 @@ inline constexpr float HW_BYTE_ZERO     = 128.0f; // byte neutro == 0.0 bipolar
 
 [[nodiscard]] inline float bipolarToHwByte(float bipolar) noexcept
 {
-    // Clamped para no salir del byte en ruta mal formada.
+    // Clamped para garantizar salida siempre en rango válido de byte [0.0f, 255.0f].
+    // Evita el desbordamiento a 256.0f cuando bipolar == 1.0f.
     const float c = (bipolar < -1.0f) ? -1.0f : (bipolar > 1.0f ? 1.0f : bipolar);
-    return c * 128.0f + HW_BYTE_ZERO;
+    const float raw = c * 128.0f + HW_BYTE_ZERO;
+    return (raw > 255.0f) ? 255.0f : ((raw < 0.0f) ? 0.0f : raw);
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
