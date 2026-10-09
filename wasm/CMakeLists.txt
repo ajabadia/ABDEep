@@ -60,6 +60,18 @@ add_executable(abdeep_dsp
     # --- ABDEep (lista compartida single-source, anti-drift) ---
     ${ABDEEP_DSP_SOURCES_WASM}
     ${CMAKE_CURRENT_SOURCE_DIR}/juce_shim/wasm_link_stubs.cpp
+
+    # --- ABDSharedCode SynthCore (C++20 puro, zero JUCE) ---
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/PolyBLEP.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/ADSREnvelope.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/PortamentoGlide.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/LFO.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/OscVcoCa72.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/Arpeggiator.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/ControlSequencer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/LfoAnalog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/EnvelopeAnalog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/DriftEngine.cpp
 )
 
 # --- Include directories ---

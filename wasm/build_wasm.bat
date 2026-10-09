@@ -71,6 +71,7 @@ if not defined EMSDK_DIR if defined EMSDK if exist "%EMSDK%\upstream\emscripten\
 
 if defined EMSDK_DIR (
     echo Usando Emscripten SDK desde: %EMSDK_DIR%
+    set "SAVED_EMSDK_DIR=%EMSDK_DIR%"
     set "PATH=%EMSDK_DIR%;%EMSDK_DIR%\upstream\emscripten;%EMSDK_DIR%\node\22.16.0_64bit\bin;%EMSDK_DIR%\python\3.13.3_64bit;%PATH%"
     set "EM_CONFIG=%EMSDK_DIR%\.emscripten"
     set "EMSDK=%EMSDK_DIR%"
@@ -79,13 +80,27 @@ if defined EMSDK_DIR (
     echo [WARNING] No se encontro emsdk en D:\desarrollos\emsdk ni C:\emsdk
 )
 
-REM Crear directorio de build
+if not defined EMSDK_DIR if defined SAVED_EMSDK_DIR set "EMSDK_DIR=%SAVED_EMSDK_DIR%"
+if not defined EMSDK_DIR if defined EMSDK set "EMSDK_DIR=%EMSDK%"
+
+set "NINJA_EXE="
+if exist "%EMSDK_DIR%\upstream\emscripten\ninja.exe" set "NINJA_EXE=%EMSDK_DIR%\upstream\emscripten\ninja.exe"
+if not defined NINJA_EXE if exist "%EMSDK%\upstream\emscripten\ninja.exe" set "NINJA_EXE=%EMSDK%\upstream\emscripten\ninja.exe"
+if not defined NINJA_EXE set "NINJA_EXE=ninja"
+
+REM Crear directorio de build (o limpiar si se solicita --clean)
+if "%~1"=="--clean" (
+    if exist "wasm\build" (
+        echo Limpiando wasm\build...
+        rmdir /s /q "wasm\build"
+    )
+)
 if not exist "wasm\build" mkdir wasm\build
 
 REM 6. Configurar CMake
 echo.
 echo Configuring CMake with Emscripten...
-call emcmake cmake -S wasm -B wasm\build -DCMAKE_BUILD_TYPE=Release -DJUCE_PATH="%JUCE_DIR%" -G Ninja
+call emcmake cmake -S wasm -B wasm\build -DCMAKE_BUILD_TYPE=Release -DJUCE_PATH="%JUCE_DIR%" -G Ninja -DCMAKE_MAKE_PROGRAM="%NINJA_EXE%"
 if %ERRORLEVEL% NEQ 0 (
     echo ERROR: CMake configuration failed!
     exit /b 1
