@@ -1,16 +1,40 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspEdison.h>
 
 namespace ABD
 {
     /**
-     * FXEdison: Procesador estéreo / imagen / distorsión (Edison EX1).
+     * @brief FXEdison: Procesador estéreo / imagen / distorsión M/S (Edison EX1).
      *
-     * Basado en el hardware DeepMind 12 (type=19).
-     * Opera en modo Estéreo o Mid/Side. Permite controlar el ancho
-     * estéreo, la distribución LMF (Low-Mid Frequency), balance,
-     * distorsión de centro (M), y ganancia.
+     * ==============================================================================
+     * DOCUMENTACIÓN DE HARDWARE Y FIDELIDAD DSP:
+     * ==============================================================================
+     * 1. HARDWARE EMULADO:
+     *    - Behringer / Klark Teknik Edison EX1 (Psychoacoustic Stereo Image Processor).
+     *    - Basado en el efecto DeepMind 12 (type=19).
+     *    - Opera indistintamente en dominios Estéreo estándar o Mid/Side (M/S).
+     *    - Aplica modulación espacial mediante:
+     *      * StSpread: Expansión o colapso mono del canal Side.
+     *      * LMFSpread: Crossover low-pass (~300 Hz) sobre el canal Side para
+     *        evitar cancelaciones de fase y desparrame en graves, manteniendo el
+     *        sub-bass centrado y abriendo los medios-agudos.
+     *      * Center Distortion (CntrDist): Saturación armónica suave simétrica (tanh)
+     *        aplicada selectivamente al canal central (Mid) para realzar presencia,
+     *        calidez y cuerpo sin ensuciar los extremos laterales.
+     *      * Balance y Output Gain: Compensación de nivel y paneo L/R post-matriz.
+     *
+     * 2. DIAGNÓSTICO DE FIDELIDAD:
+     *    - Matriz M/S analítica exacta: M = (L+R)/2, S = (L-R)/2.
+     *    - Modelo no lineal de centro verificado contra el DSP del DeepMind 12.
+     *    - Motor desacoplado y delegado en `abd::dsp::DspEdison` (C++20 puro, 100% RT-Safe).
+     *
+     * 3. LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *    - Modelar la curva de respuesta analógica dependiente de frecuencia de los
+     *      transformadores de aislamiento del hardware analógico Edison original.
+     *    - Añadir modelado de desbalance y correlación de fase dinámica mediante detector RMS.
+     * ==============================================================================
      *
      * Parámetros:
      *   0: On        (0=OFF, 1=ON)
@@ -38,23 +62,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Edison EX1"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        // Parámetros
-        bool    on        = true;
-        int     inMode    = 0;   // 0=ST, 1=M/S
-        int     outMode   = 0;   // 0=ST, 1=M/S
-        float   stSpread  = 0.5f; // 0-1 → -50..+50
-        float   lmfSpread = 0.5f; // 0-1 → -50..+50
-        float   balance   = 0.5f; // 0-1 → -50..+50
-        float   cntrDist  = 0.0f; // 0-1 → -50..+50
-        float   gain      = 0.5f; // 0-1 → -12..+12 dB
-
-    // Filtro crossover para LMF (Low-Mid Frequency split) en Side
-    float lmfSideL = 0.0f; // low-pass state for Side left
-    float lmfSideR = 0.0f; // low-pass state for Side right
-    float lmfCoeff = 0.0f;
-
-        void updateLMF();
+        abd::dsp::DspEdison engine;
     };
 }

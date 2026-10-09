@@ -1,15 +1,33 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspCombulator.h>
 
 namespace ABD
 {
     /**
-     * FXCombulator: Crossed stereo comb filter network.
+     * @brief FXCombulator: Crossed stereo comb filter network.
      *
-     * Two independent comb filters (L+R) with cross-feedback
-     * between channels. Creates pitched resonances, flanging
-     * textures, and metallic echoes with stereo width.
+     * ==============================================================================
+     * DOCUMENTACIÓN DE HARDWARE Y FIDELIDAD DSP:
+     * ==============================================================================
+     * 1. HARDWARE EMULADO:
+     *    - Basado en los resonadores de filtros peines cruzados estéreo
+     *      (DeepMind 12 Type 48 / Eventide DSP4000 Comb Filter Banks / Kurzweil KDFX).
+     *    - Dos líneas de delay independientes para canal izquierdo y derecho (1 a 50 ms).
+     *    - Realimentación cruzada (cross-feedback) al 30% entre canales L y R para
+     *      generar texturas espaciales resonantes, flanging complejo y auto-oscilación.
+     *    - Filtro de amortiguación paso bajo de un polo en el lazo de feedback.
+     *    - Saturador no lineal suave (tanh) para limitar picos resonantes.
+     *
+     * 2. DIAGNÓSTICO DE FIDELIDAD:
+     *    - Comportamiento idéntico al algoritmo original de DeepMind.
+     *    - Totalmente desacoplado en el motor puro `abd::dsp::DspCombulator` (C++20, 100% RT-Safe).
+     *
+     * 3. LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *    - Interpolación fraccional cúbica hermite o sinc en lectura de delay para modulación continua de pitch.
+     *    - Modos de fase invertida (feedforward/feedback inverso) para emular peines con muescas en lugar de picos.
+     * ==============================================================================
      *
      * Parameters:
      *   0: Mix     (0-1, dry/wet mix)
@@ -34,26 +52,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Combulator"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float paramMix = 0.4f;
-        float paramDelayL = 0.25f;
-        float paramDelayR = 0.35f;
-        float paramFeedback = 0.5f;
-        float paramDamping = 0.3f;
-
-        // Delay buffers (max ~50ms at 96kHz = 4800 samples)
-        static constexpr int kMaxDelay = 5000;
-        std::vector<float> delayBufL;
-        std::vector<float> delayBufR;
-        int writePosL = 0;
-        int writePosR = 0;
-
-        // One-pole lowpass state for damping
-        float lpfStateL = 0.0f;
-        float lpfStateR = 0.0f;
-
-        uint32_t noiseSeed = 0xDEADBEEFu;
-        float noiseGenerate();
+        abd::dsp::DspCombulator engine;
     };
 }

@@ -1,14 +1,30 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspPatternFreeze.h>
 
 namespace ABD
 {
     /**
-     * FXPatternFreeze: Buffer capture and freeze effect.
+     * @brief FXPatternFreeze: Buffer capture and freeze effect.
      *
-     * Captures audio into a circular buffer and can freeze/loop
-     * segments with crossfading to create ambient textures.
+     * ==============================================================================
+     * DOCUMENTACIÓN DE HARDWARE Y FIDELIDAD DSP:
+     * ==============================================================================
+     * 1. HARDWARE EMULADO:
+     *    - Procesador de congelación y bucle de audio infinito
+     *      (DeepMind 12 Type 43 / Electro-Harmonix Freeze / Strymon Nightsky Freeze).
+     *    - Búfer circular de captura de longitud configurable (200 ms a 4000 ms).
+     *    - Realimentación regenerativa continua con adición de dither analógico.
+     *    - Crossfade automático y suave en el punto de ciclado del bucle.
+     *
+     * 2. DIAGNÓSTICO DE FIDELIDAD:
+     *    - Totalmente desacoplado en el motor puro `abd::dsp::DspPatternFreeze` (C++20, 100% RT-Safe).
+     *
+     * 3. LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *    - Añadir opciones de reproducción invertida (reverse playback) y semitonos de transposición.
+     *    - Integrar filtrado tilt en el lazo de regeneración para simular pérdidas espectrales de cinta.
+     * ==============================================================================
      *
      * Parameters:
      *   0: Mix        (0-1, dry/wet mix)
@@ -32,28 +48,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Pattern Freeze"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float paramMix = 0.4f;
-        float paramLength = 0.3f;
-        float paramFeedback = 0.6f;
-        float paramRegenerate = 0.5f;
-
-        static constexpr int kMaxBuffer = 176400;
-        std::vector<float> freezeBufL;
-        std::vector<float> freezeBufR;
-        int bufferMask = 0;
-        int writePos = 0;
-        int readPos = 0;
-
-        // Crossfade state
-        float xfadeL = 0.0f;
-        float xfadeR = 0.0f;
-        int xfadeCount = 0;
-        int xfadeLength = 0;
-
-        uint32_t noiseSeed = 0x13572468u;
-
-        float noiseGenerate();
+        abd::dsp::DspPatternFreeze engine;
     };
 }

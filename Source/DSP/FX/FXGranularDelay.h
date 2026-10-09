@@ -1,14 +1,32 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspGranularDelay.h>
 
 namespace ABD
 {
     /**
-     * FXGranularDelay: Granular delay with pitch shifting.
+     * @brief FXGranularDelay: Granular delay with pitch shifting.
      *
-     * Captures audio into grains and plays them back at varying
-     * rates and pitches, creating evolving textures.
+     * ==============================================================================
+     * DOCUMENTACIÓN DE HARDWARE Y FIDELIDAD DSP:
+     * ==============================================================================
+     * 1. HARDWARE EMULADO:
+     *    - Procesador de retardo granular y micro-muestreo
+     *      (DeepMind 12 Type 42 / Eventide TimeFactor / Red Panda Particle).
+     *    - Fragmenta la señal de audio en pequeños granos temporales (20 ms a 200 ms).
+     *    - Transposición tonal independiente de los granos (±12 semitonos).
+     *    - Ventana temporal de coseno alzado (raised-cosine) para suavizar transiciones
+     *      y evitar artefactos de discontinuidad de fase.
+     *    - Control de densidad de granos concurrentes y fluctuación estocástica.
+     *
+     * 2. DIAGNÓSTICO DE FIDELIDAD:
+     *    - Totalmente desacoplado en el motor puro `abd::dsp::DspGranularDelay` (C++20, 100% RT-Safe).
+     *
+     * 3. LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *    - Implementar envolventes de grano asimétricas (Tukey, Blackman, Gaussiana).
+     *    - Permitir sincronización rítmica (tempo sync) del tamaño de grano y tasa de disparo.
+     * ==============================================================================
      *
      * Parameters:
      *   0: Mix      (0-1, dry/wet mix)
@@ -33,36 +51,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Granular Delay"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float paramMix = 0.4f;
-        float paramTime = 0.4f;
-        float paramDensity = 0.5f;
-        float paramSize = 0.5f;
-        float paramPitch = 0.3f;
-
-        static constexpr int kCaptureSize = 88200;
-        std::vector<float> captureBufL;
-        std::vector<float> captureBufR;
-        int captureMask = 0;
-        int capturePos = 0;
-
-        // Grain scheduler
-        struct Grain {
-            float readPos;
-            float pitchRatio;
-            float gain;
-            float age;
-            float maxAge;
-            bool active;
-        };
-        static constexpr int kMaxGrains = 16;
-        Grain grains[kMaxGrains];
-        float grainAccum = 0.0f;
-
-        uint32_t noiseSeed = 0x98765432u;
-
-        float grainEnvelope(float age, float maxAge, float softness) const;
-        float noiseGenerate();
+        abd::dsp::DspGranularDelay engine;
     };
 }

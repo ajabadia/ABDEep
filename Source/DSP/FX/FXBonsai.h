@@ -1,15 +1,32 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspBonsai.h>
 
 namespace ABD
 {
     /**
-     * FXBonsai: Lo-fi pitch processor with degradation and micro-granulation.
+     * @brief FXBonsai: Lo-fi pitch processor with degradation and micro-granulation.
      *
-     * Combines pitch shifting, bit-crushing/sample-rate reduction,
-     * and tape-like wow/flutter for lo-fi character.
-     * Source: Surge BonsaiEffect.
+     * ==============================================================================
+     * DOCUMENTACIÓN DE HARDWARE Y FIDELIDAD DSP:
+     * ==============================================================================
+     * 1. HARDWARE EMULADO:
+     *    - Procesador lo-fi vintage de cinta y degradación digital
+     *      (DeepMind 12 Type 55 / Chase Bliss Generation Loss / Surge Bonsai).
+     *    - Transposición tonal por interpolación en anillo (-12 a +12 semitonos).
+     *    - Modulación de wow tipo cinta analógica con LFO sinusoidal (0.5 - 3.5 Hz).
+     *    - Decimación de tasa de muestreo mediante circuito sample-and-hold.
+     *    - Cuantización continua de profundidad de bits (24 bits hasta 3 bits).
+     *    - Etapa de saturación no lineal (tanh normalizado) con control Drive.
+     *
+     * 2. DIAGNÓSTICO DE FIDELIDAD:
+     *    - Totalmente desacoplado en el motor puro `abd::dsp::DspBonsai` (C++20, 100% RT-Safe).
+     *
+     * 3. LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *    - Modelar ruido de cinta analógica (hiss), flutter de alta frecuencia y dropouts aleatorios.
+     *    - Añadir filtro de paso de banda RC de pre-énfasis característico de grabadoras de casete.
+     * ==============================================================================
      *
      * Parameters:
      *   0: Pitch    (0-1, -12 to +12 semitones)
@@ -34,25 +51,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Bonsai"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float pitchParam = 0.5f, lofiParam = 0.0f, driveParam = 0.0f, wowParam = 0.0f, mix = 0.4f;
-
-        // Pitch shift read state
-        float readPosL = 0.0f, readPosR = 0.0f;
-
-        // Wow LFO
-        float lfoPhase = 0.0f;
-
-        // Lo-fi state
-        float lofiAccumL = 0.0f, lofiAccumR = 0.0f;
-
-        // Ring buffer for pitch shift
-        static constexpr int kMaxDelay = 19200; // ~400ms at 48kHz
-        std::vector<float> bufL, bufR;
-        int bufMask = 0;
-
-        float driveShape(float x) const;
-        float lofiQuantize(float x) const;
+        abd::dsp::DspBonsai engine;
     };
 }

@@ -1,15 +1,31 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspNimbus.h>
 
 namespace ABD
 {
     /**
-     * FXNimbus: Hybrid granular delay/reverb processor.
+     * @brief FXNimbus: Hybrid granular delay/reverb processor.
      *
-     * Divides the input into overlapping grains with independent
-     * pitch and pan positions, creating complex evolving textures.
-     * Source: Surge NimbusEffect.
+     * ==============================================================================
+     * DOCUMENTACIÓN DE HARDWARE Y FIDELIDAD DSP:
+     * ==============================================================================
+     * 1. HARDWARE EMULADO:
+     *    - Procesador de nube granular y textura espacial
+     *      (DeepMind 12 Type 54 / Mutable Instruments Clouds / Surge Nimbus).
+     *    - Generador de hasta 16 granos simultáneos con dispersión espacial en el estéreo.
+     *    - Transposición tonal independiente de los granos (0.5x a 2.0x, -1 a +1 octava).
+     *    - Ventanas de amplitud de coseno alzado para superposición suave de granos.
+     *    - Lazo de realimentación no lineal saturado en el búfer circular.
+     *
+     * 2. DIAGNÓSTICO DE FIDELIDAD:
+     *    - Totalmente desacoplado en el motor puro `abd::dsp::DspNimbus` (C++20, 100% RT-Safe).
+     *
+     * 3. LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *    - Agregar modos de difusión reverb tipo Schroeder integrados post-granular.
+     *    - Implementar cuantización de pitch a escalas armónicas o semitonos temperados.
+     * ==============================================================================
      *
      * Parameters:
      *   0: GrainSize (0-1, grain duration 20ms-200ms)
@@ -34,31 +50,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Nimbus"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float grainSizeParam = 0.5f, densityParam = 0.5f, feedbackParam = 0.3f, pitchParam = 0.5f, mix = 0.4f;
-
-        // Input ring buffer
-        static constexpr int kMaxBufSize = 96000; // ~2s at 48kHz
-        std::vector<float> ringBufL, ringBufR;
-        int ringWritePos = 0;
-
-        // Grain state
-        struct Grain
-        {
-            bool active = false;
-            int readPos = 0;
-            int length = 0;
-            int age = 0;
-            float pitchRatio = 1.0f;
-            float pan = 0.5f;
-            float gain = 0.0f;
-        };
-
-        static constexpr int kMaxGrains = 16;
-        Grain grains[kMaxGrains];
-        int nextGrainIdx = 0;
-
-        void spawnGrain();
+        abd::dsp::DspNimbus engine;
     };
 }

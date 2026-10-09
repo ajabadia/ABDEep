@@ -1,15 +1,36 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspResonator.h>
 
 namespace ABD
 {
     /**
-     * FXResonator: Tuned resonant filter bank.
+     * @brief FXResonator: Tuned resonant filter bank (Harmonic Resonator).
      *
-     * Bank of bandpass resonators tuned to harmonic or inharmonic
-     * frequencies. Creates metallic, tuned percussion effects
-     * and physical modeling-style textures.
+     * ==============================================================================
+     * DOCUMENTACIÓN DE HARDWARE Y FIDELIDAD DSP:
+     * ==============================================================================
+     * 1. HARDWARE EMULADO:
+     *    - Banco de resonadores sintonizados multimodales (DeepMind 12 Type 47 /
+     *      Moog Modular 907 Fixed Filter Bank / Serge Resonant Filter).
+     *    - Estructura modal de 8 resonadores biquad paso banda en paralelo:
+     *      * Modo Armónico: Razón armónica entera (1, 2, 3, 4, 5, 6, 7, 8).
+     *      * Modo Inarmónico: Ratios de campana / percusión metálica
+     *        (1.0, 2.4, 3.76, 5.12, 6.8, 8.3, 10.6, 12.9).
+     *      * Modo Stretched: Modelo de cuerda con inarmonicidad y rigidez:
+     *        f_n = n * sqrt(1 + B * n^2).
+     *      * Frecuencia base exponencial de 50 Hz a 5000 Hz.
+     *      * Amortiguación de altas frecuencias (damping) y factor Q de resonancia.
+     *
+     * 2. DIAGNÓSTICO DE FIDELIDAD:
+     *    - Filtros biquad normalizados con ganancia 1/8 para evitar saturación en suma.
+     *    - Delegado en el motor desacoplado `abd::dsp::DspResonator` (C++20 puro, 100% RT-Safe).
+     *
+     * 3. LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *    - Añadir acoplamiento de modos y pérdida no lineal por fricción o aire.
+     *    - Permitir asignación polifónica o keytracking MIDI de la frecuencia base del banco.
+     * ==============================================================================
      *
      * Parameters:
      *   0: Mix       (0-1, dry/wet mix)
@@ -34,30 +55,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Harmonic Resonator"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float paramMix = 0.5f;
-        float paramFrequency = 0.3f;
-        float paramResonance = 0.5f;
-        float paramDamping = 0.3f;
-        float paramMode = 0.0f;
-
-        static constexpr int kNumResonators = 8;
-
-        // State for each resonator (biquad bandpass)
-        struct ResonatorState
-        {
-            float b0 = 0.0f, b1 = 0.0f, b2 = 0.0f;
-            float a1 = 0.0f, a2 = 0.0f;
-            float x1 = 0.0f, x2 = 0.0f;
-            float y1 = 0.0f, y2 = 0.0f;
-            float freq = 0.0f;
-        };
-
-        ResonatorState resonatorsL[kNumResonators];
-        ResonatorState resonatorsR[kNumResonators];
-
-        void updateResonator(ResonatorState& res, float freq, float q, float damping);
-        static float exponentialMap(float normalized, float minHz, float maxHz);
+        abd::dsp::DspResonator engine;
     };
 }

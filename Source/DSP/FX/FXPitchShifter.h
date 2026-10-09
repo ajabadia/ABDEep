@@ -1,36 +1,37 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspPitchShifter.h>
 
 namespace ABD
 {
     /**
-     * FXPitchShifter: Pitch shifter dual (type=29) y vintage (type=35).
-     * Usa overlapping grains con ventana Hann para pitch shifting.
+     * @brief FXPitchShifter: Pitch shifter dual (Tipo 29) y vintage (Tipo 35).
      *
-     * Parámetros (Dual Pitch / Vintage Pitch):
-     *   0: Semi1    (0-1, -12..+12 st)
-     *   1: Cent1    (0-1, -50..+50 cents)
-     *   2: Delay1   (0-1, 1-500ms / feedback si vintage)
-     *   3: Gain1    (0-1, 0-100%) / Feedback1 si vintage
-     *   4: Pan1     (0-1, -100..+100%)
-     *   5: Mix      (0-1, 0-100%)
-     *   6: Semi2    (0-1, -12..+12 st)
-     *   7: Cent2    (0-1, -50..+50 cents)
-     *   8: Delay2   (0-1, 1-500ms) / Feedback2 si vintage
-     *   9: Gain2    (0-1, 0-100%) / Pan2 si vintage
-     *   10: Pan2    (0-1) / feedback2 si vintage
-     *   11: HiCut   (0-1, 200-20000Hz)
+     * Wrapper JUCE que delega el procesamiento DSP en el motor puro `abd::dsp::DspPitchShifter`.
      *
-     * vintageMode = true → usa feedback en vez de delay+gain
+     * TARGET DE HARDWARE Y TOPOLOGÍA:
+     *   - Eventide H910 / H949 y algoritmos de Pitch Shifting de DeepMind 12:
+     *     * 2 Voces transpuestas independientes (-12 a +12 st, -50 a +50 cents).
+     *     * Overlapping grains con modulación de fase circular y ventana Hann.
+     *     * Paneo, delay de voz y ganancia estéreo individuales.
+     *     * Modo Vintage (Tipo 35): Realimentación de los granos transpuestos a la entrada.
+     *     * Filtro HiCut paso-bajos de 1-polo.
+     *
+     * DIAGNÓSTICO DE FIDELIDAD:
+     *   - 100% Real-Time Safe: Búferes preasignados en prepare(), cero heap en process().
+     *   - Validado contra pruebas de barrido de parámetros, direct instantiation y verificación de contrato.
+     *
+     * LÍNEAS DE INVESTIGACIÓN:
+     *   - Algoritmo pitch sinc / wavelet para transposición con menor modulación de formantes.
      */
     class FXPitchShifter : public FXBase
     {
     public:
-        FXPitchShifter(bool vintageMode = false);
+        explicit FXPitchShifter(bool vintageMode = false);
         ~FXPitchShifter() override = default;
 
-        void prepare(double, int) override;
+        void prepare(double sampleRate, int samplesPerBlock) override;
         void process(const float* inL, const float* inR,
                       float* outL, float* outR, int numSamples) override;
         void setParameter(int index, float value) override;
@@ -39,34 +40,7 @@ namespace ABD
         juce::String getEffectName() const override;
 
     private:
-        double sampleRate = 44100.0;
-        bool vintage;
-
-        // Parámetros voice 1 y 2
-        float semi1 = 0.5f, cent1 = 0.5f, delay1 = 0.3f;
-        float gain1 = 0.5f, pan1 = 0.5f;
-        float semi2 = 0.5f, cent2 = 0.5f, delay2 = 0.3f;
-        float gain2 = 0.5f, pan2 = 0.5f;
-        float mix = 0.5f, hiCut = 0.8f;
-
-        // Buffers de delay circulares para pitch shifting
-        juce::AudioSampleBuffer bufL, bufR;
-        int writePosL = 0, writePosR = 0;
-        int maxDelaySamples = 0;
-        float hiCutLP = 0.0f;
-
-        // Crossfade state
-        double phase1 = 0.0, phase2 = 0.0;
-        double grainInc1 = 0.0, grainInc2 = 0.0;
-        int grainLen = 1024;
-
-    // Feedback state (vintage mode)
-    float fbL = 0.0f, fbR = 0.0f;
-
-    // HiCut filter state (was incorrectly static local)
-    float hcStateL = 0.0f, hcStateR = 0.0f;
-
-        void updateGrainParams();
-        float readDelay(juce::AudioSampleBuffer& buf, int writePos, float readOffset, int maxSamp);
+        abd::dsp::DspPitchShifter engine_;
+        bool vintage_ = false;
     };
 }

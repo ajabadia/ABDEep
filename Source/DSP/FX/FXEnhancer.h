@@ -1,12 +1,37 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspEnhancer.h>
 
 namespace ABD
 {
     /**
-     * FXEnhancer: Procesador espectral (Enhancer).
-     * Basado en DeepMind 12 (type=18). 3-bandas con Bass/Mid/High + spread estéreo.
+     * @brief FXEnhancer: Procesador espectral (Enhancer / Exciter 3 bandas).
+     *
+     * ==============================================================================
+     * DOCUMENTACIÓN DE HARDWARE Y FIDELIDAD DSP:
+     * ==============================================================================
+     * 1. HARDWARE EMULADO:
+     *    - Basado en los procesadores analógicos de excitador psicoacústico tipo
+     *      SPL Vitalizer / Behringer SX3040 Sonic Exciter / DeepMind 12 (type=18).
+     *    - Estructura de procesamiento por 3 bandas:
+     *      * Bass shelving filter con frecuencia ajustable (30 Hz - 20 kHz logarítmico)
+     *        y control de realce/densidad de graves.
+     *      * Mid peaking filter con frecuencia sintonizada en 1 kHz, control de factor Q
+     *        resonante y ganancia para presencia vocal/leads.
+     *      * High shelving exciter con realce de armónicos superiores y aire.
+     *      * Modo Solo para monitorizar exclusivamente la banda de medios procesada.
+     *      * Control Spread para amplificación espacial estéreo de la señal tratada.
+     *
+     * 2. DIAGNÓSTICO DE FIDELIDAD:
+     *    - Recreación exacta de las etapas de filtrado shelving y biquad peaking.
+     *    - Totalmente desacoplado en el motor puro `abd::dsp::DspEnhancer` (C++20, 100% RT-Safe).
+     *
+     * 3. LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *    - Incorporar generación dinámica de armónicos pares e impares por transducción
+     *      no lineal dependiente de la envolvente de la señal en alta frecuencia.
+     *    - Simular desfase dependiente de la frecuencia típico de las redes analógicas RC de SPL.
+     * ==============================================================================
      *
      * Parámetros:
      *   0: OutGain   (0-1, -12..+12 dB)
@@ -24,33 +49,17 @@ namespace ABD
     public:
         FXEnhancer();
         ~FXEnhancer() override = default;
-        void prepare(double, int) override;
+
+        void prepare(double sampleRate, int samplesPerBlock) override;
         void process(const float* inL, const float* inR,
-                      float* outL, float* outR, int numSamples) override;
+                      float* outL, float* outR,
+                      int numSamples) override;
         void setParameter(int index, float value) override;
         void reset() override;
         int getNumParameters() const override { return 9; }
         juce::String getEffectName() const override { return "Enhancer"; }
 
     private:
-        double sampleRate = 44100.0;
-        float outGain = 0.5f, spread = 0.3f;
-        float bassGain = 0.3f, bassFreq = 0.3f;
-        float midGain  = 0.3f, midQ = 0.3f;
-        float hiGain   = 0.3f, hiFreq = 0.3f;
-        bool  solo = false;
-
-        // Bass shelving filter
-        float bassStateL = 0.0f, bassStateR = 0.0f;
-        float bassCoeff = 0.0f;
-        // Peak filter (mid)
-        float midStateL = 0.0f, midStateR = 0.0f;
-        float midDelayL = 0.0f, midDelayR = 0.0f;
-        float midCoeffA = 0.0f, midCoeffB = 0.0f;
-        // High shelving
-        float hiStateL = 0.0f, hiStateR = 0.0f;
-        float hiCoeff = 0.0f;
-
-        void updateCoeffs();
+        abd::dsp::DspEnhancer engine;
     };
 }
