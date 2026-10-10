@@ -377,11 +377,12 @@ describe('los tres guards — el registro no se contradice con el spec del host'
     // el motor construye por prefijo. Este test carga la MISMA lista que el
     // generador, para que las dos no puedan separarse.
     const consumidos = new Set(
-      fs
-        .readFileSync(path.join(ROOT, 'scripts', 'registry_generator.js'), 'utf8')
-        .match(/SPECONLY_CONSUMIDOS = new Map\(\[([\s\S]*?)\n\]\)/)[1]
-        .matchAll(/\['([a-z0-9_]+)'/g)
-        .map((m) => m[1]),
+      Array.from(
+        fs
+          .readFileSync(path.join(ROOT, 'scripts', 'registry_generator.js'), 'utf8')
+          .match(/SPECONLY_CONSUMIDOS = new Map\(\[([\s\S]*?)\n\]\)/)[1]
+          .matchAll(/\['([a-z0-9_]+)'/g)
+      ).map((m) => m[1]),
     );
     const sinByte = specCppIds.filter((id) => !Object.prototype.hasOwnProperty.call(BRIDGE.PARAM_TO_BYTE_OFFSET, id));
     const sinConsumidor = sinByte.filter((id) => !consumidos.has(id));
