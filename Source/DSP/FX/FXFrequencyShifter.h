@@ -1,22 +1,28 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspFrequencyShifter.h>
 
 namespace ABD
 {
     /**
-     * FXFrequencyShifter: Inharmonic frequency shifting via heterodyning.
+     * @brief FXFrequencyShifter: Desplazador de frecuencia inarmónico SSB por heterodinación (Tipo 46).
      *
-     * Multiplies the signal by a complex oscillator (sine + cosine),
-     * shifting all partials by a fixed Hz offset. Produces inharmonic
-     * metallic textures, bell-like tones, and sci-fi effects.
+     * Wrapper JUCE que delega el procesamiento DSP en el motor puro `abd::dsp::DspFrequencyShifter`.
      *
-     * Parameters:
-     *   0: Mix      (0-1, dry/wet mix)
-     *   1: Shift    (0-1, shift amount: -2000 to +2000 Hz)
-     *   2: LFO Rate (0-1, LFO modulation rate 0.1-10 Hz)
-     *   3: LFO Depth(0-1, LFO modulation depth)
-     *   4: Feedback (0-1, feedback for ringing effects)
+     * TARGET DE HARDWARE Y TOPOLOGÍA:
+     *   - Harold Bode / Moog Frequency Shifter:
+     *     * Transformada de Hilbert FIR de 15 coeficientes para señal analítica.
+     *     * Heterodinación compleja en cuadratura (Single Sideband, SSB).
+     *     * Rango de desplazamiento lineal: -2000 Hz a +2000 Hz.
+     *     * Modulación por LFO y lazo de feedback para campanillas y timbres metálicos resonantes.
+     *
+     * DIAGNÓSTICO DE FIDELIDAD:
+     *   - 100% Real-Time Safe: Búferes estáticos sin heap en process().
+     *   - Mapeo de parámetros: Mix, Shift, LFO Rate, LFO Depth, Feedback.
+     *
+     * LÍNEAS DE INVESTIGACIÓN:
+     *   - Filtro Hilbert IIR polifásico (Weaver method) para mayor rechazo de banda no deseada con menor latencia.
      */
     class FXFrequencyShifter : public FXBase
     {
@@ -34,37 +40,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Frequency Shifter"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float paramMix = 0.5f;
-        float paramShift = 0.5f;
-        float paramLFORate = 0.3f;
-        float paramLFODepth = 0.0f;
-        float paramFeedback = 0.0f;
-
-        // Oscillator for heterodyne
-        float oscPhase = 0.0f;
-        float oscInc = 0.0f;
-
-        // LFO
-        float lfoPhase = 0.0f;
-        float lfoInc = 0.0f;
-
-        // Current shift in Hz
-        float currentShiftHz = 0.0f;
-
-        // Feedback buffer (IIR comb-like)
-        float fbL = 0.0f;
-        float fbR = 0.0f;
-
-        // Hilbert transform approximation (90-degree phase shift)
-        static constexpr int kHilbertLen = 15;
-        float hilbertBufL[kHilbertLen] = {};
-        float hilbertBufR[kHilbertLen] = {};
-        int hilbertPos = 0;
-
-        static constexpr float kPi = 3.14159265f;
-
-        float hilbertShift(float input, float* buf);
+        abd::dsp::DspFrequencyShifter engine_;
     };
 }

@@ -28,6 +28,20 @@ float SynthVoice::processFilterSection(const ModulationMatrix& matrix, float com
     float effectiveEnvDepth = signedEnvDepth * polarityScale;
     float velScaledEnvDepth = effectiveEnvDepth * (1.0f - params.vcfEnvVel + params.vcfEnvVel * velocityValue);
 
+    // Y LA MATRIZ, QUE SON LOS MANDOS DE ARRIBA POR OTRO CAMINO. El 22 y el 23
+    // del manual son la profundidad de la envolvente y la del LFO del filtro,
+    // pero pidiendo una ruta de la matriz en vez de tocar el mando: se SUMAN a
+    // los mandos y no los sustituyen, asi que un patch que los usa sigue
+    // respetando lo que el usuario tiene escrito en el panel.
+    //
+    // Y LA POLARIDAD TAMBIEN SE APLICA A LA MATRIZ. El boton INVERT del
+    // hardware es del control y no del origen: si el usuario le dio la vuelta al
+    // mando quiere que la envolvente baje el filtro, y que una ruta de la
+    // matriz lo suba seria mover algo que no ha pedido.
+    const float envProfMatriz = matrix.getModulationValue(ModDestination::kFilterEnvDepth, modSources)
+                              * polarityScale;
+    const float velScaledEnvDepthTotal = velScaledEnvDepth + envProfMatriz;
+
     // VCF Pitch Bend Depth: el pitch bend modula el cutoff
     float pitchBendValue = modSources[(int)ModSource::kPitchBend];
     float pitchBendCutoffMod = pitchBendValue * params.vcfPitchBend * cal.pitchBendCutoffScale;
@@ -44,9 +58,12 @@ float SynthVoice::processFilterSection(const ModulationMatrix& matrix, float com
     float lfoDepthFromModwheel = params.vcfModwheelLfo * modSources[(int)ModSource::kModWheel];
     float totalLfoDepth = lfoCutoffDepth + lfoDepthFromAftertouch + lfoDepthFromModwheel;
 
+    // Y el 23, que es el mismo mando de LFO pero desde la matriz.
+    totalLfoDepth += matrix.getModulationValue(ModDestination::kFilterLfoDepth, modSources);
+
     // Mapeo musical logarítmico del Cutoff (calibrado)
     float targetCutoffLvl = params.vcfCutoff + vcfCutoffMod
-                           + (env2Value * velScaledEnvDepth)
+                           + (env2Value * velScaledEnvDepthTotal)
                            + (lfoValue * totalLfoDepth)
                            + pitchBendCutoffMod + cutoffDriftMod;
     targetCutoffLvl = std::clamp(targetCutoffLvl, 0.0f, 1.0f);

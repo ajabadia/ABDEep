@@ -1,27 +1,44 @@
 #pragma once
 
 #include "FXBase.h"
+#include "DspEffects/DspVocoder.h"
 
 namespace ABD
 {
     /**
-     * FXVocoder: Classic multiband channel vocoder.
+     * FXVocoder: Envoltorio de política sobre el vocoder multibanda compartido.
      *
-     * Splits the modulator into frequency bands using a bank of
-     * bandpass filters, extracts envelopes, and applies them to
-     * resynthesized carrier bands. Creates robotic/synthesized voice effects.
+     * ==============================================================================
+     * EMULACIÓN HARDWARE:
+     *   Vocoder multibanda analógico clásico estilo EMS Vocoder 2000 / Roland SVC-350 /
+     *   VP-330 / Korg MS2000.
      *
-     * Parameters:
-     *   0: Mix          (0-1, dry/wet mix)
-     *   1: BandCount    (0-1, number of bands 4-32)
-     *   2: Attack       (0-1, envelope follower attack time)
-     *   3: Release      (0-1, envelope follower release time)
-     *   4: FormantShift (0-1, shift bands up/down)
-     *   5: ModSrc       (0=MIC/EXT IN, 1=NOISE/FORMANTS internal generator)
+     *   El motor algorítmico reside en `abd::dsp::DspVocoderBank`
+     *   (ABDSharedCode/DspEffects/DspVocoder.h) y utiliza los detectores de envolvente
+     *   analógicos `abd::dsp::EnvelopeFollower` (ABDSharedCode/DspCore/DspEnvelopeFollower.h).
      *
-     * Modulator routing:
-     *   Mode 0: External modulator via setModulatorInput() (mic/sidechain)
-     *   Mode 1: Internal pink noise + formant resonators
+     * CARACTERÍSTICAS DE LA IMPLEMENTACIÓN:
+     *   - Banco de 4 a 32 filtros pasabanda biquad configurables en escala logarítmica.
+     *   - Detectores de envolvente analógicos con tiempos independientes de ataque y relajación.
+     *   - Desplazamiento continuo de formantes (transposición tímbrica hacia arriba/abajo).
+     *   - Doble modo de modulación:
+     *       0 = Entrada externa (vía setModulatorInput / sidechain / micrófono).
+     *       1 = Modulador interno sintético (ruido rosa + resonadores de formantes).
+     *
+     * PARÁMETROS DEL HARDWARE (DeepMind 12 FX Type 49):
+     *   0: Mix          (0-1, mezcla seca/húmeda)
+     *   1: BandCount    (0-1, número de bandas activas 4-32)
+     *   2: Attack       (0-1, tiempo de ataque del seguidor)
+     *   3: Release      (0-1, tiempo de relajación del seguidor)
+     *   4: FormantShift (0-1, transposición de formantes)
+     *   5: ModSrc       (0=micrófono/ext in, 1=ruido rosa/formantes internos)
+     *
+     * INVESTIGACIÓN PENDIENTE PARA ELEVAR FIDELIDAD:
+     *   - Modelar la detección y puerta de sibilancia de consonantes ("Sibilance / Unvoiced Detector")
+     *     conmutando a ruido blanco para consonantes fricativas (s, t, k) como en el VP-330/MS2000.
+     *   - Permitir selección de frecuencias Bark o curvas fijas de hardware (Roland SVC-350 10-band,
+     *     Korg MS2000 16-band).
+     * ==============================================================================
      */
     class FXVocoder : public FXBase
     {
@@ -42,6 +59,8 @@ namespace ABD
         void setModulatorInput(const float* modL, const float* modR, int numSamples) override;
 
     private:
+        abd::dsp::DspVocoderBank<32> vocoderBank;
+
         double sampleRate = 44100.0;
 
         float paramMix = 0.5f;
@@ -49,68 +68,13 @@ namespace ABD
         float paramAttack = 0.3f;
         float paramRelease = 0.5f;
         float paramFormantShift = 0.5f;
-        float paramModSrc = 0.0f;   // 0 = external, 1 = internal noise/formants
+        float paramModSrc = 0.0f;
 
-        static constexpr int kMaxBands = 32;
-
-        // Per-band filter state
-        struct VocoderBand
-        {
-            // Bandpass filter (biquad)
-            float b0 = 0.0f, b1 = 0.0f, b2 = 0.0f;
-            float a1 = 0.0f, a2 = 0.0f;
-            float x1 = 0.0f, x2 = 0.0f;
-            float y1 = 0.0f, y2 = 0.0f;
-
-            // Envelope follower
-            float envelope = 0.0f;
-            float centerFreq = 0.0f;
-        };
-
-        VocoderBand analysisBandsL[kMaxBands];
-        VocoderBand analysisBandsR[kMaxBands];
-
-        // Resynthesis filter state (carrier side)
-        struct ResynthBand
-        {
-            float b0 = 0.0f, b1 = 0.0f, b2 = 0.0f;
-            float a1 = 0.0f, a2 = 0.0f;
-            float x1 = 0.0f, x2 = 0.0f;
-            float y1 = 0.0f, y2 = 0.0f;
-        };
-
-        ResynthBand resynthBandsL[kMaxBands];
-        ResynthBand resynthBandsR[kMaxBands];
-
-        // Band center frequencies (Hz) - computed in prepare()
-        float bandFreqs[kMaxBands];
-
-        // External modulator pointers (set each block via setModulatorInput)
+        // Punteros del modulador externo (fijados por bloque)
         const float* extModL = nullptr;
         const float* extModR = nullptr;
         int extModSamples = 0;
 
-        // Internal modulator state (pink noise + formant resonators)
-        float noiseStateL = 0.0f;
-        float noiseStateR = 0.0f;
-        unsigned int noiseSeed = 12345;
-
-        // Internal formant resonator bands
-        struct FormantResonator
-        {
-            float b0 = 0.0f, b1 = 0.0f, b2 = 0.0f;
-            float a1 = 0.0f, a2 = 0.0f;
-            float x1 = 0.0f, x2 = 0.0f;
-            float y1 = 0.0f, y2 = 0.0f;
-        };
-
-        FormantResonator formantBandsL[kMaxBands];
-        FormantResonator formantBandsR[kMaxBands];
-
-        void updateBandpass(VocoderBand& band, float freq, float q);
-        void updateFormantResonator(FormantResonator& res, float freq, float q);
-        void updateResynthBand(ResynthBand& band, float freq, float q);
-        void computeBandFrequencies(int numBands);
-        float generatePinkNoise(float& state);
+        void updateVocoderParams();
     };
 }

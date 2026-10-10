@@ -57,6 +57,29 @@ jobs:
         with:
           submodules: recursive
 
+      # wasm/CMakeLists.txt apunta a ../../ABDSharedCode/SynthCore/*.cpp (PolyBLEP,
+      # LfoAnalog, DriftEngine...), que es el mismo layout de hermanos que tiene en
+      # local: <suite>/ABDEep/wasm/../.. = <suite>/. Aqui el checkout del repo es
+      # $GITHUB_WORKSPACE, asi que el hermano tiene que vivir FUERA de el, en el
+      # padre. Sin este paso el `emcmake cmake` revienta en el generate con
+      # "Cannot find source file: .../ABDSharedCode/SynthCore/PolyBLEP.cpp" y
+      # "No SOURCES given to target: abdeep_dsp", y el include de cabeceras
+      # (SynthCore/VoiceAllocator.h, DspEffects/*) tampoco resuelve.
+      #
+      # Es la misma pieza que el root CMakeLists resuelve con
+      # `if(EXISTS ../ABDSharedCode/CMakeLists.txt) ... else FetchContent`; aqui no
+      # hay fallback porque el propio wasm/CMakeLists.txt lista rutas absolutas.
+      # Clona a mano y no con `actions/checkout` porque el input `path` de esa
+      # accion es relativo a $GITHUB_WORKSPACE y no debe salirse de el.
+      - name: Checkout ABDSharedCode as sibling
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/ajabadia/ABDSharedCode.git \
+            "$GITHUB_WORKSPACE/../ABDSharedCode"
+          test -f "$GITHUB_WORKSPACE/../ABDSharedCode/SynthCore/PolyBLEP.cpp" \
+            || { echo "::error::ABDSharedCode clonado pero sin SynthCore/PolyBLEP.cpp: wasm/CMakeLists.txt no va a encontrar sus fuentes."; exit 1; }
+          echo "ABDSharedCode hermano listo en $GITHUB_WORKSPACE/../ABDSharedCode"
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
@@ -104,7 +127,20 @@ jobs:
         shell: bash
         run: |
           cmake --build wasm/build
-          ls -la WebUI/wasm/abdeep_dsp.js WebUI/wasm/abdeep_dsp.wasm
+          ls -la WebUI/wasm/abdeep_dsp.js
+
+          # SINGLE_FILE=1 puede incrustar el .wasm en el .js, asi que no siempre
+          # hay un .wasm suelto: es la practica que documentan
+          # wasm/README_WASM_COMPILATION.md:294, wasm/guia_maestra_wasm_juce.md:399
+          # y JUCE_HYBRID_PLUGIN_SKILL.md:134 para evitar CORS en el AudioWorklet.
+          # Aqui NO se comprueba la incrustacion: seria adivinar el formato del
+          # glue. Quien decide es scripts/check_wasm_build.js, que ya contempla los
+          # dos casos y falla con mensaje explicito si no esta ni suelto ni embebido.
+          if [ -f WebUI/wasm/abdeep_dsp.wasm ]; then
+            echo "wasm: artefacto suelto, $(stat -c%s WebUI/wasm/abdeep_dsp.wasm) bytes"
+          else
+            echo "::warning title=wasm-build::sin abdeep_dsp.wasm suelto (SINGLE_FILE=1); check_wasm_build.js verificara que este embebido en el .js"
+          fi
 
       - name: Verify WASM artifacts, exports & preallocation invariant
         shell: bash

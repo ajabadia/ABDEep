@@ -1,30 +1,55 @@
+/*
+  ==============================================================================
+
+    FXMultiBandDist.h
+    Distorsión de 3 bandas con cruces complementarios y emulación de altavoz/cabinet.
+
+    ENVOLTORIO DE PRODUCTO: ABDEep
+    MOTOR DSP SUBYACENTE: abd::dsp::DspMultiBandDist (ABDSharedCode/DspEffects/DspMultiBandDist.h)
+
+    EMULACIÓN DE HARDWARE REAL:
+      - DeepMind 12 FX Type 32: Multi-Band Distortion
+      - Inspirado en procesadores de distorsión multibanda analógicos y de estudio.
+
+    DIAGNÓSTICO Y ARQUITECTURA DSP ACTUAL:
+      - Crossover complementario de 3 bandas (Low, Mid, High) de 30 Hz a 9000 Hz.
+      - 6 algoritmos de distorsión: Valve (tanh), Saturate (knee), Tube (asimétrico)
+        y sus variantes con post-filtrado suave.
+      - 11 emulaciones de recinto/altavoz (Cabinet) con filtrado pasabajos resonante.
+      - Controles de ganancia, drive y nivel independientes por banda.
+      - 100% Real-Time Safe: sin asignaciones dinámicas en hilos de audio.
+
+    BRECHAS DE FIDELIDAD Y LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+      1. Crossovers Linkwitz-Riley de 4º orden (LR4):
+         Sustituir los crossovers de 1 polo por filtros IIR Linkwitz-Riley de 24 dB/oct
+         con coherencia de fase perfecta en la suma para eliminar solapamiento entre bandas.
+      2. Modelos de Cabinet basados en respuestas impulsionales (IR):
+         Modelar perfiles acústicos de pantallas 1x12", 2x12" y 4x12" más precisos que el LPF simple.
+
+    PARÁMETROS (Orden hardware DeepMind 12 - Type 32):
+      0:  InGain      (0-1, -24 dB a +24 dB)
+      1:  DistType    (0-1, Valve/Saturate/Tube + post-filter)
+      2:  LowLevel    (0-1, -12 dB a +12 dB)
+      3:  LowDrive    (0-1, 0-100%)
+      4:  XoverLowMid (0-1, 30 Hz - 9000 Hz)
+      5:  MidLevel    (0-1, -12 dB a +12 dB)
+      6:  MidDrive    (0-1, 0-100%)
+      7:  XoverMidHi  (0-1, 30 Hz - 9000 Hz)
+      8:  HiLevel     (0-1, -12 dB a +12 dB)
+      9:  HiDrive     (0-1, 0-100%)
+      10: Cabinet     (0-1, 0=OFF, 1-11 tipos)
+      11: OutGain     (0-1, -12 dB a +12 dB)
+
+  ==============================================================================
+*/
+
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspMultiBandDist.h>
 
 namespace ABD
 {
-    /**
-     * FXMultiBandDist: Distorsión multibanda con 3 bandas (Low/Mid/High).
-     *
-     * Basado en el hardware DeepMind 12 (type=32).
-     * Divide la señal en 3 bandas mediante cruces, aplica distorsión
-     * independiente a cada banda, y recombina.
-     *
-     * Parámetros:
-     *   0: InGain      (0-1, -24dB a +24dB)
-     *   1: DistType    (0-1, valve/saturate/tube + post-filter variants)
-     *   2: LowLevel    (0-1, -12dB a +12dB)
-     *   3: LowDrive    (0-1, 0-100%)
-     *   4: XoverLowMid (0-1, 30Hz - 9000Hz)
-     *   5: MidLevel    (0-1, -12dB a +12dB)
-     *   6: MidDrive    (0-1, 0-100%)
-     *   7: XoverMidHi  (0-1, 30Hz - 9000Hz)
-     *   8: HiLevel     (0-1, -12dB a +12dB)
-     *   9: HiDrive     (0-1, 0-100%)
-     *   10: Cabinet    (0-1, 0=OFF, 1-11 tipos de cabinet)
-     *   11: OutGain    (0-1, -12dB a +12dB)
-     */
     class FXMultiBandDist : public FXBase
     {
     public:
@@ -41,42 +66,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Multi-Band Dist"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        // Parámetros
-        float inGain      = 0.5f; // 0-1 → -24..+24 dB
-        int   distType    = 0;    // 0-valve, 1-saturate, 2-tube, 3-5 post-filter
-        float lowLevel    = 0.5f;
-        float lowDrive    = 0.3f;
-        float xoverLowMid = 0.3f; // 30-9000Hz
-        float midLevel    = 0.5f;
-        float midDrive    = 0.3f;
-        float xoverMidHi  = 0.7f; // 30-9000Hz
-        float hiLevel     = 0.5f;
-        float hiDrive     = 0.3f;
-        int   cabinetType = 0;    // 0=OFF, 1-11
-        float outGain     = 0.5f;
-
-        // Crossover filters (Linkwitz-Riley 2-polos por banda)
-        float xv1LowL = 0.0f, xv1LowR = 0.0f;  // lowpass state
-        float xv1HighL = 0.0f, xv1HighR = 0.0f; // highpass state (complementario)
-        float xv2LowL = 0.0f, xv2LowR = 0.0f;  // lowpass state
-        float xv2HighL = 0.0f, xv2HighR = 0.0f; // highpass state
-
-        float xv1Coeff = 0.0f; // crossover 1
-        float xv2Coeff = 0.0f; // crossover 2
-
-        // Cabinet filter (para simulación de altavoz)
-        float cabL = 0.0f, cabR = 0.0f;
-        float cabCoeff = 0.0f;
-
-        // Post-filter para dist types 3-5 (SR-dependiente)
-        float postCoeff = 0.0f;
-        float postL = 0.0f, postR = 0.0f;
-
-        void updateCrossoverCoeffs();
-
-        /** Aplica distorsión según tipo seleccionado */
-        float applyDistType(float sample, int type, float drive);
+        abd::dsp::DspMultiBandDist dist_;
     };
 }

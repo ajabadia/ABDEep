@@ -155,7 +155,8 @@ function buildBridgeParamMaps() {
 
     rawToNormalized: function(byteOffset, rawValue) {
       if (BIPOLAR_BYTES.has(byteOffset)) {
-        return Math.max(0, Math.min(1, ((rawValue - 128) / 127.0 + 1) / 2));
+        const val = rawValue < 128 ? (rawValue / 128.0) * 0.5 : 0.5 + ((rawValue - 128) / 127.0) * 0.5;
+        return Math.max(0, Math.min(1, val));
       }
       if (ENUM_BYTES[byteOffset] !== undefined) {
         return Math.min(1, rawValue / ENUM_BYTES[byteOffset]);
@@ -165,8 +166,11 @@ function buildBridgeParamMaps() {
 
     normalizedToRaw: function(byteOffset, normalizedValue) {
       if (BIPOLAR_BYTES.has(byteOffset)) {
-        const val = ((normalizedValue * 2.0) - 1.0) * 127.0;
-        return Math.round(val + 128);
+        const n = Math.max(0, Math.min(1, normalizedValue));
+        if (n <= 0.5) {
+          return Math.round(n * 2.0 * 128.0);
+        }
+        return Math.round(128.0 + (n - 0.5) * 2.0 * 127.0);
       }
       if (ENUM_BYTES[byteOffset] !== undefined) {
         return Math.round(normalizedValue * ENUM_BYTES[byteOffset]);
@@ -223,9 +227,9 @@ describe('rawToNormalized (NRPN decode)', () => {
     expect(maps.rawToNormalized(42, 255)).toBeCloseTo(1.0, 4);
   });
 
-  it('bipolar: raw=64 → ~0.248', () => {
-    // ((64 - 128) / 127 + 1) / 2 = (-64/127 + 1) / 2 = (-0.5039 + 1) / 2 = 0.4961/2 = 0.248
-    expect(maps.rawToNormalized(42, 64)).toBeCloseTo(0.248, 2);
+  it('bipolar: raw=64 → 0.25', () => {
+    // (64 / 128) * 0.5 = 0.25 (Fórmula C por tramos / piecewise)
+    expect(maps.rawToNormalized(42, 64)).toBeCloseTo(0.25, 4);
   });
 
   it('bipolar: raw=192 → ~0.752', () => {
@@ -317,11 +321,9 @@ describe('normalizedToRaw (NRPN encode)', () => {
     expect(maps.normalizedToRaw(42, 0.5)).toBe(128);
   });
 
-  it('bipolar: 0.0 → 1 (raw=0 is sub-zero clamped zone)', () => {
-    // ((0 * 2 - 1) * 127) + 128 = (-1 * 127) + 128 = 1
-    // raw=0 maps to normalized≈-0.0039 which clamps to 0.0;
-    // the reverse formula gives raw=1 as the minimum non-clamped value.
-    expect(maps.normalizedToRaw(42, 0.0)).toBe(1);
+  it('bipolar: 0.0 → 0 (Fórmula C simétrica, sin zona muerta sub-cero)', () => {
+    // n=0.0 <= 0.5 → round(0.0 * 2 * 128) = 0
+    expect(maps.normalizedToRaw(42, 0.0)).toBe(0);
   });
 
   it('bipolar: 1.0 → 255', () => {
@@ -329,11 +331,9 @@ describe('normalizedToRaw (NRPN encode)', () => {
     expect(maps.normalizedToRaw(42, 1.0)).toBe(255);
   });
 
-  it('bipolar: 0.25 → ~65', () => {
-    // ((0.25 * 2 - 1) * 127) + 128 = ((0.5 - 1) * 127) + 128 = (-0.5 * 127) + 128 = -63.5 + 128 = 64.5 → round(64.5) = 65
-    const result = maps.normalizedToRaw(42, 0.25);
-    expect(result).toBeGreaterThanOrEqual(64);
-    expect(result).toBeLessThanOrEqual(65);
+  it('bipolar: 0.25 → 64', () => {
+    // n=0.25 <= 0.5 → round(0.25 * 2 * 128) = round(64.0) = 64
+    expect(maps.normalizedToRaw(42, 0.25)).toBe(64);
   });
 
   it('bipolar: 0.75 → ~191', () => {

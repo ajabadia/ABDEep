@@ -1,23 +1,45 @@
+/*
+  ==============================================================================
+
+    FXOversamplingDistortion.h
+    Distorsión asimétrica con sobremuestreo 4x y filtro antialiasing FIR.
+
+    ENVOLTORIO DE PRODUCTO: ABDEep
+    MOTOR DSP SUBYACENTE: abd::dsp::DspOversamplingDistortion (ABDSharedCode/DspEffects/DspOversamplingDistortion.h)
+
+    EMULACIÓN DE HARDWARE REAL:
+      - DeepMind 12 FX Type 50: Oversampling Distortion
+      - Inspirado en la arquitectura de distorsión analógica oversampleada de Odin2.
+
+    DIAGNÓSTICO Y ARQUITECTURA DSP ACTUAL:
+      - Sobremuestreo 4x con modelado asimétrico y ensanchamiento estéreo.
+      - Diezmado FIR de 4 fases con ventana de coseno alzado para supresión de aliasing.
+      - Filtro de tono pasabajos y control Dry/Wet.
+      - Eliminación absoluta de vectores dinámicos (100% Real-Time Safe).
+
+    BRECHAS DE FIDELIDAD Y LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+      1. Filtrado polifásico IIR / Half-band:
+         Un filtro polifásico IIR de fase casi lineal (como el implementado en `OscHalfbandDecimator`)
+         proporciona una pendiente de corte más abrupta (>60 dB de atenuación) reduciendo aún más
+         el aliasing que el promedio ponderado FIR de 4 taps.
+
+    PARÁMETROS (Orden hardware DeepMind 12 - Type 50):
+      0: Drive  (0-1, ganancia de distorsión)
+      1: Tone   (0-1, filtro pasabajos de tono)
+      2: Mix    (0-1, dry/wet mix)
+      3: Level  (0-1, nivel de salida)
+      4: Stereo (0-1, apertura estéreo de la distorsión)
+
+  ==============================================================================
+*/
+
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspOversamplingDistortion.h>
 
 namespace ABD
 {
-    /**
-     * FXOversamplingDistortion: Oversampled distortion/saturation with anti-aliasing.
-     *
-     * Applies nonlinear waveshaping at 4x internal sample rate, then
-     * decimates back with a 5th-order FIR anti-aliasing filter.
-     * Source: Odin2 OversamplingDistortion.
-     *
-     * Parameters:
-     *   0: Drive   (0-1, distortion amount)
-     *   1: Tone    (0-1, post-dist tone shaping)
-     *   2: Mix     (0-1, dry/wet mix)
-     *   3: Level   (0-1, output level)
-     *   4: Stereo  (0-1, stereo width of distortion)
-     */
     class FXOversamplingDistortion : public FXBase
     {
     public:
@@ -34,23 +56,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Oversampling Distortion"; }
 
     private:
-        double sampleRate = 44100.0;
-        static constexpr int kOversample = 4;
-
-        float drive = 0.3f, tone = 0.5f, mix = 0.4f, level = 0.7f, stereo = 0.5f;
-
-        // Oversample buffers
-        std::vector<float> upBufL, upBufR, downBufL, downBufR;
-        int internalBufSize = 0;
-
-        // Anti-alias filter state (5th order FIR)
-        static constexpr int kFirLen = 12;
-        std::vector<float> firL, firR;
-
-        // Tone filter state
-        float toneL = 0.0f, toneR = 0.0f;
-
-        float waveshape(float x) const;
-        void processInternal(float* buf, int numSamples);
+        abd::dsp::DspOversamplingDistortion dist_;
     };
 }

@@ -1,16 +1,34 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspTreemonster.h>
 
 namespace ABD
 {
     /**
-     * FXTreemonster: Pitch-tracking modulation processor.
+     * @brief FXTreemonster: Pitch-tracking modulation processor.
      *
-     * Analyzes the input pitch in real-time and uses the detected
-     * frequency to modulate delay lines, creating pitch-following
-     * chorus/flange/shimmer effects.
-     * Source: Surge TreemonsterEffect.
+     * ==============================================================================
+     * DOCUMENTACIÓN DE HARDWARE Y FIDELIDAD DSP:
+     * ==============================================================================
+     * 1. HARDWARE EMULADO:
+     *    - Procesador de retardo modulado por seguimiento de tono
+     *      (DeepMind 12 Type 56 / Korg MS-20 ESP / Surge Treemonster).
+     *    - Detector de cruces por cero en tiempo real con filtro paso bajo de histéresis
+     *      y cálculo continuo de confianza del tono detectado.
+     *    - Conmutación automática: modulación con oscilador sintonizado al tono analizado
+     *      cuando la confianza supera 0.3, o repliegue fluido a LFO sinusoidal convencional.
+     *    - Línea de retardo continuo fraccional (5 ms a 105 ms).
+     *    - Lazo de realimentación con saturación no lineal suave (tanh).
+     *
+     * 2. DIAGNÓSTICO DE FIDELIDAD:
+     *    - Totalmente desacoplado en el motor puro `abd::dsp::DspTreemonster` (C++20, 100% RT-Safe).
+     *
+     * 3. LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *    - Incorporar detector de tono basado en autocorrelación (YIN) o transformada Wavelet
+     *      para mayor robustez frente a fuentes polifónicas complejas.
+     *    - Permitir cuantización de la modulación a intervalos musicales (quintas, octavas).
+     * ==============================================================================
      *
      * Parameters:
      *   0: Speed    (0-1, modulation rate when tracking fails)
@@ -35,27 +53,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Treemonster"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float speedParam = 0.5f, depthParam = 0.5f, feedbackParam = 0.3f, trackingParam = 0.5f, mix = 0.4f;
-
-        // Delay lines (stereo)
-        static constexpr int kMaxDelaySamples = 4800; // 100ms at 48kHz
-        std::vector<float> delayL, delayR;
-        int delayMask = 0;
-        float writePos = 0.0f;
-
-        // Pitch detector state
-        float detectorPhase = 0.0f;
-        float detectorFreq = 200.0f;
-        float detectorConfidence = 0.0f;
-        float prevSample = 0.0f;
-        int zeroCrossings = 0;
-        float windowSamples = 0.0f;
-
-        // LFO fallback
-        float lfoPhase = 0.0f;
-
-        float detectPitch(float sample);
+        abd::dsp::DspTreemonster engine;
     };
 }

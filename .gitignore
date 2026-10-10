@@ -52,3 +52,7 @@ pluginval_Windows.zip
 *.log
 build_log.txt
 *.cpp.bak
+test-results.txt
+help_raw.txt
+_build_tmp.cmd
+

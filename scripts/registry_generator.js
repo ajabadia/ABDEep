@@ -261,8 +261,17 @@ function toPascalCase(id) {
     .join('');
 }
 
-// ── 1. Cargar fuentes ─────────────────────────────────────────────
-let bridge, byteMap, spec;
+let specCppIds = new Set();
+let entries = [];
+
+function main() {
+  fatalErrors.length = 0;
+  warnings.length = 0;
+  entries = [];
+  specCppIds = new Set();
+
+  // ── 1. Cargar fuentes ─────────────────────────────────────────────
+  let bridge, byteMap, spec;
 try {
   const bridgeWin = loadJsGlobal(SRC.bridge);
   bridge = bridgeWin.BRIDGE_PARAM_MAPS;
@@ -300,7 +309,7 @@ if (fatalErrors.length > 0) {
   reportAndExit(1);
 }
 
-const specCppIds = new Set(specCpp.ids);
+  specCppIds = new Set(specCpp.ids);
 
 // Hashes sobre la forma CANÓNICA de las fuentes ya parseadas (no los bytes del
 // fichero): cambios de formato o comentarios no re-sellan el registro.
@@ -334,7 +343,7 @@ const bipolarBytes = bridge.BIPOLAR_BYTES instanceof Set ? bridge.BIPOLAR_BYTES 
 const specById = new Map();
 for (const p of spec) {specById.set(p.id, p);}
 
-const entries = [];
+  entries = [];
 const byOffset = {}; // byteOffset → [ids]
 
 for (const [id, offsetRaw] of Object.entries(paramToOffset)) {
@@ -603,8 +612,8 @@ for (const [file, content] of payloads) {
 
 // Post-emisión: re-validar la instancia emitida contra las invariantes clave
 // del esquema (sin dependencia externa; ajv llegará en el job CI de Fase 7).
-const emitted = JSON.parse(fs.readFileSync(OUT.data, 'utf8'));
-validateEmitted(emitted);
+  const emitted = JSON.parse(fs.readFileSync(OUT.data, 'utf8'));
+  validateEmitted(emitted, registry.parameters);
 
 // ── 6. Reporte ────────────────────────────────────────────────────
 console.log('[registry] OK — schemaVersion=1 · parámetros=' + summary.total +
@@ -617,9 +626,10 @@ if (warnings.length > 0) {
 }
 console.log('[registry] Artefactos: ' + written.length + ' reescritos, ' +
   untouched.length + ' ya al dia');
-for (const f of written) {console.log('  ~ ' + path.relative(ROOT, f));}
-for (const f of untouched) {console.log('  = ' + path.relative(ROOT, f) + ' (sin cambios)');}
-process.exit(0);
+  for (const f of written) {console.log('  ~ ' + path.relative(ROOT, f));}
+  for (const f of untouched) {console.log('  = ' + path.relative(ROOT, f) + ' (sin cambios)');}
+  return { registry, written, untouched, summary, warnings };
+}
 
 // ── Implementaciones auxiliares ───────────────────────────────────
 function writeAtomic(file, content) {
@@ -659,9 +669,10 @@ function stableForm(reg) {
 
 // Valida la instancia emitida contra invariantes del esquema (espejo de lo que
 // validará el job CI schema-validation con ajv en Fase 7).
-function validateEmitted(d) {
+function validateEmitted(d, expectedParams = entries) {
   if (d.schemaVersion !== 1) {fail('SCHEMA_VERSION', 'data.json no tiene schemaVersion=1');}
-  if (!Array.isArray(d.parameters) || d.parameters.length !== entries.length) {
+  const expectedLen = expectedParams ? expectedParams.length : entries.length;
+  if (!Array.isArray(d.parameters) || d.parameters.length !== expectedLen) {
     fail('EMITTED_PARAMETERS', 'data.json parámetros no coinciden con la generación');
   }
   if (!Array.isArray(d.byteMap) || d.byteMap.length !== 242) {
@@ -761,13 +772,13 @@ function renderJs(reg) {
   lines.push('    rawToNormalized: function (byteOffset, rawValue) {');
   lines.push('      if (byteOffset === undefined) return 0;');
   lines.push('      var p = byOffset[byteOffset] && byOffset[byteOffset][0] ? byId[byOffset[byteOffset][0]] : null;');
-  lines.push('      if (p && p.codecType === "bipolar") { return Math.max(0, Math.min(1, ((rawValue - 128) / 127 + 1) / 2)); }');
+  lines.push('      if (p && p.codecType === "bipolar") { var v = rawValue < 128 ? (rawValue / 128.0) * 0.5 : 0.5 + ((rawValue - 128) / 127.0) * 0.5; return Math.max(0, Math.min(1, v)); }');
   lines.push('      if (p && p.codecType === "enum" && p.enumMax) { return Math.min(1, rawValue / p.enumMax); }');
   lines.push('      return rawValue / 255;');
   lines.push('    },');
   lines.push('    normalizedToRaw: function (byteOffset, normalizedValue) {');
   lines.push('      var p = byOffset[byteOffset] && byOffset[byteOffset][0] ? byId[byOffset[byteOffset][0]] : null;');
-  lines.push('      if (p && p.codecType === "bipolar") { return Math.round(((normalizedValue * 2 - 1) * 127) + 128); }');
+  lines.push('      if (p && p.codecType === "bipolar") { var n = Math.max(0, Math.min(1, normalizedValue)); return n <= 0.5 ? Math.round(n * 2.0 * 128.0) : Math.round(128.0 + (n - 0.5) * 2.0 * 127.0); }');
   lines.push('      if (p && p.codecType === "enum" && p.enumMax) { return Math.round(normalizedValue * p.enumMax); }');
   lines.push('      return Math.round(normalizedValue * 255);');
   lines.push('    }');
@@ -875,3 +886,44 @@ function renderCppSource(reg) {
 function escapeCpp(s) {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
+
+// ── Punto de entrada CLI y exports ────────────────────────────────
+function isDirectExecution() {
+  if (!process.argv[1]) return false;
+  try {
+    return path.resolve(process.argv[1]).toLowerCase() === path.resolve(fileURLToPath(import.meta.url)).toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+if (isDirectExecution()) {
+  main();
+  process.exit(0);
+}
+
+const __soloParaTest = {
+  canonicalizeSource,
+  canonicalHash,
+  sha256,
+  toPascalCase,
+  computeDefaultNormalized,
+  codecTypeId,
+  escapeCpp,
+  SPECONLY_CONSUMIDOS,
+  parseSpecCppIds: loadSpecCppIds,
+};
+
+export {
+  main,
+  canonicalizeSource,
+  canonicalHash,
+  sha256,
+  toPascalCase,
+  computeDefaultNormalized,
+  codecTypeId,
+  escapeCpp,
+  SPECONLY_CONSUMIDOS,
+  __soloParaTest,
+};
+

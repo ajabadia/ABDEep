@@ -9,61 +9,45 @@ import { describe, it, expect, beforeEach} from 'vitest';
 
 // ===== Extracted Source Functions =====
 
-// Listado oficial de Modulation Sources (Manual DeepMind 12)
-const MOD_SOURCES = [
-    'None', 'Pitch Bend', 'Mod Wheel', 'Foot Ctrl',
-    'BreathCtrl', 'Pressure', 'Expression', 'LFO 1',
-    'LFO 2', 'Env 1', 'Env 2', 'Env 3',
-    'Note Num', 'Note Vel', 'Note Off Vel', 'Ctrl Seq',
-    'LFO 1 (Uni)', 'LFO 2 (Uni)', 'LFO 1 (Fade)', 'LFO 2 (Fade)',
-    'Voice Num', 'Uni Voice', 'CC X (115)', 'CC Y (116)',
-    'CC Z (117)'
-];
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
 
-// Listado oficial de Modulation Destinations (Manual DeepMind 12)
-const MOD_DESTINATIONS = [
-    'None', 'LFO1 Rate', 'LFO1 Delay', 'LFO1 Slew',
-    'LFO1 Shape', 'LFO2 Rate', 'LFO2 Delay', 'LFO2 Slew',
-    'LFO2 Shape', 'OSC 1+2 Pitch', 'OSC 1+2 Fine', 'OSC 1 Pitch',
-    'OSC 1 Fine', 'OSC 2 Pitch', 'OSC 2 Fine', 'OSC 1 PM Dep',
-    'PWM Depth', 'TMod Depth', 'OSC 2 PM Dep', 'Porta Time',
-    'VCF Freq', 'VCF Res', 'VCF Env', 'VCF LFO',
-    'Env Rates', 'All Attack', 'All Decay', 'All Sus',
-    'All Rel', 'Env1 Rates', 'Env2 Rates', 'Env3 Rates',
-    'Env1 Curves', 'Env2 Curves', 'Env3 Curves', 'Env1 Attack',
-    'Env1 Decay', 'Env1 Sus', 'Env1 Rel', 'Env1 AttCur',
-    'Env1 DcyCur', 'Env1 SusCur', 'Env1 RelCur', 'Env2 Attack',
-    'Env2 Decay', 'Env2 Sus', 'Env2 Rel', 'Env2 AttCur',
-    'Env2 DcyCur', 'Env2 SusCur', 'Env2 RelCur', 'Env3 Attack',
-    'Env3 Decay', 'Env3 Sus', 'Env3 Rel', 'Env3 AttCur',
-    'Env3 DcyCur', 'Env3 SusCur', 'Env3 RelCur', 'VCA All',
-    'VCA Active', 'VCA EnvDep', 'Pan Spread', 'VCA Pan',
-    'OSC2 Lvl', 'Noise Lvl', 'HP Freq', 'Uni Detune',
-    'OSC Drift', 'Param Drift', 'Drift Rate', 'Arp Gate',
-    'Seq Slew',
-    'Fx 1 Level' // ID 129
-];
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, '..', '..');
 
-// Rellenar destinos hasta 132 para mantener mapeo de IDs exactos
-function buildFullModDestinations(baseDestinations) {
-    const FULL_MOD_DESTINATIONS = [];
-    for (let i = 0; i <= 132; i++) {
-        if (i < baseDestinations.length) {
-            FULL_MOD_DESTINATIONS.push(baseDestinations[i]);
-        } else if (i === 129) {
-            FULL_MOD_DESTINATIONS.push('Fx 1 Level');
-        } else if (i === 130) {
-            FULL_MOD_DESTINATIONS.push('Fx 2 Level');
-        } else if (i === 131) {
-            FULL_MOD_DESTINATIONS.push('Fx 3 Level');
-        } else if (i === 132) {
-            FULL_MOD_DESTINATIONS.push('Fx 4 Level');
-        } else {
-            FULL_MOD_DESTINATIONS.push(`Dest ${i}`);
-        }
-    }
-    return FULL_MOD_DESTINATIONS;
+// Y POR QUE LAS TABLAS SE LEEN DEL FICHERO REAL Y NO SE COPIAN AQUI. Este
+// fichero guarda una copia de `MOD_SOURCES` y `MOD_DESTINATIONS` para no
+// depender del DOM, y esa copia es una SEGUNDA VERDAD: se queda vieja en
+// silencio. Todas vez que el dato real cambio, estos tests siguieron en verde
+// afirmando `index 73 is "Fx 1 Level"` sobre una tabla que ya no existe, y el
+// guard que si vigila la tabla de verdad (`modMatrixTables.test.js`) no podia
+// verlo porque aqui no se mira la de verdad.
+//
+// El sandbox carga los dos ficheros en el MISMO orden que `index.html`: la
+// vista de grafos primero, porque sus accesores leen la tabla del dato.
+function loadMatrixTables() {
+    const sandbox = { window: {}, console: { warn() {} } };
+    sandbox.globalThis = sandbox;
+    sandbox.window = sandbox;
+    sandbox.module = undefined;   // se carga como script clasico, no como modulo
+    vm.createContext(sandbox);
+    vm.runInContext(
+        fs.readFileSync(path.join(ROOT, 'WebUI', 'js', 'components', 'mod-matrix-canvas_data.js'), 'utf8'),
+        sandbox,
+    );
+    vm.runInContext(
+        fs.readFileSync(path.join(ROOT, 'WebUI', 'js', 'modmatrix_data.js'), 'utf8'),
+        sandbox,
+    );
+    return sandbox;
 }
+
+const matrices = loadMatrixTables();
+const MOD_SOURCES = matrices.MOD_SOURCES;
+const MOD_DESTINATIONS = matrices.MOD_DESTINATIONS;
+const FULL_MOD_DESTINATIONS = matrices.FULL_MOD_DESTINATIONS;
 
 function syncModMatrixUIFromState(bridge, getElementById) {
     if (!bridge) {return;}
@@ -108,7 +92,6 @@ const b = patch.unpackedBytes;
         const srcIdx = Math.round(srcCache * 22.0);
         const srcName = MOD_SOURCES[srcIdx] || 'None';
         const destIdx = Math.round(destCache * 129.0);
-        const FULL_MOD_DESTINATIONS = buildFullModDestinations(MOD_DESTINATIONS);
         const destName = FULL_MOD_DESTINATIONS[destIdx] || 'None';
         const bipolar = (depthCache * 2.0) - 1.0;
         const scaledInt = Math.round(bipolar * 128);
@@ -143,6 +126,16 @@ describe('MOD_SOURCES — Modulation Source array', function() {
         expect(MOD_SOURCES[0]).toBe('None');
     });
 
+    // El orden de esta tabla es el del enum `ModSource` del motor, que es el que
+    // suena: `SynthEngine_Parameters.cpp` castea el byte crudo al enum, asi que
+    // el indice N de la tabla tiene que ser el codigo N del motor o la UI miente
+    // sobre lo que hace el motor.
+    //
+    // Estas aserciones afirmaban el orden ANTERIOR (Pitch Bend en 1, Mod Wheel en
+    // 2, LFO 1 en 7) y situaban `CC Z` en el indice 24 — que el byte no alcanza,
+    // porque el byte 93 (Mod Slot 1 Source) va de 0 a 22. Eran restos de la tabla
+    // de 25 entradas anterior a la renumeracion, no una medida: un indice que el
+    // cable no puede pedir no puede ser el correcto.
     it('index 1 is "Pitch Bend"', function() {
         expect(MOD_SOURCES[1]).toBe('Pitch Bend');
     });
@@ -155,6 +148,10 @@ describe('MOD_SOURCES — Modulation Source array', function() {
         expect(MOD_SOURCES[7]).toBe('LFO 1');
     });
 
+    it('index 11 is "Env 3"', function() {
+        expect(MOD_SOURCES[11]).toBe('Env 3');
+    });
+
     it('index 14 is "Note Off Vel"', function() {
         expect(MOD_SOURCES[14]).toBe('Note Off Vel');
     });
@@ -163,12 +160,12 @@ describe('MOD_SOURCES — Modulation Source array', function() {
         expect(MOD_SOURCES[15]).toBe('Ctrl Seq');
     });
 
-    it('index 22 is "CC X (115)"', function() {
-        expect(MOD_SOURCES[22]).toBe('CC X (115)');
+    it('index 24 is "CC Z (117)", el ultimo codigo que el hardware alcanza', function() {
+        expect(MOD_SOURCES[24]).toBe('CC Z (117)');
     });
 
-    it('index 24 is "CC Z (117)"', function() {
-        expect(MOD_SOURCES[24]).toBe('CC Z (117)');
+    it('la tabla tiene 25 fuentes oficiales del hardware (indices 0..24)', function() {
+        expect(MOD_SOURCES.length).toBe(25);
     });
 
     it('all items are strings', function() {
@@ -179,8 +176,11 @@ describe('MOD_SOURCES — Modulation Source array', function() {
 });
 
 describe('MOD_DESTINATIONS — Modulation Destination base array', function() {
-    it('has 74 items', function() {
-        expect(MOD_DESTINATIONS.length).toBe(74);
+    it('has 73 items (the synthesis block, 0-72)', function() {
+        // 73, no 74. El bloque de sintesis del manual acaba en el 72 ('Seq
+        // Slew'); lo que hay de 73 en adelante es meta-modulacion y efectos, y
+        // lo anade `FULL_MOD_DESTINATIONS` con su propia cuenta.
+        expect(MOD_DESTINATIONS.length).toBe(73);
     });
 
     it('index 0 is "None"', function() {
@@ -207,8 +207,11 @@ describe('MOD_DESTINATIONS — Modulation Destination base array', function() {
         expect(MOD_DESTINATIONS[71]).toBe('Arp Gate');
     });
 
-    it('index 73 is "Fx 1 Level"', function() {
-        expect(MOD_DESTINATIONS[73]).toBe('Fx 1 Level');
+    it('el ultimo es "Seq Slew" en el 72, y el 73 ya no es de esta lista', function() {
+        // El 73 fue `Fx 1 Level` con el comentario `// ID 129`: el nombre del
+        // 129 viviendo en el 73. Ese nombre es el del 129 y solo del 129.
+        expect(MOD_DESTINATIONS[72]).toBe('Seq Slew');
+        expect(MOD_DESTINATIONS[73]).toBeUndefined();
     });
 
     it('no duplicate entries', function() {
@@ -220,52 +223,63 @@ describe('MOD_DESTINATIONS — Modulation Destination base array', function() {
     });
 });
 
-describe('FULL_MOD_DESTINATIONS — Built from MOD_DESTINATIONS', function() {
-    let full;
-
-    beforeEach(function() {
-        full = buildFullModDestinations(MOD_DESTINATIONS);
-    });
+describe('FULL_MOD_DESTINATIONS — el rango entero del byte de destino', function() {
+    const full = FULL_MOD_DESTINATIONS;
 
     it('has 133 items (indices 0-132)', function() {
         expect(full.length).toBe(133);
     });
 
-    it('copies MOD_DESTINATIONS items for indices 0-73', function() {
+    it('copies MOD_DESTINATIONS items for indices 0-72', function() {
         for (let i = 0; i < MOD_DESTINATIONS.length; i++) {
             expect(full[i]).toBe(MOD_DESTINATIONS[i]);
         }
     });
 
-    it('fills index 74-80 with "Dest N" placeholder strings', function() {
-        // MOD_DESTINATIONS.length = 74 (indices 0-73)
-        // Index 74 = first filler
-        for (let i = 74; i <= 80; i++) {
-            expect(full[i]).toBe('Dest ' + i);
+    it('73-80 son la profundidad de los ocho buses', function() {
+        // Antes eran ocho rellenos `Dest N`: el bloque de fx de ocho destinos
+        // ocupaba justo aqui y el 73 era `Fx 1 Level`, el nombre del 129.
+        for (let i = 73; i <= 80; i++) {
+            expect(full[i]).toBe('Mod ' + (i - 72) + ' Depth');
         }
     });
 
-    it('fills indexes 81-128 with "Dest N"', function() {
-        // MOD_DESTINATIONS.length = 74 (0-73), so fillers start at 74
-        for (let i = 81; i <= 128; i++) {
-            expect(full[i]).toBe('Dest ' + i);
+    it('81-128 son los cuarenta y ocho parametros de efecto, por la cuenta del manual', function() {
+        // El codigo NO se lee de la tabla: se cuenta como lo cuenta el manual,
+        // `80 + (hueco - 1) * 12 + parametro`. Si alguien cambia el 12 por otro
+        // numero en el enum, este test lo ve.
+        let contados = 0;
+        for (let hueco = 1; hueco <= 4; hueco++) {
+            for (let param = 1; param <= 12; param++) {
+                expect(full[80 + (hueco - 1) * 12 + param]).toBe(
+                    'FX ' + hueco + ' Param ' + param,
+                );
+                contados++;
+            }
         }
+        expect(contados).toBe(48);
     });
 
-    it('index 129 is "Fx 1 Level"', function() {
-        expect(full[129]).toBe('Fx 1 Level');
+    it('129-132 son los cuatro niveles de hueco', function() {
+        expect(full[129]).toBe('FX 1 Level');
+        expect(full[130]).toBe('FX 2 Level');
+        expect(full[131]).toBe('FX 3 Level');
+        expect(full[132]).toBe('FX 4 Level');
     });
 
-    it('index 130 is "Fx 2 Level"', function() {
-        expect(full[130]).toBe('Fx 2 Level');
-    });
-
-    it('index 131 is "Fx 3 Level"', function() {
-        expect(full[131]).toBe('Fx 3 Level');
-    });
-
-    it('index 132 is "Fx 4 Level"', function() {
-        expect(full[132]).toBe('Fx 4 Level');
+    it('ningun codigo se queda con el nombre de relleno `Dest N`', function() {
+        // La regla del plan: lo que el manual no nombre se queda como `Dest N`,
+        // y con la guia de parametros encima no queda ni uno. Si manana se
+        // anaden codigos sin nombre, este falla con el codigo en vez de dejar que
+        // `Dest N` llegue a la lista sin que nadie mire.
+        const rellenos = full
+            .map(function(nombre, codigo) {
+                return nombre === 'Dest ' + codigo ? codigo : -1;
+            })
+            .filter(function(codigo) {
+                return codigo >= 0;
+            });
+        expect(rellenos).toEqual([]);
     });
 });
 
@@ -300,7 +314,7 @@ describe('syncModMatrixUIFromState — slot synchronization logic', function() {
     });
 
     it('reads src/dest/depth from parameterCache', function() {
-        mockBridge.parameterCache['mod_matrix_slot1_src'] = 7 / 22.0; // LFO 1
+        mockBridge.parameterCache['mod_matrix_slot1_src'] = 7 / 22.0; // codigo 7 = LFO 1
         mockBridge.parameterCache['mod_matrix_slot1_dest'] = 20 / 129.0; // VCF Freq
         mockBridge.parameterCache['mod_matrix_slot1_depth'] = 0.75;
 
@@ -396,7 +410,11 @@ describe('initModMatrix — DOMContentLoaded wiring', function() {
     });
 
     it('MOD_DESTINATIONS has correct first and last', function() {
+        // El ultimo del bloque de sintesis es el 72. El `Fx 1 Level` de antes
+        // vivia en el 73 con el comentario `// ID 129`, y ese nombre es el del
+        // 129: en la tabla entera esta en el 129, y solo ahi.
         expect(MOD_DESTINATIONS[0]).toBe('None');
-        expect(MOD_DESTINATIONS[MOD_DESTINATIONS.length - 1]).toBe('Fx 1 Level');
+        expect(MOD_DESTINATIONS[MOD_DESTINATIONS.length - 1]).toBe('Seq Slew');
+        expect(FULL_MOD_DESTINATIONS[129]).toBe('FX 1 Level');
     });
 });

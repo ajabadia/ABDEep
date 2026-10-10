@@ -17,6 +17,16 @@
  *   'abyssmind_pro' → abyssmind_pro
  */
 
+function resolveAdvancedFxCount() {
+    const contract = (typeof window !== 'undefined' && window.FxEffectsContract)
+        || (typeof globalThis !== 'undefined' && globalThis.FxEffectsContract)
+        || null;
+    if (contract && Array.isArray(contract.effects)) {
+        return contract.effects.filter((e) => e.id > 35).length;
+    }
+    return 21;
+}
+
 const MODEL_CAPABILITIES = Object.freeze({
     dm12_hardware: Object.freeze({
         model: 'dm12_hardware',
@@ -29,7 +39,7 @@ const MODEL_CAPABILITIES = Object.freeze({
     abyssmind_pro: Object.freeze({
         model: 'abyssmind_pro',
         standardFxCount: 35,
-        advancedFxCount: 21,
+        advancedFxCount: resolveAdvancedFxCount(),
         modulationSlotCount: 8,
         supportsExtendedSequencer: true,
         supportsAbyssMindParameters: true,
@@ -63,6 +73,12 @@ const ModelCapabilities = {
     /** Capabilities para un modo de UI (resolución + lookup). */
     getCapabilitiesForMode(mode) {
         return ModelCapabilities.getModelCapabilities(ModelCapabilities.resolveModel(mode));
+    },
+
+    /** Número de buses de modulación para un modo de UI o modelo. */
+    modulationSlotCountForMode(mode) {
+        const caps = ModelCapabilities.getCapabilitiesForMode(mode);
+        return caps ? caps.modulationSlotCount : 8;
     },
 
     /** Valida un objeto contra la matriz canónica de su modelo (no por identidad). */

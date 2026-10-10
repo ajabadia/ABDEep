@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-01T10:03:29.600Z",
+  "generatedAt": "2026-10-07T13:09:22.443Z",
   "sourceHashes": {
     "parametersSpec": "d20176fbca0a5c1ae66ccef41b879b9d7f6302ccc7fcf63bab9563973352223e",
-    "bridgeParamMaps": "0132336941c52f56959c6a5304f22869b1f9a52717ed30a81db9467351849785",
+    "bridgeParamMaps": "cb81c0bb253b5e0cb1924ad0d77d47e0f0100aff2885268a82a0548745f3dd6f",
     "byteMapData": "20e89936c53023766edfae356706dee3d5ac53239e7c6cbe8041f9dc23889b21",
-    "parametersSpecCpp": "ac0680219056701a7f5106ea30b472dcc2eaeb0a15d2855d9f262f2497cd93c3"
+    "parametersSpecCpp": "daf6181c0a48b651765bddfc2c5104de65cb6e901b4df5fb393f378a00022f54"
   },
   "parameters": [
     {
@@ -1890,9 +1890,9 @@
       "byteOffset": 93,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "enum",
-      "enumMax": null,
+      "enumMax": 22,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -1909,9 +1909,9 @@
       "byteOffset": 94,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "enum",
-      "enumMax": null,
+      "enumMax": 129,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -1947,9 +1947,9 @@
       "byteOffset": 96,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "enum",
-      "enumMax": null,
+      "enumMax": 22,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -1966,9 +1966,9 @@
       "byteOffset": 97,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "enum",
-      "enumMax": null,
+      "enumMax": 129,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2004,9 +2004,9 @@
       "byteOffset": 99,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "enum",
-      "enumMax": null,
+      "enumMax": 22,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2023,9 +2023,9 @@
       "byteOffset": 100,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "enum",
-      "enumMax": null,
+      "enumMax": 129,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2061,9 +2061,9 @@
       "byteOffset": 102,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "enum",
-      "enumMax": null,
+      "enumMax": 22,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2080,9 +2080,9 @@
       "byteOffset": 103,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "enum",
-      "enumMax": null,
+      "enumMax": 129,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2118,9 +2118,9 @@
       "byteOffset": 105,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "dual",
-      "enumMax": null,
+      "enumMax": 22,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2137,9 +2137,9 @@
       "byteOffset": 106,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "dual",
-      "enumMax": null,
+      "enumMax": 129,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2175,9 +2175,9 @@
       "byteOffset": 108,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "dual",
-      "enumMax": null,
+      "enumMax": 22,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2194,9 +2194,9 @@
       "byteOffset": 109,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "dual",
-      "enumMax": null,
+      "enumMax": 129,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2232,9 +2232,9 @@
       "byteOffset": 111,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "dual",
-      "enumMax": null,
+      "enumMax": 22,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2251,9 +2251,9 @@
       "byteOffset": 112,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "dual",
-      "enumMax": null,
+      "enumMax": 129,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2289,9 +2289,9 @@
       "byteOffset": 114,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "enum",
-      "enumMax": null,
+      "enumMax": 22,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -2308,9 +2308,9 @@
       "byteOffset": 115,
       "category": "physical",
       "region": "ModMat",
-      "codecType": "value",
+      "codecType": "enum",
       "byteMapType": "dual",
-      "enumMax": null,
+      "enumMax": 129,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
@@ -3085,22 +3085,22 @@
       "index": 154
     },
     {
-      "id": "chord_enable",
-      "byteOffset": 300,
-      "category": "virtual",
-      "region": "Virtual",
-      "codecType": "value",
-      "byteMapType": null,
-      "enumMax": null,
+      "id": "arp_enable",
+      "byteOffset": 155,
+      "category": "physical",
+      "region": "Arp",
+      "codecType": "enum",
+      "byteMapType": "toggle",
+      "enumMax": 1,
       "enumLabels": null,
       "cc": null,
       "legacyCC": null,
       "ccConflict": false,
-      "name": null,
-      "desc": null,
+      "name": "Arp On/Off",
+      "desc": "0=Off, 1=On",
       "defaultValue": null,
       "aliases": [],
-      "cppName": "ChordEnable",
+      "cppName": "ArpEnable",
       "index": 155
     },
     {
@@ -3123,8 +3123,8 @@
       "index": 156
     },
     {
-      "id": "chord_key",
-      "byteOffset": 302,
+      "id": "chord_enable",
+      "byteOffset": 300,
       "category": "virtual",
       "region": "Virtual",
       "codecType": "value",
@@ -3138,7 +3138,7 @@
       "desc": null,
       "defaultValue": null,
       "aliases": [],
-      "cppName": "ChordKey",
+      "cppName": "ChordEnable",
       "index": 157
     },
     {
@@ -3159,25 +3159,6 @@
       "aliases": [],
       "cppName": "ChordType",
       "index": 158
-    },
-    {
-      "id": "arp_enable",
-      "byteOffset": 155,
-      "category": "physical",
-      "region": "Arp",
-      "codecType": "enum",
-      "byteMapType": "toggle",
-      "enumMax": 1,
-      "enumLabels": null,
-      "cc": null,
-      "legacyCC": null,
-      "ccConflict": false,
-      "name": "Arp On/Off",
-      "desc": "0=Off, 1=On",
-      "defaultValue": null,
-      "aliases": [],
-      "cppName": "ArpEnable",
-      "index": 159
     },
     {
       "id": "arp_mode",
@@ -3208,7 +3189,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpMode",
-      "index": 160
+      "index": 159
     },
     {
       "id": "arp_rate",
@@ -3227,7 +3208,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpRate",
-      "index": 161
+      "index": 160
     },
     {
       "id": "arp_clock_divider",
@@ -3260,7 +3241,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpClockDivider",
-      "index": 162
+      "index": 161
     },
     {
       "id": "arp_key_sync",
@@ -3279,7 +3260,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpKeySync",
-      "index": 163
+      "index": 162
     },
     {
       "id": "arp_gate_time",
@@ -3298,7 +3279,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpGateTime",
-      "index": 164
+      "index": 163
     },
     {
       "id": "arp_hold",
@@ -3317,7 +3298,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpHold",
-      "index": 165
+      "index": 164
     },
     {
       "id": "arp_pattern",
@@ -3336,7 +3317,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpPattern",
-      "index": 166
+      "index": 165
     },
     {
       "id": "arp_swing",
@@ -3355,7 +3336,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpSwing",
-      "index": 167
+      "index": 166
     },
     {
       "id": "arp_octave",
@@ -3374,7 +3355,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "ArpOctave",
-      "index": 168
+      "index": 167
     },
     {
       "id": "fx_routing",
@@ -3404,7 +3385,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "FxRouting",
-      "index": 169
+      "index": 168
     },
     {
       "id": "fx1_type",
@@ -3423,7 +3404,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Type",
-      "index": 170
+      "index": 169
     },
     {
       "id": "fx1_param1",
@@ -3442,7 +3423,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param1",
-      "index": 171
+      "index": 170
     },
     {
       "id": "fx1_param2",
@@ -3461,7 +3442,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param2",
-      "index": 172
+      "index": 171
     },
     {
       "id": "fx1_param3",
@@ -3480,7 +3461,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param3",
-      "index": 173
+      "index": 172
     },
     {
       "id": "fx1_param4",
@@ -3499,7 +3480,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param4",
-      "index": 174
+      "index": 173
     },
     {
       "id": "fx1_param5",
@@ -3518,7 +3499,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param5",
-      "index": 175
+      "index": 174
     },
     {
       "id": "fx1_param6",
@@ -3537,7 +3518,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param6",
-      "index": 176
+      "index": 175
     },
     {
       "id": "fx1_param7",
@@ -3556,7 +3537,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param7",
-      "index": 177
+      "index": 176
     },
     {
       "id": "fx1_param8",
@@ -3575,7 +3556,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param8",
-      "index": 178
+      "index": 177
     },
     {
       "id": "fx1_param9",
@@ -3594,7 +3575,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param9",
-      "index": 179
+      "index": 178
     },
     {
       "id": "fx1_param10",
@@ -3613,7 +3594,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param10",
-      "index": 180
+      "index": 179
     },
     {
       "id": "fx1_param11",
@@ -3632,7 +3613,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param11",
-      "index": 181
+      "index": 180
     },
     {
       "id": "fx1_param12",
@@ -3651,7 +3632,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Param12",
-      "index": 182
+      "index": 181
     },
     {
       "id": "fx2_type",
@@ -3670,7 +3651,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Type",
-      "index": 183
+      "index": 182
     },
     {
       "id": "fx2_param1",
@@ -3689,7 +3670,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param1",
-      "index": 184
+      "index": 183
     },
     {
       "id": "fx2_param2",
@@ -3708,7 +3689,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param2",
-      "index": 185
+      "index": 184
     },
     {
       "id": "fx2_param3",
@@ -3727,7 +3708,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param3",
-      "index": 186
+      "index": 185
     },
     {
       "id": "fx2_param4",
@@ -3746,7 +3727,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param4",
-      "index": 187
+      "index": 186
     },
     {
       "id": "fx2_param5",
@@ -3765,7 +3746,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param5",
-      "index": 188
+      "index": 187
     },
     {
       "id": "fx2_param6",
@@ -3784,7 +3765,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param6",
-      "index": 189
+      "index": 188
     },
     {
       "id": "fx2_param7",
@@ -3803,7 +3784,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param7",
-      "index": 190
+      "index": 189
     },
     {
       "id": "fx2_param8",
@@ -3822,7 +3803,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param8",
-      "index": 191
+      "index": 190
     },
     {
       "id": "fx2_param9",
@@ -3841,7 +3822,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param9",
-      "index": 192
+      "index": 191
     },
     {
       "id": "fx2_param10",
@@ -3860,7 +3841,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param10",
-      "index": 193
+      "index": 192
     },
     {
       "id": "fx2_param11",
@@ -3879,7 +3860,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param11",
-      "index": 194
+      "index": 193
     },
     {
       "id": "fx2_param12",
@@ -3898,7 +3879,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Param12",
-      "index": 195
+      "index": 194
     },
     {
       "id": "fx3_type",
@@ -3917,7 +3898,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Type",
-      "index": 196
+      "index": 195
     },
     {
       "id": "fx3_param1",
@@ -3936,7 +3917,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param1",
-      "index": 197
+      "index": 196
     },
     {
       "id": "fx3_param2",
@@ -3955,7 +3936,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param2",
-      "index": 198
+      "index": 197
     },
     {
       "id": "fx3_param3",
@@ -3974,7 +3955,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param3",
-      "index": 199
+      "index": 198
     },
     {
       "id": "fx3_param4",
@@ -3993,7 +3974,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param4",
-      "index": 200
+      "index": 199
     },
     {
       "id": "fx3_param5",
@@ -4012,7 +3993,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param5",
-      "index": 201
+      "index": 200
     },
     {
       "id": "fx3_param6",
@@ -4031,7 +4012,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param6",
-      "index": 202
+      "index": 201
     },
     {
       "id": "fx3_param7",
@@ -4050,7 +4031,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param7",
-      "index": 203
+      "index": 202
     },
     {
       "id": "fx3_param8",
@@ -4069,7 +4050,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param8",
-      "index": 204
+      "index": 203
     },
     {
       "id": "fx3_param9",
@@ -4088,7 +4069,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param9",
-      "index": 205
+      "index": 204
     },
     {
       "id": "fx3_param10",
@@ -4107,7 +4088,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param10",
-      "index": 206
+      "index": 205
     },
     {
       "id": "fx3_param11",
@@ -4126,7 +4107,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param11",
-      "index": 207
+      "index": 206
     },
     {
       "id": "fx3_param12",
@@ -4145,7 +4126,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Param12",
-      "index": 208
+      "index": 207
     },
     {
       "id": "fx4_type",
@@ -4164,7 +4145,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Type",
-      "index": 209
+      "index": 208
     },
     {
       "id": "fx4_param1",
@@ -4183,7 +4164,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param1",
-      "index": 210
+      "index": 209
     },
     {
       "id": "fx4_param2",
@@ -4202,7 +4183,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param2",
-      "index": 211
+      "index": 210
     },
     {
       "id": "fx4_param3",
@@ -4221,7 +4202,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param3",
-      "index": 212
+      "index": 211
     },
     {
       "id": "fx4_param4",
@@ -4240,7 +4221,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param4",
-      "index": 213
+      "index": 212
     },
     {
       "id": "fx4_param5",
@@ -4259,7 +4240,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param5",
-      "index": 214
+      "index": 213
     },
     {
       "id": "fx4_param6",
@@ -4278,7 +4259,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param6",
-      "index": 215
+      "index": 214
     },
     {
       "id": "fx4_param7",
@@ -4297,7 +4278,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param7",
-      "index": 216
+      "index": 215
     },
     {
       "id": "fx4_param8",
@@ -4316,7 +4297,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param8",
-      "index": 217
+      "index": 216
     },
     {
       "id": "fx4_param9",
@@ -4335,7 +4316,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param9",
-      "index": 218
+      "index": 217
     },
     {
       "id": "fx4_param10",
@@ -4354,7 +4335,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param10",
-      "index": 219
+      "index": 218
     },
     {
       "id": "fx4_param11",
@@ -4373,7 +4354,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param11",
-      "index": 220
+      "index": 219
     },
     {
       "id": "fx4_param12",
@@ -4392,7 +4373,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Param12",
-      "index": 221
+      "index": 220
     },
     {
       "id": "fx1_gain",
@@ -4411,7 +4392,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx1Gain",
-      "index": 222
+      "index": 221
     },
     {
       "id": "fx2_gain",
@@ -4430,7 +4411,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx2Gain",
-      "index": 223
+      "index": 222
     },
     {
       "id": "fx3_gain",
@@ -4449,7 +4430,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx3Gain",
-      "index": 224
+      "index": 223
     },
     {
       "id": "fx4_gain",
@@ -4468,7 +4449,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "Fx4Gain",
-      "index": 225
+      "index": 224
     },
     {
       "id": "fx_mode",
@@ -4491,7 +4472,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "FxMode",
-      "index": 226
+      "index": 225
     },
     {
       "id": "fx_feedback_gain",
@@ -4510,7 +4491,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "FxFeedbackGain",
-      "index": 227
+      "index": 226
     },
     {
       "id": "fx_send_level",
@@ -4529,7 +4510,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "FxSendLevel",
-      "index": 228
+      "index": 227
     },
     {
       "id": "vcf_model",
@@ -4548,7 +4529,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfModel",
-      "index": 229
+      "index": 228
     },
     {
       "id": "vcf_moog_submode",
@@ -4567,7 +4548,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfMoogSubmode",
-      "index": 230
+      "index": 229
     },
     {
       "id": "vcf_korg_submode",
@@ -4586,7 +4567,7 @@
       "defaultValue": null,
       "aliases": [],
       "cppName": "VcfKorgSubmode",
-      "index": 231
+      "index": 230
     },
     {
       "id": "vcf_voicing_mode",
@@ -4605,7 +4586,7 @@
       "defaultValue": 0,
       "aliases": [],
       "cppName": "VcfVoicingMode",
-      "index": 232
+      "index": 231
     }
   ],
   "byteMap": [
@@ -6996,14 +6977,14 @@
     }
   ],
   "summary": {
-    "total": 233,
+    "total": 232,
     "physical": 223,
     "extended": 3,
-    "virtual": 7,
+    "virtual": 6,
     "aliasGroups": 0,
-    "enumCount": 49,
+    "enumCount": 65,
     "bipolarCount": 43,
-    "valueCount": 141,
+    "valueCount": 124,
     "ccCount": 32,
     "specOnlyCount": 0,
     "warningCount": 8

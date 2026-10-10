@@ -40,6 +40,7 @@ set(ABDEEP_DSP_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/Source/Core/CalibrationSpec.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/Core/CalibrationSpec_Serialization.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParameterRegistry.gen.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParameterConversion.gen.cpp"
     # ParametersSpec* + RoundTripValidator: layout APVTS y validador SysEx del
     # plugin nativo (ver bloque de exclusiones de la cabecera). Van en el build
     # nativo SIEMPRE: PluginProcessor/SynthEngine los referencian y sin ellos el
@@ -53,6 +54,8 @@ set(ABDEEP_DSP_SOURCES
     "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParametersSpec_Voice.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/Core/RoundTripValidator.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/DriftEngine.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/Arpeggiator.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/ControlSequencer.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/Envelope.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/FX/FXAnalogTapeDelay.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/FX/FXAutoPan.cpp"
@@ -132,7 +135,10 @@ set(ABDEEP_DSP_SOURCES_WASM
     "${CMAKE_CURRENT_LIST_DIR}/Source/Core/CalibrationSpec.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/Core/CalibrationSpec_Serialization.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParameterRegistry.gen.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/Core/ParameterConversion.gen.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/DriftEngine.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/Arpeggiator.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/ControlSequencer.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/Envelope.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/FX/FXAnalogTapeDelay.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/Source/DSP/FX/FXAutoPan.cpp"

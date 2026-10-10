@@ -1,15 +1,30 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspSpectralDelay.h>
 
 namespace ABD
 {
     /**
-     * FXSpectralDelay: FFT-based frequency-domain delay.
+     * @brief FXSpectralDelay: Frequency-dispersive Multi-band Delay Processor.
      *
-     * Splits the signal into frequency bins via DFT, applies
-     * independent delay per band, and resynthesizes. Creates
-     * spectrally-sculpted echoes unlike time-domain delays.
+     * ==============================================================================
+     * DOCUMENTACIÓN DE HARDWARE Y FIDELIDAD DSP:
+     * ==============================================================================
+     * 1. HARDWARE EMULADO:
+     *    - Procesador de retardo espectral dispersivo
+     *      (DeepMind 12 Type 45 / Eventide DSP7000 Band Delays / Soundtoys Crystallizer).
+     *    - Distribuye la señal en múltiples bandas de retardo dispersivo (50 ms a 1500 ms).
+     *    - Modulación de ancho de banda y fase para generar smearing espectral y difusión.
+     *    - Saturación no lineal suave (tanh) en la ruta de realimentación.
+     *
+     * 2. DIAGNÓSTICO DE FIDELIDAD:
+     *    - Totalmente desacoplado en el motor puro `abd::dsp::DspSpectralDelay` (C++20, 100% RT-Safe).
+     *
+     * 3. LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *    - Implementación alternativa con banco de filtros polifásicos WOLA / FFT directa para mayor resolución espectral.
+     *    - Paneo estéreo independiente y desfase en cuadratura por cada banda espectral.
+     * ==============================================================================
      *
      * Parameters:
      *   0: Mix      (0-1, dry/wet mix)
@@ -34,38 +49,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Spectral Delay"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float paramMix = 0.35f;
-        float paramTime = 0.35f;
-        float paramBandWidth = 0.5f;
-        float paramFeedback = 0.4f;
-        float paramDiffusion = 0.3f;
-
-        // DFT size (power of 2)
-        static constexpr int kFFTSize = 1024;
-        static constexpr int kNumBands = kFFTSize / 2;
-
-        // Delay buffer per band (L+R)
-        std::vector<float> delayBufL;
-        std::vector<float> delayBufR;
-        int delayMask = 0;
-        int writePos = 0;
-
-        // Band gain modulation (spectral smearing)
-        std::vector<float> bandGainsL;
-        std::vector<float> bandGainsR;
-        std::vector<float> bandGainsTargetL;
-        std::vector<float> bandGainsTargetR;
-
-        // Running DFT accumulators (simplified overlap-add)
-        std::vector<float> accumL;
-        std::vector<float> accumR;
-        int accumPos = 0;
-
-        uint32_t noiseSeed = 0xA1B2C3D4u;
-
-        float noiseGenerate();
-        float delayForBand(int band) const;
+        abd::dsp::DspSpectralDelay engine;
     };
 }

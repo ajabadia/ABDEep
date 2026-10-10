@@ -1,20 +1,28 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspChorusD.h>
 
 namespace ABD
 {
     /**
-     * FXChorusD: Emulación del Roland Dimension D Spatial Chorus (type=17).
+     * @brief FXChorusD: Emulación del procesador espacial Roland Dimension D (SDD-320).
      *
-     * Parámetros:
-     *   0: on (0=Bypass, 1=ON)
-     *   1: mode (0=Stereo, 1=Mono)
-     *   2: mix (0-1, Dry/Wet mix)
-     *   3: sw1 (0-1, Preset 1)
-     *   4: sw2 (0-1, Preset 2)
-     *   5: sw3 (0-1, Preset 3)
-     *   6: sw4 (0-1, Preset 4)
+     * HARDWARE EMULADO:
+     *   - Roland SDD-320 "Dimension D" Stereo Chorus Processor (DeepMind 12 FX Type 17).
+     *   - Clásico efecto de estudio de los años 80 caracterizado por:
+     *     * Dos líneas de retardo analógicas BBD moduladas en antifase (90° y 270°).
+     *     * Ausencia de barrido evidente: el cruce espacial de fases (delayedL - delayedR * 0.4)
+     *       cancela gran parte del pitch flutter aparente produciendo ensanchamiento tridimensional.
+     *     * 4 conmutadores de preset físicos con frecuencias y profundidades fijas.
+     *
+     * DIAGNÓSTICO DE FIDELIDAD ACTUAL:
+     *   - Motor delegado en `abd::dsp::DspChorusD` (100% RT-Safe, C++20 puro).
+     *   - Búfer circular estático sin dependencias de JUCE.
+     *
+     * LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *   - Modo analógico "All buttons in" (pulsación simultánea de los 4 botones) con saturación.
+     *   - Curva de compansión NE570 con preénfasis de agudos y recorte dinámico.
      */
     class FXChorusD : public FXBase
     {
@@ -31,24 +39,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Chorus-D"; }
 
     private:
-        double sampleRate = 44100.0;
-        bool on = true;
-        bool monoMode = false;
-        float mix = 0.5f;
-        
-        bool sw[4] = { true, false, false, false }; // Presets 1-4, por defecto el 1 está activo
-
-        // LFOs duales independientes
-        double lfoPhaseL1 = 0.0, lfoPhaseR1 = 0.0;
-        double lfoPhaseL2 = 0.0, lfoPhaseR2 = 0.0;
-        double lfoInc1 = 0.0, lfoInc2 = 0.0;
-
-        // Buffers de delay
-        juce::AudioSampleBuffer delayBufferL;
-        juce::AudioSampleBuffer delayBufferR;
-        int writePos = 0;
-        int maxDelaySamples = 0;
-
-        void updateLFOs();
+        abd::dsp::DspChorusD engine_;
     };
 }

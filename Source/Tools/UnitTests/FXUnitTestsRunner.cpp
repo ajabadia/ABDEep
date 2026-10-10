@@ -126,6 +126,26 @@ int main (int argc, char* argv[])
     std::cout << "  Total assertions failed: " << failed << "\n";
     std::cout << "===========================================\n\n";
 
+    if (failed > 0)
+    {
+        std::cout << "  FAILED SUITES:\n";
+        for (int i = 0; i < totalTests; ++i)
+        {
+            if (auto* result = runner.getResult (i))
+            {
+                if (result->failures > 0)
+                {
+                    std::cout << "    - [" << result->unitTestName.toStdString() << "] "
+                              << result->subcategoryName.toStdString()
+                              << " (" << result->failures << " failures)\n";
+                    for (int m = 0; m < result->messages.size(); ++m)
+                        std::cout << "        " << result->messages[m].toStdString() << "\n";
+                }
+            }
+        }
+        std::cout << "===========================================\n\n";
+    }
+
     if (verbose && totalTests > 0)
     {
         for (int i = 0; i < totalTests; ++i)

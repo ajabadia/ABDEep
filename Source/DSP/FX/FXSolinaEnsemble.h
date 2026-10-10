@@ -1,26 +1,56 @@
+/*
+  ==============================================================================
+
+    FXSolinaEnsemble.h
+    Efecto Ensemble Chorus de cuerdas estilo Eminent 310 Unique / ARP Solina.
+
+    ENVOLTORIO DE PRODUCTO: ABDEep
+    MOTOR DSP SUBYACENTE: abd::dsp::DspSolinaEnsemble (ABDSharedCode/DspEffects/DspSolinaEnsemble.h)
+
+    EMULACIÓN DE HARDWARE REAL:
+      - DeepMind 12 FX Type 37: Solina Ensemble
+      - Referencias históricas analógicas:
+        * Eminent 310 Unique (órgano holandés que albergó el circuito de ensamble original).
+        * ARP / Solina String Ensemble (módulo sintetizador de cuerdas icónico de 1974).
+        * Circuito analógico: tres líneas de retardo BBD integradas (TDA1022 o TCA350) moduladas por tres fases a 0°, 120° y 240°.
+
+    DIAGNÓSTICO Y ARQUITECTURA DSP ACTUAL:
+      - 3 Taps de retardo por canal desfasados uniformemente en 120° (2*pi/3).
+      - Retardo base de 8 ms modulado hasta 5 ms de excursión máxima.
+      - Interpolación cúbica Hermite de 4 puntos por tap.
+      - Control de Stereo Spread para expansión estéreo de los taps.
+      - Buffer estático circular sin asignaciones de memoria en tiempo de ejecución (100% Real-Time Safe).
+
+    BRECHAS DE FIDELIDAD Y LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+      1. Doble oscilador de modulación analógico del Solina:
+         El Solina auténtico no utiliza un LFO único simple a 120°. Utiliza DOS generadores analógicos
+         simultáneos desacoplados:
+           * LFO lento (~0.6 Hz)
+           * LFO rápido (~6.0 Hz)
+         Las salidas de ambos LFOs se mezclan en proporciones fijas antes de alimentar las entradas de
+         reloj de las líneas BBD TDA1022. Investigar este esquema bi-frecuencial aportará el característico
+         "shimmer" orquestal del hardware original.
+      2. Filtrado antialiasing y reconstrucción de reloj BBD:
+         Cada etapa BBD analógica posee un filtro pasobajos activo Sallen-Key LC/RC (~10 kHz) para eliminar
+         el ruido de reloj de muestreo.
+
+    PARÁMETROS (Orden hardware DeepMind 12 - Type 37):
+      0: Rate     (0-1 → 0.2 a 8.0 Hz)
+      1: Depth    (0-1 → 0 a 5 ms de modulación)
+      2: Feedback (0-1 → 0 a 85%)
+      3: Spread   (0-1 → 0 a 100% stereo width)
+      4: Mix      (0-1 → dry/wet)
+
+  ==============================================================================
+*/
+
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspSolinaEnsemble.h>
 
 namespace ABD
 {
-    /**
-     * FXSolinaEnsemble: Ensemble chorus estilo Solina String Ensemble / ARP Omni.
-     *
-     * Modelo simplificado de BBDEnsembleEffect (Surge) con:
-     *   - 3 delay taps por canal (tap0=base, tap1=+120°, tap2=+240°)
-     *   - Dual LFO con 120° de offset entre taps
-     *   - Stereo spread (separación L/R de los taps)
-     *   - Feedback variable
-     *   - Hermite interpolation en cada tap
-     *
-     * Parámetros:
-     *   0: Rate     (0-1 → 0.2-8 Hz)
-     *   1: Depth    (0-1 → 0-5 ms de modulación)
-     *   2: Feedback (0-1 → 0-85%)
-     *   3: Spread   (0-1 → 0-100% stereo width)
-     *   4: Mix      (0-1 → dry/wet)
-     */
     class FXSolinaEnsemble : public FXBase
     {
     public:
@@ -37,38 +67,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Solina Ensemble"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        // Parameters
-        float paramRate = 0.4f;
-        float paramDepth = 0.5f;
-        float paramFeedback = 0.3f;
-        float paramSpread = 0.6f;
-        float paramMix = 0.5f;
-
-        // Delay lines: 3 taps, each with its own buffer
-        // tap0=0°, tap1=120°, tap2=240°
-        static constexpr int kNumTaps = 3;
-        static constexpr float kBaseDelayMs = 8.0f;
-        static constexpr float kMaxModMs = 5.0f;
-
-        std::vector<float> delayBufL[3];
-        std::vector<float> delayBufR[3];
-        int delayMask = 0;
-        int delayWPos = 0;
-
-        // Feedback state
-        float feedbackL = 0.0f;
-        float feedbackR = 0.0f;
-
-        // LFO state
-        float lfoPhase[3] = { 0.0f, 0.0f, 0.0f };
-        float lfoInc = 0.0f;
-
-        // Phase offsets for 3 taps (0°, 120°, 240°)
-        static constexpr float kPhaseOffsets[3] = { 0.0f, 2.0943951f, 4.1887902f };
-
-        static float hermite(float frac, float y0, float y1, float y2, float y3);
-        float readDelay(const std::vector<float>& buf, float delaySamples) const;
+        abd::dsp::DspSolinaEnsemble ensemble_;
     };
 }

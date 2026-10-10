@@ -242,6 +242,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
     target_link_libraries(ABDEep_Standalone PRIVATE
         juce::juce_dsp
         ABDShared::SynthCore
+        ABDShared::DspCore
         ABDShared::DspEffects
         juce::juce_audio_devices
         juce::juce_audio_utils
@@ -265,6 +266,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         target_link_libraries(ABDEep_VST3 PRIVATE
             juce::juce_dsp
             ABDShared::SynthCore
+            ABDShared::DspCore
             ABDShared::DspEffects
             juce::juce_audio_devices
             juce::juce_audio_utils
@@ -314,6 +316,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
     target_link_libraries(ABDEepCalibrationLab PRIVATE
         juce::juce_dsp
         ABDShared::SynthCore
+        ABDShared::DspCore
         ABDShared::DspEffects
         juce::juce_gui_basics
         juce::juce_gui_extra
@@ -393,6 +396,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
     target_link_libraries(ABDEep_UnitTests PRIVATE
         juce::juce_dsp
         ABDShared::SynthCore
+        ABDShared::DspCore
         ABDShared::DspEffects
         juce::juce_gui_basics
         juce::juce_gui_extra

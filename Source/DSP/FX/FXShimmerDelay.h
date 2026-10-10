@@ -1,21 +1,29 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspShimmerDelay.h>
 
 namespace ABD
 {
     /**
-     * FXShimmerDelay: Delay with pitch-shifted feedback (shimmer).
+     * @brief FXShimmerDelay: Retardo ambiental etéreo con transposición de tono hacia arriba (Shimmer).
      *
-     * Tape delay with +1 octave pitch shift in the feedback loop
-     * and a small reverb tail for atmosphere.
+     * HARDWARE EMULADO:
+     *   - Efecto Shimmer Delay ambiental y celestial (DeepMind 12 FX Type 41),
+     *     popularizado por las producciones de Brian Eno / Daniel Lanois y procesadores como el Eventide Space.
+     *   - Parámetros:
+     *     * Mix: Balance Dry/Wet (0 a 100%).
+     *     * Time: Tiempo de retardo variable de 100 ms a 2000 ms.
+     *     * Feedback: Regeneración de repeticiones (0 a 95%).
+     *     * Pitch: Cantidad de transposición armónica (+1 Octava en feedback).
+     *     * ReverbMix: Difusión de reverberación atmosférica añadida a las repeticiones.
      *
-     * Parameters:
-     *   0: Mix       (0-1, dry/wet mix)
-     *   1: Time      (0-1, delay time 100ms-2000ms)
-     *   2: Feedback  (0-1, feedback amount)
-     *   3: Pitch     (0-1, shift amount: 0=off, 1=+1 octave)
-     *   4: ReverbMix (0-1, reverb tail amount)
+     * DIAGNÓSTICO DE FIDELIDAD ACTUAL:
+     *   - Motor delegado en `abd::dsp::DspShimmerDelay` (100% RT-Safe, C++20 puro).
+     *   - Búferes circulares estáticos de tamaño potencia de dos con bitmasking rápido, cero heap.
+     *
+     * LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *   - Tamaño de grano variable para control de textura (grano fino brillante vs grano largo etéreo).
      */
     class FXShimmerDelay : public FXBase
     {
@@ -33,36 +41,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Shimmer Delay"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float paramMix = 0.35f;
-        float paramTime = 0.35f;
-        float paramFeedback = 0.45f;
-        float paramPitch = 0.7f;
-        float paramReverbMix = 0.25f;
-
-        static constexpr int kMaxDelay = 88200;
-        std::vector<float> delayBufL;
-        std::vector<float> delayBufR;
-        int delayMask = 0;
-        int writePos = 0;
-
-        // Pitch shifter (simple granular)
-        static constexpr int kGrainSize = 512;
-        std::vector<float> grainBufL;
-        std::vector<float> grainBufR;
-        int grainPos = 0;
-        int grainCount = 0;
-
-        // Reverb
-        static constexpr int kReverbSize = 32768;
-        std::vector<float> reverbBuf;
-        int reverbMask = 0;
-        int reverbWPos = 0;
-
-        uint32_t noiseSeed = 0xDEADBEEFu;
-
-        float pitchShift(float input, float pitchRatio);
-        float noiseGenerate();
+        abd::dsp::DspShimmerDelay engine_;
     };
 }

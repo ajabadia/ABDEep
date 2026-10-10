@@ -4,13 +4,32 @@
  * @classification UI Component Submodule
  */
 (function() {
-    // Los dos grupos del desplegable. El corte en 36 es PRESENTACION (cuales son
-    // los del DM12 de serie y cuales los "pro"), no verdad del contrato: por eso
-    // vive aqui y no en el JSON.
-    const FX_TYPE_GROUPS = [
-        { label: '--- STANDARD DM12 FX ---', upTo: 35 },
-        { label: '--- ADVANCED PRO FX ---', upTo: Number.MAX_SAFE_INTEGER }
-    ];
+    function getCurrentMode() {
+        if (typeof window !== 'undefined' && window.wasmBridge && typeof window.wasmBridge.getMode === 'function') {
+            return window.wasmBridge.getMode();
+        }
+        return 'abyssmind_pro';
+    }
+
+    function getFxGroupsForCurrentMode() {
+        const mode = getCurrentMode();
+        let standardFxCount = 35;
+        let advancedFxCount = 21;
+        if (typeof window !== 'undefined' && window.ModelCapabilities && typeof window.ModelCapabilities.getCapabilitiesForMode === 'function') {
+            const caps = window.ModelCapabilities.getCapabilitiesForMode(mode);
+            if (caps) {
+                standardFxCount = caps.standardFxCount;
+                advancedFxCount = caps.advancedFxCount;
+            }
+        }
+        const groups = [
+            { label: '--- STANDARD DM12 FX ---', upTo: standardFxCount }
+        ];
+        if (advancedFxCount > 0) {
+            groups.push({ label: '--- ADVANCED PRO FX ---', upTo: Number.MAX_SAFE_INTEGER });
+        }
+        return groups;
+    }
 
     /**
      * Los efectos del contrato ORDENADOS POR ID.
@@ -29,12 +48,15 @@
         return contract.effects.slice().sort((a, b) => a.id - b.id);
     }
 
+    let _lastCachedMode = null;
     let _optionsCache = null;
 
     /** El HTML de las `<option>` del desplegable, en los dos bloques de antes. */
     function fxTypeOptionsHtml() {
-        if (_optionsCache !== null)
-            {return _optionsCache;}
+        const mode = getCurrentMode();
+        if (_optionsCache !== null && _lastCachedMode === mode) {
+            return _optionsCache;
+        }
 
         const effects = fxEffectsById();
 
@@ -44,17 +66,15 @@
             // verdades, que es el problema que se acaba de arreglar.
             console.warn('[fx-modal] falta window.FxEffectsContract: el desplegable de efectos sale incompleto');
             _optionsCache = '<option value="0">Bypass</option>';
-
+            _lastCachedMode = mode;
             return _optionsCache;
         }
 
         let html = '';
-        // Cada grupo empieza donde acaba el anterior. Sin este `from`, el
-        // segundo grupo (`upTo` infinito) se comia tambien los ids del primero
-        // y el desplegable salia con 93 opciones en vez de 57, duplicadas.
         let from = -1;
+        const groups = getFxGroupsForCurrentMode();
 
-        for (const group of FX_TYPE_GROUPS) {
+        for (const group of groups) {
             const inGroup = effects.filter((effect) => effect.id > from && effect.id <= group.upTo);
 
             from = group.upTo;
@@ -71,8 +91,34 @@
         }
 
         _optionsCache = html;
-
+        _lastCachedMode = mode;
         return _optionsCache;
+    }
+
+    function refreshFxTypeOptions() {
+        _optionsCache = null;
+        _lastCachedMode = null;
+        const html = fxTypeOptionsHtml();
+        if (typeof document !== 'undefined' && document.querySelectorAll) {
+            const selects = document.querySelectorAll('.fx-type-select');
+            for (const sel of selects) {
+                const currentVal = sel.value;
+                sel.innerHTML = html;
+                sel.value = currentVal;
+            }
+        }
+        const count = (html.match(/<option\b/g) || []).length;
+        return {
+            efectos: count,
+            modelo: getCurrentMode()
+        };
+    }
+
+    if (typeof window !== 'undefined') {
+        window.refreshFxTypeOptions = refreshFxTypeOptions;
+    }
+    if (typeof globalThis !== 'undefined') {
+        globalThis.refreshFxTypeOptions = refreshFxTypeOptions;
     }
 
     let _labelsCache = null;

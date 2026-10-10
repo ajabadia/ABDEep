@@ -27,13 +27,18 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { tmpdir } from 'node:os';
-import { execFileSync } from 'node:child_process';
+import { nuevoArbol, ejecutaGenerador, borraArbol, huellaDeArtefactos, digest } from './helpers/arbolTemporal.js';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-// Implementación de REFERENCIA de la forma canónica (la que usan los generadores).
-import { canonicalizeSource } from '../../scripts/registry_core.ts';
+// La forma canónica, y ahora hay UN solo sitio donde vive: el propio generador.
+// Antes venía de `scripts/registry_core.ts`, el núcleo del `registry_generator.ts`
+// que convivía con el `.js` —los dos escribían los mismos cuatro artefactos, y el
+// `.ts` además leía mal `BIPOLAR_BYTES` y perdía los 43 parámetros bipolares—.
+// Con un único generador, importar sus funciones puras es seguro: `main()` solo
+// se llama cuando el fichero es el punto de entrada, así que este import no
+// escribe nada.
+import { canonicalizeSource } from '../../scripts/registry_generator.js';
 
 import registry from '../js/registry.gen.js';
 
@@ -155,17 +160,23 @@ describe('registry.gen.js — paridad byteOffset', () => {
     }
   });
 
-  it('categorías: 223 físicos · 3 extendidos (245-247) · 7 virtuales (300-306)', () => {
+  // `chord_key` (byte 302) fue eliminado del registro por decision de diseno: el
+  // hardware DeepMind tiene Chord Memory como memoria global sin raiz editable
+  // (la raiz es la nota que se pulsa al grabar). El registro, la spec y el APVTS
+  // ya no lo declaran; esta assertion esperaba los 7 virtuales antiguos y se
+  // quedo atras. Ver SynthEngineUnitTests_VirtualParams.cpp (testChordKeyEliminado).
+  it('categorías: 223 físicos · 3 extendidos (245-247) · 6 virtuales (300-306, sin 302)', () => {
     const ext = registry.parameters.filter((p) => p.category === 'extended');
     const virt = registry.parameters.filter((p) => p.category === 'virtual');
     expect(ext.map((p) => p.id).sort()).toEqual(['vcf_korg_submode', 'vcf_model', 'vcf_moog_submode']);
     expect(ext.map((p) => p.byteOffset).sort()).toEqual([245, 246, 247]);
     expect(virt.map((p) => p.id).sort()).toEqual([
-      'chord_enable', 'chord_key', 'chord_type', 'fx_feedback_gain', 'fx_send_level', 'poly_chord_enable',
+      'chord_enable', 'chord_type', 'fx_feedback_gain', 'fx_send_level', 'poly_chord_enable',
       'vcf_voicing_mode',
     ]);
-    expect(virt.map((p) => p.byteOffset).sort()).toEqual([300, 301, 302, 303, 304, 305, 306]);
+    expect(virt.map((p) => p.byteOffset).sort()).toEqual([300, 301, 303, 304, 305, 306]);
     expect(registry.summary.physical).toBe(223);
+    expect(registry.summary.virtual).toBe(6);
   });
 });
 
@@ -366,11 +377,12 @@ describe('los tres guards — el registro no se contradice con el spec del host'
     // el motor construye por prefijo. Este test carga la MISMA lista que el
     // generador, para que las dos no puedan separarse.
     const consumidos = new Set(
-      fs
-        .readFileSync(path.join(ROOT, 'scripts', 'registry_generator.js'), 'utf8')
-        .match(/SPECONLY_CONSUMIDOS = new Map\(\[([\s\S]*?)\n\]\)/)[1]
-        .matchAll(/\['([a-z0-9_]+)'/g)
-        .map((m) => m[1]),
+      Array.from(
+        fs
+          .readFileSync(path.join(ROOT, 'scripts', 'registry_generator.js'), 'utf8')
+          .match(/SPECONLY_CONSUMIDOS = new Map\(\[([\s\S]*?)\n\]\)/)[1]
+          .matchAll(/\['([a-z0-9_]+)'/g)
+      ).map((m) => m[1]),
     );
     const sinByte = specCppIds.filter((id) => !Object.prototype.hasOwnProperty.call(BRIDGE.PARAM_TO_BYTE_OFFSET, id));
     const sinConsumidor = sinByte.filter((id) => !consumidos.has(id));
@@ -439,9 +451,10 @@ describe('registry.gen.js — sourceHashes canónicos (estables ante formato/com
     .update(JSON.stringify(canonicalizeSource(value))).digest('hex');
 
   it('coinciden con el hash de la forma canónica de cada fuente', () => {
-    // Como `canonicalizeSource` es la implementación de REFERENCIA (registry_core.ts),
-    // que el artefacto commiteado coincida prueba además que el generador .js (el que
-    // corre CMake) y el .ts canonicalizan exactamente igual.
+    // `canonicalizeSource` y el hash que sale en el artefacto los produce el MISMO
+    // fichero ahora, así que esto ya no es una comprobación de paridad entre dos
+    // implementaciones: es que el generador es reproducible, que es lo que
+    // quiere decir un `sourceHashes`.
     expect(registry.sourceHashes.parametersSpec).toBe(hash(SPEC));
     expect(registry.sourceHashes.bridgeParamMaps).toBe(hash(BRIDGE));
     expect(registry.sourceHashes.byteMapData).toBe(hash(BYTE_MAP));
@@ -498,62 +511,47 @@ describe('registry_generator.js — regiones reservadas del preset', () => {
   });
 
   it('el generador rechaza un parámetro físico en la región reservada (223-241)', () => {
-    // Copia temporal del bridge con un parámetro que usurpa el byte 223
-    const srcBridge = path.join(ROOT, 'WebUI', 'js', 'bridge-param-maps.js');
-    const tmpBridge = path.join(tmpdir(), 'bridge-param-maps-reserved-test.js');
-    let code = fs.readFileSync(srcBridge, 'utf8');
-    expect(code).toContain("'fx_feedback_gain': 304"); // guardia: el replace debe tener efecto
-    code = code.replace("'fx_feedback_gain': 304", "'fx_feedback_gain': 223");
-    fs.writeFileSync(tmpBridge, code);
-
-    // Ejecuta el generador con REGISTRY_BRIDGE sobreescrito y artefactos de salida
-    // APUNTANDO A UN DIR TEMPORAL (nunca toca los .gen commiteados aunque la
-    // validación regresara y la generación llegara a completarse).
-    const tmpOutDir = path.join(tmpdir(), 'registry-reserved-test-out');
-    fs.mkdirSync(tmpOutDir, { recursive: true });
-    const genSrc = fs.readFileSync(path.join(ROOT, 'scripts', 'registry_generator.js'), 'utf8');
-    const tmpGen = path.join(tmpdir(), 'registry_generator-reserved-test.js');
-    fs.writeFileSync(tmpGen, genSrc
-      .replace('const ROOT = path.resolve(__dirname, \'..\');', 'const ROOT = ' + JSON.stringify(ROOT) + ';')
-      .replace(
-        "path.join(ROOT, 'WebUI', 'js', 'bridge-param-maps.js')",
-        JSON.stringify(tmpBridge)
-      )
-      .replace(
-        "path.join(ROOT, 'schemas', 'parameter-registry.data.json')",
-        JSON.stringify(path.join(tmpOutDir, 'data.json'))
-      )
-      .replace(
-        "path.join(ROOT, 'WebUI', 'js', 'registry.gen.js')",
-        JSON.stringify(path.join(tmpOutDir, 'registry.gen.js'))
-      )
-      .replace(
-        "path.join(ROOT, 'Source', 'Core', 'ParameterRegistry.gen.h')",
-        JSON.stringify(path.join(tmpOutDir, 'ParameterRegistry.gen.h'))
-      )
-      .replace(
-        "path.join(ROOT, 'Source', 'Core', 'ParameterRegistry.gen.cpp')",
-        JSON.stringify(path.join(tmpOutDir, 'ParameterRegistry.gen.cpp'))
-      ));
-
-    let output = '';
-    let exitCode = 0;
+    // El generador deriva ROOT de su propia ubicación, y `verificarRutas`
+    // exige además que `path.relative(ROOT, OUT[...])` coincida con el manifiesto
+    // ARTEFACTOS. La forma que se usaba antes —copiar el fuente del generador y
+    // reescribir por texto las cuatro rutas de salida— choca con las dos cosas:
+    // sale con MANIFIESTO_DESINCRONIZADO antes de llegar al byte 223, y encima
+    // el `replace` de ROOT buscaba `__dirname` cuando el generador usa
+    // `import.meta.dirname`, así que no aplicaba: ROOT apuntaba al temporal por
+    // casualidad, que es lo único que separaba al test del repo.
+    //
+    // Con la COPIA del árbol, ROOT es el temporal y las cuatro salidas caen
+    // dentro de él por construcción. No queda ninguna cadena que pueda dejar de
+    // coincidir, y la mutilación se hace sobre la copia: el bridge de la copia
+    // con un parámetro que usurpa el byte 223.
+    const antes = huellaDeArtefactos();
+    const arbol = nuevoArbol();
     try {
-      execFileSync(process.execPath, [tmpGen], { cwd: ROOT, encoding: 'utf8' });
-    } catch (e) {
-      exitCode = e.status ?? 1;
-      output = String(e.stdout || '') + String(e.stderr || '');
-    }
-    expect(exitCode).toBe(1);
-    expect(output).toContain('RESERVED_BYTE_COLLISION');
-    expect(output).toContain('fx_feedback_gain');
+      const puente = path.join(arbol, 'WebUI', 'js', 'bridge-param-maps.js');
+      const codigo = fs.readFileSync(puente, 'utf8');
+      expect(codigo, 'el bridge ya no declara fx_feedback_gain en el byte 304').toContain("'fx_feedback_gain': 304");
+      fs.writeFileSync(puente, codigo.replace("'fx_feedback_gain': 304", "'fx_feedback_gain': 223"));
 
-    // Limpieza
-    fs.rmSync(tmpBridge, { force: true });
-    fs.rmSync(tmpGen, { force: true });
-    fs.rmSync(tmpOutDir, { recursive: true, force: true });
+      const r = ejecutaGenerador(arbol);
+      expect(r.codigo, `el generador debería salir con 1, y salió con ${r.codigo}:\n${r.salida}`).toBe(1);
+      expect(r.salida).toContain('RESERVED_BYTE_COLLISION');
+      expect(r.salida).toContain('fx_feedback_gain');
+
+      // Lo que se comprueba de verdad: que el caso negativo no se ha colado en el
+      // repo. Si algún día esto se ejecutara contra el repo, el byteMap commiteado
+      // se reescribiría con la colisión dentro y el rojo aparecería en el sitio
+      // equivocado —en el repo, entre archivos de otra sesión— en vez de aquí.
+      for (const [rel, huella] of antes) {
+        expect(
+          digest(fs.readFileSync(path.join(ROOT, rel), 'utf8')),
+          `${rel} ha cambiado: este test no debe escribir en el repo`,
+        ).toBe(huella);
+      }
+    } finally {
+      borraArbol(arbol);
+    }
   });
-});
+}, 30000);
 
 // ════════════════════════════════════════════════════════════════
 // 6. Coherencia del codec del registro vs bridge

@@ -1,25 +1,30 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspMidasEQ.h>
 
 namespace ABD
 {
     /**
-     * FXMidasEQ: Ecualizador paramétrico de 4 bandas (Midas Pro X).
-     * Basado en DeepMind 12 (type=30).
+     * @brief FXMidasEQ: Ecualizador paramétrico de 4 bandas de canal de consola Midas PRO / Heritage.
      *
-     * Parámetros:
-     *   0: loShelfGain (0-1, -12..12 dB)
-     *   1: loShelfFreq (0-1, 30..20000 Hz)
-     *   2: loMidGain   (0-1, -12..12 dB)
-     *   3: loMidFreq   (0-1, 30..20000 Hz)
-     *   4: loMidQ      (0-1, 0.3..5)
-     *   5: hiMidGain   (0-1, -12..12 dB)
-     *   6: hiMidFreq   (0-1, 30..20000 Hz)
-     *   7: hiMidQ      (0-1, 0.3..5)
-     *   8: hiShelfGain (0-1, -12..12 dB)
-     *   9: hiShelfFreq (0-1, 30..20000 Hz)
-     *   10: eq         (0=IN, 1=OUT)
+     * HARDWARE EMULADO:
+     *   - Mesa de mezclas Midas Heritage 3000 / PRO Series Channel EQ (DeepMind 12 FX Type 30).
+     *   - 4 bandas continuas de ecualización musical británica:
+     *     * Low Shelf: 30 Hz a 20 kHz, ±12 dB (Q=0.707).
+     *     * Low-Mid Parametric Peak: 30 Hz a 20 kHz, ±12 dB, Q variable 0.3 a 5.0.
+     *     * High-Mid Parametric Peak: 30 Hz a 20 kHz, ±12 dB, Q variable 0.3 a 5.0.
+     *     * High Shelf: 30 Hz a 20 kHz, ±12 dB (Q=0.707).
+     *     * Interruptor EQ IN / OUT para bypass analógico limpio sin artefactos.
+     *
+     * DIAGNÓSTICO DE FIDELIDAD ACTUAL:
+     *   - Modelo biquad en Forma Directa II Transpuesta (DF2T) con coeficientes RBJ estándar.
+     *   - Motor subyacente delegado en `abd::dsp::DspMidasEQ` (100% RT-Safe, C++20 puro, cero heap).
+     *   - Cero dependencias de `juce::dsp::IIR::Filter`.
+     *
+     * LÍNEAS DE INVESTIGACIÓN PENDIENTES:
+     *   - Modelado de saturación asimétrica por transformador Midas en etapas de realce > +9 dB.
+     *   - Comportamiento de interacción proporcional de Q (Proportional-Q analógico).
      */
     class FXMidasEQ : public FXBase
     {
@@ -36,27 +41,6 @@ namespace ABD
         juce::String getEffectName() const override { return "MidasEQ"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        // Parámetros
-        float loShelfGain = 0.5f;
-        float loShelfFreq = 0.3f;
-        float loMidGain   = 0.5f;
-        float loMidFreq   = 0.5f;
-        float loMidQ      = 0.3f;
-        float hiMidGain   = 0.5f;
-        float hiMidFreq   = 0.7f;
-        float hiMidQ      = 0.3f;
-        float hiShelfGain = 0.5f;
-        float hiShelfFreq = 0.8f;
-        bool eqIn = true; // 0=IN, 1=OUT
-
-        // Filtros para canal izquierdo y derecho
-        juce::dsp::IIR::Filter<float> lowShelfL, lowShelfR;
-        juce::dsp::IIR::Filter<float> lowMidL, lowMidR;
-        juce::dsp::IIR::Filter<float> highMidL, highMidR;
-        juce::dsp::IIR::Filter<float> highShelfL, highShelfR;
-
-        void updateCoefficients();
+        abd::dsp::DspMidasEQ engine_;
     };
 }

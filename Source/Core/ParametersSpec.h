@@ -28,6 +28,7 @@ public:
     static std::vector<ParamInfo> getVoiceSpecs();
     static std::vector<ParamInfo> getModMatrixSpecs();
     static std::vector<ParamInfo> getSeqSpecs();
+    static std::vector<ParamInfo> getArpSpecs();
     static std::vector<ParamInfo> getArpChordSpecs();
     static std::vector<ParamInfo> getFxSpecs();
 

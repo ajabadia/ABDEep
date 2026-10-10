@@ -84,8 +84,31 @@ if (!bundleText.includes('kbd-keys-wrapper')) {
 }
 
 // 3. Lo que el runtime pide por ruta y Vite no puede rastrear.
-for (const rel of ['js/dsp-processor.js', 'wasm/abdeep_dsp.js', 'wasm/abdeep_dsp.wasm']) {
+for (const rel of ['js/dsp-processor.js', 'wasm/abdeep_dsp.js']) {
   if (!fs.existsSync(path.join(distDir, rel))) {problems.push(`falta dist/${rel} (lo carga el runtime por ruta)`);}
+}
+
+// El .wasm suelto NO es obligatorio: con -s SINGLE_FILE=1 (wasm/CMakeLists.txt)
+// va dentro del propio .js, y el .js es lo unico que importa el AudioWorklet
+// (js/dsp-processor.js hace `import '../wasm/abdeep_dsp.js'`, nunca pide el .wasm).
+// Mismo criterio que scripts/check_wasm_build.js: se aceptan las dos formas y solo
+// se falla si el motor no arrancaria en runtime.
+//
+// COMPROBADO en los dos entornos: la firma de lo embebido depende de la version
+// de emscripten y no es la misma — 3.1.64 (la de wasm-build.yml) escribe
+// `data:application/octet-stream;base64,`, mientras que 6.0.4 inlinea los bytes
+// crudos del modulo y deja el .js binario. Las dos formas contienen el magico
+// \0asm de WebAssembly, y esa es la firma que se comprueba ademas de la base64.
+const wasmGlue = path.join(distDir, 'wasm', 'abdeep_dsp.js');
+const wasmSuelto = path.join(distDir, 'wasm', 'abdeep_dsp.wasm');
+const glue = fs.existsSync(wasmGlue) ? fs.readFileSync(wasmGlue) : Buffer.alloc(0);
+const wasmEmbebido =
+  glue.includes('data:application/octet-stream;base64,') ||
+  glue.includes(Buffer.from([0x00, 0x61, 0x73, 0x6d]));
+if (!fs.existsSync(wasmSuelto) && !wasmEmbebido) {
+  problems.push(
+    'falta dist/wasm/abdeep_dsp.wasm (lo carga el runtime por ruta) y no esta embebido en dist/wasm/abdeep_dsp.js (SINGLE_FILE=1): ¿se olvido de compilar el WASM antes de empaquetar?',
+  );
 }
 
 if (problems.length > 0) {

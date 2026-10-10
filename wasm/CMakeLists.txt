@@ -14,8 +14,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #   cmake --build wasm/build
 # ============================================================
 
-# --- Rutas ---
-set(JUCE_PATH "C:/JUCE" CACHE PATH "Path to JUCE")
+if(NOT DEFINED JUCE_PATH OR NOT EXISTS "${JUCE_PATH}/modules/juce_core/juce_core.h")
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../JUCE/modules/juce_core/juce_core.h")
+        set(JUCE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../JUCE" CACHE PATH "Path to JUCE" FORCE)
+    elseif(DEFINED ENV{JUCE_PATH})
+        set(JUCE_PATH "$ENV{JUCE_PATH}" CACHE PATH "Path to JUCE" FORCE)
+    else()
+        set(JUCE_PATH "C:/JUCE" CACHE PATH "Path to JUCE")
+    endif()
+endif()
 set(SRC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../Source")
 
 # --- Lista compartida single-source (anti-drift) con el build nativo ---
@@ -53,6 +60,18 @@ add_executable(abdeep_dsp
     # --- ABDEep (lista compartida single-source, anti-drift) ---
     ${ABDEEP_DSP_SOURCES_WASM}
     ${CMAKE_CURRENT_SOURCE_DIR}/juce_shim/wasm_link_stubs.cpp
+
+    # --- ABDSharedCode SynthCore (C++20 puro, zero JUCE) ---
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/PolyBLEP.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/ADSREnvelope.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/PortamentoGlide.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/LFO.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/OscVcoCa72.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/Arpeggiator.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/ControlSequencer.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/LfoAnalog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/EnvelopeAnalog.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/DriftEngine.cpp
 )
 
 # --- Include directories ---

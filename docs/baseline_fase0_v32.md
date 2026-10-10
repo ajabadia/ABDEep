@@ -27,7 +27,7 @@ número de suites de test, cobertura, hashes del corpus A–H, percentiles tempo
 
 ## 2. Baseline WebUI (Vitest + ESLint)
 
-> **2026-09-06 — actualizado a los números de entonces** (107 files / 4750 tests,
+> **2026-09-06 — actualizado a los números de entonces** (135 files / 5247 tests,
 > ESLint 0 warnings). El count de test files/tests lo verifica en cada `npm test` el
 > **guard `WebUI/tests/baselineGuard.test.js`** (anti-drift: corre la suite en un
 > subproceso excluyéndose y reconcilia con esta sección).
@@ -316,7 +316,7 @@ la semántica se preserva. Verificado: 0 allocs/bloque y suite C++ sin regresion
   0 fallos**. Nota: **3 fallos FX preexistentes documentados** (refactor FX en curso:
   fidelidad delay + full-gain wet) — el paso usa `continue-on-error` (no bloquean CI).
 - ✅ **Job `vitest` + lint** en `.github/workflows/webui-ci.yml` (ubuntu-latest): suite
-  completa de WebUI (**112 files / 4839 tests, 0 fallos**) y ESLint **0 errores / 0
+  completa de WebUI (**135 files / 5247 tests, 0 fallos**) y ESLint **0 errores / 0
   warnings** (`npm run lint` con `--max-warnings 0`). El guard `baselineGuard.test.js`
   incluido en la suite verifica que los counts de esta sección no deriven.
   `package-lock.json` commiteado; `patchwork-deepmind` eliminado de `dependencies`

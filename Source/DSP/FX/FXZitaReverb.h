@@ -1,22 +1,29 @@
 #pragma once
 
 #include "FXBase.h"
+#include <DspEffects/DspZitaReverb.h>
 
 namespace ABD
 {
     /**
-     * FXZitaReverb: Clean high-fidelity algorithmic reverb.
+     * @brief FXZitaReverb: Reverberación algorítmica transparente de alta resolución Zita/AIR (Tipo 53).
      *
-     * Based on the Zita/AIR reverb topology: input allpass,
-     * parallel bank of 4 modulated comb filters, output allpass chain.
-     * Source: Odin2 ZitaReverb / Surge clean reverb.
+     * Wrapper JUCE que delega el procesamiento DSP en el motor puro `abd::dsp::DspZitaReverb`.
      *
-     * Parameters:
-     *   0: Size     (0-1, room size / comb delay scaling)
-     *   1: Decay    (0-1, comb feedback)
-     *   2: Damping  (0-1, HF absorption in combs)
-     *   3: PreDelay (0-1, 0-100ms input pre-delay)
-     *   4: Mix      (0-1, dry/wet mix)
+     * TARGET DE HARDWARE Y TOPOLOGÍA:
+     *   - Topología Zita / AIR (Fons Adriaensen / Surge / Odin2):
+     *     * Pre-delay estéreo de hasta 100 ms.
+     *     * Allpass monofónico de entrada para dispersión y coherencia estéreo.
+     *     * 4 Filtros Comb paralelos con amortiguamiento HF.
+     *     * 2 Etapas Allpass estéreo a la salida.
+     *   - Diseñada para espacios acústicos transparentes, colas de reverb cristalinas y mezcla limpia.
+     *
+     * DIAGNÓSTICO DE FIDELIDAD:
+     *   - 100% Real-Time Safe: Búferes circulares preasignados en prepare(), cero heap en audio thread.
+     *   - Controles de Size, Decay, Damping, PreDelay y Mix cubiertos en tests unitarios.
+     *
+     * LÍNEAS DE INVESTIGACIÓN:
+     *   - Modulación senoidal micro-temporal en los peines (comb modulation) para colas tipo Lexicon.
      */
     class FXZitaReverb : public FXBase
     {
@@ -34,33 +41,6 @@ namespace ABD
         juce::String getEffectName() const override { return "Zita Reverb"; }
 
     private:
-        double sampleRate = 44100.0;
-
-        float sizeParam = 0.5f, decayParam = 0.5f, dampingParam = 0.5f, preDelayParam = 0.0f, mix = 0.4f;
-
-        // Input allpass
-        static constexpr int kInputAPSize = 512;
-        std::vector<float> inputAPBuf;
-        int inputAPPos = 0;
-
-        // 4 parallel combs (stereo)
-        static constexpr int kNumCombs = 4;
-        std::vector<float> combBufL[kNumCombs], combBufR[kNumCombs];
-        int combSizes[kNumCombs] = {};
-        int combWritePos[kNumCombs] = {};
-        float combStateL[kNumCombs] = {}, combStateR[kNumCombs] = {};
-
-        // 2 output allpass (stereo)
-        static constexpr int kOutAPCount = 2;
-        std::vector<float> outAPBufL[kOutAPCount], outAPBufR[kOutAPCount];
-        int outAPSizes[kOutAPCount] = {};
-        int outAPPos[kOutAPCount] = {};
-
-        // Pre-delay
-        std::vector<float> preDelayBufL, preDelayBufR;
-        int preDelaySize = 0;
-        int preDelayPos = 0;
-
-        void updateCombLengths();
+        abd::dsp::DspZitaReverb engine_;
     };
 }

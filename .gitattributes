@@ -60,3 +60,11 @@ WebUI/tests/modmatrix.test.js text eol=lf
 # defecto de cualquier dev con git instalado aqui) deja los scripts en CRLF y el
 # rojo aparece sin que nadie haya tocado nada.
 scripts/*.js text eol=lf
+
+# build.bat es CRLF, y no por estetica. MEDIDO: cmd.exe no lee los labels de
+# un .bat con finales de linea sueltos de forma fiable —el mismo guion
+# encontraba unos y no otros—, y el fallo sale como "El sistema no encuentra
+# la etiqueta por lotes especificada". Sin esta regla, un checkout con
+# core.autocrlf=false (que es como vienen los runners de CI) se lleva el
+# script en LF y revienta al primer goto.
+build.bat text eol=crlf

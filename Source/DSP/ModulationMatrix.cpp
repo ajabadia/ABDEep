@@ -2,49 +2,41 @@
 
 namespace ABD
 {
-    ModulationMatrix::ModulationMatrix()
-    {
-        clear();
-    }
 
-    void ModulationMatrix::clear()
-    {
-        for (int i = 0; i < kNumSlots; ++i)
-        {
-            routes[i] = ModRoute();
-        }
-    }
-
-    void ModulationMatrix::setRoute(int slotIndex, ModSource src, ModDestination dest, float amount)
-    {
-        if (slotIndex >= 0 && slotIndex < kNumSlots)
-        {
-            routes[slotIndex].source = src;
-            routes[slotIndex].destination = dest;
-            routes[slotIndex].amount = amount;
-        }
-    }
-
-    float ModulationMatrix::getModulationValue(ModDestination dest, const float* sourceValues) const
-    {
-        if (dest == ModDestination::kNone || sourceValues == nullptr)
-            return 0.0f;
-
-        float totalModulation = 0.0f;
-
-        for (int i = 0; i < kNumSlots; ++i)
-        {
-            if (routes[i].destination == dest)
-            {
-                int srcIdx = static_cast<int>(routes[i].source);
-                if (srcIdx > 0 && srcIdx < static_cast<int>(ModSource::kMaxSources))
-                {
-                    // Acumulamos: valor de la fuente * cantidad de modulación configurada
-                    totalModulation += sourceValues[srcIdx] * routes[i].amount;
-                }
-            }
-        }
-
-        return totalModulation;
-    }
+void ModulationMatrix::clear() noexcept
+{
+    matrix.clear();
 }
+
+void ModulationMatrix::setRoute(int slotIndex,
+                                ModSource src,
+                                ModDestination dest,
+                                float amount) noexcept
+{
+    // Política de Deep: kNone local == id 0 == inerte, por lo que una ruta
+    // con src o dest = kNone no acumula nada.
+    if (src == ModSource::kNone || dest == ModDestination::kNone)
+        return;
+
+    // Para Deep, el id == valor del enum (fuente 0..22, destino 0..129).
+    matrix.setRoute(static_cast<std::size_t>(slotIndex),
+                    static_cast<abd::synth::ModSourceId>(src),
+                    static_cast<abd::synth::ModDestinationId>(dest),
+                    amount);
+}
+
+float ModulationMatrix::getModulationValue(ModDestination dest,
+                                         const float* sourceValues) const noexcept
+{
+    if (dest == ModDestination::kNone || sourceValues == nullptr)
+        return 0.0f;
+
+    constexpr std::size_t kSourceCount = static_cast<std::size_t>(ModSource::kMaxSources);
+
+    return matrix.get(static_cast<abd::synth::ModDestinationId>(dest),
+                      sourceValues,
+                      kSourceCount);
+}
+
+} // namespace ABD
+
