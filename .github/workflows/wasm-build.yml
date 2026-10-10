@@ -127,7 +127,20 @@ jobs:
         shell: bash
         run: |
           cmake --build wasm/build
-          ls -la WebUI/wasm/abdeep_dsp.js WebUI/wasm/abdeep_dsp.wasm
+          ls -la WebUI/wasm/abdeep_dsp.js
+
+          # SINGLE_FILE=1 puede incrustar el .wasm en el .js, asi que no siempre
+          # hay un .wasm suelto: es la practica que documentan
+          # wasm/README_WASM_COMPILATION.md:294, wasm/guia_maestra_wasm_juce.md:399
+          # y JUCE_HYBRID_PLUGIN_SKILL.md:134 para evitar CORS en el AudioWorklet.
+          # Aqui NO se comprueba la incrustacion: seria adivinar el formato del
+          # glue. Quien decide es scripts/check_wasm_build.js, que ya contempla los
+          # dos casos y falla con mensaje explicito si no esta ni suelto ni embebido.
+          if [ -f WebUI/wasm/abdeep_dsp.wasm ]; then
+            echo "wasm: artefacto suelto, $(stat -c%s WebUI/wasm/abdeep_dsp.wasm) bytes"
+          else
+            echo "::warning title=wasm-build::sin abdeep_dsp.wasm suelto (SINGLE_FILE=1); check_wasm_build.js verificara que este embebido en el .js"
+          fi
 
       - name: Verify WASM artifacts, exports & preallocation invariant
         shell: bash
