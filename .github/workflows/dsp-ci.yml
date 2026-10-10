@@ -78,12 +78,23 @@ jobs:
           } else {
             Write-Host "::warning title=clang-format::No hay clang-format en el PATH de la imagen; el chequeo de formato se omite."
           }
-          if (Get-Command cppcheck -ErrorAction SilentlyContinue) {
-            Write-Host "cppcheck     -> $(& cppcheck --version)"
-          } else {
-            Write-Host "::error::cppcheck instalado pero no aparece en el PATH"
+          # El MSI lo instala en C:\Program Files\Cppcheck y choco actualiza la
+          # PATH de la maquina, que este proceso NO vuelve a leer -- lo dice el
+          # propio log: "Environment Vars (like PATH) have changed. Close/reopen
+          # your shell to see the changes". Sin esto el paso de cppcheck no
+          # encuentra el binario aunque la instalacion haya ido bien.
+          $dir = 'C:\Program Files\Cppcheck'
+          $exe = Join-Path $dir 'cppcheck.exe'
+          if (-not (Test-Path $exe)) {
+            $hit = Get-ChildItem -Path $dir -Filter cppcheck.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($hit) { $exe = $hit.FullName; $dir = $hit.DirectoryName }
+          }
+          if (-not (Test-Path $exe)) {
+            Write-Host "::error::cppcheck 2.16.0 se instalo pero no se encuentra cppcheck.exe bajo $dir"
             exit 1
           }
+          $dir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "cppcheck     -> $(& $exe --version)"
 
       # Gate de formato INFORMATIVO (no bloqueante). Con el .clang-format ya valido
       # --tenia tres errores de parseo: SpaceBeforeParens duplicado,
@@ -198,12 +209,23 @@ jobs:
           } else {
             Write-Host "::warning title=clang-format::No hay clang-format en el PATH de la imagen; el chequeo de formato se omite."
           }
-          if (Get-Command cppcheck -ErrorAction SilentlyContinue) {
-            Write-Host "cppcheck     -> $(& cppcheck --version)"
-          } else {
-            Write-Host "::error::cppcheck instalado pero no aparece en el PATH"
+          # El MSI lo instala en C:\Program Files\Cppcheck y choco actualiza la
+          # PATH de la maquina, que este proceso NO vuelve a leer -- lo dice el
+          # propio log: "Environment Vars (like PATH) have changed. Close/reopen
+          # your shell to see the changes". Sin esto el paso de cppcheck no
+          # encuentra el binario aunque la instalacion haya ido bien.
+          $dir = 'C:\Program Files\Cppcheck'
+          $exe = Join-Path $dir 'cppcheck.exe'
+          if (-not (Test-Path $exe)) {
+            $hit = Get-ChildItem -Path $dir -Filter cppcheck.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($hit) { $exe = $hit.FullName; $dir = $hit.DirectoryName }
+          }
+          if (-not (Test-Path $exe)) {
+            Write-Host "::error::cppcheck 2.16.0 se instalo pero no se encuentra cppcheck.exe bajo $dir"
             exit 1
           }
+          $dir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "cppcheck     -> $(& $exe --version)"
 
       # Gate de formato INFORMATIVO (no bloqueante). Con el .clang-format ya valido
       # --tenia tres errores de parseo: SpaceBeforeParens duplicado,
@@ -346,12 +368,23 @@ jobs:
           } else {
             Write-Host "::warning title=clang-format::No hay clang-format en el PATH de la imagen; el chequeo de formato se omite."
           }
-          if (Get-Command cppcheck -ErrorAction SilentlyContinue) {
-            Write-Host "cppcheck     -> $(& cppcheck --version)"
-          } else {
-            Write-Host "::error::cppcheck instalado pero no aparece en el PATH"
+          # El MSI lo instala en C:\Program Files\Cppcheck y choco actualiza la
+          # PATH de la maquina, que este proceso NO vuelve a leer -- lo dice el
+          # propio log: "Environment Vars (like PATH) have changed. Close/reopen
+          # your shell to see the changes". Sin esto el paso de cppcheck no
+          # encuentra el binario aunque la instalacion haya ido bien.
+          $dir = 'C:\Program Files\Cppcheck'
+          $exe = Join-Path $dir 'cppcheck.exe'
+          if (-not (Test-Path $exe)) {
+            $hit = Get-ChildItem -Path $dir -Filter cppcheck.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($hit) { $exe = $hit.FullName; $dir = $hit.DirectoryName }
+          }
+          if (-not (Test-Path $exe)) {
+            Write-Host "::error::cppcheck 2.16.0 se instalo pero no se encuentra cppcheck.exe bajo $dir"
             exit 1
           }
+          $dir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "cppcheck     -> $(& $exe --version)"
 
       # Gate de formato INFORMATIVO (no bloqueante). Con el .clang-format ya valido
       # --tenia tres errores de parseo: SpaceBeforeParens duplicado,
