@@ -100,8 +100,8 @@ export const MUTACIONES = [
   {
     id: 'nombre-fx-renombrado',
     fichero: 'WebUI/js/modmatrix_data.js',
-    de: `    78: 'Fx 1 Level',`,
-    a: `    78: 'Fx 1 Ganancia',`,
+    de: `    129: 'FX 1 Level',`,
+    a: `    129: 'FX 1 Ganancia',`,
     tests: ['WebUI/tests/modMatrixTables.test.js'],
     porque: 'El nombre de un destino de fx es el que ve el usuario y el que el '
           + 'guard compara con el motor. Renombrar solo la tabla separa los dos.',
@@ -109,8 +109,8 @@ export const MUTACIONES = [
   {
     id: 'color-fx-cambia-de-familia',
     fichero: 'WebUI/js/modmatrix_data.js',
-    de: `    if (idx >= 74 && idx <= 81) {return 'var(--accent-red)';}`,
-    a: `    if (idx >= 74 && idx <= 81) {return 'var(--accent-pink)';}`,
+    de: `    if (idx >= 81 && idx <= 132) {return 'var(--accent-red)';}`,
+    a: `    if (idx >= 81 && idx <= 132) {return 'var(--accent-pink)';}`,
     tests: ['WebUI/tests/modMatrixTables.test.js'],
     porque: 'Las dos vistas del color tienen que caer en la MISMA familia. El '
           + 'rojo del bus de fx no lo usa ningun otro bloque; ponerlo en rosa lo '

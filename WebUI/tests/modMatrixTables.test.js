@@ -607,6 +607,17 @@ describe('modMatrixTables — la matriz de modulación contra el hardware', () =
       expect(entries.porCodigo.get(80)).toBe('kFx3Level');
       expect(entries.porCodigo.get(81)).toBe('kFx4Level');
 
+      // Y el nombre que el usuario VE, no solo el codigo. El enum de arriba
+      // fija el codigo; esto fija la etiqueta. Sin estas lineas el banco de
+      // mutaciones cazaba 0 tests al renombrar `FX 1 Level` en la tabla: no
+      // habia ninguna guarda que comparara el nombre mostrado, solo el codigo.
+      // Estos cuatro viven en 129-132 porque el nivel de cada hueco se guarda en
+      // su propio codigo (FX_LEVEL_DESTINATIONS), no en el 78-81 del enum.
+      expect(full[129]).toBe('FX 1 Level');
+      expect(full[130]).toBe('FX 2 Level');
+      expect(full[131]).toBe('FX 3 Level');
+      expect(full[132]).toBe('FX 4 Level');
+
       // MOD_DESTINATIONS tiene 73 elementos de sintesis base (0-72)
       expect(tables.MOD_DESTINATIONS.length).toBe(73);
     });
