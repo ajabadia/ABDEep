@@ -55,7 +55,8 @@ import { exigirEjecucionEnWindows } from './helpers/ejecucionEnWindows.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
-const BAT = fs.readFileSync(path.join(ROOT, 'build.bat'), 'latin1');
+// Normaliza CRLF: los extractores de mas abajo buscan anclas con `\n` crudo.
+const BAT = fs.readFileSync(path.join(ROOT, 'build.bat'), 'latin1').replace(/\r\n/g, '\n');
 
 const ES_WINDOWS = process.platform === 'win32';
 
@@ -419,7 +420,12 @@ describe('build.bat — los diagnosticos, ejecutados', () => {
     ].join('\n').replace(/\r\n/g, '\n');
 
     const ruta = path.join(temporal, `${nombre}.bat`);
-    fs.writeFileSync(ruta, guion, 'latin1');
+    // CRLF y no LF: cmd.exe no lee los labels de un .bat con finales de linea
+    // sueltos de forma fiable, y el mismo guion encuentra unos y no otros. MEDIDO:
+    // con LF salia "El sistema no encuentra la etiqueta: wasm_no_compila" en un
+    // guion que si la tiene; con CRLF el identico guion funcionaba. El fallo seria
+    // de la sonda, no de build.bat, y senalaria al fichero equivocado.
+    fs.writeFileSync(ruta, guion.replace(/\n/g, '\r\n'), 'latin1');
     const r = spawnSync(CMD, ['/d', '/c', ruta], {encoding: 'latin1', env: {...process.env, ...entorno}});
     return {salida: `${r.stdout || ''}${r.stderr || ''}`, codigo: r.status};
   }
@@ -770,7 +776,8 @@ describe('build.bat — el WASM sin supervision, ejecutado', () => {
       '',
     ].join('\n');
     const ruta = path.join(temporal, 'cola.bat');
-    fs.writeFileSync(ruta, guion, 'latin1');
+    // CRLF, por lo mismo que en `correr`: cmd.exe no Lee los labels de un .bat LF.
+    fs.writeFileSync(ruta, guion.replace(/\n/g, '\r\n'), 'latin1');
     const marca = path.join(temporal, `marca-${Math.random().toString(36).slice(2)}.txt`);
     const r = spawnSync(CMD, ['/d', '/c', ruta, ...args], {
       encoding: 'latin1',

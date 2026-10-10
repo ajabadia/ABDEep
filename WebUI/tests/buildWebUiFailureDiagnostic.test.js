@@ -40,7 +40,12 @@ import { exigirEjecucionEnWindows } from './helpers/ejecucionEnWindows.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 const BUILD_BAT = path.join(ROOT, 'build.bat');
-const BAT = fs.readFileSync(BUILD_BAT, 'latin1');
+// Los extractores de mas abajo buscan anclas con `\n` crudo, y build.bat es
+// CRLF porque es un .bat y cmd.exe vive ahi. Sin normalizar aqui, `indexOf`
+// devuelve -1 en cualquier maquina que no haya quedado con finales de linea
+// sueltos, y el rojo dependeria del `core.autocrlf` de quien lo ejecute. El
+// contenido, y por tanto todas las aserciones, es el mismo.
+const BAT = fs.readFileSync(BUILD_BAT, 'latin1').replace(/\r\n/g, '\n');
 
 const ES_WINDOWS = process.platform === 'win32';
 
@@ -223,7 +228,10 @@ describe('build.bat — el diagnóstico, ejecutado', () => {
     ].join('\n').replace(/\r\n/g, '\n');
 
     const ruta = path.join(temporal, `sonda-${escenario}.bat`);
-    fs.writeFileSync(ruta, guion, 'latin1');
+    // CRLF y no LF: cmd.exe no lee los labels de un .bat con finales de linea
+    // sueltos de forma fiable, y el mismo guion encuentra unos y no otros. Sin
+    // esto el fallo seria de la sonda y no del empaquetado que se quiere probar.
+    fs.writeFileSync(ruta, guion.replace(/\n/g, '\r\n'), 'latin1');
     const r = spawnSync('cmd.exe', ['/d', '/c', ruta], {
       encoding: 'utf8',
       env: {...process.env, WEBUI_ESCENARIO: escenario},
