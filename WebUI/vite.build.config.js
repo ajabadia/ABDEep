@@ -42,6 +42,21 @@ const STATIC_FILES = ['style.css'];
 const STATIC_EXCLUDE = ['node_modules', 'tests', 'tmp', 'scripts', 'src', 'WebUI', 'dist'];
 
 /**
+ * Quita el prefijo de longitud extendida de Windows (`\\?\D:\...`).
+ *
+ * MEDIDO con Node 20.19.5 y Node 24.21.0 sobre el mismo arbol: el `filter` de
+ * fs.cpSync recibe las rutas ya prefijadas en Node 20 y sin prefijar en Node 24.
+ * Si solo uno de los dos lados lo lleva, path.relative no encuentra camino comun
+ * y devuelve la ruta ENTERA en vez de una relativa, con lo que MODULE_ENTRIES y
+ * STATIC_EXCLUDE dejan de coincidir y js/keyboard.js y js/fit-stage.js acaban
+ * copiados CRUDOS en dist/ con sus bare imports @abdsynths/* sin resolver.
+ *
+ * Ese es exactamente el fallo que daba este build en CI (runner con Node 20) y no
+ * en local (Node 24): por eso solo se veia al empaquetar en la CI.
+ */
+export const sinPrefijoExtendido = (ruta) => String(ruta).replace(/^[\\/]{2}[.?][\\/]/, '');
+
+/**
  * Copia el arbol estatico (scripts clasicos, CSS, assets, wasm, datos) a dist/.
  * Vite solo empaqueta lo que esta en el grafo del HTML; el resto del WebUI
  * (js/dsp-processor.js se carga con audioWorklet.addModule, wasm/abdeep_dsp.js
@@ -63,7 +78,8 @@ export function abdeepStaticCopy() {
         fs.cpSync(src, dest, {
           recursive: true,
           filter: (candidate) => {
-            const relCand = path.relative(src, candidate).split(path.sep).join('/');
+            const relCand = path.relative(sinPrefijoExtendido(src), sinPrefijoExtendido(candidate))
+              .split(path.sep).join('/');
             if (!relCand) {return true;}
             const top = relCand.split('/')[0];
             if (STATIC_EXCLUDE.includes(top)) {return false;}

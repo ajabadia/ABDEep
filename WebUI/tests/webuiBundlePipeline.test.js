@@ -54,6 +54,12 @@ describe('pipeline de build del WebUI', () => {
         expect(buildConfig).toContain("const MODULE_ENTRIES = ['js/keyboard.js', 'js/fit-stage.js'];");
         expect(buildConfig).toContain("const STATIC_EXCLUDE = ['node_modules', 'tests', 'tmp', 'scripts', 'src', 'WebUI', 'dist'];");
         expect(buildConfig).toContain('if (MODULE_ENTRIES.includes(');
+        // El cableado, no solo la funcion: sin quitarle el prefijo al par de
+        // argumentos, path.relative devuelve la ruta entera y ninguna de las dos
+        // exclusiones cuadra (el fallo que solo se veia en CI, con Node 20).
+        expect(buildConfig).toContain(
+            'path.relative(sinPrefijoExtendido(src), sinPrefijoExtendido(candidate))',
+        );
         // Salida estable: el provider nativo resuelve por ruta, no por hash.
         expect(buildConfig).toContain("outDir: 'dist',");
         expect(buildConfig).toContain('emptyOutDir: true');
@@ -63,6 +69,34 @@ describe('pipeline de build del WebUI', () => {
         expect(buildConfig).toContain("'js', 'css', 'assets', 'wasm', 'data', 'resources', 'schemas'");
         // El dev server reutiliza la raiz y no arrastra el plugin de copia.
         expect(devConfig).toContain('port: 5311');
+    });
+
+    it('el filtro de copia se salta el prefijo que Node 20 le pone a fs.cpSync', async () => {
+        // MEDIDO con Node 20.19.5 y Node 24.21.0 sobre el mismo arbol: el
+        // `filter` de fs.cpSync recibe las rutas con el prefijo de longitud
+        // extendida \\\\?\\ en Node 20 y sin el en Node 24. Si no se quita,
+        // path.relative no encuentra camino comun y devuelve la ruta ENTERA en vez
+        // de una relativa, con lo que MODULE_ENTRIES y STATIC_EXCLUDE dejan de
+        // coincidir y keyboard.js y fit-stage.js acaban CRUDOS en dist/ con sus
+        // bare imports @abdsynths/* sin resolver.
+        //
+        // Sin este test el fallo solo se ve en CI: quien empaqueta en local corre
+        // con Node 24 y no lo reproduce, que es justo lo que le pasaba a este job.
+        const { sinPrefijoExtendido } = await import('../vite.build.config.js');
+
+        const base = 'D:\\a\\WebUI\\js';
+        const prefijada = '\\\\?\\D:\\a\\WebUI\\js\\keyboard.js';
+        const normal = 'D:\\a\\WebUI\\js\\keyboard.js';
+
+        // Sin prefijo, la ruta no se toca: asi llega en Node 24.
+        expect(sinPrefijoExtendido(base)).toBe(base);
+        // Con prefijo, se quita el \\\\?\\ y nada mas.
+        expect(sinPrefijoExtendido(prefijada)).toBe(normal);
+        // Y lo que importa: la relativa que sale de ahi es la que el filtro
+        // compara contra MODULE_ENTRIES, ya con el separador normalizado.
+        const rel = path.relative(sinPrefijoExtendido(base), sinPrefijoExtendido(prefijada))
+            .split(path.sep).join('/');
+        expect(rel).toBe('keyboard.js');
     });
 
     it('el runner invoca vite y verifica el bundle resultante', () => {
