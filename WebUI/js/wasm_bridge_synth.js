@@ -20,11 +20,11 @@
     'use strict';
 
     // ── Constantes de paridad con el motor C++/WASM ──────────────────────────
-    var ENV_TMIN = 0.0;         // s — el spec mide 0 (raw = 0)
-    var ENV_TMAX = 10.0;        // s — medición del repo: raw/255*10 = 0-10 s (sysex_format.md)
-    var ENV_CURVE_POINTS = 128; // resolución del Float32Array para setValueCurveAtTime
-    var VCF_MIN_HZ = 15;        // resources/calibration.json: transfer.vcfCutoff.minHz
-    var VCF_CURVE_BASE = 550;   // resources/calibration.json: transfer.vcfCutoff.curveBase (15·550 ≈ 8.25 kHz)
+    let ENV_TMIN = 0.0;         // s — el spec mide 0 (raw = 0)
+    let ENV_TMAX = 10.0;        // s — medición del repo: raw/255*10 = 0-10 s (sysex_format.md)
+    let ENV_CURVE_POINTS = 128; // resolución del Float32Array para setValueCurveAtTime
+    let VCF_MIN_HZ = 15;        // resources/calibration.json: transfer.vcfCutoff.minHz
+    let VCF_CURVE_BASE = 550;   // resources/calibration.json: transfer.vcfCutoff.curveBase (15·550 ≈ 8.25 kHz)
 
     /**
      * Normalizado (0-1) → tiempo de etapa en segundos.
@@ -35,8 +35,8 @@
      * @returns {number} segundos (0 … 10)
      */
     function envTimeSec(norm) {
-        var n = Math.max(0, Math.min(1, norm));
-        var spec = (typeof window !== 'undefined' && window.ParameterConversion)
+        let n = Math.max(0, Math.min(1, norm));
+        let spec = (typeof window !== 'undefined' && window.ParameterConversion)
             ? window.ParameterConversion : null;
         if (spec && spec.byId && spec.byId.env1_attack && spec.normalizedToDomain) {
             return spec.normalizedToDomain(spec.byId.env1_attack, n);
@@ -51,10 +51,10 @@
      * @returns {number} -1 (exponencial) … +1 (logarítmico)
      */
     function curveSigned(norm) {
-        var n = Math.max(0, Math.min(1, norm));
-        var spec = (typeof window !== 'undefined' && window.ParameterConversion)
+        let n = Math.max(0, Math.min(1, norm));
+        let spec = (typeof window !== 'undefined' && window.ParameterConversion)
             ? window.ParameterConversion : null;
-        var entry = spec && spec.byId ? spec.byId.env1_attack_curve : null;
+        let entry = spec && spec.byId ? spec.byId.env1_attack_curve : null;
         if (entry && spec.normalizedToDomain) {
             return spec.normalizedToDomain(entry, n);
         }
@@ -70,7 +70,7 @@
      */
     function applyCurve(progress, curveAmount) {
         if (Math.abs(curveAmount) < 0.005) {return progress;}
-        var exponent = (curveAmount < 0.0)
+        let exponent = (curveAmount < 0.0)
             ? 1.0 - curveAmount * 3.0            // hasta 4.0
             : 1.0 / (1.0 + curveAmount * 3.0);   // hasta 0.25
         return Math.pow(progress, exponent);
@@ -100,12 +100,12 @@
      * @returns {Float32Array} array listo para setValueCurveAtTime
      */
     function buildEnvCurve(curveNorm, startVal, endVal, stage, points) {
-        var n = points || ENV_CURVE_POINTS;
-        var arr = new Float32Array(n);
-        var amount = curveSigned(curveNorm);
-        for (var i = 0; i < n; i++) {
-            var p = i / (n - 1);
-            var curved = stageProgress(p, amount, stage);
+        let n = points || ENV_CURVE_POINTS;
+        let arr = new Float32Array(n);
+        let amount = curveSigned(curveNorm);
+        for (let i = 0; i < n; i++) {
+            let p = i / (n - 1);
+            let curved = stageProgress(p, amount, stage);
             arr[i] = startVal + (endVal - startVal) * curved;
         }
         return arr;
@@ -117,8 +117,8 @@
      * @returns {number} Hz (10 … 8250)
      */
     function cutoffHz(levelNorm) {
-        var lvl = Math.max(0, Math.min(1, levelNorm));
-        var hz = VCF_MIN_HZ * Math.pow(VCF_CURVE_BASE, lvl);
+        let lvl = Math.max(0, Math.min(1, levelNorm));
+        let hz = VCF_MIN_HZ * Math.pow(VCF_CURVE_BASE, lvl);
         return Math.max(10, Math.min(VCF_MIN_HZ * VCF_CURVE_BASE, hz));
     }
 
@@ -136,13 +136,13 @@
      * @returns {Float32Array} array de Hz listo para setValueCurveAtTime
      */
     function buildFreqCurve(curveNorm, startEnv, endEnv, stage, baseNorm, depth, points) {
-        var n = points || ENV_CURVE_POINTS;
-        var arr = new Float32Array(n);
-        var amount = curveSigned(curveNorm);
-        for (var i = 0; i < n; i++) {
-            var p = i / (n - 1);
-            var curved = stageProgress(p, amount, stage);
-            var env = startEnv + (endEnv - startEnv) * curved;
+        let n = points || ENV_CURVE_POINTS;
+        let arr = new Float32Array(n);
+        let amount = curveSigned(curveNorm);
+        for (let i = 0; i < n; i++) {
+            let p = i / (n - 1);
+            let curved = stageProgress(p, amount, stage);
+            let env = startEnv + (endEnv - startEnv) * curved;
             arr[i] = cutoffHz(baseNorm + env * depth);
         }
         return arr;
