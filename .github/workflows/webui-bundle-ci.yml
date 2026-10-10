@@ -1,0 +1,274 @@
+name: WebUI Bundle CI
+
+# POR QUE ESTE WORKFLOW, Y POR QUE NO UN JOB MAS EN dsp-ci.yml
+#
+# Lo que va incrustado en el binario es el WebUI, y el WebUI cambia en WebUI/**.
+# Los dos workflows que compilan el plugin —dsp-ci.yml (build-and-test,
+# allocation-audit, plugin-link) y pluginval.yml— filtran sus `paths` por
+# `Source/**`, `CMakeLists.txt` y `build.bat`. GitHub Actions aplica `paths` POR
+# WORKFLOW, no por job, asi que un PR que solo toque WebUI/** no los ejecuta
+# ninguno: pluginval no valida el VST3 y dsp-ci no enlaza el .exe.
+#
+# El hueco no es academico. CMake embebe `WebUI/dist` si existe y el ARBOL CRUDO
+# si no, y en los dos casos el configure termina en verde y el binario enlaza y
+# sale. La diferencia solo se ve en el WebView2, donde el keybed compartido no
+# monta porque sus bare imports `@abdsynths/*` no resuelven sin node_modules en
+# runtime: un 404 en la consola del WebView2 y un plugin sin teclado. Ese fallo se
+# aparecia semanas despues, en el primer cambio de Source/ que venia despues.
+#
+# Asignacion de trabajo: el WebUI NO se quita de webui-ci.yml (que corre en
+# ubuntu y hace lint + suite rapida). Esto anade lo que solo se puede hacer en
+# windows: empaquetar de verdad, y comprobar que lo empaquetado es lo que acaba
+# DENTRO del binario.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "WebUI/**"
+      # El empaquetado y su comprobacion viven aqui, asi que un cambio en ellos
+      # tiene que disparar esto aunque no toque el WebUI. Sin estas dos lineas,
+      # alguien puede romper el bundle desde el script y la CI no se entera.
+      - "scripts/build_webui.js"
+      - "scripts/verify_embedded_bundle.js"
+      # build.bat entra por lo ULTIMO que hace este job, no por lo primero: es el
+      # script que empaqueta el WebUI, asi que este workflow es quien lo ejecuta.
+      # Sin esta linea, cambiar los mensajes de diagnostico de build.bat no
+      # dispararia el test que los fija: el fichero del test y el fichero que
+      # vigila tenian filtros distintos, y el rojo solo apareceria por casualidad.
+      - "build.bat"
+      - "WebUI/tests/buildWebUiFailureDiagnostic.test.js"
+      - "WebUI/tests/buildToolchainDiagnostic.test.js"
+      # El bundle se genera desde las dos entradas ESM, que vienen de ahi.
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      # CMake decide que se embebe: dist o el arbol crudo.
+      - "CMakeLists.txt"
+      - ".github/workflows/webui-bundle-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "WebUI/**"
+      - "scripts/build_webui.js"
+      - "scripts/verify_embedded_bundle.js"
+      - "build.bat"
+      - "WebUI/tests/buildWebUiFailureDiagnostic.test.js"
+      - "WebUI/tests/buildToolchainDiagnostic.test.js"
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - "CMakeLists.txt"
+      - ".github/workflows/webui-bundle-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webui-bundle-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle-in-binary:
+    name: El binario lleva el bundle de Vite (no el árbol crudo)
+    runs-on: windows-2025
+
+    # ────────────────────────────────────────────────────────────────────────────
+    # POR QUE 60, Y POR QUE NO ES POR EL SEGUNDO BINARIO
+    #
+    # La premisa era que este job habia crecido al compilar DOS binarios y que el
+    # techo de 45 se habia quedado corto por eso. MEDIDO: es al reves. El segundo
+    # binario cuesta ~1 min sobre el primero, porque comparte cada .obj con el.
+    # El 45 no estaba corto por el VST3; estaba justo por el Standalone, que solo
+    # ya se comia 23 min en el proxy del runner.
+    #
+    # La medicion (2026-10-03), build EN FRIO en arbol nuevo, JUCE 8.0.12:
+    #
+    #   Paso                          /m:2 (proxy)   /m:4     /m ilimitado
+    #   CMake configure               2.05 min       1.46     1.68 min
+    #   Build Standalone              23.28 min     15.49    20.46 min
+    #   Build VST3 (sobre el otro)     1.00 min      0.40     0.45 min
+    #   Empaquetar WebUI (vite 8)     0.08 min      (local)    0.08 min
+    #
+    # `/m:2` es la columna que importa: los 4 vCPU de un windows-2025 de Azure
+    # son 2 nucleos fisicos con hiperhilo, y eso es lo mas parecido a este proxy
+    # que se puede medir sin el runner. Ojo con el resto: esta maquina tiene
+    # 39.7 GB de RAM y el runner 16, asi que la columna no reproduce la presion
+    # de memoria. Es un piso, no una prediccion exacta.
+    #
+    # La trampa en la que NO se ha caido: `/m:4` es 5 min MAS RAPIDO aqui que
+    # `/m` ilimitado, porque esta caja tiene 4 nucleos fisicos y 8 logicos, y
+    # darle a MSBuild todos los logicos revienta los fisicos. Pinar `/m:4` en el
+    # job habria sido rapido EN ESTA MAQUINA y probablemente mas lento en CI,
+    # donde los 4 vCPU ya son hyperhreads. El job se queda con el `/m` por defecto.
+    #
+    # Total del job con el proxy y los pasos no medibles estimados AL ALZA
+    # (bootstrap del workspace pnpm, clonado de JUCE, downloads, setup): 38.6 min.
+    # 45 daba un 16% de margen; un dia malo de host eso se lo come entero y el
+    # rojo llega como un timeout, que no dice nada de que paso. 60 deja 55%.
+    #
+    # Como estos numeros son un piso, quien lo lea dentro de un año debe volver
+    # a medirlos antes de tocarlos: si el job pasa en mucho menos de 60, el
+    # margen se puede bajar, pero solo con una medicion, no con una sensacion.
+    timeout-minutes: 60
+
+    env:
+      CI: true
+
+    # OBLIGATORIO, y no es un detalle. La accion de bootstrap deja ABDEep como un
+    # SUBDIRECTORIO de un workspace, con ABDSharedCode y ABDSharedAssets como
+    # hermanos suyos — es lo que hace que `workspace:*` resuelva a symlinks locales
+    # en vez de a una descarga. Por eso todos los pasos corren dentro de ABDEep.
+    #
+    # Sin esto, `node scripts/build_webui.js` no encuentra el script, `cmake -B
+    # build` configuraria el workspace en vez del proyecto, y el job fallaria en el
+    # segundo paso por un motivo que no tiene nada que ver con lo que comprueba.
+    # dsp-ci.yml y pluginval.yml NO necesitan esto porque no usan la accion: sin
+    # hermanos, CMake baja ABDSharedCode por FetchContent desde git y el checkout
+    # esta en la raiz.
+    defaults:
+      run:
+        working-directory: ABDEep
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      # ── Layout del monorepo ────────────────────────────────────────────────
+      # Misma accion que usa webui-ci.yml: deja los paquetes compartidos como
+      # hermanos (ABDSharedCode, ABDSharedAssets), que es como `workspace:*`
+      # resuelve. Sin esto, `@abdsynths/midi-keyb` no existe y el empaquetado no
+      # tiene nada que empaquetar.
+      - name: Bootstrap pnpm workspace (multi-repo)
+        uses: ajabadia/ABDSharedCode/.github/actions/pnpm-workspace-bootstrap@master
+        with:
+          project: ABDEep
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+
+      - name: Fetch JUCE 8.0.12 (no submodule; CMake falls back to ./JUCE)
+        shell: bash
+        run: |
+          if [ ! -d JUCE ]; then
+            git clone --depth 1 --branch 8.0.12 https://github.com/juce-framework/JUCE.git JUCE
+          fi
+          echo "JUCE at: $PWD/JUCE"
+
+      - name: Fetch WebView2 SDK (juce_add_plugin exige find_package(WebView2))
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP/wv2/Microsoft.Web.WebView2.1.0.3800.47" | Out-Null
+          Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.3800.47" -OutFile "$env:RUNNER_TEMP/wv2/pkg.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP/wv2/pkg.zip" -DestinationPath "$env:RUNNER_TEMP/wv2/Microsoft.Web.WebView2.1.0.3800.47" -Force
+          Write-Host "WebView2 SDK listo en $env:RUNNER_TEMP/wv2"
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+
+      # ── 1. Empaquetar DE VERDAD ────────────────────────────────────────────
+      # Este es el paso que ningun otro workflow da en un PR de WebUI. Y va antes
+      # de CMake a proposito: si se hiciera despues, CMake ya habria embebido el
+      # arbol crudo y habria que reconfigurar para que recogiera el bundle.
+      - name: Empaquetar el WebUI (node scripts/build_webui.js)
+        run: node scripts/build_webui.js
+
+      # El generador tiene sus post-chequeos (que las dos entradas esten y que
+      # todo lo que carga el HTML exista en dist), pero no que el CSS del keybed
+      # lleve sus @import resueltos. Ese fallo es del tipo que se lleva un rato
+      # de sesion: el desplegable del rack sale con una sola opcion y no hay
+      # error. Aqui se comprueba ANTES de embebir.
+      - name: El CSS del keybed no puede quedar con @import sin resolver
+        shell: pwsh
+        run: |
+          $css = "WebUI/dist/assets/keyboard.css"
+          if (-not (Test-Path $css)) {
+            Write-Error "::error::$css no existe: el CSS del keybed no llego al bundle"
+            exit 1
+          }
+          $imports = Select-String -Path $css -Pattern '@import' -AllMatches
+          if ($imports) {
+            Write-Error "::error::quedan @import sin resolver en $css. El WebView2 no resuelve specifier desnudos, asi que el desplegable de efectos saldria vacio sin ningun error visible:"
+            $imports | ForEach-Object { Write-Host $_.Line }
+            exit 1
+          }
+          $reglas = (Select-String -Path $css -Pattern '\{' -AllMatches).Matches.Count
+          Write-Host "keyboard.css: $($reglas) reglas, ningun @import pendiente"
+          if ($reglas -lt 50) {
+            Write-Error "::error::$css tiene solo $reglas reglas: el desplegable de efectos vendria vacio"
+            exit 1
+          }
+
+      # ── 2. Configurar, y COMPROBAR que se embebe el bundle ────────────────
+      # CMake avisa con un WARNING y sigue si no encuentra WebUI/dist. Si aquí se
+      # aceptara ese camino, este job comprobaria un binario que jamas tendra el
+      # keybed. Por eso el aviso es un fallo aqui, y no en CMake: en CMake es
+      # correcto, porque hay consumidores que configuran sin empaquetar.
+      - name: Configure CMake (y que embeba el bundle, no el árbol crudo)
+        run: |
+          cmake -B build -G "Visual Studio 18 2026" -A x64 -DDEEP_TARGET_MODEL=0 -DJUCE_WEBVIEW2_PACKAGE_LOCATION="${{ runner.temp }}/wv2" 2>&1 | tee build\configure.log
+          if (Select-String -Path build\configure.log -Pattern 'embebiendo el bundle Vite' -Quiet) {
+            Write-Host "CMake embebe WebUI/dist (el bundle)"
+          } else {
+            Write-Error "::error::CMake no ha embebido WebUI/dist. Sin esto el binario lleva el arbol CRUDO y el keybed compartido no montara. Revisa que el paso de empaquetado haya pasado."
+            exit 1
+          }
+
+      # ── 3. Compilar los DOS binarios que se distribuyen ───────────────────
+      # Modelo 0 y no 2: aqui no se prueba el DSP, sino que el bundle llegue al
+      # binario.
+      #
+      # Se compilan los dos, y no solo el Standalone, porque son DOS artefactos
+      # distintos con dos rutas de incrustacion distintas: el .exe y el .vst3 se
+      # generan desde el mismo CMake pero no salen del mismo sitio, y comprobar
+      # solo uno deja al otro sin mirar. Medido en local: los dos llevan el
+      # bundle, que es justo lo que no se puede suponer.
+      - name: Build Standalone app (ABDEep_Standalone_Standalone)
+        run: cmake --build build --config Release --target ABDEep_Standalone_Standalone
+
+      - name: Build VST3 (ABDEep_Standalone_VST3)
+        run: cmake --build build --config Release --target ABDEep_Standalone_VST3
+
+      # ── 4. Lo unico que de verdad falta: ¿lleva el bundle? ─────────────────
+      # Enlazar no es producir. Los pasos anteriores pasan igual con el arbol
+      # crudo dentro, asi que sin esto el job es decorativo. El comprobador
+      # mira el CONTENIDO del binario: `assets/keyboard.js` solo esta en el HTML
+      # que escribe el empaquetador, y `src="js/keyboard.js"` es justo la firma
+      # del arbol crudo.
+      #
+      # `--binario` EXPLICITO en los dos, y no el auto-descubrimiento. Con dos
+      # binarios en el arbol, el descubridor siempre devolveria el Standalone
+      # (sus patrones estan en ese orden) y el paso del VST3 acabaria
+      # comprobando dos veces el mismo fichero: verde, y sin mirar el VST3.
+      - name: El Standalone lleva el bundle (no el árbol crudo)
+        run: node scripts/verify_embedded_bundle.js --binario "build/ABDEep_Standalone_artefacts/Release/Standalone/ABD Eep.exe"
+
+      - name: El VST3 lleva el bundle (no el árbol crudo)
+        run: node scripts/verify_embedded_bundle.js --binario "build/ABDEep_Standalone_artefacts/Release/VST3/ABD Eep.vst3/Contents/x86_64-win/ABD Eep.vst3"
+
+      # webui-ci.yml corre en ubuntu, donde cmd.exe no existe: la mitad de cada
+      # uno de estos dos ficheros se salta ahi (el `ctx.skip()` de los tests de
+      # comportamiento). Aqui corre la parte de Windows, que si no no la ejecuta
+      # NADIE.
+      #
+      # Dos pasos y no uno con los dos ficheros: si fallan, se ve CUAL ha
+      # fallado sin tener que leer la salida de un unico test gigante. Y el
+      # guard de cada fichero (`el CI ejecuta estos tests en Windows`) exige que
+      # el suyo aparezca en una linea con `vitest`, asi que anadir un tercer
+      # fichero de este tipo obliga a cablear su paso aqui o sale en rojo.
+      #
+      # `npx --no-install` y no `pnpm exec`, medido: `pnpm exec` falla en local
+      # con ERR_PNPM_IGNORED_BUILDS (pnpm 12 aplica una politica de scripts de
+      # postinstall que el runner puede no tener). `--no-install` usa el vitest DEL
+      # PROYECTO y falla si no esta, en vez de descargar otro por su cuenta: en un
+      # paso cuyo trabajo es comprobar el codigo de este repo, descargar una
+      # version distinta de vitest seria comprobar otra cosa.
+      - name: Test del aviso de empaquetado del WebUI (esta capa solo corre en Windows)
+        shell: bash
+        run: npx --no-install vitest run WebUI/tests/buildWebUiFailureDiagnostic.test.js --reporter=default
+      - name: Test de los diagnosticos de toolchain de build.bat (esta capa solo corre en Windows)
+        shell: bash
+        run: npx --no-install vitest run WebUI/tests/buildToolchainDiagnostic.test.js --reporter=default
