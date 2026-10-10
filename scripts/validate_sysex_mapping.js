@@ -13,6 +13,17 @@
  *   node scripts/validate_sysex_mapping.js --all           # Todos los bancos A-H (default)
  */
 
+// ESM interop shim: package.json declares "type": "module", so this script
+// (invoked directly by roundtrip Corpus CI) runs as ESM and bare `require` /
+// `__dirname` do not exist. Re-create the CommonJS globals it relies on instead
+// of rewriting the whole validator -- same shim as scripts/registry_generator.js.
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+
+const require = createRequire(import.meta.url);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
