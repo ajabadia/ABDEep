@@ -94,8 +94,16 @@ describe('pipeline de build del WebUI', () => {
         expect(sinPrefijoExtendido(prefijada)).toBe(normal);
         // Y lo que importa: la relativa que sale de ahi es la que el filtro
         // compara contra MODULE_ENTRIES, ya con el separador normalizado.
-        const rel = path.relative(sinPrefijoExtendido(base), sinPrefijoExtendido(prefijada))
-            .split(path.sep).join('/');
+        //
+        // `path.win32` y no el `path` del host. MEDIDO: con `path.relative` a pelo
+        // este test pasaba en Windows y salia en ROJO en ubuntu, que es donde corre
+        // webui-ci.yml —linux no trata la barra invertida como separador, no
+        // encuentra camino comun y devuelve la ruta ENTERA, que es exactamente el
+        // fallo que el filtro existe para evitar—. El fixture simula rutas de
+        // Windows, asi que el modulo de path tiene que ser el de Windows, y el test
+        // deja de depender del sistema que lo ejecute.
+        const rel = path.win32.relative(sinPrefijoExtendido(base), sinPrefijoExtendido(prefijada))
+            .split(path.win32.sep).join('/');
         expect(rel).toBe('keyboard.js');
     });
 
