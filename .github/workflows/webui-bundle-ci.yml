@@ -44,6 +44,10 @@ on:
       - "pnpm-workspace.yaml"
       # CMake decide que se embebe: dist o el arbol crudo.
       - "CMakeLists.txt"
+      # El job compila el motor a WASM antes de empaquetar: si cambia su
+      # configuracion, cambia si el bundle sale completo o no.
+      - "wasm/**"
+      - "DspSources.cmake"
       - ".github/workflows/webui-bundle-ci.yml"
   push:
     branches:
@@ -58,6 +62,10 @@ on:
       - "package.json"
       - "pnpm-workspace.yaml"
       - "CMakeLists.txt"
+      # El job compila el motor a WASM antes de empaquetar: si cambia su
+      # configuracion, cambia si el bundle sale completo o no.
+      - "wasm/**"
+      - "DspSources.cmake"
       - ".github/workflows/webui-bundle-ci.yml"
 
 permissions:
@@ -106,10 +114,18 @@ jobs:
     # 45 daba un 16% de margen; un dia malo de host eso se lo come entero y el
     # rojo llega como un timeout, que no dice nada de que paso. 60 deja 55%.
     #
+    # ADVERTENCIA (2026-10-10): el job ha ganado la compilacion del motor a
+    # WASM con emscripten (ver el bloque 0), y ESE paso NO esta medido en las
+    # cifras de arriba. Referencia: wasm-build.yml tarda 2 min 31 s en ubuntu
+    # (medido, run 38040847618); en windows-2025 hay que sumarle la puesta en
+    # marcha de emsdk. 60 seguia dando margen, pero 75 es una cifra HEREDADA de
+    # esa estimacion, no de una medicion: quien pase el job por debajo de su
+    # medicion real debe bajarla, y solo con una medicion.
+    #
     # Como estos numeros son un piso, quien lo lea dentro de un año debe volver
-    # a medirlos antes de tocarlos: si el job pasa en mucho menos de 60, el
-    # margen se puede bajar, pero solo con una medicion, no con una sensacion.
-    timeout-minutes: 60
+    # a medirlos antes de tocarlos: si el job pasa en mucho menos de su timeout,
+    # el margen se puede bajar, pero solo con una medicion, no con una sensacion.
+    timeout-minutes: 75
 
     env:
       CI: true
@@ -168,6 +184,71 @@ jobs:
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v3
+
+      # ── 0. Compilar el motor a WASM ────────────────────────────────────────
+      # build_webui.js exige dist/wasm/abdeep_dsp.js porque js/dsp-processor.js
+      # lo importa, y ese fichero es gitignoreado (.gitignore): en un checkout
+      # limpio no existe y el empaquetado de abajo sale con "falta dist/wasm/
+      # abdeep_dsp.js". Ese era el UNICO fallo de este job (run 38040847629), y
+      # por eso este bloque va ANTES de empaquetar y no despues: sin el, el paso
+      # siguiente falla siempre en un arbol recien clonado.
+      #
+      # Los tres pasos replican wasm-build.yml, que ya esta verde en ubuntu; aqui
+      # solo cambia el runner, no el procedimiento. ABDSharedCode ya es hermano
+      # de ABDEep (lo deja el bootstrap de arriba), que es exactamente lo que
+      # wasm/CMakeLists.txt resuelve con ../../ABDSharedCode, asi que aqui NO
+      # hace falta el clon manual que wasm-build.yml si necesita.
+      #
+      # Sin -DJUCE_PATH: el CMakeLists busca wasm/../JUCE el mismo, y el JUCE
+      # clonado arriba esta exactamente ahi. Pasarle $PWD/JUCE desde bash en
+      # windows daria /d/a/... , que CMake no convierte a D:/a/... .
+      #
+      # El -G Ninja tampoco es una preferencia: emcmake sin generador eligiria
+      # el de Visual Studio, que usaria MSVC y no el de emscripten. ninja.exe
+      # vive en upstream/emscripten junto a emcmake.exe, es decir, en el mismo
+      # directorio que la accion ya pone en el PATH.
+      - name: Setup Emscripten SDK (3.1.64 — la misma que wasm-build.yml)
+        uses: myMindstorm/setup-emsdk@v16
+        with:
+          version: 3.1.64
+          actions-cache-folder: emsdk-cache
+
+      - name: Prepare juce_core shim (gitignored — copia local + patch ThreadPriorities)
+        shell: bash
+        run: |
+          # Limpieza previa, la misma que hace wasm/build_wasm.bat: `cp -r` sobre
+          # un juce_core ya existente anidaria otro dentro y dejaria el shim en un
+          # estado que solo se arregla borrando a mano.
+          rm -rf wasm/juce_shim/juce_core
+          mkdir -p wasm/juce_shim
+          cp -r JUCE/modules/juce_core wasm/juce_shim/juce_core
+          cp wasm/juce_shim/native/juce_ThreadPriorities_native.h \
+             wasm/juce_shim/juce_core/native/juce_ThreadPriorities_native.h
+          echo "shim juce_core listo"
+
+      - name: Build WASM module (emcmake + Ninja)
+        shell: bash
+        run: |
+          emcmake cmake -S wasm -B wasm/build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -G Ninja
+          cmake --build wasm/build
+
+          if [ ! -f WebUI/wasm/abdeep_dsp.js ]; then
+            echo "::error::no se ha generado WebUI/wasm/abdeep_dsp.js. Si este paso pasa y el de empaquetado falla, el mensaje que se ve es el equivocado."
+            exit 1
+          fi
+          echo "glue: $(wc -c < WebUI/wasm/abdeep_dsp.js) bytes"
+
+          # SINGLE_FILE=1: el .wasm va DENTRO del .js, asi que no siempre queda
+          # uno suelto (wasm-build.yml ya cuenta este mismo caso). Quien decide si
+          # basta es build_webui.js, que acepta las dos formas; aqui solo se deja
+          # constancia de cual ha salido.
+          if [ -f WebUI/wasm/abdeep_dsp.wasm ]; then
+            echo "wasm suelto: $(wc -c < WebUI/wasm/abdeep_dsp.wasm) bytes"
+          else
+            echo "wasm embebido en el glue (SINGLE_FILE=1), sin artefacto suelto"
+          fi
 
       # ── 1. Empaquetar DE VERDAD ────────────────────────────────────────────
       # Este es el paso que ningun otro workflow da en un PR de WebUI. Y va antes
