@@ -57,6 +57,29 @@ jobs:
         with:
           submodules: recursive
 
+      # wasm/CMakeLists.txt apunta a ../../ABDSharedCode/SynthCore/*.cpp (PolyBLEP,
+      # LfoAnalog, DriftEngine...), que es el mismo layout de hermanos que tiene en
+      # local: <suite>/ABDEep/wasm/../.. = <suite>/. Aqui el checkout del repo es
+      # $GITHUB_WORKSPACE, asi que el hermano tiene que vivir FUERA de el, en el
+      # padre. Sin este paso el `emcmake cmake` revienta en el generate con
+      # "Cannot find source file: .../ABDSharedCode/SynthCore/PolyBLEP.cpp" y
+      # "No SOURCES given to target: abdeep_dsp", y el include de cabeceras
+      # (SynthCore/VoiceAllocator.h, DspEffects/*) tampoco resuelve.
+      #
+      # Es la misma pieza que el root CMakeLists resuelve con
+      # `if(EXISTS ../ABDSharedCode/CMakeLists.txt) ... else FetchContent`; aqui no
+      # hay fallback porque el propio wasm/CMakeLists.txt lista rutas absolutas.
+      # Clona a mano y no con `actions/checkout` porque el input `path` de esa
+      # accion es relativo a $GITHUB_WORKSPACE y no debe salirse de el.
+      - name: Checkout ABDSharedCode as sibling
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/ajabadia/ABDSharedCode.git \
+            "$GITHUB_WORKSPACE/../ABDSharedCode"
+          test -f "$GITHUB_WORKSPACE/../ABDSharedCode/SynthCore/PolyBLEP.cpp" \
+            || { echo "::error::ABDSharedCode clonado pero sin SynthCore/PolyBLEP.cpp: wasm/CMakeLists.txt no va a encontrar sus fuentes."; exit 1; }
+          echo "ABDSharedCode hermano listo en $GITHUB_WORKSPACE/../ABDSharedCode"
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
