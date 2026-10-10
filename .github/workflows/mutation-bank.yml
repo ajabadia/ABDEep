@@ -94,8 +94,12 @@ jobs:
       - name: Verify no mutated file was left behind
         if: always()
         run: |
-          if [ -d node_modules/.cache/mutation-bank ]; then
-            echo "::error::quedan copias de seguridad sin restaurar:"; \
+          # No basta con que el directorio EXISTA: el banco lo deja vacio
+          # despues de restaurar cada mutante, y comprobar solo `-d` daba un
+          # falso positivo que repetia el rojo en cada corrida en verde. Lo que
+          # significa "quedo algo sin restaurar" es que tenga CONTENIDO.
+          if [ -n "$(ls -A node_modules/.cache/mutation-bank 2>/dev/null)" ]; then
+            echo "::error::quedan copias de seguridad sin restaurar:";\
             ls -la node_modules/.cache/mutation-bank; exit 1
           fi
           git diff --stat -- WebUI/js | tail -1
