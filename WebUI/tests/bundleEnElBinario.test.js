@@ -58,7 +58,7 @@ const COMPROBADOR = path.join(ROOT, 'scripts', 'verify_embedded_bundle.js');
 const YAML = fs.readFileSync(WORKFLOW, 'utf8');
 
 /** Lo que el comprobador exige encontrar DENTRO del binario. */
-const PRESENTES = ['assets/keyboard.js', 'assets/fit-stage.js', 'assets/keyboard.css'];
+const PRESENTES = ['assets/index.js', 'assets/index.css'];
 /** La firma del árbol crudo: el HTML sin empaquetar. */
 const FIRMA_CRUDA = 'src="js/keyboard.js"';
 
@@ -132,7 +132,7 @@ describe('bundle-in-binary — los pasos que hacen que el job no sea decorativo'
     // que nadie se entere hasta que el keybed no monta en el host.
     const orden = [
       ['empaquetar el WebUI', 'node scripts/build_webui.js'],
-      ['comprobar el CSS del keybed', 'keyboard.css'],
+      ['comprobar el CSS del keybed', 'El CSS del keybed no puede quedar'],
       ['configurar CMake', 'Configure CMake'],
       ['compilar', 'cmake --build build'],
       ['verificar el binario', 'verify_embedded_bundle.js'],
@@ -259,9 +259,8 @@ describe('verify_embedded_bundle.js — falla cuando toca', () => {
     // que falla siempre, que es un comprobador que no comprueba.
     const bundleado = [
       '<html><head>',
-      '<link rel="stylesheet" href="/assets/keyboard.css">',
-      '<script type="module" src="/assets/keyboard.js"></script>',
-      '<script type="module" src="/assets/fit-stage.js"></script>',
+      '<link rel="stylesheet" href="/assets/index.css">',
+      '<script type="module" src="/assets/index.js"></script>',
       '</head><body></body></html>',
     ].join('\n');
     const {salida} = pasar(bundleado, 'bundleado.exe');

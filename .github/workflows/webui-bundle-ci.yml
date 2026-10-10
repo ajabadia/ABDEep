@@ -265,19 +265,39 @@ jobs:
       - name: El CSS del keybed no puede quedar con @import sin resolver
         shell: pwsh
         run: |
-          $css = "WebUI/dist/assets/keyboard.css"
+          # Sin esto, una excepcion de la regex de abajo (parentesis desbalanceado,
+          # por ejemplo) se imprime en stderr y el paso SIGUE y sale en verde con
+          # "0 @import": un chequeo que no puede fallar no es un chequeo.
+          $ErrorActionPreference = 'Stop'
+          # assets/index.css y NO assets/keyboard.css: Vite fusiona el CSS de todo el
+          # grafo en un UNICO fichero cuyo nombre sale del index.html de entrada, y
+          # ese <link> es lo unico que enlaza el HTML empaquetado. El nombre
+          # keyboard.css no llega a existir nunca en un dist real, asi que el paso
+          # anterior comprobaba un fichero que siempre faltaba.
+          $css = "WebUI/dist/assets/index.css"
           if (-not (Test-Path $css)) {
             Write-Error "::error::$css no existe: el CSS del keybed no llego al bundle"
             exit 1
           }
-          $imports = Select-String -Path $css -Pattern '@import' -AllMatches
-          if ($imports) {
+          # Con el CSS minificado todo va en una sola linea, asi que hay que leer el
+          # contenido y mirar cada @import por separado: con Select-String se tragaria
+          # tambien los remotos, que el WebView2 SI resuelve. Lo que no resuelve es un
+          # specifier desnudo o relativo, y eso es lo que deja el desplegable de
+          # efectos con una sola opcion y sin ningun error visible.
+          $texto = Get-Content -Raw -Path $css
+          # url(...) es OPCIONAL en la forma final: `@import "foo.css";` es CSS valido
+          # y es la forma que deja el empaquetado cuando no inlina. Exigir url(
+          # hacia que esa pasara desapercibida con "0 @import".
+          $todos = [regex]::Matches($texto, '@import\s+(?:url\(\s*)?["'']?([^"'');]+)')
+          $locales = @($todos | ForEach-Object { $_.Groups[1].Value } |
+              Where-Object { $_ -notmatch "^(https?:)?//" })
+          if ($locales.Count -gt 0) {
             Write-Error "::error::quedan @import sin resolver en $css. El WebView2 no resuelve specifier desnudos, asi que el desplegable de efectos saldria vacio sin ningun error visible:"
-            $imports | ForEach-Object { Write-Host $_.Line }
+            $locales | ForEach-Object { Write-Host "  - $_" }
             exit 1
           }
-          $reglas = (Select-String -Path $css -Pattern '\{' -AllMatches).Matches.Count
-          Write-Host "keyboard.css: $($reglas) reglas, ningun @import pendiente"
+          $reglas = ([regex]::Matches($texto, '\{')).Count
+          Write-Host "${css}: $($reglas) reglas, $($todos.Count) @import y ninguno local sin resolver"
           if ($reglas -lt 50) {
             Write-Error "::error::$css tiene solo $reglas reglas: el desplegable de efectos vendria vacio"
             exit 1

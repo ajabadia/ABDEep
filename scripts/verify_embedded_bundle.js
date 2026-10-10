@@ -16,21 +16,23 @@
  *
  * LOS MARCADORES, Y POR QUE ESTOS Y NO OTROS
  *
- * Presencia de `assets/keyboard.js`: solo existe en el `index.html` que escribe
- * `rewriteIndexHtml()` cuando hay bundle. En el árbol crudo el HTML apunta a
- * `js/keyboard.js`.
+ * Presencia de `assets/index.js` y `assets/index.css`: son los dos ficheros que
+ * solo puede haber escrito Vite. MEDIDO sobre un dist real: el nombre NO sale de
+ * las entradas, sale del `index.html` de ENTRADA. Los dos
+ * `<script type="module" src="js/...">` del HTML se embeben en el chunk del
+ * propio HTML, y el CSS de todo el grafo acaba en un unico fichero. Por eso los
+ * nombres `assets/keyboard.js`, `assets/fit-stage.js` y `assets/keyboard.css` que
+ * aqui se comprobaban antes NUNCA llegan a existir: daban un rojo fijo, no un
+ * aviso. Ademas `WebUI/assets/` en el arbol crudo solo lleva imagenes, asi que
+ * estos dos marcadores ya descartan el arbol crudo por si solos.
  *
- * Ausencia de `js/keyboard.js`: la inversa del anterior, y se mira a proposito.
- * Que este NO aparezca es lo que descarta que se haya embebido el árbol crudo:
- * `dist/js/` no contiene `keyboard.js` porque es una de las dos entradas que
- * empaqueta Vite, asi que la cadena solo puede venir del HTML sin reescribir.
- *
- * `assets/keyboard.css`: el CSS del keybed, que entra por la via estatica (ver
- * `CSS_ESTATICO` en WebUI/vite.build.config.js).
+ * Ausencia de `src="js/keyboard.js"`: la inversa del anterior, y se mira a
+ * proposito. Es la firma del HTML sin empaquetar: en el arbol crudo el `<script>`
+ * apunta a ese fichero, y en el empaquetado ya no, porque Vite lo ha tragado.
  *
  * NO se comprueba que falte `@abdsynths/midi-keyb` en el BINARIO: aparece igual con
  * bundle, porque el `index.html` y `js/keyboard_render.js` lo mencionan. Esa
- * comprobacion solo tiene sentido sobre `dist/assets/keyboard.js`, y se hace
+ * comprobacion solo tiene sentido sobre `dist/assets/index.js`, y se hace
  * aparte, en el propio dist, donde si es fiable.
  *
  *   node scripts/verify_embedded_bundle.js [--binario <ruta>]
@@ -44,7 +46,7 @@ import {fileURLToPath} from 'node:url';
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Lo que TIENE que haber dentro del binario si lleva el bundle. */
-const PRESENTES = ['assets/keyboard.js', 'assets/fit-stage.js', 'assets/keyboard.css'];
+const PRESENTES = ['assets/index.js', 'assets/index.css'];
 
 /** Lo que NO puede aparecer: es la firma del árbol CRUDO. */
 const AUSENTES = ['src="js/keyboard.js"'];
@@ -98,17 +100,17 @@ function contiene(ruta, aguja) {
 function comprobarDist() {
   // El bundle tiene que tener los imports resueltos. Esto se mira en el DIST, no
   // en el binario, porque en el binario la cadena aparece igualmente (ver cabecera).
-  const bundle = path.join(RAIZ, 'WebUI', 'dist', 'assets', 'keyboard.js');
+  const bundle = path.join(RAIZ, 'WebUI', 'dist', 'assets', 'index.js');
   if (!fs.existsSync(bundle)) {
     console.error(`::error::no existe ${path.relative(RAIZ, bundle)}: el WebUI no esta empaquetado`);
     return false;
   }
   const texto = fs.readFileSync(bundle, 'utf8');
   if (/@abdsynths\//.test(texto)) {
-    console.error('::error::WebUI/dist/assets/keyboard.js todavia tiene imports @abdsynths/* sin resolver');
+    console.error('::error::WebUI/dist/assets/index.js todavia tiene imports @abdsynths/* sin resolver');
     return false;
   }
-  console.log('  OK  el bundle de keyboard.js no tiene imports desnudos');
+  console.log('  OK  el bundle de index.js no tiene imports desnudos');
   return true;
 }
 
