@@ -20,17 +20,27 @@
       - Interpolación cúbica Hermite de 4 puntos por tap.
       - Control de Stereo Spread para expansión estéreo de los taps.
       - Buffer estático circular sin asignaciones de memoria en tiempo de ejecución (100% Real-Time Safe).
+      - DOS MODOS en el motor, seleccionables con `setMode()`:
+          * `Mode::Standard` (defecto): el DeepMind 12 de toda la vida, con
+            rate, depth, feedback, spread y mix continuos.
+          * `Mode::DualLFO`: el esquema bi-frecuencial auténtico del Solina
+            (LFO lento a ~0.5 Hz + LFO rápido a ~6.0 Hz, relación fija 1:12,
+            mezclados 0.8/0.2) sobre un retardo base de 15 ms, con matriz
+            estéreo asimétrica en contrafase.
+
+    ESTADO DEL DUALLFO, Y POR QUÉ NO ES ALCANZABLE DESDE EL PRODUCTO:
+      El modo DualLFO ESTÁ implementado y commiteado en el motor compartido
+      (ABDSharedCode, 59c501e) y su sonido está fijado por el test de paridad
+      `Source/DSP/FX/FXUnitTests_SolinaParity.cpp` (0 ULPS contra su copia
+      congelada). Lo que falta es el camino del producto: el envoltorio de
+      abajo no expone parámetro de modo, así que hoy siempre corre en
+      `Mode::Standard`. Cablearlo requiere decidir antes dónde vive el mando
+      en el contrato de 5 parámetros del slot 37 y en el puente WebUI, porque
+      los mandos que la rama DualLFO ignora hoy (feedback, spread y mix, medidos
+      con diferencia exacta 0) dejarían de responder según el modo elegido.
 
     BRECHAS DE FIDELIDAD Y LÍNEAS DE INVESTIGACIÓN PENDIENTES:
-      1. Doble oscilador de modulación analógico del Solina:
-         El Solina auténtico no utiliza un LFO único simple a 120°. Utiliza DOS generadores analógicos
-         simultáneos desacoplados:
-           * LFO lento (~0.6 Hz)
-           * LFO rápido (~6.0 Hz)
-         Las salidas de ambos LFOs se mezclan en proporciones fijas antes de alimentar las entradas de
-         reloj de las líneas BBD TDA1022. Investigar este esquema bi-frecuencial aportará el característico
-         "shimmer" orquestal del hardware original.
-      2. Filtrado antialiasing y reconstrucción de reloj BBD:
+      1. Filtrado antialiasing y reconstrucción de reloj BBD:
          Cada etapa BBD analógica posee un filtro pasobajos activo Sallen-Key LC/RC (~10 kHz) para eliminar
          el ruido de reloj de muestreo.
 

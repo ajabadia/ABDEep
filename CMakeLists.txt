@@ -385,6 +385,10 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         # lleva es la medicion del antes y el despues, con la copia congelada
         # del motor anterior dentro del propio test.
         ${SRC_ROOT}/DSP/FX/FXUnitTests_BbdChorus.cpp
+        # El Solina, en cambio, SI: el modo Standard sustituyo al motor propio
+        # sin cambiar el sonido (margen medido), y el DualLFO es trabajo nuevo
+        # commiteado que hay que fijar a 0 ULPS contra su copia congelada.
+        ${SRC_ROOT}/DSP/FX/FXUnitTests_SolinaParity.cpp
         # El bus de fx en la matriz de modulacion: los ocho destinos que nombra
         # el manual, con sus codigos, y que el motor los lea de verdad.
         ${SRC_ROOT}/DSP/FX/FXUnitTests_ModMatrix.cpp

@@ -264,7 +264,7 @@ function toPascalCase(id) {
 let specCppIds = new Set();
 let entries = [];
 
-function main() {
+function main(options = {}) {
   fatalErrors.length = 0;
   warnings.length = 0;
   entries = [];
@@ -604,6 +604,31 @@ const payloads = [
   [OUT.cpp, renderCppSource(registry)],
 ];
 
+// Si se ejecuta en modo --check, no escribir nada en disco.
+const isCheck = Boolean(options.checkOnly || (typeof process !== 'undefined' && process.argv && process.argv.includes('--check')));
+if (isCheck) {
+  validateEmitted(registry, registry.parameters);
+  const outdated = [];
+  for (const [file, content] of payloads) {
+    const diskContent = readTextIfExists(file);
+    if (diskContent !== content) {
+      outdated.push(file);
+    }
+  }
+  if (outdated.length > 0) {
+    console.error('[registry] CHECK FAIL: ' + outdated.length + ' artefacto(s) desactualizado(s):');
+    for (const f of outdated) {
+      console.error('  ✗ ' + path.relative(ROOT, f));
+    }
+    return { ok: false, outdated, registry, summary, warnings };
+  }
+  console.log('[registry] CHECK OK: todos los artefactos (' + payloads.length + ') están sincronizados y al día.');
+  for (const [file] of payloads) {
+    console.log('  = ' + path.relative(ROOT, file) + ' (verificado)');
+  }
+  return { ok: true, outdated: [], registry, written: [], untouched: payloads.map((p) => p[0]), summary, warnings };
+}
+
 const written = [];
 const untouched = [];
 for (const [file, content] of payloads) {
@@ -898,7 +923,22 @@ function isDirectExecution() {
 }
 
 if (isDirectExecution()) {
-  main();
+  const args = process.argv.slice(2);
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log([
+      'Genera o verifica el registro de parámetros de ABDEep (4 artefactos).',
+      '',
+      'Uso: node scripts/registry_generator.js [--check]',
+      '',
+      '  (sin flag)  Escribe los 4 artefactos si han cambiado.',
+      '  --check     NO escribe. Sale con código 1 si algún artefacto no está al día.',
+    ].join('\n'));
+    process.exit(0);
+  }
+  const result = main();
+  if (result && result.ok === false) {
+    process.exit(1);
+  }
   process.exit(0);
 }
 
