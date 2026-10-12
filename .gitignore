@@ -55,4 +55,4 @@ build_log.txt
 test-results.txt
 help_raw.txt
 _build_tmp.cmd
-
+.playwright-mcp/

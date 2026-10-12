@@ -20,7 +20,7 @@ Este documento define el roadmap técnico y de seguimiento para la consolidació
 | **Fase 2** | Filtros ZDF Canónicos de `DspCore` | VCF OTA y Juno HPF conectados a `abd::dsp` (fieles a DM12) | 🟢 Nulo | ✅ Completado |
 | **Fase 3** | VoiceAllocator Híbrido | Robo de voz matemático puro (`SynthCore`) + VoiceManager DeepMind 12 | 🟢 Nulo | ✅ Ya integrado (No tocar) |
 | **Fase 4** | Unificación WebView2Bridge | Puente C++ <-> JS normalizado y seguro | 🟢 Nulo | ✅ Completado |
-| **Fase 5** | Alineación de Contratos con `MidiKeyboard` | Integración del schema JSON de control para el ecosistema común | 🟢 Nulo | 📋 Planificado |
+| **Fase 5** | Alineación de Contratos con `MidiKeyboard` | Integración del schema JSON de control para el ecosistema común | 🟢 Nulo | ✅ Completado |
 
 ---
 
