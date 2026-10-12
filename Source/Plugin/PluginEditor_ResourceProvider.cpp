@@ -1,19 +1,5 @@
 #include <JuceHeader.h>
-
-// Helper to determine mime type based on file extension
-static juce::String getMimeTypeForFilename (const juce::String& filename)
-{
-    if (filename.endsWithIgnoreCase (".html")) return "text/html";
-    if (filename.endsWithIgnoreCase (".css"))  return "text/css";
-    if (filename.endsWithIgnoreCase (".js"))   return "application/javascript";
-    if (filename.endsWithIgnoreCase (".png"))  return "image/png";
-    if (filename.endsWithIgnoreCase (".jpg") || filename.endsWithIgnoreCase (".jpeg")) return "image/jpeg";
-    if (filename.endsWithIgnoreCase (".ttf"))  return "font/ttf";
-    if (filename.endsWithIgnoreCase (".woff")) return "font/woff";
-    if (filename.endsWithIgnoreCase (".woff2")) return "font/woff2";
-    if (filename.endsWithIgnoreCase (".json")) return "application/json";
-    return "application/octet-stream";
-}
+#include <WebView2Bridge/WebView2ResourceProvider.h>
 
 std::optional<juce::WebBrowserComponent::Resource> pluginResourceProvider (const juce::String& url)
 {
@@ -24,28 +10,7 @@ std::optional<juce::WebBrowserComponent::Resource> pluginResourceProvider (const
                                       .getParentDirectory();       // ABDEep/
     juce::File webUiDir = projectDir.getChildFile ("WebUI");
 
-    juce::String path = url;
-
-    if (path.startsWith ("juce://"))
-    {
-        int hostEndIndex = path.indexOf (7, "/");
-        if (hostEndIndex != -1)
-            path = path.substring (hostEndIndex);
-    }
-    else if (path.startsWith ("https://juce.backend"))
-    {
-        path = path.substring (20);
-    }
-    else if (path.startsWith ("http://localhost"))
-        path = path.substring (16);
-    else if (path.startsWith ("https://localhost"))
-        path = path.substring (17);
-
-    if (path == "/" || path.isEmpty()) path = "/index.html";
-    if (path.startsWith ("/")) path = path.substring (1);
-
-    // URL-decode the path (handles spaces encoded as %20, etc.)
-    juce::String decodedPath = juce::URL::removeEscapeChars (path);
+    juce::String decodedPath = abd::webview2::normalizeResourcePath (url);
 
     // 0. Bundle de Vite (WebUI/dist): es el sitio que sirve el host cuando existe.
     //    Trae los bare imports @abdsynths/* YA resueltos (keybed compartido,
@@ -63,7 +28,7 @@ std::optional<juce::WebBrowserComponent::Resource> pluginResourceProvider (const
             distFile.loadFileAsData (mb);
             std::vector<std::byte> data (mb.getSize());
             std::memcpy (data.data(), mb.getData(), mb.getSize());
-            return juce::WebBrowserComponent::Resource { std::move (data), getMimeTypeForFilename (distFile.getFileName()).toStdString() };
+            return juce::WebBrowserComponent::Resource { std::move (data), abd::webview2::getMimeTypeForFilename (distFile.getFileName()).toStdString() };
         }
     }
 
@@ -87,10 +52,10 @@ std::optional<juce::WebBrowserComponent::Resource> pluginResourceProvider (const
         file.loadFileAsData (mb);
         std::vector<std::byte> data (mb.getSize());
         std::memcpy (data.data(), mb.getData(), mb.getSize());
-        return juce::WebBrowserComponent::Resource { std::move (data), getMimeTypeForFilename (file.getFileName()).toStdString() };
+        return juce::WebBrowserComponent::Resource { std::move (data), abd::webview2::getMimeTypeForFilename (file.getFileName()).toStdString() };
     }
 
-    // 2. Fallback to BinaryData (Release / Distribution Mode)
+    // 1. Fallback to BinaryData (Release / Distribution Mode)
     // Convert path into a BinaryData-compatible resource name
     // (e.g. js/settings.js -> js_settings_js)
     juce::String resourceName = decodedPath.replace ("/", "_")
@@ -116,7 +81,7 @@ std::optional<juce::WebBrowserComponent::Resource> pluginResourceProvider (const
     {
         std::vector<std::byte> bytes (binSize);
         std::memcpy (bytes.data(), binData, (size_t)binSize);
-        return juce::WebBrowserComponent::Resource { std::move (bytes), getMimeTypeForFilename (decodedPath).toStdString() };
+        return juce::WebBrowserComponent::Resource { std::move (bytes), abd::webview2::getMimeTypeForFilename (decodedPath).toStdString() };
     }
 
     // Log missing file for debug

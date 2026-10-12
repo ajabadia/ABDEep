@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <WebView2Bridge/JuceWebView2Component.h>
 #include "PluginProcessor.h"
 
 class ABDEepAudioProcessorEditor  : public juce::AudioProcessorEditor,
@@ -17,7 +18,7 @@ private:
     void timerCallback() override;
 
     ABDEepAudioProcessor& audioProcessor;
-    std::unique_ptr<juce::WebBrowserComponent> webComponent;
+    std::unique_ptr<abd::webview2::JuceWebView2Component> webComponent;
     juce::String lastActiveNotesJSON;
     juce::String lastVoiceStatesJSON;
 

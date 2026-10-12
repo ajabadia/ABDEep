@@ -76,11 +76,27 @@ namespace ABD
         }
     }
 
+    void FXEngine::copyExternalModulatorData(const float* modL, const float* modR, int numSamples)
+    {
+        const int count = juce::jlimit(0, kMaxExternalModSamples, numSamples);
+        if (count > 0 && modL != nullptr)
+        {
+            const juce::SpinLock::ScopedLockType sl(modLock);
+            std::memcpy(internalModL.data(), modL, static_cast<size_t>(count) * sizeof(float));
+            if (modR != nullptr)
+                std::memcpy(internalModR.data(), modR, static_cast<size_t>(count) * sizeof(float));
+            else
+                std::memcpy(internalModR.data(), modL, static_cast<size_t>(count) * sizeof(float));
+            internalModCount.store(count, std::memory_order_release);
+            extModL = internalModL.data();
+            extModR = internalModR.data();
+            extModNumSamples = count;
+        }
+    }
+
     void FXEngine::setModulatorBuffer(const float* modL, const float* modR, int numSamples)
     {
-        extModL = modL;
-        extModR = modR;
-        extModNumSamples = numSamples;
+        copyExternalModulatorData(modL, modR, numSamples);
     }
 
     void FXEngine::setSlotModulation(int slot, const float* level, float paramAmount, int numSamples)

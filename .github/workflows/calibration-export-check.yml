@@ -1,0 +1,143 @@
+name: Calibration Export Check
+
+# QUE COMPRUEBA, Y POR QUE HACE FALTA
+#
+# El exportador de corridas (`WebUI/scripts/export-calibration-run.js`) copia los
+# informes que produce el Calibration Lab en el navegador a
+# `artifacts/calibration-runs/` y escribe alli un `manifest.json` que dice que
+# corrida es y que ficheros la componen.
+#
+# Este workflow comprueba UN SOLO INVARIANTE: que ese manifest refleje lo que hay
+# en el directorio. En las dos direcciones, porque las dos se rompen:
+#
+#   · el manifest DECLARA un fichero que no esta — un consumidor que confia en la
+#     lista no encuentra el dato;
+#   · hay ficheros que el manifest NO declara — restos de una corrida anterior.
+#     El exportador NO limpia el destino, asi que dos exportaciones seguidas con
+#     entradas distintas dejan la primera dentro, y el manifest resultante describe
+#     solo la segunda. El artefacto subido lleva entonces datos de dos corridas con
+#     un manifest que no lo dice, y por fuera parece coherente.
+#
+# LO QUE HOY NO COMPRUEBA NADA, Y POR QUE SIGUE SIENDO EL JOB
+#
+# `artifacts/` no esta versionado. En un checkout limpio este directorio no existe,
+# el check sale en verde diciendo «no hay export commiteado que comprobar», y el job
+# no mira nada. Es un trinquete, no una garantia: el dia que alguien commitee un
+# export, este job empieza a mirarlo sin que haya que tocar el workflow.
+#
+# Y es importante que el paso diga eso en voz alta en vez de salir en verde en
+# silencio. Un verde que no dice que no ha comprobado nada se lee como una garantia
+# que nadie ha dado, que es como un guard se vuelve decorativo sin que nadie se entere.
+#
+# POR QUE USA `--solo-manifesto` Y NO `--check`
+#
+# El `--check` de verdad compara el destino con lo que se copiaria desde
+# `--input-dir`, y ese directorio (`WebUI/tmp/calibration-exports/`) lo produce el
+# navegador: esta en `.gitignore` y en un checkout limpio no existe. Un job que
+# ejecutase el `--check` de siempre no estaria comprobando el export, estaria
+# comprobando que falta una carpeta que nunca ha estado ahi, y estaria en rojo para
+# siempre — que es la forma mas rapida de que un job deje de mirarse.
+#
+# `--solo-manifesto` responde a la otra pregunta, que si se puede responder en un
+# checkout: no «que copiaria» sino «de lo que hay aqui, que dice el manifest».
+#
+# POR QUE UN WORKFLOW APARTE Y NO UN PASO EN webui-ci.yml
+#
+# El mismo motivo que el registry CI de este repo: `webui-ci` dura veinticinco
+# minutos, levanta un servidor y monta el workspace con los repos hermanos. Un
+# check de un segundo dentro de ese job es un paso que nadie lee cuando se pone
+# rojo. Ademas asi este tiene NOMBRE PROPIO en la pestana: un rojo que se llama
+# «Calibration: el manifest refleja el destino» no hay que abrirlo para saber si
+# lo que se ha roto es el export o el plugin.
+#
+# Y NO lleva `paths:` a proposito, tambien por el mismo motivo: un check requerido
+# que no llega a ejecutarse deja el PR bloqueado para siempre.
+#
+# POR QUE NO HAY `npm install`
+#
+# El script solo importa `fs`, `path`, `module` y `url`. La unica dependencia
+# externa, `jspdf`, se carga con `require` bajo demanda y unicamente cuando hay que
+# emitir un PDF — y `--solo-manifesto` no llega ahi. Instalar el arbol de este repo
+# para correr un script que no usa nada de eso seria pagar tiempo y una clase de
+# fallos nueva (lockfiles desincronizados) a cambio de nada.
+#
+# POR QUE `ubuntu-latest` Y NO WINDOWS
+#
+# El check no compila nada ni toca el motor: lee un directorio y un JSON. Correrlo
+# en Linux no dice nada que no diga en Windows, y Linux es el que llega antes. El
+# que compila en Windows es otro job.
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calibration-export-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  manifest-check:
+    name: "Calibration: el manifest refleja el destino"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      # Fijado, no `20` a secas: un flotante puede cambiar de version entre dos
+      # corridas del mismo workflow, y un rojo que solo aparece en una de ellas es
+      # la clase de fallo mas dificil de leer que tiene un CI.
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20.11'
+
+      # EL CHECK. Sale 1 y nombra los ficheros, en stdout la lista y en stderr el
+      # veredicto, asi que el mensaje de este workflow solo tiene que traducirlo.
+      - name: Comprobar que manifest.json refleja el destino
+        run: |
+          if node WebUI/scripts/export-calibration-run.js \
+               --check --solo-manifesto \
+               --output-dir artifacts/calibration-runs; then
+            echo "OK - el manifest comiteado describe el directorio."
+          else
+            echo "::error::El manifest.json de artifacts/calibration-runs NO refleja lo que hay en el destino. O declara un fichero que no esta, o hay ficheros de una corrida anterior que el manifest no declara (el exportador no limpia el destino). Arreglo: reexportar a un directorio limpio, o borrar el export."
+            exit 1
+          fi
+
+      # Que quede DICHADO si este job ha comprobado algo o no. Sin este paso, un
+      # checkout sin export sale en verde igual que un checkout con el export
+      # correcto, y las dos cosas se leen igual en la pestana.
+      - name: Informe de que se ha comprobado
+        run: |
+          if [ -f artifacts/calibration-runs/manifest.json ]; then
+            echo "::notice::Hay un export commiteado: este job ha comprobado su manifest."
+          else
+            echo "::notice::NO hay ningun export commiteado (artifacts/calibration-runs/manifest.json no existe). Este job NO ha comprobado nada: artifacts/ no esta versionado en este repo. Sale en verde porque no hay nada que este mal, no porque el manifest refleje el destino."
+          fi
+
+      # Lo ULTIMO, y por lo ultimo: que correr el check no haya modificado nada.
+      #
+      # `--solo-manifesto` no escribe, que es justo lo que lo hace utilizable desde
+      # un pipeline sin ensuciar el checkout. Si algun dia alguien le quita el flag
+      # para «hacerlo mas rapido», este paso lo dira en el propio pipeline en vez
+      # de dejar un checkout modificado que no se nota hasta el siguiente.
+      - name: "Guard: el check no ha modificado nada"
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::El check ha modificado el checkout. --solo-manifesto tiene que MIRAR, no escribir:"
+            git status --porcelain
+            echo "::group::Diff introducido por el check"
+            git diff || true
+            echo "::endgroup::"
+            exit 1
+          fi
+          echo "OK - correr el check no ha escrito nada."

@@ -1,0 +1,4793 @@
+{
+  "schemaVersion": 1,
+  "conversionVersion": 2,
+  "description": "Spec declarativo de la capa de traducción wire <-> dominio. Clave de entrada: (model, protocolVersion, parameterId). El `domain` es el valor que el motor CONSUME hoy, para que wireToDomain(raw) reproduzca exactamente el comportamiento actual (día 1 sin cambios de sonido). Los defectos medidos se corrigen aquí y se documentan en `divergences`.",
+  "models": {
+    "dm12_hardware": {
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "description": "Behringer DeepMind 12 real. Todo cambio de conversión exige evidencia de hardware (bancos de fábrica en resources/hardware_dumps/ y Audio A/B del Calibration Lab). Round-trip byte-exacto."
+    },
+    "abyssmind_pro": {
+      "protocolVersion": 2,
+      "regime": "free",
+      "description": "Sinte propio (AbyssMind Pro): extendidos, virtuales y globales sin byte. El dominio se elige libremente; sólo se versiona para no romper presets guardados. Incluye las concesiones del host (transpose, global_tune, ...) que no tienen byte en el dump DM12."
+    }
+  },
+  "wireRules": {
+    "value": {
+      "wireMin": 0,
+      "wireMax": 255,
+      "note": "t = raw/255 y luego la curva del parámetro"
+    },
+    "bipolar": {
+      "wireMin": 0,
+      "wireMax": 255,
+      "center": 128,
+      "lowSpan": 128,
+      "highSpan": 127,
+      "symmetric": true,
+      "note": "DEFECTO 5 — el registro usa ((raw-128)/127+1)/2, asimétrico (raw=0 no llega a 0 antes del clamp). Aquí se define simétrico en dominio: raw<128 -> (raw/128)*0.5; raw>=128 -> 0.5+((raw-128)/127)*0.5. Centro 128 -> 0.5 exacto; 0 y 255 -> 0 y 1."
+    },
+    "enum": {
+      "note": "El dominio es el índice de enum. `enumOrder` lleva el wire a ese índice: \"identity\" cuando coinciden, o una permutación explícita cuando no."
+    }
+  },
+  "divergences": [
+    {
+      "code": "GLOBAL_VOLUME_RANGE",
+      "ids": [
+        "global_volume"
+      ],
+      "fix": "dominio [0,2]: el motor lo clampea a 0..2 y el APVTS declara 0..1"
+    },
+    {
+      "code": "SOFTCLIP_HEADROOM_DB",
+      "ids": [
+        "master_softclip_headroom"
+      ],
+      "fix": "dominio en dB [0,6]: el motor lo lee como 0..6 dB y el APVTS declara 0..1"
+    },
+    {
+      "code": "PORTA_MODE_ENUM_MAX",
+      "ids": [
+        "porta_mode"
+      ],
+      "fix": "wireMax=9 (10 opciones alcanzables); el spec C++ y el BYTE_MAP declaran 14"
+    },
+    {
+      "code": "BIPOLAR_ASYMMETRY",
+      "ids": [
+        "*"
+      ],
+      "fix": "wireRules.bipolar simétrico (ver arriba)"
+    },
+    {
+      "code": "EXTENDED_NOT_IN_DM12_DUMP",
+      "ids": [
+        "vcf_model",
+        "vcf_moog_submode",
+        "vcf_korg_submode"
+      ],
+      "fix": "wire sysex del modelo abyssmind_pro (offset 245-247); su wire NO existe en el dump DM12 de 242 bytes"
+    },
+    {
+      "code": "MOD_MATRIX_SRC_DEST_CODEC",
+      "ids": [
+        "mod_matrix_slot1..8_src",
+        "mod_matrix_slot1..8_dest"
+      ],
+      "fix": "RESUELTO en conversionVersion 2: el spec ya los declara wireCodec enum con wireMax 22/129 y los 16 bytes entran en el ENUM_BYTES del puente, asi que el selector usa el recorrido completo."
+    },
+    {
+      "code": "MOD_MATRIX_SELECTOR_SCALE_DEFECT",
+      "ids": [
+        "mod_matrix_slot1..8_src",
+        "mod_matrix_slot1..8_dest"
+      ],
+      "fix": "El puente decodificaba estos 16 bytes con el codec value (raw/255) pese a que el spec los declara enum: el selector de FUENTE usaba solo el 8,6% del recorrido (byte 22 -> norm 0,0863 -> round(norm*22) = 2, dejando 20 de 23 fuentes inalcanzables) y el de DESTINO el 50,6%. El ida y vuelta funcionaba, asi que ningun test de round-trip lo veia: era un defecto de mapeo, no de perdida de datos. Con wireMax 22/129 el selector cubre 0..1 entero."
+    },
+    {
+      "code": "MOD_MATRIX_DEST_UNREACHABLE",
+      "ids": [
+        "*"
+      ],
+      "fix": "wireMax=129; los códigos 130-132 del enum del motor no los produce ningún byte"
+    },
+    {
+      "code": "CC_LEGACY_DIVERGENCE",
+      "ids": [
+        "osc1_pwm_amount"
+      ],
+      "fix": "wire multi-dialecto: CC canónico 21 vs CC legacy 17 (ya registrado como ccConflict)"
+    }
+  ],
+  "parameters": {
+    "lfo1_rate": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "Hz",
+      "wire": "sysex",
+      "wireOffset": 0,
+      "nrpn": 0,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0.035,
+        63.281485
+      ],
+      "curve": "exp",
+      "curveParams": [
+        0.035,
+        7.5
+      ],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "lfo1_delay": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 1,
+      "nrpn": 1,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        6.59
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "lfo1_shape": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 2,
+      "nrpn": 2,
+      "wireCodec": "enum",
+      "wireMax": 6,
+      "domain": [
+        0,
+        6
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "lfo1_key_sync": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 3,
+      "nrpn": 3,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "lfo1_arp_sync": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 4,
+      "nrpn": 4,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "lfo1_mono_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 5,
+      "nrpn": 5,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "lfo1_slew": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 6,
+      "nrpn": 6,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "lfo2_rate": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "Hz",
+      "wire": "sysex",
+      "wireOffset": 7,
+      "nrpn": 7,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0.035,
+        63.281485
+      ],
+      "curve": "exp",
+      "curveParams": [
+        0.035,
+        7.5
+      ],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "lfo2_delay": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 8,
+      "nrpn": 8,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        6.59
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "lfo2_shape": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 9,
+      "nrpn": 9,
+      "wireCodec": "enum",
+      "wireMax": 6,
+      "domain": [
+        0,
+        6
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "lfo2_key_sync": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 10,
+      "nrpn": 10,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "lfo2_arp_sync": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 11,
+      "nrpn": 11,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "lfo2_mono_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 12,
+      "nrpn": 12,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "lfo2_slew": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 13,
+      "nrpn": 13,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc1_range": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 14,
+      "nrpn": 14,
+      "wireCodec": "enum",
+      "wireMax": 2,
+      "domain": [
+        0,
+        2
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "osc2_range": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 15,
+      "nrpn": 15,
+      "wireCodec": "enum",
+      "wireMax": 2,
+      "domain": [
+        0,
+        2
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "osc1_pwm_source": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 16,
+      "nrpn": 16,
+      "wireCodec": "enum",
+      "wireMax": 5,
+      "domain": [
+        0,
+        5
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "osc2_pm_source": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 32,
+      "nrpn": 32,
+      "wireCodec": "enum",
+      "wireMax": 6,
+      "domain": [
+        0,
+        6
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "osc2_tpm_source": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 17,
+      "nrpn": 17,
+      "wireCodec": "enum",
+      "wireMax": 5,
+      "domain": [
+        0,
+        5
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "osc1_square_enable": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 18,
+      "nrpn": 18,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "osc1_saw_enable": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 19,
+      "nrpn": 19,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "osc_sync_enable": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 20,
+      "nrpn": 20,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "osc1_pitch_mod": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 21,
+      "nrpn": 21,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc1_pm_source": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 22,
+      "nrpn": 22,
+      "wireCodec": "enum",
+      "wireMax": 6,
+      "domain": [
+        0,
+        6
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "osc1_lfo_aftertouch": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 23,
+      "nrpn": 23,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc1_lfo_modwheel": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 24,
+      "nrpn": 24,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc1_pwm_amount": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 25,
+      "nrpn": 25,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc2_level": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 26,
+      "nrpn": 26,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc2_pitch": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "semitone",
+      "wire": "sysex",
+      "wireOffset": 27,
+      "nrpn": 27,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -12,
+        12
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc2_tone_mod": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 28,
+      "nrpn": 28,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc2_pitch_mod": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 29,
+      "nrpn": 29,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc2_aftertouch_pitch": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 30,
+      "nrpn": 30,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc2_modwheel_pitch": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 31,
+      "nrpn": 31,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "noise_level": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 33,
+      "nrpn": 33,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "global_portamento": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 34,
+      "nrpn": 34,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "porta_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 35,
+      "nrpn": 35,
+      "wireCodec": "enum",
+      "wireMax": 9,
+      "domain": [
+        0,
+        9
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear",
+      "note": "defecto 3: el byte solo llega a 9 (10 opciones); el spec declara 14"
+    },
+    "pitch_bend_up": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "semitone",
+      "wire": "sysex",
+      "wireOffset": 36,
+      "nrpn": 36,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        24
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "pitch_bend_down": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "semitone",
+      "wire": "sysex",
+      "wireOffset": 37,
+      "nrpn": 37,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        24
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc1_pm_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 38,
+      "nrpn": 38,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "vcf_cutoff": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "Hz",
+      "wire": "sysex",
+      "wireOffset": 39,
+      "nrpn": 39,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        15,
+        8250
+      ],
+      "curve": "exp",
+      "curveParams": [
+        15,
+        6.309918
+      ],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "hpf_cutoff": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "Hz",
+      "wire": "sysex",
+      "wireOffset": 40,
+      "nrpn": 40,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        20,
+        2000
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "vcf_resonance": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 41,
+      "nrpn": 41,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vcf_env_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 42,
+      "nrpn": 42,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vcf_env_vel": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 43,
+      "nrpn": 43,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vcf_pitch_bend": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 44,
+      "nrpn": 44,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vcf_lfo_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 45,
+      "nrpn": 45,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vcf_lfo_select": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 46,
+      "nrpn": 46,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "vcf_aftertouch_lfo": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 47,
+      "nrpn": 47,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vcf_modwheel_lfo": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 48,
+      "nrpn": 48,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vcf_key_tracking": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 49,
+      "nrpn": 49,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vcf_env_polarity": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 50,
+      "nrpn": 50,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "vcf_pole_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 51,
+      "nrpn": 51,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "hpf_boost_enable": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 52,
+      "nrpn": 52,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "env1_attack": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 53,
+      "nrpn": 53,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        10
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "env1_decay": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 54,
+      "nrpn": 54,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        10
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "env1_sustain": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 55,
+      "nrpn": 55,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env1_release": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 56,
+      "nrpn": 56,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        10
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "env1_trigger_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 57,
+      "nrpn": 57,
+      "wireCodec": "enum",
+      "wireMax": 4,
+      "domain": [
+        0,
+        4
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "env1_attack_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 58,
+      "nrpn": 58,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env1_decay_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 59,
+      "nrpn": 59,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env1_sustain_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 60,
+      "nrpn": 60,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env1_release_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 61,
+      "nrpn": 61,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env2_attack": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 62,
+      "nrpn": 62,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        10
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "env2_decay": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 63,
+      "nrpn": 63,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        10
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "env2_sustain": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 64,
+      "nrpn": 64,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env2_release": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 65,
+      "nrpn": 65,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        10
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "env2_trigger_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 66,
+      "nrpn": 66,
+      "wireCodec": "enum",
+      "wireMax": 4,
+      "domain": [
+        0,
+        4
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "env2_attack_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 67,
+      "nrpn": 67,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env2_decay_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 68,
+      "nrpn": 68,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env2_sustain_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 69,
+      "nrpn": 69,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env2_release_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 70,
+      "nrpn": 70,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env3_attack": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 71,
+      "nrpn": 71,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        10
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "env3_decay": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 72,
+      "nrpn": 72,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        10
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "env3_sustain": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 73,
+      "nrpn": 73,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env3_release": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "s",
+      "wire": "sysex",
+      "wireOffset": 74,
+      "nrpn": 74,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        10
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "log"
+    },
+    "env3_trigger_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 75,
+      "nrpn": 75,
+      "wireCodec": "enum",
+      "wireMax": 4,
+      "domain": [
+        0,
+        4
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "env3_attack_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 76,
+      "nrpn": 76,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env3_decay_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 77,
+      "nrpn": 77,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env3_sustain_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 78,
+      "nrpn": 78,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "env3_release_curve": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 79,
+      "nrpn": 79,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vca_level": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 80,
+      "nrpn": 80,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vca_env_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 81,
+      "nrpn": 81,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vca_vel_sens": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 82,
+      "nrpn": 82,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vca_pan_spread": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 83,
+      "nrpn": 83,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "note_priority": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 84,
+      "nrpn": 84,
+      "wireCodec": "enum",
+      "wireMax": 2,
+      "domain": [
+        0,
+        2
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "voice_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 85,
+      "nrpn": 85,
+      "wireCodec": "enum",
+      "wireMax": 12,
+      "domain": [
+        0,
+        12
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "trigger_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 86,
+      "nrpn": 86,
+      "wireCodec": "enum",
+      "wireMax": 3,
+      "domain": [
+        0,
+        3
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "unison_detune": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 87,
+      "nrpn": 87,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "voice_drift": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 88,
+      "nrpn": 88,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "param_drift": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 89,
+      "nrpn": 89,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "drift_rate": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 90,
+      "nrpn": 90,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "porta_osc_bal": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 91,
+      "nrpn": 91,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -128,
+        127
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "osc_key_reset": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 92,
+      "nrpn": 92,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot1_src": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 93,
+      "nrpn": 93,
+      "wireCodec": "enum",
+      "wireMax": 22,
+      "domain": [
+        0,
+        22
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot1_dest": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 94,
+      "nrpn": 94,
+      "wireCodec": "enum",
+      "wireMax": 129,
+      "domain": [
+        0,
+        129
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot1_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 95,
+      "nrpn": 95,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot2_src": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 96,
+      "nrpn": 96,
+      "wireCodec": "enum",
+      "wireMax": 22,
+      "domain": [
+        0,
+        22
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot2_dest": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 97,
+      "nrpn": 97,
+      "wireCodec": "enum",
+      "wireMax": 129,
+      "domain": [
+        0,
+        129
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot2_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 98,
+      "nrpn": 98,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot3_src": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 99,
+      "nrpn": 99,
+      "wireCodec": "enum",
+      "wireMax": 22,
+      "domain": [
+        0,
+        22
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot3_dest": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 100,
+      "nrpn": 100,
+      "wireCodec": "enum",
+      "wireMax": 129,
+      "domain": [
+        0,
+        129
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot3_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 101,
+      "nrpn": 101,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot4_src": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 102,
+      "nrpn": 102,
+      "wireCodec": "enum",
+      "wireMax": 22,
+      "domain": [
+        0,
+        22
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot4_dest": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 103,
+      "nrpn": 103,
+      "wireCodec": "enum",
+      "wireMax": 129,
+      "domain": [
+        0,
+        129
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot4_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 104,
+      "nrpn": 104,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot5_src": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 105,
+      "nrpn": 105,
+      "wireCodec": "enum",
+      "wireMax": 22,
+      "domain": [
+        0,
+        22
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot5_dest": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 106,
+      "nrpn": 106,
+      "wireCodec": "enum",
+      "wireMax": 129,
+      "domain": [
+        0,
+        129
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot5_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 107,
+      "nrpn": 107,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot6_src": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 108,
+      "nrpn": 108,
+      "wireCodec": "enum",
+      "wireMax": 22,
+      "domain": [
+        0,
+        22
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot6_dest": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 109,
+      "nrpn": 109,
+      "wireCodec": "enum",
+      "wireMax": 129,
+      "domain": [
+        0,
+        129
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot6_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 110,
+      "nrpn": 110,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot7_src": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 111,
+      "nrpn": 111,
+      "wireCodec": "enum",
+      "wireMax": 22,
+      "domain": [
+        0,
+        22
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot7_dest": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 112,
+      "nrpn": 112,
+      "wireCodec": "enum",
+      "wireMax": 129,
+      "domain": [
+        0,
+        129
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot7_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 113,
+      "nrpn": 113,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot8_src": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 114,
+      "nrpn": 114,
+      "wireCodec": "enum",
+      "wireMax": 22,
+      "domain": [
+        0,
+        22
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot8_dest": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 115,
+      "nrpn": 115,
+      "wireCodec": "enum",
+      "wireMax": 129,
+      "domain": [
+        0,
+        129
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "mod_matrix_slot8_depth": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 116,
+      "nrpn": 116,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_enable": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 117,
+      "nrpn": 117,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "seq_clock": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 118,
+      "nrpn": 118,
+      "wireCodec": "enum",
+      "wireMax": 15,
+      "domain": [
+        0,
+        15
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "seq_length": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 119,
+      "nrpn": 119,
+      "wireCodec": "enum",
+      "wireMax": 31,
+      "domain": [
+        0,
+        31
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "seq_swing": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 120,
+      "nrpn": 120,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_key_loop": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 121,
+      "nrpn": 121,
+      "wireCodec": "enum",
+      "wireMax": 2,
+      "domain": [
+        0,
+        2
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "seq_slew_rate": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 122,
+      "nrpn": 122,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_1": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 123,
+      "nrpn": 123,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_2": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 124,
+      "nrpn": 124,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_3": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 125,
+      "nrpn": 125,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_4": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 126,
+      "nrpn": 126,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_5": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 127,
+      "nrpn": 127,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_6": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 128,
+      "nrpn": 128,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_7": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 129,
+      "nrpn": 129,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_8": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 130,
+      "nrpn": 130,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_9": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 131,
+      "nrpn": 131,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_10": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 132,
+      "nrpn": 132,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_11": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 133,
+      "nrpn": 133,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_12": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 134,
+      "nrpn": 134,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_13": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 135,
+      "nrpn": 135,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_14": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 136,
+      "nrpn": 136,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_15": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 137,
+      "nrpn": 137,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_16": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 138,
+      "nrpn": 138,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_17": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 139,
+      "nrpn": 139,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_18": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 140,
+      "nrpn": 140,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_19": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 141,
+      "nrpn": 141,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_20": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 142,
+      "nrpn": 142,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_21": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 143,
+      "nrpn": 143,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_22": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 144,
+      "nrpn": 144,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_23": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 145,
+      "nrpn": 145,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_24": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 146,
+      "nrpn": 146,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_25": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 147,
+      "nrpn": 147,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_26": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 148,
+      "nrpn": 148,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_27": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 149,
+      "nrpn": 149,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_28": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 150,
+      "nrpn": 150,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_29": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 151,
+      "nrpn": 151,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_30": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 152,
+      "nrpn": 152,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_31": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 153,
+      "nrpn": 153,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "seq_step_32": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "bipolar",
+      "wire": "sysex",
+      "wireOffset": 154,
+      "nrpn": 154,
+      "wireCodec": "bipolar",
+      "wireMax": 255,
+      "domain": [
+        -1,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "arp_enable": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 155,
+      "nrpn": 155,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "poly_chord_enable": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "chord_enable": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "chord_type": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "enum",
+      "wireMax": 7,
+      "domain": [
+        0,
+        7
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "arp_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 156,
+      "nrpn": 156,
+      "wireCodec": "enum",
+      "wireMax": 10,
+      "domain": [
+        0,
+        10
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "arp_rate": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "BPM",
+      "wire": "sysex",
+      "wireOffset": 157,
+      "nrpn": 157,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        20,
+        275
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "arp_clock_divider": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 158,
+      "nrpn": 158,
+      "wireCodec": "enum",
+      "wireMax": 12,
+      "domain": [
+        0,
+        12
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "arp_key_sync": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 159,
+      "nrpn": 159,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "arp_gate_time": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 160,
+      "nrpn": 160,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "arp_hold": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 161,
+      "nrpn": 161,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "arp_pattern": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 162,
+      "nrpn": 162,
+      "wireCodec": "enum",
+      "wireMax": 64,
+      "domain": [
+        0,
+        64
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "arp_swing": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 163,
+      "nrpn": 163,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        25
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "arp_octave": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 164,
+      "nrpn": 164,
+      "wireCodec": "enum",
+      "wireMax": 3,
+      "domain": [
+        0,
+        3
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "fx_routing": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 165,
+      "nrpn": 165,
+      "wireCodec": "enum",
+      "wireMax": 9,
+      "domain": [
+        0,
+        9
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "fx1_type": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 166,
+      "nrpn": 166,
+      "wireCodec": "enum",
+      "wireMax": 49,
+      "domain": [
+        0,
+        49
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "fx1_param1": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 167,
+      "nrpn": 167,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param2": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 168,
+      "nrpn": 168,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param3": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 169,
+      "nrpn": 169,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param4": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 170,
+      "nrpn": 170,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param5": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 171,
+      "nrpn": 171,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param6": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 172,
+      "nrpn": 172,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param7": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 173,
+      "nrpn": 173,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param8": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 174,
+      "nrpn": 174,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param9": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 175,
+      "nrpn": 175,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param10": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 176,
+      "nrpn": 176,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param11": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 177,
+      "nrpn": 177,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_param12": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 178,
+      "nrpn": 178,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_type": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 179,
+      "nrpn": 179,
+      "wireCodec": "enum",
+      "wireMax": 49,
+      "domain": [
+        0,
+        49
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "fx2_param1": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 180,
+      "nrpn": 180,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param2": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 181,
+      "nrpn": 181,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param3": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 182,
+      "nrpn": 182,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param4": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 183,
+      "nrpn": 183,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param5": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 184,
+      "nrpn": 184,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param6": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 185,
+      "nrpn": 185,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param7": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 186,
+      "nrpn": 186,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param8": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 187,
+      "nrpn": 187,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param9": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 188,
+      "nrpn": 188,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param10": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 189,
+      "nrpn": 189,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param11": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 190,
+      "nrpn": 190,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_param12": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 191,
+      "nrpn": 191,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_type": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 192,
+      "nrpn": 192,
+      "wireCodec": "enum",
+      "wireMax": 49,
+      "domain": [
+        0,
+        49
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "fx3_param1": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 193,
+      "nrpn": 193,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param2": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 194,
+      "nrpn": 194,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param3": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 195,
+      "nrpn": 195,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param4": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 196,
+      "nrpn": 196,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param5": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 197,
+      "nrpn": 197,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param6": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 198,
+      "nrpn": 198,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param7": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 199,
+      "nrpn": 199,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param8": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 200,
+      "nrpn": 200,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param9": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 201,
+      "nrpn": 201,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param10": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 202,
+      "nrpn": 202,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param11": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 203,
+      "nrpn": 203,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_param12": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 204,
+      "nrpn": 204,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_type": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 205,
+      "nrpn": 205,
+      "wireCodec": "enum",
+      "wireMax": 49,
+      "domain": [
+        0,
+        49
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "fx4_param1": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 206,
+      "nrpn": 206,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param2": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 207,
+      "nrpn": 207,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param3": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 208,
+      "nrpn": 208,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param4": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 209,
+      "nrpn": 209,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param5": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 210,
+      "nrpn": 210,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param6": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 211,
+      "nrpn": 211,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param7": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 212,
+      "nrpn": 212,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param8": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 213,
+      "nrpn": 213,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param9": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 214,
+      "nrpn": 214,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param10": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 215,
+      "nrpn": 215,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param11": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 216,
+      "nrpn": 216,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_param12": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 217,
+      "nrpn": 217,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx1_gain": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 218,
+      "nrpn": 218,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_gain": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 219,
+      "nrpn": 219,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_gain": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 220,
+      "nrpn": 220,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_gain": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "ratio",
+      "wire": "sysex",
+      "wireOffset": 221,
+      "nrpn": 221,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx_mode": {
+      "model": "dm12_hardware",
+      "protocolVersion": 1,
+      "regime": "fidelity",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 222,
+      "nrpn": 222,
+      "wireCodec": "enum",
+      "wireMax": 2,
+      "domain": [
+        0,
+        2
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "fx_feedback_gain": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "ratio",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": 304,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx_send_level": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "ratio",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": 305,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vcf_model": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 245,
+      "nrpn": 245,
+      "wireCodec": "enum",
+      "wireMax": 2,
+      "domain": [
+        0,
+        2
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "vcf_moog_submode": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 246,
+      "nrpn": 246,
+      "wireCodec": "enum",
+      "wireMax": 2,
+      "domain": [
+        0,
+        2
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "vcf_korg_submode": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "sysex",
+      "wireOffset": 247,
+      "nrpn": 247,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "vcf_voicing_mode": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "arp_velocity_gate": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "enum",
+      "wireMax": 2,
+      "domain": [
+        0,
+        2
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "fx1_mix": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "ratio",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx2_mix": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "ratio",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx3_mix": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "ratio",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "fx4_mix": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "ratio",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "global_tune": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "cent",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -128,
+        127
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "global_volume": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "ratio",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        2
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear",
+      "note": "defecto 1: el motor lo clampea a 0..2"
+    },
+    "hpf_bass_boost_gain": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "ratio",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0.1,
+        3
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "master_softclip_bypass": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "master_softclip_headroom": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "dB",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        6
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear",
+      "note": "defecto 2: el motor lo lee como 0..6 dB"
+    },
+    "sub_level": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "ratio",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": 224,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "transpose": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "semitone",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "value",
+      "wireMax": 255,
+      "domain": [
+        -48,
+        48
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": null,
+      "smoothingSpace": "linear"
+    },
+    "vca_mode": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "enum",
+      "wireMax": 1,
+      "domain": [
+        0,
+        1
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    },
+    "vcf_oversample": {
+      "model": "abyssmind_pro",
+      "protocolVersion": 2,
+      "regime": "free",
+      "unit": "index",
+      "wire": "none",
+      "wireOffset": null,
+      "nrpn": null,
+      "wireCodec": "enum",
+      "wireMax": 2,
+      "domain": [
+        0,
+        2
+      ],
+      "curve": "linear",
+      "curveParams": [],
+      "enumOrder": "identity",
+      "smoothingSpace": "linear"
+    }
+  }
+}

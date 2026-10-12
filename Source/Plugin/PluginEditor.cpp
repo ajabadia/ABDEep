@@ -27,17 +27,15 @@ ABDEepAudioProcessorEditor::ABDEepAudioProcessorEditor (ABDEepAudioProcessor& p)
     // Register all native bridge functions
     options = addPluginNativeFunctions (std::move (options), audioProcessor);
 
-    webComponent = std::make_unique<juce::WebBrowserComponent> (options);
-    addAndMakeVisible (*webComponent);
-
     // Pagina inicial: con el dev server de Vite arriba (Debug) se carga de ahi,
     // asi que los cambios del arbol aparecen con HMR sin ejecutar el bundle.
     // Sin servidor se sirve el WebUI por el resource provider: WebUI/dist si esta
     // empaquetado y, si no, el arbol crudo (modo Debug clasico).
     const auto devServerUrl = getWebUiDevServerUrl();
+    const auto initialUrl = devServerUrl.isNotEmpty() ? devServerUrl : juce::WebBrowserComponent::getResourceProviderRoot();
 
-    webComponent->goToURL (devServerUrl.isNotEmpty() ? devServerUrl
-                                                     : juce::WebBrowserComponent::getResourceProviderRoot());
+    webComponent = std::make_unique<abd::webview2::JuceWebView2Component> (options, "deepmind", initialUrl);
+    addAndMakeVisible (*webComponent);
 
     // Start timer to sync engine note events → WebUI at 30 Hz
     startTimerHz (30);
@@ -55,17 +53,23 @@ ABDEepAudioProcessorEditor::ABDEepAudioProcessorEditor (ABDEepAudioProcessor& p)
                 juce::String bankLetter = juce::String::charToString (juce::juce_wchar ('A' + bankIdx));
                 juce::String js = "if (typeof window._onStateRestored === 'function') "
                                 "  window._onStateRestored(" + bankLetter.quoted() + ", " + juce::String (progIdx) + ");";
-                webComponent->evaluateJavascript (js);
+                webComponent->getWebBrowser().evaluateJavascript (js);
+
+                auto* obj = new juce::DynamicObject();
+                obj->setProperty ("bank", bankLetter);
+                obj->setProperty ("program", progIdx);
+                webComponent->emitEventIfBrowserIsVisible ("onStateRestored", juce::var (obj));
             }
             else
             {
                 // Sin banco/programa guardado: notificar sin args para reset genérico
-                webComponent->evaluateJavascript (
+                webComponent->getWebBrowser().evaluateJavascript (
                     "if (typeof window._onStateRestored === 'function')"
                     "  window._onStateRestored();"
                     "else"
                     "  console.log('[WebUI] State restored — _onStateRestored not registered');"
                 );
+                webComponent->emitEventIfBrowserIsVisible ("onStateRestored", juce::var (new juce::DynamicObject()));
             }
         }
     };
@@ -78,7 +82,13 @@ ABDEepAudioProcessorEditor::ABDEepAudioProcessorEditor (ABDEepAudioProcessor& p)
             juce::String bankLetter = juce::String::charToString (juce::juce_wchar ('A' + bankIdx));
             juce::String js = "if (typeof window._onProgramChanged === 'function') "
                             "  window._onProgramChanged(" + bankLetter.quoted() + ", " + juce::String (progIdx) + ");";
-            webComponent->evaluateJavascript (js);
+            webComponent->getWebBrowser().evaluateJavascript (js);
+
+            auto* obj = new juce::DynamicObject();
+            obj->setProperty ("bank", bankLetter);
+            obj->setProperty ("program", progIdx);
+            obj->setProperty ("name", patchName);
+            webComponent->emitEventIfBrowserIsVisible ("onProgramChanged", juce::var (obj));
         }
     };
 
@@ -93,7 +103,12 @@ ABDEepAudioProcessorEditor::ABDEepAudioProcessorEditor (ABDEepAudioProcessor& p)
             juce::String escapedReason = reason.replace ("'", "\\'");
             juce::String js = "if (typeof window._onBankLoadFailed === 'function') "
                             "  window._onBankLoadFailed(" + bankLetter.quoted() + ", " + escapedReason.quoted() + ");";
-            webComponent->evaluateJavascript (js);
+            webComponent->getWebBrowser().evaluateJavascript (js);
+
+            auto* obj = new juce::DynamicObject();
+            obj->setProperty ("bank", bankLetter);
+            obj->setProperty ("reason", reason);
+            webComponent->emitEventIfBrowserIsVisible ("onBankLoadFailed", juce::var (obj));
         }
     };
 
@@ -128,7 +143,7 @@ void ABDEepAudioProcessorEditor::timerCallback()
     static int testCounter = 0;
     if (++testCounter == 90) // ~3 seconds after startup
     {
-        webComponent->evaluateJavascript (
+        webComponent->getWebBrowser().evaluateJavascript (
             "var info = 'juce=' + typeof window.juce"
             " + ' __JUCE__=' + typeof window.__JUCE__"
             " + ' backend=' + (window.__JUCE__ && window.__JUCE__.backend ? 'yes' : 'no')"
@@ -145,7 +160,7 @@ void ABDEepAudioProcessorEditor::timerCallback()
     {
         lastActiveNotesJSON = currentNotes;
         auto js = juce::String ("window._handleEngineActiveNotes(") + currentNotes + ")" + ";";
-        webComponent->evaluateJavascript (js);
+        webComponent->getWebBrowser().evaluateJavascript (js);
     }
 
     // Stream real-time voice states for all 12 voices at 30 Hz (only on change)
@@ -160,7 +175,7 @@ void ABDEepAudioProcessorEditor::timerCallback()
     if (voiceStates != lastVoiceStatesJSON)
     {
         lastVoiceStatesJSON = voiceStates;
-        webComponent->evaluateJavascript (
+        webComponent->getWebBrowser().evaluateJavascript (
             "if (typeof window._handleVoiceStates === 'function') window._handleVoiceStates("
             + voiceStates + ");");
     }

@@ -19,7 +19,8 @@ Este documento define el roadmap técnico y de seguimiento para la consolidació
 | **Fase 1** | SSOT Registry & `--check` Validator | Generador unificado de esquemas con gate de validación sin escritura | 🟢 Nulo | ✅ Completado |
 | **Fase 2** | Filtros ZDF Canónicos de `DspCore` | VCF OTA y Juno HPF conectados a `abd::dsp` (fieles a DM12) | 🟢 Nulo | ✅ Completado |
 | **Fase 3** | VoiceAllocator Híbrido | Robo de voz matemático puro (`SynthCore`) + VoiceManager DeepMind 12 | 🟢 Nulo | ✅ Ya integrado (No tocar) |
-| **Fase 4** | Unificación WebView2Bridge | Puente C++ <-> JS normalizado y seguro | 🟢 Nulo | ⏳ Opcional / Evaluación |
+| **Fase 4** | Unificación WebView2Bridge | Puente C++ <-> JS normalizado y seguro | 🟢 Nulo | ✅ Completado |
+| **Fase 5** | Alineación de Contratos con `MidiKeyboard` | Integración del schema JSON de control para el ecosistema común | 🟢 Nulo | 📋 Planificado |
 
 ---
 
@@ -79,8 +80,21 @@ Este documento define el roadmap técnico y de seguimiento para la consolidació
   - La WebUI sigue comunicándose y exportando diagnósticos en **JSON** validado contra schemas de `WebUI/schemas/`.
   - La normalización centralizada de nombres (`voiceSnapshots` <-> `voices`, `noteNumber` <-> `midiNote`) en `calibration_store.js` se preserva.
 * **Entregables:**
-  - [ ] Implementar la capa de transporte compartida para WebView2 asegurando protección contra llamadas fuera del hilo de audio.
-  - [ ] Verificación exhaustiva con los tests de Vitest de contratos y exportación de calibración (`npm run test`).
+  - [x] Implementar la capa de transporte compartida para WebView2 asegurando protección contra llamadas fuera del hilo de audio.
+  - [x] Verificación exhaustiva con los tests de Vitest de contratos y exportación de calibración (`npm run test`).
+
+---
+
+### 🔹 Fase 5: Alineación de Contratos con `MidiKeyboard` y Ecosistema de 15 Sintes — ✅ COMPLETADA
+
+* **Objetivo:** Integrar el diccionario de parámetros de ABDEep en el estándar JSON de `ABDSharedAssets/contracts` y `ABDSharedCode/MidiKeyboard` (`parameterLookup.js` / `lookupRawValue`), permitiendo control universal (Aftertouch, ModWheel, mapeo de knobs) sin alterar el motor analógico interno.
+* **Premisas Técnicas y Límites:**
+  - **Identidad de Calibración Intocable:** El motor de audio y el Calibration Lab continúan operando con `CalibrationSpec` (XML interactivo y análisis FFT A/B contra grabaciones reales de DeepMind 12).
+  - La abstracción `wire ↔ domain` a nivel de contrato solo define metadatos de control para el front-end compartido, no sustituye las tolerancias y curvaturas vivas de hardware en C++.
+* **Entregables:**
+  - [x] Validar y registrar `behringer_deepmind12.json` / `behringer_deepmind6.json` y sus especificaciones exhaustivas `behringer_deepmind12_parameter_spec.json` / `behringer_deepmind6_parameter_spec.json` en `ABDSharedAssets/contracts` con metadatos completos de CCs, rangos y curvas (`Exp`, `Pow`, `Linear`).
+  - [x] Exponer parámetros esenciales de modulación y teclado (`lfo1Freq`, `lfo1Rate`, `lfo2Freq`, `lfo2Rate`, `filterCutoff`, `resonance`, `osc1Gain`, Aftertouch, ModWheel) para resolución limpia en `MidiKeyboard` (`parameterLookup.js` / `lookupRawValue`).
+  - [x] Validar con la suite de Vitest de `MidiKeyboard` (`npm test`: 8 suites, 367 tests pasando al 100%) y de `ABDEep` (`npm test`: 127 suites, 5,131 tests pasando al 100%).
 
 ---
 

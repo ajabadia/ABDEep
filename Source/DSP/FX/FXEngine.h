@@ -88,10 +88,18 @@ namespace ABD
         juce::AudioBuffer<float> fbBuffer;
         float fbGain = 0.0f;
 
-        // External modulator pointers (set per-block before process)
+        // External modulator persistent storage and pointers
+        static constexpr int kMaxExternalModSamples = 512;
+        std::array<float, kMaxExternalModSamples> internalModL {};
+        std::array<float, kMaxExternalModSamples> internalModR {};
+        std::atomic<int> internalModCount { 0 };
+        juce::SpinLock modLock;
+
         const float* extModL = nullptr;
         const float* extModR = nullptr;
         int extModNumSamples = 0;
+
+        void copyExternalModulatorData(const float* modL, const float* modR, int numSamples);
 
         void ensureBuffers(int numChannels, int numSamples);
         void processSeries(juce::AudioBuffer<float>& buffer, int numSamples);

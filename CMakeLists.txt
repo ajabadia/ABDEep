@@ -244,6 +244,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         ABDShared::SynthCore
         ABDShared::DspCore
         ABDShared::DspEffects
+        ABDShared::WebView2Bridge
         juce::juce_audio_devices
         juce::juce_audio_utils
         ABDEep_WebUI
@@ -268,6 +269,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
             ABDShared::SynthCore
             ABDShared::DspCore
             ABDShared::DspEffects
+            ABDShared::WebView2Bridge
             juce::juce_audio_devices
             juce::juce_audio_utils
             ABDEep_WebUI
