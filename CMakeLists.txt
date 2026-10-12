@@ -27,29 +27,36 @@ else()
 endif()
 
 # ============================================================
-# ABDSharedCode — shared SynthCore module (abd::synth) + DspEffects (abd::dsp)
-# DRY transversal: VoiceAllocator (MS2000-grade steal ladder) shared across
-# synths, y los motores de efectos que ahora usa FXSimpleReverb.
+# ============================================================
+# ABDShared — shared C++ modules (abd::synth, abd::dsp, abd::scope, etc.)
+# Prioriza el repositorio canónico ABDShared/Code, con fallback a ABDSharedCode.
 # Local sibling repo when present; FetchContent fallback otherwise.
 # Must come after JUCE (module links juce_core/juce_events).
 # ============================================================
-set(ABDSHARED_CODE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../ABDSharedCode")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../ABDShared/Code/CMakeLists.txt")
+    set(ABDSHARED_CODE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../ABDShared/Code")
+    message(STATUS "ABDShared: Using canonical Code at ${ABDSHARED_CODE_DIR}")
+elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../ABDSharedCode/CMakeLists.txt")
+    set(ABDSHARED_CODE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../ABDSharedCode")
+    message(STATUS "ABDShared: Using legacy sibling at ${ABDSHARED_CODE_DIR}")
+endif()
+
 # No construir los exe de tests standalone del módulo dentro del build del plugin.
-# Los effects se prueban desde aqui (Source/DSP/FX/FXUnitTests_ReverbParity.cpp),
-# que es donde esta el original contra el que hay que comparar.
 set(ABDSHAREDCODE_BUILD_SYNTHCORE_TESTS OFF)
 set(ABDSHAREDCODE_BUILD_DSPEFFECTS_TESTS OFF)
-if(EXISTS "${ABDSHARED_CODE_DIR}/CMakeLists.txt")
-    message(STATUS "ABDSharedCode: Using local at ${ABDSHARED_CODE_DIR}")
-    add_subdirectory("${ABDSHARED_CODE_DIR}" "${CMAKE_BINARY_DIR}/ABDSharedCode")
+set(ABDSHARED_BUILD_SYNTHCORE_TESTS OFF)
+set(ABDSHARED_BUILD_DSPEFFECTS_TESTS OFF)
+
+if(DEFINED ABDSHARED_CODE_DIR)
+    add_subdirectory("${ABDSHARED_CODE_DIR}" "${CMAKE_BINARY_DIR}/ABDShared_build")
 else()
     include(FetchContent)
     FetchContent_Declare(
-      ABDSharedCode
-      GIT_REPOSITORY https://github.com/ajabadia/ABDSharedCode.git
-      GIT_TAG        master
+      ABDShared
+      GIT_REPOSITORY https://github.com/ajabadia/ABDShared.git
+      GIT_TAG        main
     )
-    FetchContent_MakeAvailable(ABDSharedCode)
+    FetchContent_MakeAvailable(ABDShared)
 endif()
 
 # ============================================================
