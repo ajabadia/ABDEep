@@ -125,6 +125,10 @@ function getTopBarTemplate() {
             <li class="divider"></li>
             <li id="menu-debug-unison">Debug: Unison Stacking...</li>
             <li class="divider"></li>
+            <li id="menu-calibration-lab">Calibration Lab Diagnostics...</li>
+            <li class="divider"></li>
+            <li id="menu-sysex-inspector">Live SysEx Inspector... <span class="text-faint float-right">Ctrl+I</span></li>
+            <li class="divider"></li>
             <li id="menu-keyboard-shortcuts">Keyboard Shortcuts <span class="text-faint float-right">?</span></li>
           </ul>
         </div>
@@ -652,11 +656,15 @@ describe('TopBar (top-bar.js)', () => {
   it('has View & Help menus with Debug, Keyboard Shortcuts, Check for Updates, About', () => {
     const ids = extractIds(getTopBarTemplate());
     expect(ids).toContain('menu-debug-unison');
+    expect(ids).toContain('menu-calibration-lab');
+    expect(ids).toContain('menu-sysex-inspector');
     expect(ids).toContain('menu-keyboard-shortcuts');
     expect(ids).toContain('menu-check-updates');
     expect(ids).toContain('menu-about');
     const html = getTopBarTemplate();
     expect(html).toContain('Debug: Unison Stacking...');
+    expect(html).toContain('Calibration Lab Diagnostics...');
+    expect(html).toContain('Live SysEx Inspector...');
     expect(html).toContain('Keyboard Shortcuts');
     expect(html).toContain('About ABD Eep...');
   });

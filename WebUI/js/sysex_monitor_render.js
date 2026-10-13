@@ -22,6 +22,9 @@ function updateSysExMonitor(bytes, highlightIndex, patchNameOverride) {
     monitor._bytes = bytes;
     // Invalidar buffer de edición en vivo para que se reinicialice desde _lastUnpackedBytes
     window._liveUnpackedBytes = null;
+    if (typeof window !== 'undefined' && typeof window.updateLiveSysExInspector === 'function') {
+        window.updateLiveSysExInspector(bytes);
+    }
 
     let html = '';
 

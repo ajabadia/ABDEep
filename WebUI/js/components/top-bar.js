@@ -67,6 +67,8 @@
                         <li class="divider"></li>
                         <li id="menu-calibration-lab">Calibration Lab Diagnostics...</li>
                         <li class="divider"></li>
+                        <li id="menu-sysex-inspector">Live SysEx Inspector... <span class="text-faint float-right">Ctrl+I</span></li>
+                        <li class="divider"></li>
                         <li id="menu-keyboard-shortcuts">Keyboard Shortcuts <span class="text-faint float-right">?</span></li>
                     </ul>
                 </div>
