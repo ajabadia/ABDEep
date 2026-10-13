@@ -33,6 +33,24 @@
                     </ul>
                 </div>
                 <div class="menu-item">
+                    Mode
+                    <ul class="dropdown">
+                        <li class="text-faint" style="font-size:var(--text-sm);cursor:default;padding:4px 16px;text-transform:uppercase">Operating Mode</li>
+                        <li id="menu-mode-abyssmind">⚡ AbyssMind Pro (Web &amp; HW)</li>
+                        <li id="menu-mode-standalone">💻 DM12 Web Standalone (WASM)</li>
+                        <li id="menu-mode-controller">🎛️ DM12 HW Controller</li>
+                        <li class="divider"></li>
+                        <li class="text-faint" style="font-size:var(--text-sm);cursor:default;padding:4px 16px;text-transform:uppercase">Polyphony Mode</li>
+                        <li id="menu-poly-poly">Poly</li>
+                        <li id="menu-poly-mono">Mono</li>
+                        <li id="menu-poly-unison2">Unison-2</li>
+                        <li id="menu-poly-unison3">Unison-3</li>
+                        <li id="menu-poly-unison4">Unison-4</li>
+                        <li id="menu-poly-unison6">Unison-6</li>
+                        <li id="menu-poly-unison12">Unison-12</li>
+                    </ul>
+                </div>
+                <div class="menu-item">
                     View
                     <ul class="dropdown">
                         <li class="text-faint" style="font-size:var(--text-sm);cursor:default;padding:4px 16px;text-transform:uppercase">Theme</li>
@@ -50,6 +68,14 @@
                         <li id="menu-calibration-lab">Calibration Lab Diagnostics...</li>
                         <li class="divider"></li>
                         <li id="menu-keyboard-shortcuts">Keyboard Shortcuts <span class="text-faint float-right">?</span></li>
+                    </ul>
+                </div>
+                <div class="menu-item">
+                    Help
+                    <ul class="dropdown">
+                        <li id="menu-manual">Documentation / User Guide <span class="text-faint float-right">F1</span></li>
+                        <li class="divider"></li>
+                        <li id="menu-check-updates">Check for Updates...</li>
                         <li class="divider"></li>
                         <li id="menu-about">About ABD Eep...</li>
                     </ul>

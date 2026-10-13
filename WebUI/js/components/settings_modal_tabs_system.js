@@ -156,16 +156,29 @@
 
     // --- About Modal ---
     window.SETTINGS_ABOUT_MODAL = `
-        <div class="modal-backdrop" id="about-modal-backdrop" style="display:none;z-index:99999">
-            <div class="modal" data-accent="orange" style="width:420px;height:auto">
+        <div class="modal-backdrop abd-about-overlay" id="about-modal-backdrop" style="display:none;z-index:99999">
+            <div class="modal abd-about-box" data-accent="orange" style="width:440px;height:auto">
                 <div class="modal-header">
-                    <h2>About ABD Eep</h2>
-                    <div class="close-btn" id="about-modal-close-btn">&times;</div>
+                    <h2 class="abd-about-title">About ABD Eep</h2>
+                    <div class="close-btn abd-btn-about-close" id="about-modal-close-btn">&times;</div>
                 </div>
                 <div class="modal-body flex-col items-center text-center" style="padding:20px;gap:15px;background:var(--bg-elevated)">
                     <div class="text-uppercase text-bold text-accent" style="font-size:20px;letter-spacing:1.5px">ABD EEP CONTROLLER</div>
-                    <div id="about-build-label" class="text-uppercase text-bold" style="font-size:var(--text-md);background:color-mix(in srgb,var(--accent-primary) 15%,transparent);border:1px solid var(--accent-primary);padding:3px 8px;border-radius:var(--radius-sm);color:var(--accent-primary)">Version v0.1 | Build 100</div>
-                    <p class="text-secondary" style="margin:0;font-size:var(--text-base)">Controlador y editor avanzado unificado compatible con sintetizadores de hardware de la serie Behringer DeepMind.</p>
+                    <div id="about-build-label" class="text-uppercase text-bold" style="font-size:var(--text-md);background:color-mix(in srgb,var(--accent-primary) 15%,transparent);border:1px solid var(--accent-primary);padding:3px 8px;border-radius:var(--radius-sm);color:var(--accent-primary)">Version v0.2.35 | Build 100</div>
+                    <p class="text-secondary abd-about-desc" style="margin:0;font-size:var(--text-base)">Controlador y editor avanzado unificado compatible con sintetizadores de hardware de la serie Behringer DeepMind y motor DSP TPT ZDF + PolyBLEP.</p>
+                    
+                    <div class="about-update-section abd-about-update-section" style="width:100%;border-top:1px solid var(--border-dim);padding-top:12px;margin-top:4px">
+                        <div class="about-update-row flex-row justify-between items-center" style="gap:8px">
+                            <span class="about-update-label text-dim" style="font-size:var(--text-sm)">Firmware / App:</span>
+                            <span class="about-update-val abd-about-version text-accent" id="about-update-version-label" style="font-family:'Share Tech Mono',monospace;font-size:var(--text-sm)">v0.2.35</span>
+                            <button type="button" id="about-check-updates-btn" class="btn btn-sm btn-outline abd-btn-check-updates" data-accent="blue" style="font-size:10px;padding:2px 8px">CHECK FOR UPDATES</button>
+                        </div>
+                        <div id="about-update-status" class="about-update-status abd-about-status text-dim" style="font-size:11px;margin-top:8px;min-height:16px"></div>
+                        <div id="about-update-action" class="about-update-action abd-about-action" style="margin-top:8px" hidden>
+                            <a id="about-download-update-btn" class="btn btn-sm btn-solid abd-btn-download-update" href="https://github.com/ajabadia/ABDEep/releases/latest" target="_blank" rel="noopener noreferrer" style="font-size:10px;padding:4px 12px;background:var(--accent-green);color:#000;text-decoration:none;display:inline-block">DOWNLOAD UPDATE</a>
+                        </div>
+                    </div>
+
                     <p style="margin:0;font-size:var(--text-md);color:var(--text-dim);border-top:1px solid var(--border-dim);width:100%;padding-top:12px">Desarrollado con JUCE 8 y motor Webview2. &copy; 2026 ABDSynths.</p>
                 </div>
             </div>

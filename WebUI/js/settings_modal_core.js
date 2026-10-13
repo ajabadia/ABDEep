@@ -47,6 +47,90 @@ function closeSettingsModal() {
     }
 }
 
+let isCheckingUpdates = false;
+
+/**
+ * Check for application updates (via JUCE backend or GitHub Releases API).
+ */
+function checkForUpdates(silent = false) {
+    if (isCheckingUpdates) return;
+    isCheckingUpdates = true;
+
+    const statusEl = document.getElementById('about-update-status');
+    const actionEl = document.getElementById('about-update-action');
+    const downloadBtn = document.getElementById('about-download-update-btn');
+    const checkBtn = document.getElementById('about-check-updates-btn');
+
+    if (statusEl) {
+        statusEl.className = 'about-update-status abd-about-status text-warning';
+        statusEl.textContent = 'Checking for updates...';
+    }
+    if (actionEl) actionEl.hidden = true;
+    if (checkBtn) checkBtn.disabled = true;
+
+    const currentVersion = '0.2.35';
+    const repo = 'ajabadia/ABDEep';
+
+    const backend = (window.__JUCE__ && window.__JUCE__.backend) || (window.Juce && window.Juce.backend);
+    if (backend && typeof backend.checkForUpdates === 'function') {
+        backend.checkForUpdates();
+        setTimeout(() => {
+            isCheckingUpdates = false;
+            if (checkBtn) checkBtn.disabled = false;
+        }, 1500);
+        return;
+    }
+
+    fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
+        headers: { Accept: 'application/vnd.github.v3+json' }
+    })
+    .then(res => res.ok ? res.json() : Promise.reject(new Error(res.statusText)))
+    .then(release => {
+        isCheckingUpdates = false;
+        if (checkBtn) checkBtn.disabled = false;
+        const remoteTag = (release.tag_name || '').replace(/^v/, '');
+        const parse = (v) => (v || '').split('.').map(n => parseInt(n, 10) || 0);
+        const r = parse(remoteTag);
+        const l = parse(currentVersion);
+        let isNewer = false;
+        const len = Math.max(r.length, l.length);
+        for (let i = 0; i < len; i++) {
+            const rv = r[i] || 0;
+            const lv = l[i] || 0;
+            if (rv !== lv) {
+                isNewer = rv > lv;
+                break;
+            }
+        }
+
+        if (isNewer) {
+            if (statusEl) {
+                statusEl.className = 'about-update-status abd-about-status text-success';
+                statusEl.textContent = `New release available: v${remoteTag}`;
+            }
+            if (actionEl && downloadBtn) {
+                actionEl.hidden = false;
+                downloadBtn.href = release.html_url || `https://github.com/${repo}/releases/latest`;
+                downloadBtn.textContent = `DOWNLOAD v${remoteTag}`;
+            }
+        } else {
+            if (statusEl) {
+                statusEl.className = 'about-update-status abd-about-status text-dim';
+                statusEl.textContent = 'You are running the latest version.';
+            }
+            if (actionEl) actionEl.hidden = true;
+        }
+    })
+    .catch(() => {
+        isCheckingUpdates = false;
+        if (checkBtn) checkBtn.disabled = false;
+        if (statusEl) {
+            statusEl.className = 'about-update-status abd-about-status text-dim';
+            statusEl.textContent = 'You are running the latest version.';
+        }
+    });
+}
+
 /**
  * Initialize event delegation for Settings/About modal open/close and tab switching.
  */
@@ -62,13 +146,50 @@ function initSettingsModals() {
         if (e.target.closest('#menu-about')) {
             e.preventDefault();
             const modal = document.getElementById('about-modal-backdrop');
-            if (modal) {modal.style.display = 'flex';}
+            if (modal) { modal.style.display = 'flex'; }
+        }
+
+        // Check for updates
+        if (e.target.closest('#menu-check-updates')) {
+            e.preventDefault();
+            const modal = document.getElementById('about-modal-backdrop');
+            if (modal) { modal.style.display = 'flex'; }
+            checkForUpdates();
+        }
+
+        if (e.target.closest('#about-check-updates-btn')) {
+            e.preventDefault();
+            checkForUpdates();
+        }
+
+        // Documentation / User Guide
+        if (e.target.closest('#menu-manual')) {
+            e.preventDefault();
+            window.open('https://github.com/ajabadia/ABDEep#readme', '_blank');
+        }
+
+        // Operating Mode Menu shortcuts
+        const modeMap = {
+            'menu-mode-abyssmind': 'abyssmind_pro',
+            'menu-mode-standalone': 'deepmind_web_standalone',
+            'menu-mode-controller': 'deepmind_hw_controller'
+        };
+        for (const [id, modeVal] of Object.entries(modeMap)) {
+            if (e.target.closest('#' + id)) {
+                e.preventDefault();
+                const sel = document.getElementById('app-operating-mode-select');
+                if (sel) {
+                    sel.value = modeVal;
+                    sel.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                break;
+            }
         }
 
         // Close About
         if (e.target.closest('#about-modal-close-btn') || e.target.id === 'about-modal-backdrop') {
             const modal = document.getElementById('about-modal-backdrop');
-            if (modal) {modal.style.display = 'none';}
+            if (modal) { modal.style.display = 'none'; }
         }
 
         // Close Settings
@@ -162,3 +283,4 @@ window.initSettingsModals = initSettingsModals;
 window.initResyncButton = initResyncButton;
 window.initSynthInfoRefresh = initSynthInfoRefresh;
 window.initGlobalRefreshButton = initGlobalRefreshButton;
+window.checkForUpdates = checkForUpdates;
