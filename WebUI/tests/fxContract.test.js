@@ -50,7 +50,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
 const suiteRoot = resolve(repoRoot, '..');
 
-const CONTRACT = join(suiteRoot, 'ABDSharedAssets', 'contracts', 'fx-effects.json');
+const CONTRACT_CANDIDATES = [
+  join(suiteRoot, 'ABDShared', 'Contracts', 'fx-effects.json'),
+  join(suiteRoot, 'ABDSharedAssets', 'contracts', 'fx-effects.json'),
+];
+const CONTRACT = CONTRACT_CANDIDATES.find(existsSync) ?? CONTRACT_CANDIDATES[1];
 const GENERATOR = join(repoRoot, 'scripts', 'generate_fx_contract.mjs');
 const FACTORY = join(repoRoot, 'Source', 'DSP', 'FX', 'FXSlot_Factory.cpp');
 const GENERATED = join(repoRoot, 'WebUI', 'js', 'fx_contract.gen.js');
@@ -351,7 +355,7 @@ describe('fx_contract.gen.js esta al dia respecto al contrato compartido', () =>
   });
 
   it('el .gen declara que viene del contrato, para que se sepa de donde', () => {
-    expect(generated.source).toBe('ABDSharedAssets/contracts/fx-effects.json');
+    expect(generated.source).toMatch(/ABDShared(Assets)?\/(contracts|Contracts)\/fx-effects\.json/);
   });
 
   it('la procedencia que el .gen declara es la que declara el contrato', () => {
@@ -757,10 +761,10 @@ describe('CI corre este check de verdad, no solo el test', () => {
   it('el workflow saca el contrato del repo HERMANO', () => {
     const yml = readFileSync(WORKFLOW, 'utf8');
 
-    // El contrato vive en ABDSharedAssets. Un checkout que no lo traiga hace
+    // El contrato vive en ABDShared / ABDSharedAssets. Un checkout que no lo traiga hace
     // que el generador salga con su codigo 2 ("no se encuentra el contrato"), que
     // es un fallo de infrastructure y no una prueba de nada.
-    expect(yml).toMatch(/repository:\s*ajabadia\/ABDSharedAssets/);
+    expect(yml).toMatch(/repository:\s*ajabadia\/(ABDSharedAssets|ABDShared)/);
   });
 
   it('el workflow corre ESTE script, no otro generador', () => {

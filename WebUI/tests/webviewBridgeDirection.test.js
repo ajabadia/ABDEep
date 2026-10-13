@@ -10,16 +10,22 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { describe, it, expect } from 'vitest';
-import {
-  REQUIRED_CALL,
-  checkBridgeDirection,
-  formatFindings
-} from '../../../ABDSharedCode/WebView2Bridge/testing/webviewBridgeDirection.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sourceRoot = path.resolve(here, '../../Source');
+
+const helperCandidates = [
+  path.resolve(here, '../../../ABDShared/Code/WebView2Bridge/testing/webviewBridgeDirection.js'),
+  path.resolve(here, '../../../ABDSharedCode/WebView2Bridge/testing/webviewBridgeDirection.js')
+];
+const helperPath = helperCandidates.find(fs.existsSync) ?? helperCandidates[0];
+const {
+  REQUIRED_CALL,
+  checkBridgeDirection,
+  formatFindings
+} = await import(pathToFileURL(helperPath).href);
 
 /** Ficheros del proyecto que emiten del C++ hacia el WebUI. */
 const EMITTERS = ['Plugin/PluginEditor.cpp'];

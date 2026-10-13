@@ -16,13 +16,17 @@
  *
  *   node scripts/sync_shared.mjs
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const suiteRoot = resolve(here, '..', '..');   // ABDSynths/
-const source = join(suiteRoot, 'ABDSharedAssets', 'components', 'fitStage.js');
+const sourceCandidates = [
+  join(suiteRoot, 'ABDShared', 'Components', 'fitStage.js'),
+  join(suiteRoot, 'ABDSharedAssets', 'components', 'fitStage.js'),
+];
+const source = sourceCandidates.find(existsSync) ?? sourceCandidates[1];
 const target = resolve(here, '..', 'WebUI', 'src', 'shared', 'fitStage.js');
 
 const contents = readFileSync(source, 'utf8');

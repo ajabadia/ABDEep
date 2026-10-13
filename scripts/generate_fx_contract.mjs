@@ -44,12 +44,17 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..');
 const suiteRoot = resolve(repoRoot, '..');
 
-const contractPath = join(suiteRoot, 'ABDSharedAssets', 'contracts', 'fx-effects.json');
+const contractCandidates = [
+  join(suiteRoot, 'ABDShared', 'Contracts', 'fx-effects.json'),
+  join(suiteRoot, 'ABDSharedAssets', 'contracts', 'fx-effects.json'),
+];
+const contractPath = contractCandidates.find(existsSync);
 const targetPath = join(repoRoot, 'WebUI', 'js', 'fx_contract.gen.js');
 
-if (! existsSync(contractPath)) {
-  console.error(`No se encuentra el contrato compartido: ${contractPath}`);
-  console.error('Se espera ABDSharedAssets/contracts/fx-effects.json junto a ABDEep.');
+if (! contractPath) {
+  console.error('No se encuentra el contrato compartido en ninguna de las rutas esperadas:');
+  for (const c of contractCandidates) console.error(`  - ${c}`);
+  console.error('Se espera ABDShared/Contracts/fx-effects.json o ABDSharedAssets/contracts/fx-effects.json junto a ABDEep.');
   process.exit(2);
 }
 

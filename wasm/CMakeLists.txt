@@ -36,6 +36,17 @@ if(NOT EXISTS "${JUCE_MODULES}/juce_core/juce_core.h")
     message(FATAL_ERROR "JUCE modules not found at ${JUCE_MODULES}")
 endif()
 
+# --- ABDShared Code directory resolution (canonical ABDShared/Code, fallback ABDSharedCode) ---
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/../../ABDShared/Code/SynthCore/PolyBLEP.cpp")
+    set(ABDSHARED_CODE_DIR "${CMAKE_CURRENT_LIST_DIR}/../../ABDShared/Code")
+    message(STATUS "WASM: Using canonical ABDShared/Code at ${ABDSHARED_CODE_DIR}")
+elseif(EXISTS "${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/PolyBLEP.cpp")
+    set(ABDSHARED_CODE_DIR "${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode")
+    message(STATUS "WASM: Using legacy sibling ABDSharedCode at ${ABDSHARED_CODE_DIR}")
+else()
+    message(FATAL_ERROR "WASM: ABDShared/Code or ABDSharedCode not found as sibling repository.")
+endif()
+
 # ============================================================
 # Módulos JUCE compilados como fuentes directas (sin CMake de JUCE)
 # Solo compilamos los módulos que el DSP necesita:
@@ -57,21 +68,21 @@ add_executable(abdeep_dsp
     ${JUCE_MODULES}/juce_audio_formats/juce_audio_formats.cpp
     ${JUCE_MODULES}/juce_dsp/juce_dsp.cpp
 
-    # --- ABDEep (lista compartida single-source, anti-drift) ---
+    # --- ABDShared (lista compartida single-source, anti-drift) ---
     ${ABDEEP_DSP_SOURCES_WASM}
     ${CMAKE_CURRENT_SOURCE_DIR}/juce_shim/wasm_link_stubs.cpp
 
-    # --- ABDSharedCode SynthCore (C++20 puro, zero JUCE) ---
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/PolyBLEP.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/ADSREnvelope.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/PortamentoGlide.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/LFO.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/OscVcoCa72.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/Arpeggiator.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/ControlSequencer.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/LfoAnalog.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/EnvelopeAnalog.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode/SynthCore/DriftEngine.cpp
+    # --- ABDShared SynthCore (C++20 puro, zero JUCE) ---
+    ${ABDSHARED_CODE_DIR}/SynthCore/PolyBLEP.cpp
+    ${ABDSHARED_CODE_DIR}/SynthCore/ADSREnvelope.cpp
+    ${ABDSHARED_CODE_DIR}/SynthCore/PortamentoGlide.cpp
+    ${ABDSHARED_CODE_DIR}/SynthCore/LFO.cpp
+    ${ABDSHARED_CODE_DIR}/SynthCore/OscVcoCa72.cpp
+    ${ABDSHARED_CODE_DIR}/SynthCore/Arpeggiator.cpp
+    ${ABDSHARED_CODE_DIR}/SynthCore/ControlSequencer.cpp
+    ${ABDSHARED_CODE_DIR}/SynthCore/LfoAnalog.cpp
+    ${ABDSHARED_CODE_DIR}/SynthCore/EnvelopeAnalog.cpp
+    ${ABDSHARED_CODE_DIR}/SynthCore/DriftEngine.cpp
 )
 
 # --- Include directories ---
@@ -83,9 +94,9 @@ target_include_directories(abdeep_dsp PRIVATE
     ${JUCE_MODULES}
     # Generated JuceHeader shim
     ${CMAKE_CURRENT_SOURCE_DIR}/juce_shim
-    # SynthEngine.h incluye <SynthCore/VoiceAllocator.h> (ABDSharedCode,
+    # SynthEngine.h incluye <SynthCore/VoiceAllocator.h> (ABDShared,
     # header-only y sin JUCE — elegible en WASM)
-    ${CMAKE_CURRENT_LIST_DIR}/../../ABDSharedCode
+    ${ABDSHARED_CODE_DIR}
 )
 
 # --- JUCE module configuration defines ---

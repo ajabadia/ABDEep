@@ -71,14 +71,18 @@ jobs:
       # hay fallback porque el propio wasm/CMakeLists.txt lista rutas absolutas.
       # Clona a mano y no con `actions/checkout` porque el input `path` de esa
       # accion es relativo a $GITHUB_WORKSPACE y no debe salirse de el.
-      - name: Checkout ABDSharedCode as sibling
+      - name: Checkout ABDShared as sibling
         shell: bash
         run: |
-          git clone --depth 1 https://github.com/ajabadia/ABDSharedCode.git \
-            "$GITHUB_WORKSPACE/../ABDSharedCode"
-          test -f "$GITHUB_WORKSPACE/../ABDSharedCode/SynthCore/PolyBLEP.cpp" \
-            || { echo "::error::ABDSharedCode clonado pero sin SynthCore/PolyBLEP.cpp: wasm/CMakeLists.txt no va a encontrar sus fuentes."; exit 1; }
-          echo "ABDSharedCode hermano listo en $GITHUB_WORKSPACE/../ABDSharedCode"
+          if git clone --depth 1 https://github.com/ajabadia/ABDShared.git "$GITHUB_WORKSPACE/../ABDShared"; then
+            echo "ABDShared hermano listo en $GITHUB_WORKSPACE/../ABDShared"
+          else
+            git clone --depth 1 https://github.com/ajabadia/ABDSharedCode.git "$GITHUB_WORKSPACE/../ABDSharedCode"
+            echo "Fallback a ABDSharedCode hermano listo en $GITHUB_WORKSPACE/../ABDSharedCode"
+          fi
+          test -f "$GITHUB_WORKSPACE/../ABDShared/Code/SynthCore/PolyBLEP.cpp" \
+            || test -f "$GITHUB_WORKSPACE/../ABDSharedCode/SynthCore/PolyBLEP.cpp" \
+            || { echo "::error::No se encontro PolyBLEP.cpp en ABDShared ni en ABDSharedCode: wasm/CMakeLists.txt no va a encontrar sus fuentes."; exit 1; }
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
