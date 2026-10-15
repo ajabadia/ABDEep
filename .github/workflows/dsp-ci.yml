@@ -248,10 +248,10 @@ jobs:
 # build/benchmark (cppcheck 2.16 en Windows, sin salida capturada y sin baseline, asi
 # que sus hallazgos se iban a un log que nadie miraba): un unico gate en Linux con
 # baseline, igual que el resto de la familia.
-# ALCANCE: Source/. Excluidos por --suppress='*:nombre' (coincidencia por sufijo,
-# verificada con cppcheck 2.21): *.gen.* (Source/Core/ParameterConversion.gen.* y
-# ParameterRegistry.gen.*) y Source/Core/BuildVersion.h (estampado en cada build).
-# JUCE/ (framework vendido) y wasm/ (con su propio pipeline) quedan fuera.
+# ALCANCE: Source/. JUCE/ (framework vendido) y wasm/ (con su propio pipeline)
+# quedan fuera. Exclusiones --suppress: UNICA fuente .github/cppcheck-excludes.txt
+# (la lee este gate); aqui no se enumeran para que workflow, comentario y
+# baseline no diverjan.
   cppcheck:
     name: cppcheck (bloqueante, baseline)
     runs-on: ubuntu-latest
@@ -306,8 +306,30 @@ jobs:
         # grep -f no casaria nada y TODO pareceria hallazgo nuevo.
         bl=$(mktemp)
         tr -d '\r' < "$baseline" > "$bl"
+        # Exclusiones: UNICA fuente .github/cppcheck-excludes.txt — una entrada por
+        # linea ('#' comenta); sin '-' inicial es patron de --suppress y con '-' es
+        # flag literal. Un fichero ausente es error: sin el, workflow, comentario y
+        # baseline divergirian, que es exactamente lo que este diseno evita.
+        excludes=.github/cppcheck-excludes.txt
+        if [ ! -f "$excludes" ]; then
+          echo "::error title=cppcheck::no existe $excludes: las exclusiones viven ahi y solo ahi."
+          exit 1
+        fi
+        supresiones=()
+        while IFS= read -r linea || [ -n "$linea" ]; do
+          linea=${linea%%#*}
+          linea=${linea#"${linea%%[![:space:]]*}"}
+          linea=${linea%"${linea##*[![:space:]]}"}
+          [ -z "$linea" ] && continue
+          if [ "${linea:0:1}" = "-" ]; then
+            read -r -a partes <<< "$linea"
+            supresiones+=("${partes[@]}")
+          else
+            supresiones+=("--suppress=$linea")
+          fi
+        done < "$excludes"
         set +e
-        salida=$(cppcheck --enable=warning,performance,portability --std=c++20 --suppress=missingIncludeSystem --suppress='*:BuildVersion.h' --suppress='*:*.gen.*' --template='{severity}|{file}|{line}|{message}' Source/ 2>&1)
+        salida=$(cppcheck --enable=warning,performance,portability --std=c++20 --suppress=missingIncludeSystem "${supresiones[@]}" --template='{severity}|{file}|{line}|{message}' Source/ 2>&1)
         codigo=$?
         set -e
         if [ -z "$salida" ]; then
