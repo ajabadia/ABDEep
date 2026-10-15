@@ -58,44 +58,6 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v3
 
-      # windows-2022 ya trae LLVM en el PATH (C:\Program Files\LLVM\bin), asi que
-      # clang-format NO hace falta instalarlo. La orden anterior
-      #   choco install clang-format cppcheck --version=18.1.8 --version=2.14.0 -y
-      # fallaba SIEMPRE: en Chocolatey no existe paquete `clang-format` (el que lo
-      # trae es `llvm`), `cppcheck 2.14.0` no existe (hay 2.16.0 y 2.19.0) y los dos
-      # flags --version de la misma orden se pisan entre si. El log de CI decia
-      # "Chocolatey installed 0/2 packages. 2 packages failed." y los tres jobs se
-      # caian en el paso 6, sin llegar nunca al build ni a los tests C++.
-      - name: Install cppcheck (clang-format ya viene en la imagen)
-        run: |
-          choco install cppcheck --version=2.16.0 -y --no-progress
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "::error::Chocolatey no pudo instalar cppcheck 2.16.0"
-            exit 1
-          }
-          if (Get-Command clang-format -ErrorAction SilentlyContinue) {
-            Write-Host "clang-format -> $(& clang-format --version)"
-          } else {
-            Write-Host "::warning title=clang-format::No hay clang-format en el PATH de la imagen; el chequeo de formato se omite."
-          }
-          # El MSI lo instala en C:\Program Files\Cppcheck y choco actualiza la
-          # PATH de la maquina, que este proceso NO vuelve a leer -- lo dice el
-          # propio log: "Environment Vars (like PATH) have changed. Close/reopen
-          # your shell to see the changes". Sin esto el paso de cppcheck no
-          # encuentra el binario aunque la instalacion haya ido bien.
-          $dir = 'C:\Program Files\Cppcheck'
-          $exe = Join-Path $dir 'cppcheck.exe'
-          if (-not (Test-Path $exe)) {
-            $hit = Get-ChildItem -Path $dir -Filter cppcheck.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($hit) { $exe = $hit.FullName; $dir = $hit.DirectoryName }
-          }
-          if (-not (Test-Path $exe)) {
-            Write-Host "::error::cppcheck 2.16.0 se instalo pero no se encuentra cppcheck.exe bajo $dir"
-            exit 1
-          }
-          $dir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          Write-Host "cppcheck     -> $(& $exe --version)"
-
       - name: Configure CMake (model 2 — Enhanced, full test coverage)
         run: |
           cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2 -DJUCE_WEBVIEW2_PACKAGE_LOCATION="${{ runner.temp }}/wv2"
@@ -147,44 +109,6 @@ jobs:
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v3
-
-      # windows-2022 ya trae LLVM en el PATH (C:\Program Files\LLVM\bin), asi que
-      # clang-format NO hace falta instalarlo. La orden anterior
-      #   choco install clang-format cppcheck --version=18.1.8 --version=2.14.0 -y
-      # fallaba SIEMPRE: en Chocolatey no existe paquete `clang-format` (el que lo
-      # trae es `llvm`), `cppcheck 2.14.0` no existe (hay 2.16.0 y 2.19.0) y los dos
-      # flags --version de la misma orden se pisan entre si. El log de CI decia
-      # "Chocolatey installed 0/2 packages. 2 packages failed." y los tres jobs se
-      # caian en el paso 6, sin llegar nunca al build ni a los tests C++.
-      - name: Install cppcheck (clang-format ya viene en la imagen)
-        run: |
-          choco install cppcheck --version=2.16.0 -y --no-progress
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "::error::Chocolatey no pudo instalar cppcheck 2.16.0"
-            exit 1
-          }
-          if (Get-Command clang-format -ErrorAction SilentlyContinue) {
-            Write-Host "clang-format -> $(& clang-format --version)"
-          } else {
-            Write-Host "::warning title=clang-format::No hay clang-format en el PATH de la imagen; el chequeo de formato se omite."
-          }
-          # El MSI lo instala en C:\Program Files\Cppcheck y choco actualiza la
-          # PATH de la maquina, que este proceso NO vuelve a leer -- lo dice el
-          # propio log: "Environment Vars (like PATH) have changed. Close/reopen
-          # your shell to see the changes". Sin esto el paso de cppcheck no
-          # encuentra el binario aunque la instalacion haya ido bien.
-          $dir = 'C:\Program Files\Cppcheck'
-          $exe = Join-Path $dir 'cppcheck.exe'
-          if (-not (Test-Path $exe)) {
-            $hit = Get-ChildItem -Path $dir -Filter cppcheck.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($hit) { $exe = $hit.FullName; $dir = $hit.DirectoryName }
-          }
-          if (-not (Test-Path $exe)) {
-            Write-Host "::error::cppcheck 2.16.0 se instalo pero no se encuentra cppcheck.exe bajo $dir"
-            exit 1
-          }
-          $dir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          Write-Host "cppcheck     -> $(& $exe --version)"
 
       - name: Configure CMake (model 2 — Enhanced, full test coverage)
         run: |
@@ -266,44 +190,6 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v3
 
-      # windows-2022 ya trae LLVM en el PATH (C:\Program Files\LLVM\bin), asi que
-      # clang-format NO hace falta instalarlo. La orden anterior
-      #   choco install clang-format cppcheck --version=18.1.8 --version=2.14.0 -y
-      # fallaba SIEMPRE: en Chocolatey no existe paquete `clang-format` (el que lo
-      # trae es `llvm`), `cppcheck 2.14.0` no existe (hay 2.16.0 y 2.19.0) y los dos
-      # flags --version de la misma orden se pisan entre si. El log de CI decia
-      # "Chocolatey installed 0/2 packages. 2 packages failed." y los tres jobs se
-      # caian en el paso 6, sin llegar nunca al build ni a los tests C++.
-      - name: Install cppcheck (clang-format ya viene en la imagen)
-        run: |
-          choco install cppcheck --version=2.16.0 -y --no-progress
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "::error::Chocolatey no pudo instalar cppcheck 2.16.0"
-            exit 1
-          }
-          if (Get-Command clang-format -ErrorAction SilentlyContinue) {
-            Write-Host "clang-format -> $(& clang-format --version)"
-          } else {
-            Write-Host "::warning title=clang-format::No hay clang-format en el PATH de la imagen; el chequeo de formato se omite."
-          }
-          # El MSI lo instala en C:\Program Files\Cppcheck y choco actualiza la
-          # PATH de la maquina, que este proceso NO vuelve a leer -- lo dice el
-          # propio log: "Environment Vars (like PATH) have changed. Close/reopen
-          # your shell to see the changes". Sin esto el paso de cppcheck no
-          # encuentra el binario aunque la instalacion haya ido bien.
-          $dir = 'C:\Program Files\Cppcheck'
-          $exe = Join-Path $dir 'cppcheck.exe'
-          if (-not (Test-Path $exe)) {
-            $hit = Get-ChildItem -Path $dir -Filter cppcheck.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($hit) { $exe = $hit.FullName; $dir = $hit.DirectoryName }
-          }
-          if (-not (Test-Path $exe)) {
-            Write-Host "::error::cppcheck 2.16.0 se instalo pero no se encuentra cppcheck.exe bajo $dir"
-            exit 1
-          }
-          $dir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          Write-Host "cppcheck     -> $(& $exe --version)"
-
       - name: Configure CMake (model 2 — Enhanced, full test coverage)
         run: |
           cmake -B build -G "Visual Studio 17 2022" -A x64 -DDEEP_TARGET_MODEL=2 -DJUCE_WEBVIEW2_PACKAGE_LOCATION="${{ runner.temp }}/wv2"
@@ -373,10 +259,44 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
+    - name: Cache de cppcheck 2.21.0
+      uses: actions/cache@v6
+      with:
+        path: ~/cppcheck-2.21.0
+        key: cppcheck-2.21.0-${{ runner.os }}
+
+    # cppcheck SIN fijar usa la version que traiga la imagen, y la baseline es
+    # por firma (severidad|archivo|mensaje): un cppcheck de otra version cambia
+    # mensajes y anade/quita hallazgos, y el gate mentiria en las dos direcciones.
+    # La unica version aceptada es 2.21.0, con la que se midio la baseline en
+    # local. apt no la trae, asi que se compila desde el tag oficial (PCRE es
+    # opcional: `make` solo necesita g++/make) y el binario se cachea por
+    # version: un cache-miss cuesta ~5 min de compilacion.
+    - name: Install cppcheck 2.21.0 (fijado a la version de las baselines)
+      shell: bash
+      run: |
+        v=2.21.0
+        pre="$HOME/cppcheck-$v"
+        if ! "$pre/bin/cppcheck" --version 2>/dev/null | grep -F "Cppcheck $v" >/dev/null; then
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq g++ make
+          src=$(mktemp -d)
+          git clone --depth 1 --branch "$v" https://github.com/cppcheck-opensource/cppcheck.git "$src/cppcheck"
+          # FILESDIR hace dos cosas a la vez: sin el, el objetivo install del
+          # Makefile aborta con "FILESDIR must be set!", y con el compilado el
+          # binario sabe donde estan cfg/addons/platforms bajo el prefijo.
+          make -C "$src/cppcheck" -j"$(nproc)" FILESDIR="$pre/share/cppcheck"
+          make -C "$src/cppcheck" PREFIX="$pre" FILESDIR="$pre/share/cppcheck" install
+        fi
+        "$pre/bin/cppcheck" --version
+        if ! "$pre/bin/cppcheck" --version | grep -F "Cppcheck $v" >/dev/null; then
+          echo "::error title=cppcheck::se esperaba cppcheck 2.21.0, la version con la que se midieron las baselines."
+          exit 1
+        fi
+        echo "$pre/bin" >> "$GITHUB_PATH"
+
     - name: Static analysis (cppcheck) - bloqueante (baseline)
       run: |
-        sudo apt-get update -qq && sudo apt-get install -y -qq cppcheck
-        cppcheck --version
         baseline=.github/cppcheck-baseline.txt
         if [ ! -f "$baseline" ]; then
           echo "::error title=cppcheck::no existe $baseline: sin baseline no se puede separar deuda de regresion."
