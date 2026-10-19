@@ -38,6 +38,9 @@ namespace ABD
                 voices[voiceIdx].setExternalModulation(ModSource::kModWheel, currentModWheel);
                 voices[voiceIdx].setExternalModulation(ModSource::kKeyPressure, currentAftertouch);
                 voices[voiceIdx].setExternalModulation(ModSource::kSustainPedal, currentSustainPedal);
+                voices[voiceIdx].setExternalModulation(ModSource::kFootController, currentFootController);
+                voices[voiceIdx].setExternalModulation(ModSource::kBreathController, currentBreathController);
+                voices[voiceIdx].setExternalModulation(ModSource::kExpressionPedal, currentExpressionPedal);
             }
         }
     }
@@ -204,6 +207,9 @@ namespace ABD
             voices[voiceIdx].setExternalModulation(ModSource::kModWheel, currentModWheel);
             voices[voiceIdx].setExternalModulation(ModSource::kKeyPressure, currentAftertouch);
             voices[voiceIdx].setExternalModulation(ModSource::kSustainPedal, currentSustainPedal);
+            voices[voiceIdx].setExternalModulation(ModSource::kFootController, currentFootController);
+            voices[voiceIdx].setExternalModulation(ModSource::kBreathController, currentBreathController);
+            voices[voiceIdx].setExternalModulation(ModSource::kExpressionPedal, currentExpressionPedal);
         }
     }
 

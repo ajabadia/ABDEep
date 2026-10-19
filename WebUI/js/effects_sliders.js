@@ -30,12 +30,20 @@ function initEffectsSliders() {
                 if (isDragging) {updateSendLevel(e.clientY);}
             }
             function onSliderEnd() {
-                isDragging = false;
+                if (isDragging) {
+                    isDragging = false;
+                    if (getBridge() && typeof getBridge().endGesture === 'function') {
+                        getBridge().endGesture('fx_send_level');
+                    }
+                }
                 window.removeEventListener('mousemove', onSliderMove);
                 window.removeEventListener('mouseup', onSliderEnd);
             }
             sendLevelSlider.addEventListener('mousedown', (e) => {
                 isDragging = true;
+                if (getBridge() && typeof getBridge().beginGesture === 'function') {
+                    getBridge().beginGesture('fx_send_level');
+                }
                 updateSendLevel(e.clientY);
                 e.preventDefault();
                 e.stopPropagation();
@@ -74,12 +82,20 @@ function initEffectsSliders() {
                 if (isDragging) {updateSliderPos(e.clientY);}
             }
             function onSliderEnd() {
-                isDragging = false;
+                if (isDragging) {
+                    isDragging = false;
+                    if (getBridge() && typeof getBridge().endGesture === 'function') {
+                        getBridge().endGesture(paramId);
+                    }
+                }
                 window.removeEventListener('mousemove', onSliderMove);
                 window.removeEventListener('mouseup', onSliderEnd);
             }
             slider.addEventListener('mousedown', (e) => {
                 isDragging = true;
+                if (getBridge() && typeof getBridge().beginGesture === 'function') {
+                    getBridge().beginGesture(paramId);
+                }
                 updateSliderPos(e.clientY);
                 e.preventDefault();
                 e.stopPropagation();

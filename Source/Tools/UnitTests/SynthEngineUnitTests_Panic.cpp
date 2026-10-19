@@ -296,6 +296,57 @@ public:
 
             logMessage("Bypass integration sequence: panic() + resetMidiControllers() → voices off, controllers reset ✅");
         }
+
+        //==============================================================================
+        beginTest("440 Hz Multi-Point Diagnostic Tone Injector & AudioThreadSnapshot");
+        {
+            SynthEngine engine;
+            engine.prepare(kTestSampleRate, kTestBlockSize);
+            engine.getMasterScopeTap().setActive(true);
+            engine.getPreFxScopeTap().setActive(true);
+
+            juce::AudioBuffer<float> buffer(2, kTestBlockSize);
+            juce::MidiBuffer emptyMidi;
+
+            // 1. Test bus-level tap points (PostMasterVolume=1, PreMasterVolume=2, PreEffects=3) without any MIDI notes
+            for (int pt : { 1, 2, 3 })
+            {
+                engine.setDiagnosticTone(pt, 440.0f, 0.25f);
+                expectEquals(engine.getDiagnosticTonePoint(), pt);
+                buffer.clear();
+                engine.processBlock(buffer, emptyMidi);
+                expect(buffer.getMagnitude(0, kTestBlockSize) > 0.1f,
+                    "Diagnostic tone at point " + juce::String(pt) + " should produce audible signal");
+            }
+
+            // 2. Test voice-level tap points (PreFilter=4, PreAmp=5) with an active voice + AudioThreadSnapshot
+            for (int pt : { 4, 5 })
+            {
+                engine.setDiagnosticTone(pt, 440.0f, 0.25f);
+                juce::MidiBuffer midiOn;
+                midiOn.addEvent(juce::MidiMessage::noteOn(1, 60, 0.9f), 0);
+                buffer.clear();
+                engine.processBlock(buffer, midiOn);
+                for (int b = 0; b < 3; ++b)
+                {
+                    buffer.clear();
+                    engine.processBlock(buffer, emptyMidi);
+                }
+                expect(buffer.getMagnitude(0, kTestBlockSize) > 0.01f,
+                    "Diagnostic tone at voice point " + juce::String(pt) + " should produce audible signal");
+
+                const auto& sharedSnap = engine.getSharedSnapshot();
+                expect(sharedSnap.activeVoiceCount >= 1u,
+                    "AudioThreadSnapshot should report at least 1 active voice");
+                expectEquals((int)sharedSnap.voiceNote[0], 60,
+                    "AudioThreadSnapshot should report MIDI note 60 on voice 0");
+                engine.panic();
+            }
+
+            engine.setDiagnosticTone(0);
+            expectEquals(engine.getDiagnosticTonePoint(), 0);
+            logMessage("440 Hz Multi-Point Diagnostic Tone Injector & AudioThreadSnapshot: ✅");
+        }
     }
 };
 

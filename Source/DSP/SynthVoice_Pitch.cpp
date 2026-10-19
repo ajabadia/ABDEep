@@ -14,8 +14,7 @@ static float calcGlideRate(float portaTime, int portaMode, float intervalSemiton
     float tau = portaTime * 5.0f; // time constant: 0→0s, 1→5s
 
     bool isFixRate = (portaMode == 2 || portaMode == 3
-                   || portaMode == 6 || portaMode == 7
-                   || portaMode == 8 || portaMode == 9);
+                   || (portaMode >= 6 && portaMode <= 13));
 
     if (isFixRate)
     {
@@ -59,16 +58,18 @@ float SynthVoice::processOscillatorSection(const ModulationMatrix& matrix,
         case 6:  osc1DedicatedPitchSrc = modSources[(int)ModSource::kLFO2Uni]; break;
         default: break;
     }
-    float osc1DedicatedPitchMod = osc1DedicatedPitchSrc * params.osc1PitchMod * 12.0f;
-
-    // Aftertouch → Pitch Mod (depth scaled by osc1_lfo_aftertouch)
-    float aftertouchPitchMod = params.osc1LfoAftertouch * modSources[(int)ModSource::kKeyPressure] * 12.0f;
-
-    // Mod Wheel → Pitch Mod (depth scaled by osc1_lfo_modwheel)
-    float modWheelPitchMod = params.osc1LfoModwheel * modSources[(int)ModSource::kModWheel] * 12.0f;
+    // Hardware DeepMind 12: Aftertouch > Pitch Mod y ModWheel > Pitch Mod escalan
+    // la profundidad de la fuente seleccionada en osc1_pm_source (vibrato/PM),
+    // no añaden un offset DC estático al pitch.
+    float osc1TotalPmDepth = std::clamp(
+        params.osc1PitchMod
+        + params.osc1LfoAftertouch * modSources[(int)ModSource::kKeyPressure]
+        + params.osc1LfoModwheel * modSources[(int)ModSource::kModWheel],
+        0.0f, 1.0f);
+    float osc1DedicatedPitchMod = osc1DedicatedPitchSrc * osc1TotalPmDepth * 12.0f;
 
     // osc1_pm_mode: 0=OSC1+2 (apply extra mod to both), 1=OSC1 Only
-    float osc1ExtraPitchMod = osc1DedicatedPitchMod + aftertouchPitchMod + modWheelPitchMod;
+    float osc1ExtraPitchMod = osc1DedicatedPitchMod;
     float osc2ExtraPitchMod = (params.osc1PmMode == 0) ? osc1ExtraPitchMod : 0.0f;
 
     osc1PitchMod += osc1ExtraPitchMod;
@@ -87,21 +88,22 @@ float SynthVoice::processOscillatorSection(const ModulationMatrix& matrix,
         case 6:  osc2DedicatedPitchSrc = modSources[(int)ModSource::kLFO2Uni]; break;
         default: break;
     }
-    float osc2DedicatedPitchMod = osc2DedicatedPitchSrc * params.osc2PitchMod * 12.0f;
+    float osc2TotalPmDepth = std::clamp(
+        params.osc2PitchMod
+        + params.osc2AftertouchPitch * modSources[(int)ModSource::kKeyPressure]
+        + params.osc2ModwheelPitch * modSources[(int)ModSource::kModWheel],
+        0.0f, 1.0f);
+    float osc2DedicatedPitchMod = osc2DedicatedPitchSrc * osc2TotalPmDepth * 12.0f;
 
-    // Aftertouch → Pitch Mod for OSC2 (depth scaled by osc2_aftertouch_pitch)
-    float osc2AftertouchPitchMod = params.osc2AftertouchPitch * modSources[(int)ModSource::kKeyPressure] * 12.0f;
-
-    // Mod Wheel → Pitch Mod for OSC2 (depth scaled by osc2_modwheel_pitch)
-    float osc2ModwheelPitchMod = params.osc2ModwheelPitch * modSources[(int)ModSource::kModWheel] * 12.0f;
-
-    osc2PitchMod += osc2DedicatedPitchMod + osc2AftertouchPitchMod + osc2ModwheelPitchMod;
+    osc2PitchMod += osc2DedicatedPitchMod;
 
     // 2. Pitch base de la nota + Pitch Bend externo (rango asimétrico configurable)
+    // Nota: pitch_bend_down en APVTS se almacena en [-24..0] (o [0..24] en SynthVoice directo);
+    // usamos std::abs() para que rawPitchBend < 0 siempre baje el tono.
     float rawPitchBend = modSources[(int)ModSource::kPitchBend]; // -1..1
     float pitchBendAmount = (rawPitchBend >= 0.0f)
-        ? rawPitchBend * params.pitchBendUp
-        : rawPitchBend * params.pitchBendDown;
+        ? rawPitchBend * std::abs(params.pitchBendUp)
+        : rawPitchBend * std::abs(params.pitchBendDown);
 
     // Drift analógico: convertir cents drift a semitonos (100 cents = 1 semitono)
     float osc1DriftSemitones = driftOsc1 / 100.0f;
@@ -117,20 +119,25 @@ float SynthVoice::processOscillatorSection(const ModulationMatrix& matrix,
                                  + osc2DriftSemitones + unisonDetuneSemitones + globalTuneSemitones;
 
     // 3. Portamento / Glide: interpolar pitch nota a nota
-    float portaBasePitch = (float)currentMidiNote;
+    portaBasePitch = (float)currentMidiNote;
     if (portaActive)
     {
         float interval = std::abs(targetPortaPitch - currentPortaPitch);
         float glideRate = calcGlideRate(params.portaTime, params.portaMode, interval, (float)sampleRate);
 
         bool isFixRate = (params.portaMode == 2 || params.portaMode == 3
-                       || params.portaMode == 6 || params.portaMode == 7
-                       || params.portaMode == 8 || params.portaMode == 9);
+                       || (params.portaMode >= 6 && params.portaMode <= 13));
 
         if (isFixRate)
         {
-            float direction = (targetPortaPitch > currentPortaPitch) ? 1.0f : -1.0f;
+            const float diffBefore = targetPortaPitch - currentPortaPitch;
+            const float direction = (diffBefore >= 0.0f) ? 1.0f : -1.0f;
             currentPortaPitch += direction * glideRate;
+            if ((targetPortaPitch - currentPortaPitch) * diffBefore <= 0.0f)
+            {
+                currentPortaPitch = targetPortaPitch;
+                portaActive = false;
+            }
         }
         else
         {
@@ -149,7 +156,7 @@ float SynthVoice::processOscillatorSection(const ModulationMatrix& matrix,
         currentPortaPitch = targetPortaPitch;
     }
 
-    // Oscillator balance during glide (porta_osc_bal)
+    // Oscillator balance during glide (porta_osc_bal en APVTS: [-128.0, 127.0])
     float balNorm = juce::jlimit(-1.0f, 1.0f, params.portaOscBal / 127.0f);
     float osc1GlideAmount = (balNorm + 1.0f) * 0.5f;
     float osc2GlideAmount = 1.0f - osc1GlideAmount;

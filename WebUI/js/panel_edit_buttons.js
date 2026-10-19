@@ -21,15 +21,70 @@ function initPanelButtons(panel) {
     const chordEditBtn = document.getElementById('programmer-chord-btn');
     const polychordEditBtn = document.getElementById('programmer-polychord-btn');
 
+    const moduleSectionByMode = {
+        'LFO': 'lfo-section',
+        'VCA': 'vca-section',
+        'ENV': 'env-section',
+        'HPF': 'hpf-section',
+        'VCF': 'vcf-section',
+        'OSC': 'osc-section',
+        'POLY': 'poly-section',
+        'PORTA': 'porta-section',
+        'ARP': 'arp-section',
+        'SEQ': 'arp-section'
+    };
+
+    const modeBySectionId = {
+        'lfo-section': 'LFO',
+        'vca-section': 'VCA',
+        'env-section': 'ENV',
+        'hpf-section': 'HPF',
+        'vcf-section': 'VCF',
+        'osc-section': 'OSC',
+        'poly-section': 'POLY',
+        'porta-section': 'PORTA',
+        'arp-section': 'ARP'
+    };
+
+    const updateActiveModuleHighlight = (activeMode) => {
+        document.querySelectorAll('.module.module-editing-active').forEach(mod => {
+            mod.classList.remove('module-editing-active');
+        });
+        document.querySelectorAll('.edit-panel-btn.active').forEach(b => {
+            b.classList.remove('active');
+        });
+        if (!activeMode) {return;}
+        const sectionId = moduleSectionByMode[activeMode];
+        if (sectionId) {
+            const mod = document.getElementById(sectionId);
+            if (mod) {
+                mod.classList.add('module-editing-active');
+                const editBtn = mod.querySelector('.edit-panel-btn');
+                if (editBtn) {editBtn.classList.add('active');}
+            }
+        }
+    };
+    window.updateActiveModuleHighlight = updateActiveModuleHighlight;
+
+    const openOrSwitchPanel = (mode, toggleIfSame) => {
+        if (toggleIfSame && panel.classList.contains('active') && state.currentPanelMode === mode) {
+            panel.classList.remove('active');
+            updateActiveModuleHighlight(null);
+            return;
+        }
+        state.currentPanelMode = mode;
+        if (typeof window.syncDetailPanelControls === 'function') {window.syncDetailPanelControls();}
+        panel.classList.add('active');
+        updateActiveModuleHighlight(mode);
+    };
+
     // Opening modes listeners
     const setupOpenPanel = (btn, mode) => {
         if (!btn) {return;}
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            state.currentPanelMode = mode;
-            if (typeof window.syncDetailPanelControls === 'function') {window.syncDetailPanelControls();}
-            panel.classList.add('active');
+            openOrSwitchPanel(mode, true);
         });
     };
 
@@ -60,9 +115,19 @@ function initPanelButtons(panel) {
             };
             const mode = modeMap[btn.id];
             if (mode) {
-                state.currentPanelMode = mode;
-                if (typeof window.syncDetailPanelControls === 'function') {window.syncDetailPanelControls();}
-                panel.classList.add('active');
+                openOrSwitchPanel(mode, false);
+            }
+            return;
+        }
+
+        // Permitir abrir/cambiar de cajón haciendo clic directamente en la cabecera (.module-header) de cada tarjeta
+        const header = e.target.closest('.module .module-header');
+        if (header && !e.target.closest('button, input, select')) {
+            const mod = header.closest('.module');
+            if (mod && mod.id && modeBySectionId[mod.id]) {
+                e.preventDefault();
+                e.stopPropagation();
+                openOrSwitchPanel(modeBySectionId[mod.id], true);
             }
         }
     });
@@ -79,9 +144,7 @@ function initPanelButtons(panel) {
                     getBridge().setParameter('poly_chord_enable', 0.0);
                 }
             }
-            state.currentPanelMode = 'CHORD';
-            if (typeof window.syncDetailPanelControls === 'function') {window.syncDetailPanelControls();}
-            panel.classList.add('active');
+            openOrSwitchPanel('CHORD', false);
         });
     }
 
@@ -97,20 +160,17 @@ function initPanelButtons(panel) {
                     getBridge().setParameter('chord_enable', 0.0);
                 }
             }
-            state.currentPanelMode = 'POLY_CHORD';
-            if (typeof window.syncDetailPanelControls === 'function') {window.syncDetailPanelControls();}
-            panel.classList.add('active');
+            openOrSwitchPanel('POLY_CHORD', false);
         });
     }
 
     window.openSeqPanel = function() {
-        state.currentPanelMode = 'SEQ';
-        if (typeof window.syncDetailPanelControls === 'function') {window.syncDetailPanelControls();}
-        panel.classList.add('active');
+        openOrSwitchPanel('SEQ', false);
     };
 
     closeBtn.addEventListener('click', () => {
         panel.classList.remove('active');
+        updateActiveModuleHighlight(null);
     });
 
     return true;

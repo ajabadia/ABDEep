@@ -50,33 +50,43 @@ function closeSettingsModal() {
 let isCheckingUpdates = false;
 
 /**
- * Check for application updates (via JUCE backend or GitHub Releases API).
+ * Check for application updates (via shared AboutDialog / JUCE AutoUpdater backend or GitHub Releases API).
  */
 function checkForUpdates(silent = false) {
-    if (isCheckingUpdates) return;
+    if (typeof window.getAboutDialog === 'function') {
+        const dlg = window.getAboutDialog();
+        if (dlg && typeof dlg.checkForUpdates === 'function') {
+            dlg.checkForUpdates();
+            return;
+        }
+    }
+
+    if (isCheckingUpdates) {return;}
     isCheckingUpdates = true;
 
-    const statusEl = document.getElementById('about-update-status');
-    const actionEl = document.getElementById('about-update-action');
-    const downloadBtn = document.getElementById('about-download-update-btn');
-    const checkBtn = document.getElementById('about-check-updates-btn');
+    const statusEl = document.getElementById('about-update-status') || document.querySelector('.abd-about-status');
+    const actionEl = document.getElementById('about-update-action') || document.querySelector('.abd-about-action');
+    const downloadBtn = document.getElementById('about-download-update-btn') || document.querySelector('.abd-btn-download-update');
+    const checkBtn = document.getElementById('about-check-updates-btn') || document.querySelector('.abd-btn-check-updates');
 
     if (statusEl) {
-        statusEl.className = 'about-update-status abd-about-status text-warning';
+        statusEl.className = 'about-update-status abd-about-status text-warning warning';
         statusEl.textContent = 'Checking for updates...';
     }
-    if (actionEl) actionEl.hidden = true;
-    if (checkBtn) checkBtn.disabled = true;
+    if (actionEl) {actionEl.hidden = true;}
+    if (checkBtn) {checkBtn.disabled = true;}
 
     const currentVersion = '0.2.35';
     const repo = 'ajabadia/ABDEep';
 
-    const backend = (window.__JUCE__ && window.__JUCE__.backend) || (window.Juce && window.Juce.backend);
+    const backend = (typeof window.getJuceBackend === 'function' && window.getJuceBackend())
+        || (window.__JUCE__ && window.__JUCE__.backend)
+        || (window.Juce && window.Juce.backend);
     if (backend && typeof backend.checkForUpdates === 'function') {
         backend.checkForUpdates();
         setTimeout(() => {
             isCheckingUpdates = false;
-            if (checkBtn) checkBtn.disabled = false;
+            if (checkBtn) {checkBtn.disabled = false;}
         }, 1500);
         return;
     }
@@ -87,7 +97,7 @@ function checkForUpdates(silent = false) {
     .then(res => res.ok ? res.json() : Promise.reject(new Error(res.statusText)))
     .then(release => {
         isCheckingUpdates = false;
-        if (checkBtn) checkBtn.disabled = false;
+        if (checkBtn) {checkBtn.disabled = false;}
         const remoteTag = (release.tag_name || '').replace(/^v/, '');
         const parse = (v) => (v || '').split('.').map(n => parseInt(n, 10) || 0);
         const r = parse(remoteTag);
@@ -105,7 +115,7 @@ function checkForUpdates(silent = false) {
 
         if (isNewer) {
             if (statusEl) {
-                statusEl.className = 'about-update-status abd-about-status text-success';
+                statusEl.className = 'about-update-status abd-about-status text-success success';
                 statusEl.textContent = `New release available: v${remoteTag}`;
             }
             if (actionEl && downloadBtn) {
@@ -118,12 +128,12 @@ function checkForUpdates(silent = false) {
                 statusEl.className = 'about-update-status abd-about-status text-dim';
                 statusEl.textContent = 'You are running the latest version.';
             }
-            if (actionEl) actionEl.hidden = true;
+            if (actionEl) {actionEl.hidden = true;}
         }
     })
     .catch(() => {
         isCheckingUpdates = false;
-        if (checkBtn) checkBtn.disabled = false;
+        if (checkBtn) {checkBtn.disabled = false;}
         if (statusEl) {
             statusEl.className = 'about-update-status abd-about-status text-dim';
             statusEl.textContent = 'You are running the latest version.';
@@ -145,16 +155,24 @@ function initSettingsModals() {
         // Open About
         if (e.target.closest('#menu-about')) {
             e.preventDefault();
-            const modal = document.getElementById('about-modal-backdrop');
-            if (modal) { modal.style.display = 'flex'; }
+            if (typeof window.openAboutDialog === 'function') {
+                window.openAboutDialog(false);
+            } else {
+                const modal = document.getElementById('about-modal-backdrop');
+                if (modal) { modal.style.display = 'flex'; }
+            }
         }
 
         // Check for updates
         if (e.target.closest('#menu-check-updates')) {
             e.preventDefault();
-            const modal = document.getElementById('about-modal-backdrop');
-            if (modal) { modal.style.display = 'flex'; }
-            checkForUpdates();
+            if (typeof window.openAboutDialog === 'function') {
+                window.openAboutDialog(true);
+            } else {
+                const modal = document.getElementById('about-modal-backdrop');
+                if (modal) { modal.style.display = 'flex'; }
+                checkForUpdates();
+            }
         }
 
         if (e.target.closest('#about-check-updates-btn')) {
@@ -165,7 +183,13 @@ function initSettingsModals() {
         // Documentation / User Guide
         if (e.target.closest('#menu-manual')) {
             e.preventDefault();
-            window.open('https://github.com/ajabadia/ABDEep#readme', '_blank');
+            const manualUrl = 'https://github.com/ajabadia/ABDEep#readme';
+            const backend = typeof window.getJuceBackend === 'function' ? window.getJuceBackend() : null;
+            if (backend && typeof backend.openBrowserUrl === 'function') {
+                backend.openBrowserUrl(manualUrl);
+            } else {
+                window.open(manualUrl, '_blank');
+            }
         }
 
         // Operating Mode Menu shortcuts
@@ -188,6 +212,12 @@ function initSettingsModals() {
 
         // Close About
         if (e.target.closest('#about-modal-close-btn') || e.target.id === 'about-modal-backdrop') {
+            if (typeof window.getAboutDialog === 'function') {
+                const dlg = window.getAboutDialog();
+                if (dlg && typeof dlg.close === 'function') {
+                    dlg.close();
+                }
+            }
             const modal = document.getElementById('about-modal-backdrop');
             if (modal) { modal.style.display = 'none'; }
         }

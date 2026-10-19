@@ -19,16 +19,17 @@ function initCalibrationSettings() {
             setStatus('Bridge not ready', 3000);
             return;
         }
-        getBridge().getCalibration(function(json) {
-            if (!json || typeof json !== 'string') {
+        getBridge().getCalibration(function(payload) {
+            if (!payload || typeof payload !== 'string') {
                 setStatus('Failed to get calibration', 3000);
                 return;
             }
-            const blob = new Blob([json], { type: 'application/json' });
+            const isXml = payload.trimStart().startsWith('<');
+            const blob = new Blob([payload], { type: isXml ? 'application/xml' : 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'abdeep-calibration.json';
+            a.download = isXml ? 'abdeep-calibration.xml' : 'abdeep-calibration.json';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -47,13 +48,19 @@ function initCalibrationSettings() {
         const reader = new FileReader();
         reader.onload = function(e) {
             const text = e.target.result;
-            try {
-                const parsed = JSON.parse(text);
-                previewEl.textContent = JSON.stringify(parsed, null, 2);
+            const trimmed = typeof text === 'string' ? text.trim() : '';
+            if (trimmed.startsWith('<')) {
+                previewEl.textContent = trimmed;
                 previewEl.style.display = 'block';
-            } catch (err) {
-                previewEl.textContent = 'Invalid JSON: ' + err.message;
-                previewEl.style.display = 'block';
+            } else {
+                try {
+                    const parsed = JSON.parse(text);
+                    previewEl.textContent = JSON.stringify(parsed, null, 2);
+                    previewEl.style.display = 'block';
+                } catch (err) {
+                    previewEl.textContent = 'Invalid JSON: ' + err.message;
+                    previewEl.style.display = 'block';
+                }
             }
             if (!getBridge() || !getBridge().setCalibration) {
                 setStatus('Bridge not ready', 3000);

@@ -38,7 +38,8 @@ namespace ABD
         if (currentSampleRate <= 0.0) return 0.0f;
 
         // --- Phase advance ---
-        double modHz = baseFrequency * std::pow(2.0, pitchModValue / 12.0);
+        double modHz = (pitchModValue == 0.0f) ? baseFrequency
+                                               : (baseFrequency * std::pow(2.0, pitchModValue / 12.0));
         double dt = modHz / currentSampleRate;
         phase += dt;
         bool phaseWrapped = (phase >= 1.0);

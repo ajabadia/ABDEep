@@ -10,20 +10,22 @@ function initSliders() {
     document.querySelectorAll('.v-slider').forEach(function (slider) {
         const handle = slider.querySelector('.handle');
         let isDragging = false;
+        let lastClientY = 0;
 
         const _getParamId = function (el) {
             const parent = el.closest('[data-param]');
             return parent ? parent.getAttribute('data-param') : null;
         };
 
-        const updateVal = function (clientY) {
-            const rect = slider.getBoundingClientRect();
-            let pct = 1.0 - (clientY - rect.top) / rect.height;
+        const applyPct = function (pct) {
             pct = Math.max(0, Math.min(1, pct));
-
+            const rect = slider.getBoundingClientRect();
             const handleHeight = 16;
-            const pos = (1.0 - pct) * (rect.height - handleHeight);
-            handle.style.top = pos + 'px';
+            const totalH = (rect.height > 0 ? rect.height : 100) - handleHeight;
+            const pos = (1.0 - pct) * totalH;
+            if (handle) {
+                handle.style.top = pos + 'px';
+            }
 
             const paramId = _getParamId(slider);
             if (!paramId) {return;}
@@ -48,23 +50,82 @@ function initSliders() {
             }
         };
 
+        const updateVal = function (clientY) {
+            const rect = slider.getBoundingClientRect();
+            const pct = 1.0 - (clientY - rect.top) / rect.height;
+            applyPct(pct);
+        };
+
         function onSliderMove(e) {
-            if (isDragging) {
+            if (!isDragging) {return;}
+            if (e.shiftKey) {
+                const rect = slider.getBoundingClientRect();
+                const totalH = Math.max(40, rect.height || 100);
+                const deltaY = lastClientY - e.clientY;
+                lastClientY = e.clientY;
+                const paramId = _getParamId(slider);
+                const currentVal = (paramId && getBridge() && getBridge().parameterCache[paramId] !== undefined)
+                    ? getBridge().parameterCache[paramId]
+                    : 0.5;
+                applyPct(currentVal + (deltaY / totalH) * 0.2);
+            } else {
+                lastClientY = e.clientY;
                 updateVal(e.clientY);
             }
         }
 
         function onSliderEnd() {
-            isDragging = false;
+            if (isDragging) {
+                isDragging = false;
+                const paramId = _getParamId(slider);
+                if (paramId && getBridge() && typeof getBridge().endGesture === 'function') {
+                    getBridge().endGesture(paramId);
+                }
+            }
             window.removeEventListener('mousemove', onSliderMove);
             window.removeEventListener('mouseup', onSliderEnd);
         }
 
         slider.addEventListener('mousedown', function (e) {
             isDragging = true;
-            updateVal(e.clientY);
+            lastClientY = e.clientY;
+            const paramId = _getParamId(slider);
+            if (paramId && getBridge() && typeof getBridge().beginGesture === 'function') {
+                getBridge().beginGesture(paramId);
+            }
+            if (!e.shiftKey) {
+                updateVal(e.clientY);
+            }
             window.addEventListener('mousemove', onSliderMove);
             window.addEventListener('mouseup', onSliderEnd);
+        });
+
+        slider.addEventListener('wheel', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const paramId = _getParamId(slider);
+            if (!paramId || !getBridge()) {return;}
+            const currentVal = getBridge().parameterCache[paramId] !== undefined
+                ? getBridge().parameterCache[paramId]
+                : 0.5;
+            const step = e.shiftKey ? (1.0 / 255.0) : (4.0 / 255.0);
+            const dir = e.deltaY < 0 ? 1 : -1;
+            if (typeof getBridge().beginGesture === 'function') {getBridge().beginGesture(paramId);}
+            applyPct(currentVal + dir * step);
+            if (typeof getBridge().endGesture === 'function') {getBridge().endGesture(paramId);}
+        }, { passive: false });
+
+        slider.addEventListener('dblclick', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const paramId = _getParamId(slider);
+            if (!paramId) {return;}
+            const defVal = typeof window.getDefaultParamValue === 'function'
+                ? window.getDefaultParamValue(paramId)
+                : 0.0;
+            if (getBridge() && typeof getBridge().beginGesture === 'function') {getBridge().beginGesture(paramId);}
+            applyPct(defVal);
+            if (getBridge() && typeof getBridge().endGesture === 'function') {getBridge().endGesture(paramId);}
         });
     });
 }

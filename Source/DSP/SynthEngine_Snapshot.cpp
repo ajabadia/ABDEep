@@ -6,11 +6,14 @@ namespace ABD
 {
     void SynthEngine::updateVoiceSnapshot()
     {
-        const juce::ScopedLock sl(voiceStateLock);
+        const int readIdx  = activeTelemetryIndex.load(std::memory_order_relaxed);
+        const int writeIdx = 1 - readIdx;
+        auto& buf = telemetryBuffers[writeIdx];
+
         for (int i = 0; i < kNumVoices; ++i)
         {
             auto& src = voices[i];
-            auto& dst = voiceSnapshots[i];
+            auto& dst = buf.voiceSnapshots[i];
             dst.active = src.isActive();
             dst.midiNote = src.isActive() ? src.getMidiNote() : -1;
             dst.velocity = src.isActive() ? src.noteVelocity : 0.0f;
@@ -22,105 +25,115 @@ namespace ABD
             dst.modPan = src.lastModPan;
             dst.modVcfCutoffHz = src.lastModVcfCutoffHz;
         }
-        snapPitchBend = currentPitchBend;
-        snapModWheel = currentModWheel;
-        snapAftertouch = currentAftertouch;
-        snapSustainPedal = currentSustainPedal;
-        snapPeakLevel = currentPeakLevel;
+        buf.snapPitchBend = currentPitchBend;
+        buf.snapModWheel = currentModWheel;
+        buf.snapAftertouch = currentAftertouch;
+        buf.snapSustainPedal = currentSustainPedal;
+        buf.snapPeakLevel = currentPeakLevel;
+        buf.polyChordNoteCount = polyChordNoteCount;
 
-        currentDiagnosticSnapshot.blockCounter++;
-        currentDiagnosticSnapshot.timestamp = (uint64_t)juce::Time::currentTimeMillis();
-        currentDiagnosticSnapshot.vcfOversample = voices[0].params.vcfOversample;
-        currentDiagnosticSnapshot.vcfVoicingMode = voices[0].params.vcfVoicingMode;
-        currentDiagnosticSnapshot.driftAmount = voices[0].params.paramDrift;
-        
-        currentDiagnosticSnapshot.pitchBend = snapPitchBend;
-        currentDiagnosticSnapshot.modWheel = snapModWheel;
-        currentDiagnosticSnapshot.aftertouch = snapAftertouch;
-        currentDiagnosticSnapshot.sustainPedal = snapSustainPedal;
-        currentDiagnosticSnapshot.peakLevel = snapPeakLevel;
-        currentDiagnosticSnapshot.voiceMode = voiceMode;
-        
-        int activeNotesCount = 0;
-        for (int i = 0; i < kNumVoices; ++i)
-        {
-            if (voices[i].isActive())
-                activeNotesCount++;
-        }
-        currentDiagnosticSnapshot.polyChordNoteCount = activeNotesCount;
+        auto& diag = buf.diagnosticSnapshot;
+        diag.blockCounter = telemetryBuffers[readIdx].diagnosticSnapshot.blockCounter + 1;
+        diag.timestamp = (uint64_t)juce::Time::currentTimeMillis();
+        diag.vcfOversample = voices[0].params.vcfOversample;
+        diag.vcfVoicingMode = voices[0].params.vcfVoicingMode;
+        diag.driftAmount = voices[0].params.paramDrift;
+
+        diag.pitchBend = buf.snapPitchBend;
+        diag.modWheel = buf.snapModWheel;
+        diag.aftertouch = buf.snapAftertouch;
+        diag.sustainPedal = buf.snapSustainPedal;
+        diag.peakLevel = buf.snapPeakLevel;
+        diag.voiceMode = voiceMode;
+
+        diag.polyChordNoteCount = polyChordNoteCount;
 
         for (int i = 0; i < kNumVoices; ++i)
         {
-            currentDiagnosticSnapshot.voiceSnapshots[i] = voices[i].getDiagnosticSnapshot(i);
+            diag.voiceSnapshots[i] = voices[i].getDiagnosticSnapshot(i);
         }
+
+        auto& shared = buf.sharedSnapshot;
+        shared.vuLeft = currentPeakLevel;
+        shared.vuRight = currentPeakLevel;
+        shared.peakLeft = currentPeakLevel;
+        shared.peakRight = currentPeakLevel;
+        uint32_t activeCount = 0;
+        for (int i = 0; i < kNumVoices; ++i)
+        {
+            const bool act = buf.voiceSnapshots[i].active;
+            shared.voiceActive[static_cast<size_t>(i)] = act;
+            shared.voiceNote[static_cast<size_t>(i)] = act && buf.voiceSnapshots[i].midiNote >= 0
+                ? static_cast<uint8_t>(buf.voiceSnapshots[i].midiNote) : 0u;
+            shared.voiceVelocity[static_cast<size_t>(i)] = buf.voiceSnapshots[i].velocity;
+            shared.voiceEnvelopeAmp[static_cast<size_t>(i)] = voices[i].getVcaEnvelopeLevel();
+            shared.voiceEnvelopeFilter[static_cast<size_t>(i)] = voices[i].getVcfEnvelopeLevel();
+            if (act)
+                ++activeCount;
+        }
+        shared.activeVoiceCount = activeCount;
+        shared.currentArpStep = 0;
+        shared.currentModSeqStep = controlSequencer.getCurrentStep();
+        shared.isArpActive = arpeggiator.isActive();
+        shared.isModSeqActive = controlSequencer.isEnabled();
+
+        activeTelemetryIndex.store(writeIdx, std::memory_order_release);
     }
 
     EngineDiagnosticSnapshot SynthEngine::getDiagnosticSnapshot() const
     {
-        const juce::ScopedLock sl(voiceStateLock);
-        auto snapshot = currentDiagnosticSnapshot;
+        const int idx = activeTelemetryIndex.load(std::memory_order_acquire);
+        auto snapshot = telemetryBuffers[idx].diagnosticSnapshot;
 #if DEEP_TARGET_MODEL >= 2
         // Serialización XML fuera del audio thread (invariante de tiempo real §3 del plan v3.2):
-        // updateVoiceSnapshot() actualiza solo datos numéricos por bloque; el JSON de
-        // calibración se construye aquí, en el hilo de control, bajo su propio lock.
-        {
-            const juce::ScopedLock calLock(calibrationLock);
-            snapshot.activeCalibrationJson = activeCalibration.toXml();
-        }
+        // updateVoiceSnapshot() actualiza solo datos numéricos por bloque; el XML de
+        // calibración se construye aquí, en el hilo de control.
+        snapshot.activeCalibrationJson = getCalibrationJson();
 #endif
         return snapshot;
     }
 
     juce::var SynthEngine::getVoiceState() const
     {
+        const int idx = activeTelemetryIndex.load(std::memory_order_acquire);
+        const auto& buf = telemetryBuffers[idx];
+
         juce::Array<juce::var> arr;
-        int polyCount = 0;
+        for (int i = 0; i < kNumVoices; ++i)
         {
-            const juce::ScopedLock sl(voiceStateLock);
-            for (int i = 0; i < kNumVoices; ++i)
-            {
-                auto& snap = voiceSnapshots[i];
-                auto* obj = new juce::DynamicObject();
-                obj->setProperty("index", i);
-                obj->setProperty("active", snap.active);
-                obj->setProperty("midiNote", snap.active ? snap.midiNote : -1);
-                obj->setProperty("detuneSemitones", (double)snap.detuneSemitones);
-                obj->setProperty("panPosition", (double)snap.panPosition);
-                obj->setProperty("voicePanSpread", (double)snap.voicePanSpread);
-                obj->setProperty("modOsc1DetuneSemitones", (double)snap.modOsc1DetuneSemitones);
-                obj->setProperty("modOsc2DetuneSemitones", (double)snap.modOsc2DetuneSemitones);
-                obj->setProperty("modPan", (double)snap.modPan);
-                obj->setProperty("modVcfCutoffHz", (double)snap.modVcfCutoffHz);
-                arr.add(juce::var(obj));
-            }
-            polyCount = polyChordNoteCount;
+            const auto& snap = buf.voiceSnapshots[i];
+            auto* obj = new juce::DynamicObject();
+            obj->setProperty("index", i);
+            obj->setProperty("active", snap.active);
+            obj->setProperty("midiNote", snap.active ? snap.midiNote : -1);
+            obj->setProperty("detuneSemitones", (double)snap.detuneSemitones);
+            obj->setProperty("panPosition", (double)snap.panPosition);
+            obj->setProperty("voicePanSpread", (double)snap.voicePanSpread);
+            obj->setProperty("modOsc1DetuneSemitones", (double)snap.modOsc1DetuneSemitones);
+            obj->setProperty("modOsc2DetuneSemitones", (double)snap.modOsc2DetuneSemitones);
+            obj->setProperty("modPan", (double)snap.modPan);
+            obj->setProperty("modVcfCutoffHz", (double)snap.modVcfCutoffHz);
+            arr.add(juce::var(obj));
         }
-        double snapPb = 0.0, snapMw = 0.0, snapAt = 0.0, snapSus = 0.0, snapPeak = 0.0;
-        {
-            const juce::ScopedLock sl(voiceStateLock);
-            snapPb = (double)snapPitchBend;
-            snapMw = (double)snapModWheel;
-            snapAt = (double)snapAftertouch;
-            snapSus = (double)snapSustainPedal;
-            snapPeak = (double)snapPeakLevel;
-        }
+
         auto* result = new juce::DynamicObject();
         result->setProperty("voices", juce::var(arr));
-        result->setProperty("polyChordNoteCount", polyCount);
-        result->setProperty("pitchBend", snapPb);
-        result->setProperty("modWheel", snapMw);
-        result->setProperty("aftertouch", snapAt);
-        result->setProperty("sustainPedal", snapSus);
-        result->setProperty("peakLevel", snapPeak);
+        result->setProperty("polyChordNoteCount", buf.polyChordNoteCount);
+        result->setProperty("pitchBend", (double)buf.snapPitchBend);
+        result->setProperty("modWheel", (double)buf.snapModWheel);
+        result->setProperty("aftertouch", (double)buf.snapAftertouch);
+        result->setProperty("sustainPedal", (double)buf.snapSustainPedal);
+        result->setProperty("peakLevel", (double)buf.snapPeakLevel);
         return juce::var(result);
     }
 
     juce::var SynthEngine::getAudioWaveform() const
     {
         juce::Array<juce::var> samples;
+        const int writePos = audioCaptureWritePos.load(std::memory_order_acquire);
         for (int i = 0; i < kAudioCaptureSize; ++i)
         {
-            int idx = (audioCaptureWritePos + i) % kAudioCaptureSize;
+            int idx = (writePos + i) % kAudioCaptureSize;
             samples.add ((double) audioCaptureBuffer[idx * 2]);
         }
         return juce::var (samples);
@@ -128,31 +141,52 @@ namespace ABD
 
     void SynthEngine::panic()
     {
-        const juce::ScopedLock sl (voiceStateLock);
-        
+        const juce::SpinLock::ScopedTryLockType processTryLock(engineProcessSpinLock);
+        if (!processTryLock.isLocked())
+        {
+            pendingPanic.store(true, std::memory_order_release);
+            return;
+        }
+
         for (int i = 0; i < kNumVoices; ++i)
         {
             voices[i].stopNote (true);
         }
         voiceAlloc.reset();
-        
+        arpeggiator.allNotesOff();
+
         std::memset (polyChordHeldNotes, 0, sizeof (polyChordHeldNotes));
         polyChordNoteCount = 0;
-        
+
         std::memset (monoHeldNotes, 0, sizeof (monoHeldNotes));
         monoHeldNoteCount = 0;
-        
+
+        sustainLatchCount = 0;
         currentPeakLevel = 0.0f;
+
+        for (int b = 0; b < 2; ++b)
+        {
+            telemetryBuffers[b].polyChordNoteCount = 0;
+            telemetryBuffers[b].snapPeakLevel = 0.0f;
+            for (int i = 0; i < kNumVoices; ++i)
+            {
+                telemetryBuffers[b].voiceSnapshots[i].active = false;
+                telemetryBuffers[b].voiceSnapshots[i].midiNote = -1;
+            }
+        }
     }
 
     void SynthEngine::resetMidiControllers()
     {
-        const juce::ScopedLock sl (voiceStateLock);
+        const juce::SpinLock::ScopedLockType processLock(engineProcessSpinLock);
 
         currentPitchBend = 0.0f;
         currentModWheel = 0.0f;
         currentAftertouch = 0.0f;
         currentSustainPedal = 0.0f;
+        currentFootController = 0.0f;
+        currentBreathController = 0.0f;
+        currentExpressionPedal = 0.0f;
         sustainLatchCount = 0;
 
         // Propagar a todas las voces activas para que el cambio tenga efecto inmediato
@@ -162,37 +196,29 @@ namespace ABD
             voices[i].setExternalModulation (ModSource::kModWheel, 0.0f);
             voices[i].setExternalModulation (ModSource::kKeyPressure, 0.0f);
             voices[i].setExternalModulation (ModSource::kSustainPedal, 0.0f);
+            voices[i].setExternalModulation (ModSource::kFootController, 0.0f);
+            voices[i].setExternalModulation (ModSource::kBreathController, 0.0f);
+            voices[i].setExternalModulation (ModSource::kExpressionPedal, 0.0f);
         }
     }
 
     juce::String SynthEngine::getActiveNotesJSON() const
     {
-        juce::Array<juce::var> notesArr;
-        {
-            const juce::ScopedLock sl (voiceStateLock);
-            for (int i = 0; i < kNumVoices; ++i)
-            {
-                if (voiceSnapshots[i].active)
-                {
-                    auto* pair = new juce::DynamicObject();
-                    pair->setProperty ("n", voiceSnapshots[i].midiNote);
-                    pair->setProperty ("v", (double) voiceSnapshots[i].velocity);
-                    notesArr.add (juce::var (pair));
-                }
-            }
-        }
+        const int idx = activeTelemetryIndex.load(std::memory_order_acquire);
+        const auto& buf = telemetryBuffers[idx];
 
         std::map<int, float> uniqueNotes;
-        for (auto& item : notesArr)
+        for (int i = 0; i < kNumVoices; ++i)
         {
-            auto* obj = item.getDynamicObject();
-            int n = (int) obj->getProperty ("n");
-            float v = (float) obj->getProperty ("v");
-            auto it = uniqueNotes.find (n);
-            if (it == uniqueNotes.end())
-                uniqueNotes[n] = v;
-            else if (v > it->second)
-                it->second = v;
+            const auto& snap = buf.voiceSnapshots[i];
+            if (snap.active)
+            {
+                auto it = uniqueNotes.find (snap.midiNote);
+                if (it == uniqueNotes.end())
+                    uniqueNotes[snap.midiNote] = snap.velocity;
+                else if (snap.velocity > it->second)
+                    it->second = snap.velocity;
+            }
         }
 
         juce::String json = "[";
@@ -219,15 +245,19 @@ namespace ABD
         if (! error.isEmpty())
             return false;
 
+        spec.validate();
         const juce::ScopedLock sl (calibrationLock);
-        pendingCalibration = spec;
+        const int writeIdx = 1 - activeCalibrationIndex.load (std::memory_order_relaxed);
+        calibrationBuffers[writeIdx] = spec;
+        activeCalibrationIndex.store (writeIdx, std::memory_order_release);
         return true;
     }
 
     juce::String SynthEngine::getCalibrationJson() const
     {
         const juce::ScopedLock sl (calibrationLock);
-        return activeCalibration.toXml();
+        const int readIdx = activeCalibrationIndex.load (std::memory_order_acquire);
+        return calibrationBuffers[readIdx].toXml();
     }
 #else
     bool SynthEngine::loadCalibrationFromJson(const juce::String&) { return false; }

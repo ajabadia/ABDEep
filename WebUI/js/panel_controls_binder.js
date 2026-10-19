@@ -44,6 +44,7 @@ window.syncDetailPanelControls = function() {
     }
 
     initDynamicSliders();
+    initDynamicTelemetryHooks();
     window.updatePanelFromState(container);
 
     function initDynamicSliders() {
@@ -52,26 +53,81 @@ window.syncDetailPanelControls = function() {
             if (!handle) {return;}
 
             let isDragging = false;
+            let lastClientY = 0;
 
-            const onStart = (clientY) => {
-                isDragging = true;
-                document.body.style.userSelect = 'none';
-                updateValue(clientY);
+            const getParamMeta = () => {
+                const ctrlUnit = slider.closest('[data-param]');
+                if (!ctrlUnit) {return { paramId: null, labelText: null };}
+                const paramId = ctrlUnit.getAttribute('data-param');
+                const lbl = ctrlUnit.querySelector('.label');
+                const labelText = lbl ? lbl.textContent.trim() : paramId;
+                return { paramId, labelText };
             };
 
-            const onMove = (clientY) => {
+            const applyNormalizedValue = (val) => {
+                const clamped = Math.max(0.0, Math.min(1.0, val));
+                const rect = slider.getBoundingClientRect();
+                const handleHeight = 16;
+                const totalH = (rect.height > 0 ? rect.height : 100) - handleHeight;
+                if (totalH > 0) {
+                    handle.style.top = ((1.0 - clamped) * totalH) + 'px';
+                }
+
+                const { paramId, labelText } = getParamMeta();
+                if (paramId && getBridge()) {
+                    getBridge().setParameter(paramId, clamped);
+                    if (typeof window.drawPanelGraphic === 'function') {
+                        window.drawPanelGraphic();
+                    }
+                    if (typeof window.updateParameterLcdReadout === 'function') {
+                        window.updateParameterLcdReadout(paramId, clamped, labelText, currentPanelMode + ' PANEL');
+                    }
+                }
+            };
+
+            const onStart = (clientY, shiftKey) => {
+                isDragging = true;
+                lastClientY = clientY;
+                document.body.style.userSelect = 'none';
+                const { paramId } = getParamMeta();
+                if (paramId && getBridge() && typeof getBridge().beginGesture === 'function') {
+                    getBridge().beginGesture(paramId);
+                }
+                if (!shiftKey) {
+                    updateValueFromY(clientY);
+                }
+            };
+
+            const onMove = (clientY, shiftKey) => {
                 if (!isDragging) {return;}
-                updateValue(clientY);
+                if (shiftKey) {
+                    const rect = slider.getBoundingClientRect();
+                    const totalH = Math.max(40, (rect.height || 100) - 16);
+                    const deltaY = lastClientY - clientY;
+                    lastClientY = clientY;
+                    const { paramId } = getParamMeta();
+                    const currentVal = (paramId && getBridge() && getBridge().parameterCache[paramId] !== undefined)
+                        ? getBridge().parameterCache[paramId]
+                        : 0.5;
+                    applyNormalizedValue(currentVal + (deltaY / totalH) * 0.2);
+                } else {
+                    lastClientY = clientY;
+                    updateValueFromY(clientY);
+                }
             };
 
             const onEnd = () => {
                 if (!isDragging) {return;}
                 isDragging = false;
                 document.body.style.userSelect = '';
+                const { paramId } = getParamMeta();
+                if (paramId && getBridge() && typeof getBridge().endGesture === 'function') {
+                    getBridge().endGesture(paramId);
+                }
             };
 
             function onTouchMove(e) {
-                onMove(e.touches[0].clientY);
+                onMove(e.touches[0].clientY, false);
             }
             function onTouchEnd() {
                 onEnd();
@@ -79,13 +135,13 @@ window.syncDetailPanelControls = function() {
                 document.removeEventListener('touchend', onTouchEnd);
             }
             slider.addEventListener('touchstart', (e) => {
-                onStart(e.touches[0].clientY);
+                onStart(e.touches[0].clientY, false);
                 document.addEventListener('touchmove', onTouchMove, { passive: true });
                 document.addEventListener('touchend', onTouchEnd);
             }, { passive: true });
 
             function onMouseMove(e) {
-                onMove(e.clientY);
+                onMove(e.clientY, e.shiftKey);
             }
             function onMouseEnd() {
                 onEnd();
@@ -93,12 +149,40 @@ window.syncDetailPanelControls = function() {
                 document.removeEventListener('mouseup', onMouseEnd);
             }
             slider.addEventListener('mousedown', (e) => {
-                onStart(e.clientY);
+                onStart(e.clientY, e.shiftKey);
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseEnd);
             });
 
-            function updateValue(clientY) {
+            slider.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const { paramId } = getParamMeta();
+                if (!paramId || !getBridge()) {return;}
+                const currentVal = getBridge().parameterCache[paramId] !== undefined
+                    ? getBridge().parameterCache[paramId]
+                    : 0.5;
+                const step = e.shiftKey ? (1.0 / 255.0) : (4.0 / 255.0);
+                const dir = e.deltaY < 0 ? 1 : -1;
+                if (typeof getBridge().beginGesture === 'function') {getBridge().beginGesture(paramId);}
+                applyNormalizedValue(currentVal + dir * step);
+                if (typeof getBridge().endGesture === 'function') {getBridge().endGesture(paramId);}
+            }, { passive: false });
+
+            slider.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const { paramId } = getParamMeta();
+                if (!paramId) {return;}
+                const defVal = typeof window.getDefaultParamValue === 'function'
+                    ? window.getDefaultParamValue(paramId)
+                    : 0.0;
+                if (getBridge() && typeof getBridge().beginGesture === 'function') {getBridge().beginGesture(paramId);}
+                applyNormalizedValue(defVal);
+                if (getBridge() && typeof getBridge().endGesture === 'function') {getBridge().endGesture(paramId);}
+            });
+
+            function updateValueFromY(clientY) {
                 const rect = slider.getBoundingClientRect();
                 const handleHeight = 16;
                 const totalH = rect.height - handleHeight;
@@ -108,19 +192,23 @@ window.syncDetailPanelControls = function() {
                 relativeY = Math.max(0, Math.min(relativeY, totalH));
 
                 const val = 1.0 - (relativeY / totalH);
-                handle.style.top = relativeY + 'px';
-
-                const ctrlUnit = slider.closest('[data-param]');
-                if (ctrlUnit) {
-                    const paramId = ctrlUnit.getAttribute('data-param');
-                    if (paramId && getBridge()) {
-                        getBridge().setParameter(paramId, val);
-                        if (typeof window.drawPanelGraphic === 'function') {
-                            window.drawPanelGraphic();
-                        }
-                    }
-                }
+                applyNormalizedValue(val);
             }
+        });
+    }
+
+    function initDynamicTelemetryHooks() {
+        container.querySelectorAll('.toggle-box[data-param], .shape-led-row[data-param]').forEach(el => {
+            el.addEventListener('click', () => {
+                const paramId = el.getAttribute('data-param');
+                if (!paramId || !getBridge() || typeof window.updateParameterLcdReadout !== 'function') {return;}
+                const val = getBridge().parameterCache[paramId];
+                if (val !== undefined) {
+                    const lblEl = el.querySelector('.toggle-label, .shape-name');
+                    const labelText = lblEl ? lblEl.textContent.trim() : paramId;
+                    window.updateParameterLcdReadout(paramId, val, labelText, currentPanelMode + ' PANEL');
+                }
+            });
         });
     }
 };

@@ -25,6 +25,7 @@ void getSynthState (ABDEepAudioProcessor& audioProcessor,
     }
 
     stateObj->setProperty("presetName", audioProcessor.getPresetName());
+    stateObj->setProperty("midiLearnJson", audioProcessor.getMidiLearnState());
     
     completion (juce::var (stateObj.get()));
 }
@@ -98,6 +99,10 @@ void getDiagnosticSnapshot (ABDEepAudioProcessor& audioProcessor,
         vo->setProperty ("detuneSemitonesEffective", (double)v.detuneSemitonesEffective);
         vo->setProperty ("panBase", (double)v.panBase);
         vo->setProperty ("panEffective", (double)v.panEffective);
+        vo->setProperty ("voicePanSpread", (double)v.voicePanSpread);
+        vo->setProperty ("modOsc1DetuneSemitones", (double)v.modOsc1DetuneSemitones);
+        vo->setProperty ("modOsc2DetuneSemitones", (double)v.modOsc2DetuneSemitones);
+        vo->setProperty ("modPan", (double)v.modPan);
         
         vo->setProperty ("baseCutoffHz", (double)v.baseCutoffHz);
         vo->setProperty ("effectiveCutoffHz", (double)v.effectiveCutoffHz);
@@ -105,6 +110,7 @@ void getDiagnosticSnapshot (ABDEepAudioProcessor& audioProcessor,
         vo->setProperty ("envDepthSign", (double)v.envDepthSign);
         vo->setProperty ("keytrackHz", (double)v.keytrackHz);
         vo->setProperty ("hpfCutoffHz", (double)v.hpfCutoffHz);
+        vo->setProperty ("hpfBassBoostActive", v.hpfBassBoostActive);
         
         vo->setProperty ("vcfCutoffBase", (double)v.vcfCutoffBase);
         vo->setProperty ("vcfCutoffEffectiveHz", (double)v.vcfCutoffEffectiveHz);
@@ -117,6 +123,11 @@ void getDiagnosticSnapshot (ABDEepAudioProcessor& audioProcessor,
         vo->setProperty ("env1Value", (double)v.env1Value);
         vo->setProperty ("env2Value", (double)v.env2Value);
         vo->setProperty ("driftHz", (double)v.driftHz);
+        vo->setProperty ("driftOsc1Pitch", (double)v.driftOsc1Pitch);
+        vo->setProperty ("driftOsc2Pitch", (double)v.driftOsc2Pitch);
+        vo->setProperty ("driftVcfCutoff", (double)v.driftVcfCutoff);
+        vo->setProperty ("driftVcfResonance", (double)v.driftVcfResonance);
+        vo->setProperty ("driftEnvTime", (double)v.driftEnvTime);
         
         vo->setProperty ("cutoffFromEnv", (double)v.cutoffFromEnv);
         vo->setProperty ("cutoffFromLfo", (double)v.cutoffFromLfo);

@@ -69,7 +69,7 @@ bool RoundTripValidator::runPatch3LayerRoundTrip (const std::array<uint8_t, 242>
                                                  std::array<uint8_t, 242>& unpackedOut,
                                                  RoundTripReport& report)
 {
-    auto specs = ParametersSpec::getSpecs();
+    static const auto specs = ParametersSpec::getSpecs();
     report.exactMatches = 0;
     report.withinTolerance = 0;
     report.mismatches = 0;
@@ -79,6 +79,7 @@ bool RoundTripValidator::runPatch3LayerRoundTrip (const std::array<uint8_t, 242>
     report.derivedCount = 0;
     report.stubCount = 0;
     report.entries.clear();
+    report.entries.reserve (242);
 
     for (int i = 0; i < 242; ++i)
     {
@@ -102,23 +103,14 @@ bool RoundTripValidator::runPatch3LayerRoundTrip (const std::array<uint8_t, 242>
         entry.rawRebuilt = rawRebuilt;
         entry.delta = std::abs ((int)rawOriginal - (int)rawRebuilt);
 
-        // Buscar paramIds correspondientes
+        // Buscar paramIds y tipo del parámetro en una sola pasada
+        bool isEnum = false;
+        bool isStub = false; // vcf_pole_mode is now fully implemented
         for (const auto& spec : specs)
         {
             if (spec.midiNRPN == i)
             {
                 entry.paramIds.add (spec.id);
-            }
-        }
-
-        // Buscar tipo del parámetro
-        bool isEnum = false;
-        bool isStub = false; // vcf_pole_mode is now fully implemented
-        
-        for (const auto& spec : specs)
-        {
-            if (spec.midiNRPN == i)
-            {
                 if (spec.type == "enum")
                     isEnum = true;
             }

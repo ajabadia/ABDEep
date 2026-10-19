@@ -1296,7 +1296,12 @@ describe('los guards de effects_data.js y del desplegable, con un fichero roto d
 
 describe('el .gen esta protegido de un checkout de Windows', () => {
   const GITATTRIBUTES = resolve(repoRoot, '.gitattributes');
-  const GITATTRIBUTES_HERMANO = resolve(suiteRoot, 'ABDSharedAssets', '.gitattributes');
+  const GITATTRIBUTES_HERMANO_CANDIDATES = [
+    resolve(suiteRoot, 'ABDShared', '.gitattributes'),
+    resolve(suiteRoot, 'ABDSharedAssets', '.gitattributes'),
+    resolve(suiteRoot, '.gitattributes'),
+  ];
+  const GITATTRIBUTES_HERMANO = GITATTRIBUTES_HERMANO_CANDIDATES.find(existsSync) ?? GITATTRIBUTES_HERMANO_CANDIDATES[0];
 
   it('este repo fija el .gen a LF en checkout', () => {
     const reglas = reglasPara('WebUI/js/fx_contract.gen.js', readFileSync(GITATTRIBUTES, 'utf8'));
@@ -1315,8 +1320,8 @@ describe('el .gen esta protegido de un checkout de Windows', () => {
   it('el hermano fija el contrato, que es lo que se hashea', () => {
     // El generador hashea los BYTES del contrato. Si el hermano no lo fijara,
     // el hash seria distinto en cada plataforma y el `.gen` no podria ser el
-    // mismo fichero en las dos. ABDSharedAssets lo fija con `*.json text
-    // eol=lf`, asi que aqui se comprueba esa regla y no una suelta.
+    // mismo fichero en las dos. ABDSharedAssets / ABDShared lo fija con `*.json text
+    // eol=lf` (o `* text=auto eol=lf`), asi que aqui se comprueba esa regla y no una suelta.
     //
     // El `existsSync` va antes porque este fichero ya necesita el hermano para
     // el contrato, pero sin el fallaba con un ENOENT del `.gitattributes`
@@ -1324,11 +1329,14 @@ describe('el .gen esta protegido de un checkout de Windows', () => {
     // hacer es un error que se pierde.
     expect(
       existsSync(GITATTRIBUTES_HERMANO),
-      'no esta ABDSharedAssets/.gitattributes: este test lee el contrato del hermano, ' +
-      'hace falta el checkout de ABDSharedAssets un nivel por encima (es lo que hace el workflow)'
+      'no esta ABDShared/.gitattributes ni ABDSharedAssets/.gitattributes: este test lee el contrato del hermano, ' +
+      'hace falta el checkout de ABDShared / ABDSharedAssets un nivel por encima (es lo que hace el workflow)'
     ).toBe(true);
 
-    const reglas = reglasPara('contracts/fx-effects.json', readFileSync(GITATTRIBUTES_HERMANO, 'utf8'));
+    const gaHermano = readFileSync(GITATTRIBUTES_HERMANO, 'utf8');
+    const reglas = reglasPara('contracts/fx-effects.json', gaHermano).length > 0
+      ? reglasPara('contracts/fx-effects.json', gaHermano)
+      : reglasPara('Contracts/fx-effects.json', gaHermano);
 
     expect(reglas).not.toEqual([]);
     expect(fijaLf(reglas)).toBe(true);

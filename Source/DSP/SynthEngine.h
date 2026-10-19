@@ -16,9 +16,27 @@
 // robo estilo MS2000 generalizada (nota repetida → libre → latch → release
 // por nivel → FIFO). Libre de JUCE: se alimenta vía StealHint.
 #include <SynthCore/VoiceAllocator.h>
+#include <SynthCore/AudioThreadSnapshot.h>
+#include <Scope/Source/Core/ScopeTap.h>
 
 namespace ABD
 {
+    /**
+     * @brief Puntos de inyección de tono diagnóstico de 440 Hz en el pipeline DSP.
+     *
+     * Permite inyectar una señal sinusoidal pura en distintas etapas (Pre-Filter,
+     * Pre-Amp, Pre-FX, Pre-Master, Post-Master) para diagnosticar la cadena de audio.
+     */
+    enum class DiagnosticTonePoint
+    {
+        Disabled = 0,
+        PostMasterVolume = 1,  // Salida final post-FX y post-Master Volume
+        PreMasterVolume = 2,   // Post-FX, antes del Master Volume
+        PreEffects = 3,        // Post-VCA/HPF (suma de voces), antes del FXEngine
+        PreFilter = 4,         // Dentro de SynthVoice: reemplaza salida de osciladores antes del VCF
+        PreAmp = 5             // Dentro de SynthVoice: reemplaza salida del VCF antes del VCA
+    };
+
     /**
      * SynthEngine coordina la polifonía (12 voces por defecto), el ruteo de MIDI,
      * la sincronización de parámetros de APVTS y el cálculo de la matriz de modulación.
@@ -42,6 +60,15 @@ namespace ABD
 
         FXEngine& getFXEngine() { return fxEngine; }
         const FXEngine& getFXEngine() const { return fxEngine; }
+
+        Arpeggiator& getArpeggiator() { return arpeggiator; }
+        const Arpeggiator& getArpeggiator() const { return arpeggiator; }
+
+        ControlSequencer& getControlSequencer() { return controlSequencer; }
+        const ControlSequencer& getControlSequencer() const { return controlSequencer; }
+
+        void setArpGateBase(float gate) { arpGateBase = std::clamp(gate, 0.0f, 1.0f); }
+        const juce::Array<float>& getControlSeqBuffer() const { return controlSeqBuffer; }
 
         // Global HPF (post-VCA, pre-FX) — test/diagnostics hook. En producción estos
         // valores se sincronizan desde la APVTS en updateParameters().
@@ -100,8 +127,8 @@ namespace ABD
         bool loadCalibrationFromJson(const juce::String& json);
         /** Get current calibration as JSON string. */
         juce::String getCalibrationJson() const;
-        /** Get the effective calibration for the current block (immutable snapshot). */
-        const CalibrationSpec& getCalibration() const { return activeCalibration; }
+        /** Get the effective calibration (lock-free read of active buffer). */
+        const CalibrationSpec& getCalibration() const { return calibrationBuffers[activeCalibrationIndex.load(std::memory_order_acquire)]; }
         /** Get factory defaults. */
         static CalibrationSpec getFactoryDefaults() { return CalibrationSpec::factoryDefaults(); }
 
@@ -115,9 +142,10 @@ namespace ABD
         ModulationMatrix modMatrix;
         FXEngine fxEngine;
 
-        // --- Snapshot thread-safe para DebugPanel ---
-        // El audio thread copia el estado de las voces al final de processBlock()
-        // bajo voiceStateLock. getVoiceState() lee el snapshot bajo el mismo lock.
+        // --- Snapshot 100% Lock-Free (Doble Buffer SPSC) para DebugPanel y CalibrationLab ---
+        // El audio thread escribe en el buffer inactivo al final de processBlock()
+        // y publica el índice mediante std::memory_order_release. El hilo de UI lee
+        // el índice activo con std::memory_order_acquire sin ningún mutex.
         struct VoiceSnapshot
         {
             bool active = false;
@@ -132,22 +160,27 @@ namespace ABD
             float modVcfCutoffHz = 1000.0f;
         };
 
-        // Controladores MIDI globales (snapshot para DebugPanel)
-        float snapPitchBend = 0.0f;
-        float snapModWheel = 0.0f;
-        float snapAftertouch = 0.0f;
-        float snapSustainPedal = 0.0f;
+        struct TelemetryBuffer
+        {
+            VoiceSnapshot voiceSnapshots[kNumVoices];
+            float snapPitchBend = 0.0f;
+            float snapModWheel = 0.0f;
+            float snapAftertouch = 0.0f;
+            float snapSustainPedal = 0.0f;
+            float snapPeakLevel = 0.0f;
+            int polyChordNoteCount = 0;
+            EngineDiagnosticSnapshot diagnosticSnapshot;
+            abd::synth::AudioThreadSnapshot sharedSnapshot {};
+        };
 
-        // Peak level de salida de audio (VU Meter para DebugPanel)
-        float snapPeakLevel = 0.0f;
-        mutable VoiceSnapshot voiceSnapshots[kNumVoices];
-        mutable juce::CriticalSection voiceStateLock;
-        mutable EngineDiagnosticSnapshot currentDiagnosticSnapshot;
+        mutable TelemetryBuffer telemetryBuffers[2];
+        mutable std::atomic<int> activeTelemetryIndex { 0 };
 
-        // --- Calibration: master state + per-block immutable snapshot ---
-        CalibrationSpec pendingCalibration;    // written from UI/bridge thread
-        CalibrationSpec activeCalibration;     // resolved once per block, read by voices
-        mutable juce::CriticalSection calibrationLock;
+        // --- Calibration: doble buffer SPSC (UI -> Audio) + snapshot inmutable por bloque ---
+        CalibrationSpec calibrationBuffers[2] { CalibrationSpec::factoryDefaults(), CalibrationSpec::factoryDefaults() };
+        std::atomic<int> activeCalibrationIndex { 0 };
+        CalibrationSpec activeCalibration { CalibrationSpec::factoryDefaults() }; // resolved once per block, read by voices
+        mutable juce::CriticalSection calibrationLock; // serializa únicamente escrituras/lecturas en el hilo de UI
 
         void updateVoiceSnapshot();
 
@@ -242,20 +275,44 @@ namespace ABD
         bool arpSyncActive = false;  // true si alguna voz tiene lfoArpSync activo (para global LFOs)
 
         // ── ARP/SEQ: BPM maestro, gate base y módulos ────────────────────
-        // masterBpm viene de arp_rate (20-275, ya en BPM); lo consumen el reloj
-        // del arp, el secuenciador de control y el sync de los LFO.
+        // masterBpm viene de arp_rate (20-275, ya en BPM) o del host DAW (hostBpm > 0);
+        // lo consumen el reloj del arp, el secuenciador de control y el sync de los LFO.
         float masterBpm = 120.0f;
+        float hostBpm = 0.0f;
+        bool hostIsPlaying = false;
+        double hostPpqPosition = 0.0;
         // Gate del panel (0-1). La matriz le suma encima muestra a bloque en
         // processBlock (destino 71), por eso el panel se guarda aparte.
         float arpGateBase = 0.5f;
         Arpeggiator arpeggiator;
         ControlSequencer controlSequencer;
+        juce::Array<float> controlSeqBuffer;
 
         // LFO Arp Sync rates desde la tabla de Clock Divide del hardware (lfo_rate → división)
         float globalLfo1ArpSyncHz = 1.0f;
         float globalLfo2ArpSyncHz = 1.0f;
 
     public:
+        /**
+         * Establece el tempo y estado de transporte reportado por el DAW (juce::AudioPlayHead).
+         * Si bpm está en rango válido [20, 400], sincroniza el BPM maestro del motor
+         * (Arpeggiator, Control Sequencer y LFO Arp Sync) con el host.
+         * Al iniciar la reproducción en el DAW (flanco ascendente de isPlaying), alinea el
+         * paso 1 del Control Sequencer con el arranque del transporte.
+         */
+        void setHostBpm(float bpm) noexcept { hostBpm = bpm; }
+        float getHostBpm() const noexcept { return hostBpm; }
+        void setHostTransport(float bpm, bool isPlaying, double ppqPos = 0.0) noexcept
+        {
+            hostBpm = bpm;
+            if (!hostIsPlaying && isPlaying && controlSequencer.isEnabled())
+                controlSequencer.reset();
+            hostIsPlaying = isPlaying;
+            hostPpqPosition = ppqPos;
+        }
+        bool isHostPlaying() const noexcept { return hostIsPlaying; }
+        double getHostPpqPosition() const noexcept { return hostPpqPosition; }
+
         /**
          * Mapea el rate normalizado de un LFO (0-1 → byte 0-255) a la frecuencia de Arp Sync,
          * reinterpretando el rate como división de la tabla de Clock Divide del hardware DM12
@@ -267,6 +324,8 @@ namespace ABD
     private:
         // Master Gain
         float globalVolume = 0.8f;
+        float lastGlobalVolume = 0.8f;
+        bool globalVolumeInitialized = false;
 
         // Global HPF (post-VCA, post-SUM, pre-FX) — hardware: VCF → VCA → SUM → HPF → FX.
         // Actúa sobre la suma de todas las voces; cutoff modulado desde fuentes "common".
@@ -288,14 +347,61 @@ namespace ABD
         float currentModWheel = 0.0f;
         float currentAftertouch = 0.0f;
         float currentSustainPedal = 0.0f;
+        float currentFootController = 0.0f;
+        float currentBreathController = 0.0f;
+        float currentExpressionPedal = 0.0f;
 
         // Peak level de salida (para VU Meter en DebugPanel)
         float currentPeakLevel = 0.0f;
 
-        // --- Audio waveform capture buffer for real-time oscilloscope ---
+        // --- Audio waveform capture buffer for real-time oscilloscope + ABDShared::ScopeCore SPSC taps ---
         static constexpr int kAudioCaptureSize = 512; // muestras por canal
         float audioCaptureBuffer[kAudioCaptureSize * 2] = {0.0f}; // stereo interleaved
-        int audioCaptureWritePos = 0;
+        std::atomic<int> audioCaptureWritePos { 0 };
+        abd::scope::ScopeTap masterScopeTap { "Master Out", abd::scope::ScopeTapType::StereoAudio, 4096, "master-out" };
+        abd::scope::ScopeTap preFxScopeTap { "Pre FX", abd::scope::ScopeTapType::StereoAudio, 4096, "pre-fx" };
+
+        // --- Inyector de Tono Diagnóstico de 440 Hz Multi-Punto ---
+        std::atomic<DiagnosticTonePoint> diagTonePoint_ { DiagnosticTonePoint::Disabled };
+        std::atomic<float> testToneFrequency_ { 440.0f };
+        std::atomic<float> testToneLevel_ { 0.25f };
+        double testTonePhase_ { 0.0 };
+
+    public:
+        abd::scope::ScopeTap& getMasterScopeTap() noexcept { return masterScopeTap; }
+        const abd::scope::ScopeTap& getMasterScopeTap() const noexcept { return masterScopeTap; }
+        abd::scope::ScopeTap& getPreFxScopeTap() noexcept { return preFxScopeTap; }
+        const abd::scope::ScopeTap& getPreFxScopeTap() const noexcept { return preFxScopeTap; }
+
+        /** Retorna el snapshot estándar compartido abd::synth::AudioThreadSnapshot (lock-free). */
+        const abd::synth::AudioThreadSnapshot& getSharedSnapshot() const noexcept
+        {
+            return telemetryBuffers[activeTelemetryIndex.load(std::memory_order_acquire)].sharedSnapshot;
+        }
+        const abd::synth::AudioThreadSnapshot& getSnapshot() const noexcept { return getSharedSnapshot(); }
+
+        /** Configura el inyector de tono diagnóstico de 440 Hz en la etapa indicada (0=Off, 1=PostMaster, 2=PreMaster, 3=PreFX, 4=PreFilter, 5=PreAmp). */
+        void setDiagnosticTone(int point, float freqHz = 440.0f, float level = 0.25f) noexcept
+        {
+            const int clamped = std::clamp(point, 0, 5);
+            diagTonePoint_.store(static_cast<DiagnosticTonePoint>(clamped), std::memory_order_relaxed);
+            testToneFrequency_.store(std::clamp(freqHz, 20.0f, 20000.0f), std::memory_order_relaxed);
+            testToneLevel_.store(std::clamp(level, 0.0f, 1.0f), std::memory_order_relaxed);
+        }
+        int getDiagnosticTonePoint() const noexcept
+        {
+            return static_cast<int>(diagTonePoint_.load(std::memory_order_relaxed));
+        }
+        void setTestToneEnabled(bool enabled) noexcept
+        {
+            setDiagnosticTone(enabled ? static_cast<int>(DiagnosticTonePoint::PostMasterVolume) : 0, 440.0f, 0.25f);
+        }
+
+    private:
+
+        // SpinLock para proteger el estado de voces durante processBlock frente a panic() concurrente
+        mutable juce::SpinLock engineProcessSpinLock;
+        std::atomic<bool> pendingPanic { false };
 
         // --- Note event tracking for WebUI LCD display ---
         // Atomic exchange pattern: audio thread writes, UI timer reads + clears.

@@ -21,8 +21,8 @@ void PatchController::offerMidi (const juce::MidiBuffer& midiMessages) noexcept
 {
     // Leer filtro de canal MIDI (0 = Omni, 1-16 = canal específico)
     int midiChannelFilter = 0;
-    if (auto* p = apvts.getParameter ("midi_channel"))
-        midiChannelFilter = static_cast<int> (p->getValue());
+    if (auto* raw = apvts.getRawParameterValue ("midi_channel"))
+        midiChannelFilter = static_cast<int> (std::round (raw->load (std::memory_order_relaxed)));
 
     for (const auto meta : midiMessages)
     {
@@ -48,7 +48,7 @@ void PatchController::offerMidi (const juce::MidiBuffer& midiMessages) noexcept
 void PatchController::timerCallback()
 {
     // Leer petición atómica del hilo de audio
-    const std::uint64_t word = requestWord.load (std::memory_order_relaxed);
+    const std::uint64_t word = requestWord.load (std::memory_order_acquire);
     const std::uint64_t seq = word >> 24;
     const int bank = (word >> 16) & 0xFF;
     const int prog = (word >> 8) & 0xFF;
@@ -89,10 +89,10 @@ void PatchController::scheduleApply (int bankIdx, int progIdx)
 
 void PatchController::publishRequest (int bank, int prog) noexcept
 {
-    const std::uint64_t nextSeq = lastSeenSeq + 1;
+    const std::uint64_t nextSeq = (publishedSeq.fetch_add (1, std::memory_order_relaxed) + 1) & 0xFFFFFFFFFFULL;
     const std::uint64_t word = (nextSeq << 24) | (static_cast<std::uint64_t>(bank) << 16)
                              | (static_cast<std::uint64_t>(prog) << 8) | 1ULL;
-    requestWord.store (word, std::memory_order_relaxed);
+    requestWord.store (word, std::memory_order_release);
 }
 
 void PatchController::applyPatch (int bankIdx, int progIdx)

@@ -15,6 +15,8 @@ namespace ABD
         if (effect)
             effect->prepare(newSampleRate, samplesPerBlock);
         buffersPrepared = false;
+        if (samplesPerBlock > 0)
+            prepareBuffers(2, samplesPerBlock);
     }
 
     void FXSlot::prepareBuffers(int numChannels, int numSamples)
@@ -23,7 +25,7 @@ namespace ABD
             && wetBuffer.getNumChannels() >= numChannels)
             return; // Ya preparado y suficientemente grande
         
-        wetBuffer.setSize(numChannels, numSamples, false, false, true);
+        wetBuffer.setSize(numChannels, numSamples, false, true, true);
         buffersPrepared = true;
     }
 
@@ -53,9 +55,13 @@ namespace ABD
     {
         if (index >= 0 && index < 12)
         {
-            params[index] = std::clamp(value, 0.0f, 1.0f);
-            if (effect && index < effect->getNumParameters())
-                effect->setParameter(index, params[index]);
+            const float clamped = std::clamp(value, 0.0f, 1.0f);
+            if (std::abs(params[index] - clamped) > 1.0e-6f)
+            {
+                params[index] = clamped;
+                if (effect && index < effect->getNumParameters())
+                    effect->setParameter(index, clamped);
+            }
         }
     }
 

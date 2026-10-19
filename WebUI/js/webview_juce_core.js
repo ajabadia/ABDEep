@@ -21,6 +21,7 @@ const _juceNativeFunctionNames = [
     'beginGesture',
     'endGesture',
     'getSynthState',
+    'setPresetName',
     'requestMidiDump',
     'readFactoryBankFile',
     'pianoNoteOn',
@@ -28,6 +29,7 @@ const _juceNativeFunctionNames = [
     'panic',
     'getVoiceState',
     'getAudioWaveform',
+    'getBuildInfo',
     'getCalibration',
     'setCalibration',
     'getDiagnosticSnapshot',
@@ -35,7 +37,14 @@ const _juceNativeFunctionNames = [
     'renderAudioABSoftwareReference',
     'finishAudioABRun',
     'abortAudioABRun',
-    'compareAudioABRun'
+    'compareAudioABRun',
+    'sendModulatorAudioBuffer',
+    'runRoundTripValidator',
+    'setMidiLearnState',
+    'getMidiLearnState',
+    'checkForUpdates',
+    'getUpdateStatus',
+    'openBrowserUrl'
 ];
 
 // ── Core: emit a native function call via JUCE 8 event protocol ──
@@ -44,22 +53,23 @@ function _juceCallNative(name, args) {
     const payload = { name: name, params: args, resultId: promiseId };
 
     return new Promise(function(resolve, reject) {
-        _jucePromises[promiseId] = { resolve: resolve, reject: reject };
-
-        if (window.__JUCE__ && window.__JUCE__.backend) {
-            window.__JUCE__.backend.emitEvent('__juce__invoke', payload);
-        } else {
-            delete _jucePromises[promiseId];
-            reject(new Error('JUCE backend not available'));
-        }
-
         // Safety timeout: resolve with undefined after 5s if no response
-        setTimeout(function() {
+        const timeoutId = setTimeout(function() {
             if (_jucePromises[promiseId]) {
                 _jucePromises[promiseId].resolve(undefined);
                 delete _jucePromises[promiseId];
             }
         }, 5000);
+
+        _jucePromises[promiseId] = { resolve: resolve, reject: reject, timeoutId: timeoutId };
+
+        if (window.__JUCE__ && window.__JUCE__.backend) {
+            window.__JUCE__.backend.emitEvent('__juce__invoke', payload);
+        } else {
+            clearTimeout(timeoutId);
+            delete _jucePromises[promiseId];
+            reject(new Error('JUCE backend not available'));
+        }
     });
 }
 
@@ -92,6 +102,9 @@ window._juceInstallCompleteListener = function() {
         window.__JUCE__.backend.addEventListener('__juce__complete', function(data) {
             const p = _jucePromises[data.promiseId];
             if (p) {
+                if (p.timeoutId) {
+                    clearTimeout(p.timeoutId);
+                }
                 delete _jucePromises[data.promiseId];
                 p.resolve(data.result);
             }
@@ -110,6 +123,12 @@ window._juceInstallEventListeners = function() {
             window._bridgeInstance.handleParameterChangeFromBackend(data.id, data.value);
         }
     });
+
+    window.__JUCE__.backend.addEventListener('updateCheckResult', function(data) {
+        if (typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+            window.dispatchEvent(new CustomEvent('updateCheckResult', { detail: data }));
+        }
+    });
     return true;
 };
 
@@ -125,4 +144,33 @@ window._juceCreateCompat = function() {
 
     juce._onParameterChangedCallbacks = [];
     return juce;
+};
+
+// ── Canonical backend adapter for @abdsynths/shared components (AboutDialog / AutoUpdater) ──
+window.getJuceBackend = function() {
+    const hasNativeBackend = Boolean(window.__JUCE__ && window.__JUCE__.backend);
+    if (hasNativeBackend && window.juce) {
+        return {
+            checkForUpdates: function() {
+                return window.juce.checkForUpdates ? window.juce.checkForUpdates() : undefined;
+            },
+            getUpdateStatus: function() {
+                return window.juce.getUpdateStatus ? window.juce.getUpdateStatus() : undefined;
+            },
+            openBrowserUrl: function(url) {
+                return window.juce.openBrowserUrl ? window.juce.openBrowserUrl(url) : undefined;
+            },
+            addEventListener: function(evt, cb) {
+                if (window.__JUCE__ && window.__JUCE__.backend && typeof window.__JUCE__.backend.addEventListener === 'function') {
+                    window.__JUCE__.backend.addEventListener(evt, cb);
+                }
+            },
+            emitEvent: function(evt, payload) {
+                if (window.__JUCE__ && window.__JUCE__.backend && typeof window.__JUCE__.backend.emitEvent === 'function') {
+                    window.__JUCE__.backend.emitEvent(evt, payload);
+                }
+            }
+        };
+    }
+    return null;
 };

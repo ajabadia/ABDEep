@@ -44,7 +44,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout ParametersSpec::createLayout
         {
             juce::StringArray opts = s.options;
             if (opts.isEmpty())
-                opts = { "Off", "On" };
+            {
+                const int maxIdx = std::max(1, static_cast<int>(std::round(s.maxValue)));
+                if (maxIdx == 1)
+                {
+                    opts = { "Off", "On" };
+                }
+                else
+                {
+                    for (int i = 0; i <= maxIdx; ++i)
+                        opts.add(juce::String(i));
+                }
+            }
 
             layout.add(std::make_unique<juce::AudioParameterChoice>(
                 juce::ParameterID{ s.id, 1 }, s.name,

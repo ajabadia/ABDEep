@@ -1,7 +1,11 @@
 #pragma once
 
+#include <array>
+#include <cstring>
 #include <functional>
+#include <memory>
 #include <JuceHeader.h>
+#include <AutoUpdater/AutoUpdater.h>
 #include "DSP/SynthEngine.h"
 #include "Calibration/AudioABRecorder.h"
 #include "Plugin/PatchController.h"
@@ -40,22 +44,49 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
     ABD::SynthEngine& getSynthEngine() { return synthEngine; }
     AudioABRecorder& getAudioABRecorder() { return audioABRecorder; }
+    ABDShared::AutoUpdater* getAutoUpdater() noexcept { return autoUpdater.get(); }
 
     juce::String getPresetName() const { return currentPresetName; }
     void setPresetName (const juce::String& newName);
 
-    ABD::PatchController& getPatchController() { return patchController; }
-
-    void queueMidiMessage (const juce::MidiMessage& msg)
+    juce::String getMidiLearnState() const
     {
-        const juce::ScopedLock sl (midiQueueLock);
-        midiQueue.addEvent (msg, 0);
+        const juce::ScopedLock sl (midiLearnLock);
+        return midiLearnJson;
     }
 
-    void clearMidiQueue()
+    void setMidiLearnState (const juce::String& json)
     {
-        const juce::ScopedLock sl (midiQueueLock);
-        midiQueue.clear();
+        const juce::ScopedLock sl (midiLearnLock);
+        midiLearnJson = json;
+    }
+
+    ABD::PatchController& getPatchController() { return patchController; }
+
+    void queueMidiMessage (const juce::MidiMessage& msg) noexcept
+    {
+        const int rawSize = msg.getRawDataSize();
+        if (rawSize <= 0 || rawSize > QueuedMidiPacket::kMaxBytes)
+            return;
+
+        const auto scope = midiFifo.write (1);
+        if (scope.blockSize1 > 0)
+        {
+            auto& pkt = midiRingBuffer[static_cast<size_t> (scope.startIndex1)];
+            pkt.size = rawSize;
+            std::memcpy (pkt.data, msg.getRawData(), static_cast<size_t> (rawSize));
+        }
+        else if (scope.blockSize2 > 0)
+        {
+            auto& pkt = midiRingBuffer[static_cast<size_t> (scope.startIndex2)];
+            pkt.size = rawSize;
+            std::memcpy (pkt.data, msg.getRawData(), static_cast<size_t> (rawSize));
+        }
+    }
+
+    void clearMidiQueue() noexcept
+    {
+        midiFifo.reset();
     }
 
     // Callback invoked after restoring DAW session state (setStateInformation)
@@ -64,13 +95,25 @@ public:
     std::function<void(int, int)> onStateRestored;
 
 private:
+    struct QueuedMidiPacket
+    {
+        static constexpr int kMaxBytes = 320; // Soporta notas/CC (3B) y dumps SysEx DeepMind (291B)
+        int size = 0;
+        uint8_t data[kMaxBytes] {};
+    };
+
+    static constexpr int kMidiQueueCapacity = 256;
+    juce::AbstractFifo midiFifo { kMidiQueueCapacity };
+    std::array<QueuedMidiPacket, kMidiQueueCapacity> midiRingBuffer {};
+
     juce::UndoManager undoManager;
     juce::AudioProcessorValueTreeState apvts;
-    juce::MidiBuffer midiQueue;
-    juce::CriticalSection midiQueueLock;
+    mutable juce::CriticalSection midiLearnLock;
+    juce::String midiLearnJson = "{}";
     ABD::SynthEngine synthEngine;
     AudioABRecorder audioABRecorder;
     ABD::PatchController patchController;
+    std::unique_ptr<ABDShared::AutoUpdater> autoUpdater;
     juce::String currentPresetName = "Default";
     bool isPrepared = false;
 

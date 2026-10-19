@@ -133,6 +133,7 @@ juce::WebBrowserComponent::Options addPluginNativeFunctions (
 #else
             obj->setProperty ("model", "MIDI Controller");
 #endif
+            obj->setProperty ("version", JucePlugin_VersionString);
             obj->setProperty ("buildNumber", EEP_BUILD_VERSION);
             obj->setProperty ("buildTimestamp", EEP_BUILD_TIMESTAMP);
             obj->setProperty ("dspCalibration", buildDspCalibrationObject());
@@ -203,5 +204,83 @@ juce::WebBrowserComponent::Options addPluginNativeFunctions (
                 }
             }
             completion ({});
+        })
+        .withNativeFunction ("runRoundTripValidator", [&audioProcessor] (const juce::Array<juce::var>& args,
+                                                                          juce::WebBrowserComponent::NativeFunctionCompletion completion)
+        {
+            BridgeActions::runRoundTripValidator (audioProcessor, args, std::move (completion));
+        })
+        .withNativeFunction ("setMidiLearnState", [&audioProcessor] (const juce::Array<juce::var>& args,
+                                                                      juce::WebBrowserComponent::NativeFunctionCompletion completion)
+        {
+            if (args.size() >= 1)
+                audioProcessor.setMidiLearnState (args[0].toString());
+            completion (juce::var::undefined());
+        })
+        .withNativeFunction ("getMidiLearnState", [&audioProcessor] (const juce::Array<juce::var>& args,
+                                                                      juce::WebBrowserComponent::NativeFunctionCompletion completion)
+        {
+            juce::ignoreUnused (args);
+            completion (juce::var (audioProcessor.getMidiLearnState()));
+        })
+        .withNativeFunction ("checkForUpdates", [&audioProcessor] (const juce::Array<juce::var>& args,
+                                                                   juce::WebBrowserComponent::NativeFunctionCompletion completion)
+        {
+            juce::ignoreUnused (args);
+            if (auto* updater = audioProcessor.getAutoUpdater())
+                updater->checkForUpdates (false);
+            completion (juce::var::undefined());
+        })
+        .withNativeFunction ("getUpdateStatus", [&audioProcessor] (const juce::Array<juce::var>& args,
+                                                                   juce::WebBrowserComponent::NativeFunctionCompletion completion)
+        {
+            juce::ignoreUnused (args);
+            juce::DynamicObject::Ptr result = new juce::DynamicObject();
+            if (auto* u = audioProcessor.getAutoUpdater())
+            {
+                auto info = u->getLastUpdateInfo();
+                result->setProperty ("currentVersion", u->getCurrentVersion());
+                result->setProperty ("isUpdateAvailable", u->isUpdateAvailable());
+                result->setProperty ("latestVersion", info.version.isNotEmpty() ? info.version : u->getCurrentVersion());
+                result->setProperty ("downloadUrl", info.downloadUrl);
+            }
+            completion (juce::var (result.get()));
+        })
+        .withNativeFunction ("openBrowserUrl", [] (const juce::Array<juce::var>& args,
+                                                   juce::WebBrowserComponent::NativeFunctionCompletion completion)
+        {
+            if (args.size() >= 1 && args[0].toString().isNotEmpty())
+                juce::URL (args[0].toString()).launchInDefaultBrowser();
+            completion (juce::var::undefined());
+        })
+        .withEventListener ("checkForUpdates", [&audioProcessor] (const juce::var&)
+        {
+            if (auto* updater = audioProcessor.getAutoUpdater())
+                updater->checkForUpdates (false);
+        })
+        .withEventListener ("openBrowserUrl", [] (const juce::var& data)
+        {
+            if (data.isString() && data.toString().isNotEmpty())
+                juce::URL (data.toString()).launchInDefaultBrowser();
+            else if (data.isObject())
+            {
+                if (auto* obj = data.getDynamicObject(); obj != nullptr && obj->hasProperty ("url"))
+                    juce::URL (obj->getProperty ("url").toString()).launchInDefaultBrowser();
+            }
+        })
+        .withNativeFunction ("setDiagnosticTone", [&audioProcessor] (const juce::Array<juce::var>& args,
+                                                                     juce::WebBrowserComponent::NativeFunctionCompletion completion)
+        {
+            const int point = args.size() >= 1 ? static_cast<int> (args[0]) : 0;
+            const float freq = args.size() >= 2 ? static_cast<float> (args[1]) : 440.0f;
+            const float level = args.size() >= 3 ? static_cast<float> (args[2]) : 0.25f;
+            audioProcessor.getSynthEngine().setDiagnosticTone (point, freq, level);
+            completion (juce::var (audioProcessor.getSynthEngine().getDiagnosticTonePoint()));
+        })
+        .withNativeFunction ("getDiagnosticTonePoint", [&audioProcessor] (const juce::Array<juce::var>& args,
+                                                                          juce::WebBrowserComponent::NativeFunctionCompletion completion)
+        {
+            juce::ignoreUnused (args);
+            completion (juce::var (audioProcessor.getSynthEngine().getDiagnosticTonePoint()));
         });
 }

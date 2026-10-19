@@ -5,6 +5,13 @@ namespace ABD
 {
     FXSpaceEchoRE201::FXSpaceEchoRE201()
     {
+        paramMode = 0.0f;
+        paramTime = 0.4f;
+        paramFeedback = 0.4f;
+        paramBass = 0.5f;
+        paramTreble = 0.5f;
+        paramReverb = 0.3f;
+        echo.setMode(0);
         reset();
     }
 
@@ -16,14 +23,8 @@ namespace ABD
 
     void FXSpaceEchoRE201::reset()
     {
-        paramMode = 0.0f;
-        paramTime = 0.4f;
-        paramFeedback = 0.4f;
-        paramBass = 0.5f;
-        paramTreble = 0.5f;
-        paramReverb = 0.3f;
-
-        echo.setMode(0);
+        const int modeIdx = std::clamp(static_cast<int>(paramMode * 4.99f), 0, 4);
+        echo.setMode(modeIdx);
         echo.reset();
     }
 

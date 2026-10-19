@@ -112,12 +112,40 @@ ABDEepAudioProcessorEditor::ABDEepAudioProcessorEditor (ABDEepAudioProcessor& p)
         }
     };
 
+    // Callback asíncrono de ABDShared::AutoUpdater → WebUI (AboutDialog)
+    if (auto* updater = audioProcessor.getAutoUpdater())
+    {
+        updater->setUpdateCallback ([this] (const ABDShared::AutoUpdater::UpdateInfo& info, bool isManual)
+        {
+            if (webComponent == nullptr)
+                return;
+
+            juce::DynamicObject::Ptr result = new juce::DynamicObject();
+            if (auto* u = audioProcessor.getAutoUpdater())
+            {
+                result->setProperty ("currentVersion", u->getCurrentVersion());
+                result->setProperty ("isUpdateAvailable", u->isUpdateAvailable());
+                result->setProperty ("latestVersion", info.version.isNotEmpty() ? info.version : u->getCurrentVersion());
+                result->setProperty ("downloadUrl", info.downloadUrl);
+                result->setProperty ("releaseNotes", info.releaseNotes);
+                result->setProperty ("isManualCheck", isManual);
+            }
+            juce::var payload (result.get());
+            webComponent->emitEventIfBrowserIsVisible ("updateCheckResult", payload);
+        });
+    }
+
+    setResizable (true, true);
+    setResizeLimits (900, 576, 2400, 1536);
+    getConstrainer()->setFixedAspectRatio (1200.0 / 768.0);
     setSize (1200, 768);
 }
 
 ABDEepAudioProcessorEditor::~ABDEepAudioProcessorEditor()
 {
     stopTimer();
+    if (auto* updater = audioProcessor.getAutoUpdater())
+        updater->setUpdateCallback (nullptr);
     // Prevenir dangling callback si setStateInformation se invoca tras destruir el editor
     audioProcessor.onStateRestored = nullptr;
     audioProcessor.getPatchController().onProgramChanged = nullptr;

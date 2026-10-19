@@ -32,6 +32,10 @@ namespace ABD
         snapshot.detuneSemitonesEffective = unisonDetuneSemitones + lastModOsc1DetuneSemitones;
         snapshot.panBase = unisonPanPosition;
         snapshot.panEffective = lastModPan;
+        snapshot.voicePanSpread = voicePanSpread;
+        snapshot.modOsc1DetuneSemitones = lastModOsc1DetuneSemitones;
+        snapshot.modOsc2DetuneSemitones = lastModOsc2DetuneSemitones;
+        snapshot.modPan = lastModPan;
         
         snapshot.baseCutoffHz = lastBaseCutoffHz;
         snapshot.effectiveCutoffHz = lastEffectiveCutoffHz;
@@ -39,6 +43,7 @@ namespace ABD
         snapshot.envDepthSign = lastEnvDepthSign;
         snapshot.keytrackHz = lastKeytrackHz;
         snapshot.hpfCutoffHz = lastHpfCutoffHz;
+        snapshot.hpfBassBoostActive = params.hpfBassBoost;
         
         snapshot.vcfCutoffBase = lastBaseCutoffHz;
         snapshot.vcfCutoffEffectiveHz = lastEffectiveCutoffHz;
@@ -51,13 +56,18 @@ namespace ABD
         snapshot.env1Value = lastEnv1Value;
         snapshot.env2Value = lastEnv2Value;
         snapshot.driftHz = lastDriftHz;
+        snapshot.driftOsc1Pitch = drift.getOsc1PitchDrift() + staticPitchOffset1;
+        snapshot.driftOsc2Pitch = drift.getOsc2PitchDrift() + staticPitchOffset2;
+        snapshot.driftVcfCutoff = drift.getVcfCutoffDrift() + staticCutoffOffset;
+        snapshot.driftVcfResonance = drift.getVcfResonanceDrift() + staticResOffset;
+        snapshot.driftEnvTime = drift.getEnvTimeDrift() + staticEnvTimeOffset;
         
         snapshot.cutoffFromEnv = lastCutoffFromEnv;
         snapshot.cutoffFromLfo = lastCutoffFromLfo;
         snapshot.cutoffFromDrift = lastCutoffFromDrift;
         snapshot.cutoffFromKeytrack = lastCutoffFromKeytrack;
         
-        snapshot.envStage = 0;
+        snapshot.envStage = static_cast<int>(env1VCA.getCurrentStage());
         snapshot.sourceTag = 0;
         snapshot.flags = 0;
         

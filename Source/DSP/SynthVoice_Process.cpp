@@ -9,8 +9,12 @@ namespace ABD
 
 void SynthVoice::updateModulationSources(int sampleIndex,
                                           const float* globalLfo1,
-                                          const float* globalLfo2)
+                                          const float* globalLfo2,
+                                          const float* controlSeqBuffer)
 {
+    if (controlSeqBuffer != nullptr)
+        modSources[(int)ModSource::kControlSequencer] = controlSeqBuffer[sampleIndex];
+
     // Arp Sync: si está activo, override del rate del LFO con la división de la tabla de Clock Divide
     if (params.lfo1ArpSync)
         lfo1.setRate(lfo1ArpSyncHz);
@@ -87,7 +91,8 @@ void SynthVoice::updateModulationSources(int sampleIndex,
 float SynthVoice::processSample(const ModulationMatrix& matrix,
                                  int sampleIndex,
                                  const float* globalLfo1,
-                                 const float* globalLfo2)
+                                 const float* globalLfo2,
+                                 const float* controlSeqBuffer)
 {
     // Immutable calibration for this block (set by SynthEngine per-block)
 #if DEEP_TARGET_MODEL >= 2
@@ -121,11 +126,39 @@ float SynthVoice::processSample(const ModulationMatrix& matrix,
     float driftCutoff = drift.getVcfCutoffDrift() + staticCutoffOffset;
     float driftResonance = drift.getVcfResonanceDrift() + staticResOffset;
 
-    // 1. Aplicar envTimeDrift a las envolventes antes de avanzar
+    // 1. Aplicar envTimeDrift y modulaciones de matriz a las envolventes y LFOs antes de avanzar
+    const float lfo1RateMod  = matrix.getModulationValue(ModDestination::kLfo1Rate, modSources);
+    const float lfo1DelayMod = matrix.getModulationValue(ModDestination::kLfo1Delay, modSources);
+    const float lfo1SlewMod  = matrix.getModulationValue(ModDestination::kLfo1Slew, modSources);
+    const float lfo2RateMod  = matrix.getModulationValue(ModDestination::kLfo2Rate, modSources);
+    const float lfo2DelayMod = matrix.getModulationValue(ModDestination::kLfo2Delay, modSources);
+    const float lfo2SlewMod  = matrix.getModulationValue(ModDestination::kLfo2Slew, modSources);
+
+    lfo1.setRateScale((lfo1RateMod != 0.0f) ? ABD::DSP::fastExp2(lfo1RateMod * 4.0f) : 1.0f);
+    lfo1.setDelayScale(std::max(0.01f, 1.0f + lfo1DelayMod));
+    lfo1.setSlewScale(std::max(0.0f, 1.0f + lfo1SlewMod));
+    lfo2.setRateScale((lfo2RateMod != 0.0f) ? ABD::DSP::fastExp2(lfo2RateMod * 4.0f) : 1.0f);
+    lfo2.setDelayScale(std::max(0.01f, 1.0f + lfo2DelayMod));
+    lfo2.setSlewScale(std::max(0.0f, 1.0f + lfo2SlewMod));
+
+    env1VCA.setSustainOffset(matrix.getModulationValue(ModDestination::kEnv1Sustain, modSources));
+    env2VCF.setSustainOffset(matrix.getModulationValue(ModDestination::kEnv2Sustain, modSources));
+    env3MOD.setSustainOffset(matrix.getModulationValue(ModDestination::kEnv3Sustain, modSources));
+
+    auto stageTimeScale = [&](Envelope::Stage st, ModDestination kAtt, ModDestination kDec, ModDestination kRel) noexcept -> float
+    {
+        float timeMod = 0.0f;
+        if (st == Envelope::Stage::kAttack)       timeMod = matrix.getModulationValue(kAtt, modSources);
+        else if (st == Envelope::Stage::kDecay)   timeMod = matrix.getModulationValue(kDec, modSources);
+        else if (st == Envelope::Stage::kRelease) timeMod = matrix.getModulationValue(kRel, modSources);
+        // En hardware un amount positivo alarga la etapa (menor scale = fase más lenta)
+        return (timeMod != 0.0f) ? ABD::DSP::fastExp2(-timeMod * 2.0f) : 1.0f;
+    };
+
     float driftEnvScale = 1.0f + (drift.getEnvTimeDrift() + staticEnvTimeOffset) * cal.transfer.envelopes.driftToTimeScale;
-    env1VCA.setTimeScale(driftEnvScale);
-    env2VCF.setTimeScale(driftEnvScale);
-    env3MOD.setTimeScale(driftEnvScale);
+    env1VCA.setTimeScale(driftEnvScale * stageTimeScale(env1VCA.getCurrentStage(), ModDestination::kEnv1Attack, ModDestination::kEnv1Decay, ModDestination::kEnv1Release));
+    env2VCF.setTimeScale(driftEnvScale * stageTimeScale(env2VCF.getCurrentStage(), ModDestination::kEnv2Attack, ModDestination::kEnv2Decay, ModDestination::kEnv2Release));
+    env3MOD.setTimeScale(driftEnvScale * stageTimeScale(env3MOD.getCurrentStage(), ModDestination::kEnv3Attack, ModDestination::kEnv3Decay, ModDestination::kEnv3Release));
 
     // Sincronizar loop mode desde params (puede cambiar mid-note vía updateParameters)
     env1VCA.setLoopMode(params.env1TriggerMode == 3);
@@ -139,7 +172,7 @@ float SynthVoice::processSample(const ModulationMatrix& matrix,
     env3MOD.setBypassSustain(oneShotMode);
 
     // 2. Actualizar envolventes y LFOs (con soporte Mono/Spread)
-    updateModulationSources(sampleIndex, globalLfo1, globalLfo2);
+    updateModulationSources(sampleIndex, globalLfo1, globalLfo2, controlSeqBuffer);
 
     float velocityValue = modSources[(int)ModSource::kVelocity];
 
@@ -173,9 +206,24 @@ float SynthVoice::processSample(const ModulationMatrix& matrix,
     float freq1, freq2;
     float combinedOsc = processOscillatorSection(matrix, sampleIndex, globalLfo1, globalLfo2, driftOsc1, driftOsc2, freq1, freq2);
 
+    float diagSample = 0.0f;
+    if (diagnosticTonePoint == 4 || diagnosticTonePoint == 5)
+    {
+        diagSample = std::sin(static_cast<float>(2.0 * 3.14159265358979323846 * diagnosticTonePhase)) * diagnosticToneLevel;
+        diagnosticTonePhase += static_cast<double>(diagnosticToneFreqHz) * invSampleRate;
+        if (diagnosticTonePhase >= 1.0)
+            diagnosticTonePhase -= 1.0;
+    }
+
+    if (diagnosticTonePoint == 4) // Pre-Filter (Post-Osc)
+        combinedOsc = diagSample;
+
     // 4. Filter section: VCF + HPF con switching de modelo
     float filtered = processFilterSection(matrix, combinedOsc, freq1,
                                            driftCutoff, driftResonance, velocityValue, calF);
+
+    if (diagnosticTonePoint == 5) // Pre-Amp (Post-Filter)
+        filtered = diagSample;
 
     // 5. VCA section: amplificación final (Transparent / Ballsy)
     return processVCASection(filtered, velocityValue, matrix);
@@ -186,7 +234,8 @@ void SynthVoice::process(juce::AudioBuffer<float>& outputBuffer, int startSample
                           const float* engineGlobalLfo1,
                           const float* engineGlobalLfo2,
                           float engineLfo1MonoMode,
-                          float engineLfo2MonoMode)
+                          float engineLfo2MonoMode,
+                          const float* controlSeqBuffer)
 {
     if (!isActive())
         return;
@@ -201,17 +250,26 @@ void SynthVoice::process(juce::AudioBuffer<float>& outputBuffer, int startSample
         // startSample offsetea el índice de los buffers LFO globales: con render
         // segmentado (sample-accurate MIDI) la voz procesa tramos [startSample, ...),
         // por lo que el índice absoluto es startSample + sample.
-        float s = processSample(matrix, startSample + sample, engineGlobalLfo1, engineGlobalLfo2);
+        float s = processSample(matrix, startSample + sample, engineGlobalLfo1, engineGlobalLfo2, controlSeqBuffer);
         
-        // Panorámica: base desde Unison stacking + modulaciones
-        float basePan = 0.5f + (unisonPanPosition - 0.5f) * voicePanSpread;
+        // Panorámica: base desde Unison stacking + modulaciones (kAmpPan y kAmpPanSpread)
+        float spreadMod = matrix.getModulationValue(ModDestination::kAmpPanSpread, modSources);
+        float effectiveSpread = std::clamp(voicePanSpread + spreadMod, 0.0f, 1.0f);
+        float basePan = 0.5f + (unisonPanPosition - 0.5f) * effectiveSpread;
         float panMod = matrix.getModulationValue(ModDestination::kAmpPan, modSources);
         float pan = std::clamp(basePan + panMod, 0.0f, 1.0f);
         // Almacenar pan modulado para el DebugPanel
         lastModPan = pan;
 
-        outputBuffer.addSample(0, startSample + sample, s * (1.0f - pan));
-        outputBuffer.addSample(1, startSample + sample, s * pan);
+        if (outputBuffer.getNumChannels() > 1)
+        {
+            outputBuffer.addSample(0, startSample + sample, s * (1.0f - pan));
+            outputBuffer.addSample(1, startSample + sample, s * pan);
+        }
+        else if (outputBuffer.getNumChannels() == 1)
+        {
+            outputBuffer.addSample(0, startSample + sample, s);
+        }
     }
 
     // Si la envolvente VCA terminó (Stage::kIdle), invalidar la nota para liberar la voz

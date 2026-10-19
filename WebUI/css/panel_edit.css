@@ -5,7 +5,7 @@
     top: 32px; /* Alineado justo debajo del top-bar */
     left: -320px; /* Escondido por defecto a la izquierda */
     width: 310px;
-    height: calc(100% - 32px - 160px); /* Ajustado para que acabe exactamente donde empieza la keyboard-container (teclado + ruedas) */
+    height: calc(100% - 32px - 185px); /* Ajustado para que acabe exactamente donde empieza la keyboard-container (185px: teclado + ruedas) */
     background: var(--bg-surface);
     border-right: 2px solid var(--border);
     border-bottom: 2px solid var(--border);
@@ -19,6 +19,21 @@
 
 .slide-edit-panel.active {
     left: 0; /* Desliza y se posiciona a la izquierda */
+}
+
+/* Indicador visual del módulo activo y cabeceras clicables */
+.module .module-header {
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.module.module-editing-active {
+    border-color: var(--brand-accent) !important;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--brand-accent) 28%, transparent);
+}
+
+.module.module-editing-active .module-header {
+    border-bottom-color: var(--brand-accent);
 }
 
 .slide-edit-panel .panel-header {

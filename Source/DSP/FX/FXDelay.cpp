@@ -29,7 +29,7 @@ namespace ABD
             case 8:  break; // FeedLC almacenado
             case 9:  engine_.setFeedbackLNorm(val); break;
             case 10: engine_.setFeedbackRNorm(val); break;
-            case 11: engine_.setHiCutNorm(val);     break;
+            case 11: break; // FeedHC / Spread almacenado (no sobrescribir HiCut del índice 7)
             default: break;
         }
     }

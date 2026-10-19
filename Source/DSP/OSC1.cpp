@@ -48,7 +48,8 @@ namespace ABD
         if (currentSampleRate <= 0.0) return 0.0f;
 
         // --- Phase advance ---
-        double modHz = baseFrequency * std::pow(2.0, pitchModValue / 12.0);
+        double modHz = (pitchModValue == 0.0f) ? baseFrequency
+                                               : (baseFrequency * std::pow(2.0, pitchModValue / 12.0));
         double dt = modHz / currentSampleRate;
         phase += dt;
         bool phaseWrapped = (phase >= 1.0);
@@ -58,6 +59,7 @@ namespace ABD
         phaseInc = dt;
 
         float outSample = 0.0f;
+        const float blepDt = static_cast<float>(dt);
 
         // --- Sawtooth with curvature + PolyBLEP ---
         if (sawActive)
@@ -66,8 +68,8 @@ namespace ABD
             float saw = 2.0f * pos - 1.0f;
 
             // PolyBLEP correction at phase wrap (saw jumps from +1 to -1, step = -2)
-            if (phaseWrapped)
-                saw -= DSP::polyBlep2(static_cast<float>(phase), static_cast<float>(dt));
+            // polyBlep2 handles both sides: t≈0 (after wrap) and t≈1 (before wrap)
+            saw -= DSP::polyBlep2(static_cast<float>(phase), blepDt);
 
             outSample += saw;
         }
@@ -87,18 +89,14 @@ namespace ABD
             // Bipolar pulse wave
             float pulse = (phase < currentPwmDuty) ? 1.0f : -1.0f;
 
-            // PolyBLEP correction at phase wrap
-            if (phaseWrapped)
-            {
-                float blepAtReset = DSP::polyBlep2(static_cast<float>(phase), static_cast<float>(dt));
-                pulse += blepAtReset;  // add because phase jumped down, edge is positive
-            }
+            // PolyBLEP correction at phase wrap — RISING edge (-1 → +1)
+            pulse += DSP::polyBlep2(static_cast<float>(phase), blepDt);
 
-            // PolyBLEP correction at duty cycle edge (phase crosses currentPwmDuty)
+            // PolyBLEP correction at duty cycle edge — FALLING edge (+1 → -1), so subtract
             float distFromEdge = static_cast<float>(phase) - currentPwmDuty;
             if (distFromEdge < 0.0f)
                 distFromEdge += 1.0f;
-            pulse += DSP::polyBlep2(distFromEdge, static_cast<float>(dt));
+            pulse -= DSP::polyBlep2(distFromEdge, blepDt);
 
             outSample += pulse;
         }

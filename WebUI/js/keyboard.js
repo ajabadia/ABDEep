@@ -246,6 +246,13 @@ function initKeyboardAndWheels() {
             const b = bridge();
             if (b && typeof b.panic === 'function') { b.panic(); }
         },
+        onSustainChange: (on) => {
+            const b = bridge();
+            if (b && b.midiOutput && typeof b.midiOutput.send === 'function') {
+                const statusByte = 0xB0 | ((b.midiChannel || 1) - 1);
+                b.midiOutput.send([statusByte, 64, on ? 127 : 0]);
+            }
+        },
         onOctaveChange: () => { syncOctaveShift(); },
         config: {
             numOctaves: 4,

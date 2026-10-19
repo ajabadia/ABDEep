@@ -60,10 +60,22 @@ ABDEepAudioProcessor::ABDEepAudioProcessor()
         synthEngine.loadCalibrationFromJson (jsonText);
     }
 #endif
+
+    // Inicialización transversal de ABDShared::AutoUpdater
+    ABDShared::AutoUpdaterConfig updaterConfig;
+    updaterConfig.currentVersion = JucePlugin_VersionString;
+    updaterConfig.repoOwner = "ajabadia";
+    updaterConfig.repoName = "ABDSynths";
+    updaterConfig.appName = "ABDEep";
+    updaterConfig.userAgent = juce::String ("ABDEep-AutoUpdater/") + JucePlugin_VersionString;
+    updaterConfig.checkOnStartup = false;
+    updaterConfig.assetNames.windows = "ABDEep-windows-x64.zip";
+    autoUpdater = std::make_unique<ABDShared::AutoUpdater> (updaterConfig);
 }
 
 ABDEepAudioProcessor::~ABDEepAudioProcessor()
 {
+    autoUpdater.reset();
 }
 
 const juce::String ABDEepAudioProcessor::getName() const
@@ -88,9 +100,10 @@ bool ABDEepAudioProcessor::isMidiEffect() const
 
 double ABDEepAudioProcessor::getTailLengthSeconds() const
 {
-    // El motor tiene delays de hasta ~4.6s (FXMultiTapDelay) y reverbs con cola larga.
-    // 5.0s cubre el caso peor: multi-tap delay al máximo + feedback + reverb tail.
-    return 5.0;
+    // Si todos los slots FX están en bypass o el motor FX está en modo Bypass,
+    // basta 50 ms para el de-click de voces; con efectos activos se reportan 5.0 s
+    // (cubre FXMultiTapDelay ~4.6 s + feedback + reverb tail).
+    return synthEngine.getFXEngine().hasActiveEffects() ? 5.0 : 0.05;
 }
 
 void ABDEepAudioProcessor::setPresetName (const juce::String& newName)
@@ -188,14 +201,45 @@ void ABDEepAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         audioABRecorder.processHardwareInput (buffer, buffer.getNumSamples());
     }
 
-    // Agregar eventos encolados desde el hilo de UI
+    // Agregar eventos encolados desde el hilo de UI (100% lock-free SPSC ring buffer)
     {
-        const juce::ScopedLock sl (midiQueueLock);
-        if (! midiQueue.isEmpty())
+        const int numReady = midiFifo.getNumReady();
+        if (numReady > 0)
         {
-            midiMessages.addEvents (midiQueue, 0, -1, 0);
-            midiQueue.clear();
+            const auto scope = midiFifo.read (numReady);
+            for (int i = 0; i < scope.blockSize1; ++i)
+            {
+                const auto& pkt = midiRingBuffer[static_cast<size_t> (scope.startIndex1 + i)];
+                if (pkt.size > 0)
+                    midiMessages.addEvent (pkt.data, pkt.size, 0);
+            }
+            for (int i = 0; i < scope.blockSize2; ++i)
+            {
+                const auto& pkt = midiRingBuffer[static_cast<size_t> (scope.startIndex2 + i)];
+                if (pkt.size > 0)
+                    midiMessages.addEvent (pkt.data, pkt.size, 0);
+            }
         }
+    }
+
+    // Sincronizar tempo y transporte (BPM, isPlaying, ppqPosition) con el DAW (juce::AudioPlayHead)
+    if (auto* playHead = getPlayHead())
+    {
+        if (auto posInfo = playHead->getPosition())
+        {
+            const float bpm = posInfo->getBpm().hasValue() ? static_cast<float> (*posInfo->getBpm()) : 0.0f;
+            const bool isPlaying = posInfo->getIsPlaying();
+            const double ppq = posInfo->getPpqPosition().hasValue() ? *posInfo->getPpqPosition() : 0.0;
+            synthEngine.setHostTransport (bpm, isPlaying, ppq);
+        }
+        else
+        {
+            synthEngine.setHostTransport (0.0f, false, 0.0);
+        }
+    }
+    else
+    {
+        synthEngine.setHostTransport (0.0f, false, 0.0);
     }
 
     // Procesar Program Change / Bank Select del buffer MIDI entrante
@@ -225,6 +269,7 @@ void ABDEepAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
     state.setProperty ("version", 1, nullptr);
     state.setProperty ("pc_bank", patchController.getCurrentBank(), nullptr);
     state.setProperty ("pc_program", patchController.getCurrentProgram(), nullptr);
+    state.setProperty ("midiLearnJson", getMidiLearnState(), nullptr);
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
 }
@@ -245,6 +290,9 @@ void ABDEepAudioProcessor::setStateInformation (const void* data, int sizeInByte
             if (newState.hasProperty ("presetName"))
                 currentPresetName = newState.getProperty ("presetName").toString();
 
+            if (newState.hasProperty ("midiLearnJson"))
+                setMidiLearnState (newState.getProperty ("midiLearnJson").toString());
+
             // Restaurar metadata de banco/programa (NO reaplicar patch: el APVTS restaurado ya tiene el sonido)
             int restoredBank = -1, restoredProg = -1;
             if (newState.hasProperty ("pc_bank"))
@@ -256,6 +304,19 @@ void ABDEepAudioProcessor::setStateInformation (const void* data, int sizeInByte
             }
 
             apvts.replaceState (newState);
+
+            // Sanitización defensiva anti-NaN/Inf (estándar ABDNeural): garantiza que un
+            // proyecto DAW corrupto nunca inyecte NaN, Inf o valores fuera de [0, 1] al DSP.
+            for (auto* param : getParameters())
+            {
+                if (auto* rangedParam = dynamic_cast<juce::RangedAudioParameter*> (param))
+                {
+                    const float normVal = rangedParam->getValue();
+                    if (! std::isfinite (normVal) || normVal < 0.0f || normVal > 1.0f)
+                        rangedParam->setValueNotifyingHost (rangedParam->getDefaultValue());
+                }
+            }
+
             updateHostDisplay (juce::AudioProcessor::ChangeDetails().withProgramChanged (true));
 
             // Notificar al editor (WebUI) con banco/programa restaurados para sincronizar UI

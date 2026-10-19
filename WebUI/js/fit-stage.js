@@ -12,6 +12,11 @@
  * Sin mas: el componente es infraestructura de pagina, no control.
  */
 import { mountFitStage } from '@abdsynths/shared/components';
+import '@abdsynths/shared/styles/tokens.css';
+import '@abdsynths/shared/styles/themes/deepmind.css';
+import '@abdsynths/shared/styles/components/live-sysex-inspector.css';
+import '@abdsynths/shared/styles/components/about-dialog.css';
+import '@abdsynths/shared/styles/components/modals.css';
 
 // El chasis es el diseno (base.css: width 1200px / height 768px).
 const DESIGN = { width: 1200, height: 768 };

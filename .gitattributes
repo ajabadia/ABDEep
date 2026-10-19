@@ -68,3 +68,7 @@ scripts/*.js text eol=lf
 # core.autocrlf=false (que es como vienen los runners de CI) se lleva el
 # script en LF y revienta al primer goto.
 build.bat text eol=crlf
+
+# .sh en LF, incluido .github/prune_baselines.sh: un sh con CRLF no arranca
+# (bash se come el retorno de carro y el fallo sale como error de sintaxis).
+*.sh text eol=lf

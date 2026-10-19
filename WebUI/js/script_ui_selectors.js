@@ -6,29 +6,46 @@
 // ── INIT SELECTORS ──
 // eslint-disable-next-line no-unused-vars -- called from initUIControls
 function initSelectors() {
-    // ACTIVE LFO SWITCHER
+    // ACTIVE LFO SWITCHER (Segmented Dual Tab: LFO 1 | LFO 2)
     let activeLfoNumber = 1;
     const lfoSelectBtn = document.getElementById('lfo-select-btn');
     if (lfoSelectBtn) {
-        lfoSelectBtn.classList.add('lfo-select-btn');
-        lfoSelectBtn.addEventListener('click', function () {
-            activeLfoNumber = activeLfoNumber === 1 ? 2 : 1;
-            lfoSelectBtn.innerText = 'LFO ' + activeLfoNumber + ' ACTIVE';
+        lfoSelectBtn.classList.add('lfo-select-btn', 'dual-unit-segmented', 'is-lfo1');
+        const renderLfoTabs = (num) => {
+            lfoSelectBtn.setAttribute('data-active-unit', String(num));
+            lfoSelectBtn.innerHTML =
+                '<span class="unit-seg-pill' + (num === 1 ? ' active' : '') + '" data-unit="1">LFO 1</span>' +
+                '<span class="unit-seg-divider"></span>' +
+                '<span class="unit-seg-pill' + (num === 2 ? ' active' : '') + '" data-unit="2">LFO 2</span>';
+        };
+        renderLfoTabs(activeLfoNumber);
+
+        lfoSelectBtn.addEventListener('click', function (e) {
+            const pill = e && e.target && typeof e.target.closest === 'function'
+                ? e.target.closest('.unit-seg-pill')
+                : null;
+            const clickedUnit = pill ? parseInt(pill.getAttribute('data-unit'), 10) : null;
+            if (clickedUnit === 1 || clickedUnit === 2) {
+                activeLfoNumber = clickedUnit === activeLfoNumber ? (activeLfoNumber === 1 ? 2 : 1) : clickedUnit;
+            } else {
+                activeLfoNumber = activeLfoNumber === 1 ? 2 : 1;
+            }
+            renderLfoTabs(activeLfoNumber);
 
             const rateUnit = document.getElementById('lfo-ctrl-rate');
             const delayUnit = document.getElementById('lfo-ctrl-delay');
             const rateLabel = document.getElementById('lfo-label-rate');
 
             if (activeLfoNumber === 1) {
-                rateUnit.setAttribute('data-param', 'lfo1_rate');
-                delayUnit.setAttribute('data-param', 'lfo1_delay');
-                rateLabel.innerText = 'LFO1 Rate';
+                if (rateUnit) {rateUnit.setAttribute('data-param', 'lfo1_rate');}
+                if (delayUnit) {delayUnit.setAttribute('data-param', 'lfo1_delay');}
+                if (rateLabel) {rateLabel.innerText = 'LFO1 Rate';}
                 lfoSelectBtn.classList.remove('is-lfo2');
                 lfoSelectBtn.classList.add('is-lfo1');
             } else {
-                rateUnit.setAttribute('data-param', 'lfo2_rate');
-                delayUnit.setAttribute('data-param', 'lfo2_delay');
-                rateLabel.innerText = 'LFO2 Rate';
+                if (rateUnit) {rateUnit.setAttribute('data-param', 'lfo2_rate');}
+                if (delayUnit) {delayUnit.setAttribute('data-param', 'lfo2_delay');}
+                if (rateLabel) {rateLabel.innerText = 'LFO2 Rate';}
                 lfoSelectBtn.classList.remove('is-lfo1');
                 lfoSelectBtn.classList.add('is-lfo2');
             }
@@ -39,14 +56,31 @@ function initSelectors() {
         });
     }
 
-    // ACTIVE OSC SWITCHER
+    // ACTIVE OSC SWITCHER (Segmented Dual Tab: OSC 1 | OSC 2)
     let activeOscNumber = 1;
     const oscSelectBtn = document.getElementById('osc-select-btn');
     if (oscSelectBtn) {
-        oscSelectBtn.classList.add('osc-select-btn');
-        oscSelectBtn.addEventListener('click', function () {
-            activeOscNumber = activeOscNumber === 1 ? 2 : 1;
-            oscSelectBtn.innerText = 'OSC ' + activeOscNumber + ' ACTIVE';
+        oscSelectBtn.classList.add('osc-select-btn', 'dual-unit-segmented', 'is-osc1');
+        const renderOscTabs = (num) => {
+            oscSelectBtn.setAttribute('data-active-unit', String(num));
+            oscSelectBtn.innerHTML =
+                '<span class="unit-seg-pill' + (num === 1 ? ' active' : '') + '" data-unit="1">OSC 1</span>' +
+                '<span class="unit-seg-divider"></span>' +
+                '<span class="unit-seg-pill' + (num === 2 ? ' active' : '') + '" data-unit="2">OSC 2</span>';
+        };
+        renderOscTabs(activeOscNumber);
+
+        oscSelectBtn.addEventListener('click', function (e) {
+            const pill = e && e.target && typeof e.target.closest === 'function'
+                ? e.target.closest('.unit-seg-pill')
+                : null;
+            const clickedUnit = pill ? parseInt(pill.getAttribute('data-unit'), 10) : null;
+            if (clickedUnit === 1 || clickedUnit === 2) {
+                activeOscNumber = clickedUnit === activeOscNumber ? (activeOscNumber === 1 ? 2 : 1) : clickedUnit;
+            } else {
+                activeOscNumber = activeOscNumber === 1 ? 2 : 1;
+            }
+            renderOscTabs(activeOscNumber);
 
             const pitchModUnit = document.getElementById('osc-ctrl-pitchmod');
             const pwmToneUnit = document.getElementById('osc-ctrl-pwm-tone');
@@ -58,21 +92,21 @@ function initSelectors() {
             if (activeOscNumber === 1) {
                 oscSelectBtn.classList.remove('is-osc2');
                 oscSelectBtn.classList.add('is-osc1');
-                pitchModUnit.setAttribute('data-param', 'osc1_pitch_mod');
-                pwmToneUnit.setAttribute('data-param', 'osc1_pwm_amount');
-                pitchModLabel.innerText = 'Pitch Mod';
-                pwmToneLabel.innerText = 'PWM';
-                pitchUnit.classList.add('hidden');
-                levelUnit.classList.add('hidden');
+                if (pitchModUnit) {pitchModUnit.setAttribute('data-param', 'osc1_pitch_mod');}
+                if (pwmToneUnit) {pwmToneUnit.setAttribute('data-param', 'osc1_pwm_amount');}
+                if (pitchModLabel) {pitchModLabel.innerText = 'Pitch Mod';}
+                if (pwmToneLabel) {pwmToneLabel.innerText = 'PWM';}
+                if (pitchUnit) {pitchUnit.classList.add('hidden'); pitchUnit.style.display = 'none';}
+                if (levelUnit) {levelUnit.classList.add('hidden'); levelUnit.style.display = 'none';}
             } else {
                 oscSelectBtn.classList.remove('is-osc1');
                 oscSelectBtn.classList.add('is-osc2');
-                pitchModUnit.setAttribute('data-param', 'osc2_pitch_mod');
-                pwmToneUnit.setAttribute('data-param', 'osc2_tone_mod');
-                pitchModLabel.innerText = 'Pitch Mod';
-                pwmToneLabel.innerText = 'Tone Mod';
-                pitchUnit.classList.remove('hidden');
-                levelUnit.classList.remove('hidden');
+                if (pitchModUnit) {pitchModUnit.setAttribute('data-param', 'osc2_pitch_mod');}
+                if (pwmToneUnit) {pwmToneUnit.setAttribute('data-param', 'osc2_tone_mod');}
+                if (pitchModLabel) {pitchModLabel.innerText = 'Pitch Mod';}
+                if (pwmToneLabel) {pwmToneLabel.innerText = 'Tone Mod';}
+                if (pitchUnit) {pitchUnit.classList.remove('hidden'); pitchUnit.style.display = '';}
+                if (levelUnit) {levelUnit.classList.remove('hidden'); levelUnit.style.display = '';}
             }
 
             window.updateOscSlidersFromCurrentPreset();

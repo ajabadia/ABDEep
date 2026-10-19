@@ -14,6 +14,10 @@ struct VoiceDiagnosticSnapshot
     float detuneSemitonesEffective = 0.0f;
     float panBase = 0.0f;
     float panEffective = 0.0f;
+    float voicePanSpread = 0.0f;
+    float modOsc1DetuneSemitones = 0.0f;
+    float modOsc2DetuneSemitones = 0.0f;
+    float modPan = 0.5f;
     
     // Filtro VCF/HPF
     float baseCutoffHz = 0.0f;
@@ -22,6 +26,7 @@ struct VoiceDiagnosticSnapshot
     float envDepthSign = 0.0f;
     float keytrackHz = 0.0f;
     float hpfCutoffHz = 0.0f;
+    bool hpfBassBoostActive = false;
     
     float vcfCutoffBase = 0.0f;
     float vcfCutoffEffectiveHz = 0.0f;
@@ -35,6 +40,11 @@ struct VoiceDiagnosticSnapshot
     float env1Value = 0.0f;
     float env2Value = 0.0f;
     float driftHz = 0.0f;
+    float driftOsc1Pitch = 0.0f;
+    float driftOsc2Pitch = 0.0f;
+    float driftVcfCutoff = 0.0f;
+    float driftVcfResonance = 0.0f;
+    float driftEnvTime = 0.0f;
     
     // Contribuciones intermedias al Cutoff
     float cutoffFromEnv = 0.0f;

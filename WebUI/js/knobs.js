@@ -16,20 +16,8 @@ function initKnobs() {
         let baseValue = 0.0;
         if (paramId === 'global_volume') {baseValue = 0.8;}
 
-        ring.addEventListener('pointerdown', (e) => {
-            isDragging = true;
-            startY = e.clientY;
-            ring.setPointerCapture(e.pointerId);
-            e.preventDefault();
-        });
-
-        ring.addEventListener('pointermove', (e) => {
-            if (!isDragging) {return;}
-            const deltaY = startY - e.clientY;
-            startY = e.clientY;
-
-            const sensitivity = 0.005;
-            baseValue = Math.max(0.0, Math.min(1.0, baseValue + deltaY * sensitivity));
+        const applyKnobValue = (val) => {
+            baseValue = Math.max(0.0, Math.min(1.0, val));
             const rotation = (baseValue * 270) - 135;
             pointer.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
 
@@ -45,10 +33,55 @@ function initKnobs() {
                     }
                 }
             }
+        };
+
+        ring.addEventListener('pointerdown', (e) => {
+            isDragging = true;
+            startY = e.clientY;
+            if (getBridge() && typeof getBridge().beginGesture === 'function') {
+                getBridge().beginGesture(paramId);
+            }
+            ring.setPointerCapture(e.pointerId);
+            e.preventDefault();
+        });
+
+        ring.addEventListener('pointermove', (e) => {
+            if (!isDragging) {return;}
+            const deltaY = startY - e.clientY;
+            startY = e.clientY;
+
+            const sensitivity = e.shiftKey ? 0.001 : 0.005;
+            applyKnobValue(baseValue + deltaY * sensitivity);
         });
 
         ring.addEventListener('pointerup', () => {
-            isDragging = false;
+            if (isDragging) {
+                isDragging = false;
+                if (getBridge() && typeof getBridge().endGesture === 'function') {
+                    getBridge().endGesture(paramId);
+                }
+            }
+        });
+
+        ring.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const step = e.shiftKey ? (1.0 / 255.0) : (4.0 / 255.0);
+            const dir = e.deltaY < 0 ? 1 : -1;
+            if (getBridge() && typeof getBridge().beginGesture === 'function') {getBridge().beginGesture(paramId);}
+            applyKnobValue(baseValue + dir * step);
+            if (getBridge() && typeof getBridge().endGesture === 'function') {getBridge().endGesture(paramId);}
+        }, { passive: false });
+
+        ring.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const defVal = typeof window.getDefaultParamValue === 'function'
+                ? window.getDefaultParamValue(paramId)
+                : (paramId === 'global_volume' ? 0.8 : 0.0);
+            if (getBridge() && typeof getBridge().beginGesture === 'function') {getBridge().beginGesture(paramId);}
+            applyKnobValue(defVal);
+            if (getBridge() && typeof getBridge().endGesture === 'function') {getBridge().endGesture(paramId);}
         });
 
         if (getBridge()) {

@@ -50,6 +50,20 @@
         }
     };
 
+    DualMidiBridge.prototype.beginGesture = function(paramId) {
+        if (!paramId) {return;}
+        if (this.isJuce && window.juce && typeof window.juce.beginGesture === 'function') {
+            window.juce.beginGesture(paramId);
+        }
+    };
+
+    DualMidiBridge.prototype.endGesture = function(paramId) {
+        if (!paramId) {return;}
+        if (this.isJuce && window.juce && typeof window.juce.endGesture === 'function') {
+            window.juce.endGesture(paramId);
+        }
+    };
+
     DualMidiBridge.prototype.readFactoryBankFile = async function(letter) {
         if (this.isJuce) {
             if (window.juce && typeof window.juce.readFactoryBankFile === 'function') {

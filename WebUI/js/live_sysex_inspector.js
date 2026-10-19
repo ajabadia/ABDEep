@@ -1,906 +1,393 @@
 /**
- * LiveSysExInspector — Inspector reactivo de tramas MIDI SysEx en vivo para ABDEep.
- * =================================================================================
- * Componente transversal y desacoplable (compatible con DeepMind 6/12 / AbyssMind).
- * Incluye:
- *  - Ventana flotante arrastrable con control estricto de colisión contra bordes.
- *  - Soporte de desacoplamiento a ventana externa independiente (multimonitor).
- *  - Reacoplado automático al redimensionar la ventana anfitriona.
- *  - Resaltado reactivo por mutación byte a byte.
- *  - Comparador diferencial Snapshot A/B y exportación directa .syx.
+ * LiveSysExInspector & AboutDialog — Glue de componentes compartidos (@abdsynths/shared) para ABDEep.
+ * ===================================================================================================
+ * Consume la implementación canónica de `@abdsynths/shared/components` eliminando ~780 líneas
+ * de código duplicado en ABDEep y cumpliendo los 3 requisitos del contrato de integración:
+ *  1. Fuente de verdad del byte stream: trama real de 291 bytes de DeepMind 12
+ *     (F0 00 20 32 20 7F 02 07 [bank] [prog] [278B packed 8-to-7] 00 00 F7).
+ *  2. Actualización reactiva y resaltado de bytes (diff) al mover cualquier parámetro.
+ *  3. Bidireccionalidad: exportación .syx válida para hardware e inyección inversa
+ *     (importDeepMindSysExBuffer / importSysexBase64) hacia el motor y la UI.
  */
 
-(function (root, factory) {
-  const api = factory();
-  if (typeof module === 'object' && module.exports) {
-    module.exports = api;
+import {
+  LiveSysExInspector,
+  createLiveSysExInspector,
+  toHexByte,
+  decodeSysExHeader,
+  AboutDialog,
+  createAboutDialog,
+} from '@abdsynths/shared/components';
+
+/**
+ * Empaquetado canónico 8-a-7 bits de DeepMind 12 (242 bytes -> 278 bytes).
+ * @param {Uint8Array|Array<number>} unpackedBytes
+ * @returns {Uint8Array}
+ */
+export function packDeepMind8to7(unpackedBytes) {
+  if (typeof window !== 'undefined' && typeof window.pack8to7 === 'function') {
+    try {
+      return window.pack8to7(unpackedBytes);
+    } catch (_) { /* fallback below */ }
   }
+  const packed = new Uint8Array(278);
+  let readIdx = 0;
+  let writeIdx = 0;
+  while (readIdx < 242 && writeIdx < 278) {
+    let msbFlags = 0;
+    const startWriteIdx = writeIdx;
+    writeIdx++;
+    for (let k = 1; k < 8; k++) {
+      if (readIdx >= 242) {break;}
+      let val = unpackedBytes[readIdx++] & 0xff;
+      if (val & 0x80) {
+        msbFlags |= (1 << (k - 1));
+        val &= 0x7f;
+      }
+      packed[startWriteIdx + k] = val;
+      writeIdx++;
+    }
+    packed[startWriteIdx] = msbFlags;
+  }
+  return packed;
+}
+
+/**
+ * Desempaquetado canónico 7-a-8 bits de DeepMind 12 (278 bytes -> 242 bytes).
+ * @param {Uint8Array|Array<number>} packedBytes
+ * @returns {Uint8Array}
+ */
+export function unpackDeepMind7to8(packedBytes) {
+  if (typeof window !== 'undefined' && typeof window.unpack7to8 === 'function') {
+    try {
+      return window.unpack7to8(packedBytes);
+    } catch (_) { /* fallback below */ }
+  }
+  const unpacked = new Uint8Array(242);
+  let writeIdx = 0;
+  for (let i = 0; i < packedBytes.length; i += 8) {
+    const msbFlags = packedBytes[i];
+    for (let k = 1; k < 8; k++) {
+      if (i + k >= packedBytes.length || writeIdx >= 242) {break;}
+      let val = packedBytes[i + k] & 0x7f;
+      if (msbFlags & (1 << (k - 1))) {
+        val |= 0x80;
+      }
+      unpacked[writeIdx++] = val;
+    }
+  }
+  return unpacked;
+}
+
+/**
+ * Reconstruye los 242 bytes desempaquetados desde el cache de parámetros del bridge
+ * si aún no existe `window._liveUnpackedBytes`.
+ * @returns {Uint8Array|null}
+ */
+function buildUnpackedFromBridgeCache() {
+  if (typeof window === 'undefined') {return null;}
+  const bridge = typeof window.getBridge === 'function' ? window.getBridge() : window._bridgeInstance;
+  if (!bridge || !bridge.parameterCache || !bridge.paramToByteOffset || typeof bridge._normalizedToRaw !== 'function') {
+    return null;
+  }
+  const keys = Object.keys(bridge.parameterCache);
+  if (keys.length === 0) {return null;}
+  const out = new Uint8Array(242);
+  for (let i = 0; i < keys.length; i++) {
+    const paramId = keys[i];
+    const offset = bridge.paramToByteOffset[paramId];
+    if (typeof offset === 'number' && offset >= 0 && offset < 242) {
+      out[offset] = bridge._normalizedToRaw(offset, bridge.parameterCache[paramId]) & 0xff;
+    }
+  }
+  return out;
+}
+
+/**
+ * Genera el mensaje SysEx completo de 291 bytes de DeepMind 12 a partir del Edit Buffer en vivo.
+ * @param {Uint8Array|Array<number>} [overrideBytes] - 242 bytes desempaquetados o 291 bytes empaquetados
+ * @returns {Uint8Array}
+ */
+export function getCurrentDeepMindSysExBuffer(overrideBytes) {
+  if (overrideBytes && overrideBytes.length === 291 && overrideBytes[0] === 0xf0 && overrideBytes[290] === 0xf7) {
+    return new Uint8Array(overrideBytes);
+  }
+
+  let bytes = overrideBytes || (typeof window !== 'undefined' ? (window._liveUnpackedBytes || window._lastUnpackedBytes) : null);
+  if (!bytes || bytes.length < 242) {
+    if (typeof window !== 'undefined' && window.loadedBanks && window.currentActiveBank) {
+      const bank = window.loadedBanks[window.currentActiveBank];
+      const patch = bank && bank[window.currentActivePatchIndex];
+      if (patch && patch.unpackedBytes) {
+        bytes = patch.unpackedBytes;
+      }
+    }
+  }
+  if (!bytes || bytes.length < 242) {
+    bytes = buildUnpackedFromBridgeCache();
+  }
+
+  const syxMsg = new Uint8Array(291);
+  syxMsg[0] = 0xf0;
+  syxMsg[1] = 0x00;
+  syxMsg[2] = 0x20;
+  syxMsg[3] = 0x32; // Behringer manufacturer ID
+  syxMsg[4] = 0x20; // DeepMind family ID
+  syxMsg[5] = 0x7f; // Broadcast device ID
+  syxMsg[6] = 0x02; // Program Dump Response
+  syxMsg[7] = 0x07; // App / Comms version
+  syxMsg[8] = 0x00; // Bank number (0..7)
+  syxMsg[9] = (typeof window !== 'undefined' && typeof window.currentActivePatchIndex === 'number')
+    ? (window.currentActivePatchIndex & 0x7f)
+    : 0x00;
+
+  if (bytes && bytes.length >= 242) {
+    try {
+      const packed = packDeepMind8to7(bytes);
+      syxMsg.set(packed.subarray(0, 278), 10);
+    } catch (_) { /* ignore */ }
+  }
+
+  syxMsg[290] = 0xf7;
+  return syxMsg;
+}
+
+/**
+ * Inyecta una trama SysEx de 291 bytes (o 242 bytes desempaquetados, o cadena hex)
+ * de vuelta al Edit Buffer del motor y actualiza toda la UI y el inspector.
+ * @param {Uint8Array|Array<number>|string} input
+ * @returns {Uint8Array|null} Los 242 bytes desempaquetados aplicados, o null si es inválido.
+ */
+export function importDeepMindSysExBuffer(input) {
+  let raw = null;
+  if (typeof input === 'string') {
+    const clean = input.trim();
+    const hexTokens = clean.replace(/0x/gi, '').match(/[0-9a-fA-F]{2}/g);
+    if (hexTokens && hexTokens.length >= 242) {
+      raw = new Uint8Array(hexTokens.map((h) => parseInt(h, 16)));
+    }
+  } else if (input instanceof Uint8Array || Array.isArray(input)) {
+    raw = new Uint8Array(input);
+  }
+
+  if (!raw) {return null;}
+
+  let unpacked = null;
+  if (raw.length >= 291 && raw[0] === 0xf0 && raw[1] === 0x00 && raw[2] === 0x20 && raw[3] === 0x32) {
+    const packedPayload = raw.slice(10, 288);
+    unpacked = unpackDeepMind7to8(packedPayload);
+  } else if (raw.length === 242) {
+    unpacked = new Uint8Array(raw);
+  } else {
+    return null;
+  }
+
+  let patchName = 'Imported SysEx';
+  const nameChars = [];
+  for (let i = 223; i <= 238 && i < unpacked.length; i++) {
+    const c = unpacked[i];
+    if (c >= 32 && c < 127) {
+      nameChars.push(String.fromCharCode(c));
+    } else if (c === 0) {
+      break;
+    }
+  }
+  if (nameChars.length > 0 && nameChars.join('').trim().length > 0) {
+    patchName = nameChars.join('').trim();
+  }
+
   if (typeof window !== 'undefined') {
-    Object.assign(window, api);
-  } else if (root) {
-    Object.assign(root, api);
-  }
-})(typeof self !== 'undefined' ? self : this, function () {
-  'use strict';
-
-  function toHexByte(byte) {
-    return (byte & 0xff).toString(16).padStart(2, '0').toUpperCase();
+    window._liveUnpackedBytes = new Uint8Array(unpacked);
+    window._lastUnpackedBytes = new Uint8Array(unpacked);
+    window._lastPresetName = patchName;
+    if (typeof window.triggerMidiDump === 'function') {
+      window.triggerMidiDump({ name: patchName, unpackedBytes: unpacked });
+    }
   }
 
-  function decodeSysExHeader(buf) {
-    if (!buf || buf.length < 2 || buf[0] !== 0xf0) {
-      return { valid: false, manufacturer: 'Unknown', deviceId: null, model: null };
+  updateLiveSysExInspector(unpacked);
+  return unpacked;
+}
+
+/**
+ * Importa una trama SysEx codificada en Base64 hacia el motor y el inspector.
+ * @param {string} base64Str
+ * @returns {Uint8Array|null}
+ */
+export function importSysexBase64(base64Str) {
+  if (typeof base64Str !== 'string' || !base64Str.trim()) {return null;}
+  try {
+    const bin = typeof atob === 'function'
+      ? atob(base64Str.trim())
+      : Buffer.from(base64Str.trim(), 'base64').toString('binary');
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) {
+      bytes[i] = bin.charCodeAt(i) & 0xff;
     }
-
-    let mfgId = 'Unknown';
-    let deviceId = null;
-    let model = null;
-
-    if (buf[1] === 0x44) {
-      mfgId = 'Casio (0x44)';
-      if (buf.length >= 5 && buf[2] === 0x01 && buf[4] === 0x70) {
-        model = 'CZ-Series';
-      }
-    } else if (buf[1] === 0x42) {
-      mfgId = 'Korg (0x42)';
-      if (buf.length >= 4 && (buf[3] === 0x58 || (buf.length >= 5 && buf[4] === 0x58))) {
-        model = 'MS2000';
-      }
-    } else if (buf[1] === 0x41) {
-      mfgId = 'Roland (0x41)';
-    } else if (buf[1] === 0x43) {
-      mfgId = 'Yamaha (0x43)';
-    } else if (buf[1] === 0x00 && buf.length >= 4 && buf[2] === 0x20 && buf[3] === 0x32) {
-      mfgId = 'Behringer (0x00 0x20 0x32)';
-      model = 'DeepMind';
-    }
-
-    if (buf.length >= 3) {
-      deviceId = `0x${toHexByte(buf[2])}`;
-    }
-
-    return {
-      valid: true,
-      manufacturer: mfgId,
-      deviceId,
-      model,
-      size: buf.length,
-      hasEox: buf[buf.length - 1] === 0xf7,
-    };
+    return importDeepMindSysExBuffer(bytes);
+  } catch (_) {
+    return null;
   }
+}
 
-  class LiveSysExInspector {
-    constructor(options = {}) {
-      this.options = {
-        title: 'DeepMind Live SysEx Inspector',
-        subtitle: '',
-        floating: false,
-        bytesPerRow: 16,
-        ...options,
-      };
+let _instance = null;
+let _isVisible = false;
 
-      this.container = options.container || null;
-      this.buffer = options.initialBuffer ? new Uint8Array(options.initialBuffer) : new Uint8Array(0);
-      this.prevBuffer = options.initialBuffer ? new Uint8Array(options.initialBuffer) : null;
-      this.snapshotA = null;
-      this.diffMode = false;
-      this.mutatedIndices = new Set();
-      this.mutationTimeout = null;
-      this.feedbackTimeout = null;
-      this.isMinimized = false;
-      this.isDestroyed = false;
+export function getLiveSysExInspector() {
+  if (!_instance) {
+    const initialBuf = getCurrentDeepMindSysExBuffer();
+    _instance = createLiveSysExInspector({
+      title: 'DeepMind Live SysEx Inspector',
+      floating: true,
+      bytesPerRow: 16,
+      initialBuffer: initialBuf,
+      onClose: () => {
+        _isVisible = false;
+      },
+      onOpen: () => {
+        _isVisible = true;
+      },
+    });
+    _instance.hide();
+  }
+  return _instance;
+}
 
-      // Elementos DOM
-      this.rootEl = null;
-      this.headerEl = null;
-      this.metaEl = null;
-      this.bodyEl = null;
-      this.footerEl = null;
-      this.feedbackEl = null;
-      this.sizeBadgeEl = null;
-      this.diffBadgeEl = null;
-      this.diffBtnEl = null;
+export function toggleLiveSysExInspector() {
+  const inspector = getLiveSysExInspector();
+  inspector.toggle();
+  _isVisible = inspector.isOpen();
+  if (_isVisible) {
+    updateLiveSysExInspector();
+  }
+}
 
-      // Estado arrastre
-      this._onPointerDown = this._onPointerDown.bind(this);
-      this._onPointerMove = this._onPointerMove.bind(this);
-      this._onPointerUp = this._onPointerUp.bind(this);
-      this._onKeyDown = this._onKeyDown.bind(this);
-      this._onWindowResize = this._onWindowResize.bind(this);
-      this._dragState = null;
+export function updateLiveSysExInspector(rawBytes) {
+  if (!_instance || !_instance.isOpen()) {return;}
+  const buf = getCurrentDeepMindSysExBuffer(rawBytes);
+  _instance.updateBuffer(buf);
+}
 
-      // Soporte multimonitor desacoplable
-      this.isDetached = false;
-      this.externalWindow = null;
-      this._originalParent = null;
-      this._originalNextSibling = null;
-      this.popoutBtnEl = null;
+// ── AboutDialog compartido (@abdsynths/shared/components) ──
+let _aboutDialogInstance = null;
 
-      this._buildDOM();
+export function getAboutDialog() {
+  if (!_aboutDialogInstance && typeof document !== 'undefined') {
+    _aboutDialogInstance = createAboutDialog({
+      id: 'about-modal-backdrop',
+      appName: 'ABD Eep',
+      subtitle: 'Polyphonic Synthesizer & Hardware Controller — Native / Web',
+      description: 'Controlador y editor avanzado unificado compatible con sintetizadores de hardware de la serie Behringer DeepMind y motor DSP TPT ZDF + PolyBLEP.',
+      version: '0.2.35',
+      buildNumber: 100,
+      repo: 'ajabadia/ABDEep',
+      manualUrl: 'https://github.com/ajabadia/ABDEep#readme',
+      getJuceBackend: () => (typeof window !== 'undefined' && typeof window.getJuceBackend === 'function')
+        ? window.getJuceBackend()
+        : null,
+    });
 
-      if (this.container) {
-        this.mount(this.container);
-      } else if (this.options.floating && typeof document !== 'undefined') {
-        this.mount(document.body);
-      }
-
-      if (typeof window !== 'undefined') {
-        window.addEventListener('keydown', this._onKeyDown);
-        window.addEventListener('resize', this._onWindowResize);
-      }
-    }
-
-    _buildDOM() {
-      if (typeof document === 'undefined') return;
-
-      this.rootEl = document.createElement('div');
-      this.rootEl.className = 'sysex-inspector';
-      this.rootEl.setAttribute('role', 'region');
-      this.rootEl.setAttribute('aria-label', this.options.title || 'Live SysEx Inspector');
-      if (this.options.floating) {
-        this.rootEl.classList.add('sysex-inspector--floating');
-      }
-
-      this.headerEl = document.createElement('div');
-      this.headerEl.className = 'sysex-inspector__header';
-
-      const titleArea = document.createElement('div');
-      titleArea.className = 'sysex-inspector__title-area';
-
-      const iconBadge = document.createElement('span');
-      iconBadge.className = 'sysex-inspector__tag';
-      iconBadge.textContent = 'SYS/EX';
-
-      const titleText = document.createElement('span');
-      titleText.className = 'sysex-inspector__title';
-      titleText.textContent = this.options.title;
-
-      const liveBadge = document.createElement('span');
-      liveBadge.className = 'sysex-inspector__badge sysex-inspector__badge--live';
-      liveBadge.textContent = 'LIVE';
-
-      this.sizeBadgeEl = document.createElement('span');
-      this.sizeBadgeEl.className = 'sysex-inspector__badge sysex-inspector__badge--size';
-      this.sizeBadgeEl.textContent = '0 B';
-
-      this.diffBadgeEl = document.createElement('span');
-      this.diffBadgeEl.className = 'sysex-inspector__badge sysex-inspector__badge--diff';
-      this.diffBadgeEl.style.display = 'none';
-
-      titleArea.appendChild(iconBadge);
-      titleArea.appendChild(titleText);
-      titleArea.appendChild(liveBadge);
-      titleArea.appendChild(this.sizeBadgeEl);
-      titleArea.appendChild(this.diffBadgeEl);
-
-      const actions = document.createElement('div');
-      actions.className = 'sysex-inspector__actions';
-
-      const snapABtn = document.createElement('button');
-      snapABtn.type = 'button';
-      snapABtn.className = 'sysex-inspector__btn';
-      snapABtn.textContent = 'Snap A';
-      snapABtn.title = 'Capturar estado actual como Snapshot A';
-      snapABtn.addEventListener('click', () => this.captureSnapshotA());
-
-      this.diffBtnEl = document.createElement('button');
-      this.diffBtnEl.type = 'button';
-      this.diffBtnEl.className = 'sysex-inspector__btn';
-      this.diffBtnEl.textContent = 'Diff';
-      this.diffBtnEl.title = 'Alternar visualización de diferencias con Snapshot A';
-      this.diffBtnEl.addEventListener('click', () => this.toggleDiff());
-
-      const copyHexBtn = document.createElement('button');
-      copyHexBtn.type = 'button';
-      copyHexBtn.className = 'sysex-inspector__btn';
-      copyHexBtn.textContent = 'Copy Hex';
-      copyHexBtn.addEventListener('click', () => this.copyHex());
-
-      const copyArrBtn = document.createElement('button');
-      copyArrBtn.type = 'button';
-      copyArrBtn.className = 'sysex-inspector__btn';
-      copyArrBtn.textContent = 'Copy Array';
-      copyArrBtn.addEventListener('click', () => this.copyArray());
-
-      const exportBtn = document.createElement('button');
-      exportBtn.type = 'button';
-      exportBtn.className = 'sysex-inspector__btn';
-      exportBtn.textContent = 'Export .syx';
-      exportBtn.addEventListener('click', () => this.exportSyx());
-
-      actions.appendChild(snapABtn);
-      actions.appendChild(this.diffBtnEl);
-      actions.appendChild(copyHexBtn);
-      actions.appendChild(copyArrBtn);
-      actions.appendChild(exportBtn);
-
-      if (this.options.floating) {
-        this.popoutBtnEl = document.createElement('button');
-        this.popoutBtnEl.type = 'button';
-        this.popoutBtnEl.className = 'sysex-inspector__btn sysex-inspector__btn--icon sysex-inspector__btn--popout';
-        this.popoutBtnEl.innerHTML = '&#x29C9;'; // ⧉
-        this.popoutBtnEl.title = 'Abrir en ventana externa / Desacoplar a otra pantalla';
-        this.popoutBtnEl.addEventListener('click', () => this.togglePopout());
-
-        const minBtn = document.createElement('button');
-        minBtn.type = 'button';
-        minBtn.className = 'sysex-inspector__btn sysex-inspector__btn--icon';
-        minBtn.innerHTML = '&minus;';
-        minBtn.title = 'Minimizar / Restaurar';
-        minBtn.addEventListener('click', () => this.toggleMinimize());
-
-        const closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'sysex-inspector__btn sysex-inspector__btn--icon sysex-inspector__btn--close';
-        closeBtn.innerHTML = '&times;';
-        closeBtn.title = 'Cerrar (Esc)';
-        closeBtn.addEventListener('click', () => {
-          this.hide();
-        });
-
-        actions.appendChild(this.popoutBtnEl);
-        actions.appendChild(minBtn);
-        actions.appendChild(closeBtn);
-
-        this.headerEl.addEventListener('pointerdown', this._onPointerDown);
-      }
-
-      this.headerEl.appendChild(titleArea);
-      this.headerEl.appendChild(actions);
-
-      this.metaEl = document.createElement('div');
-      this.metaEl.className = 'sysex-inspector__meta-bar';
-
-      this.bodyEl = document.createElement('div');
-      this.bodyEl.className = 'sysex-inspector__body';
-
-      this.footerEl = document.createElement('div');
-      this.footerEl.className = 'sysex-inspector__footer';
-
-      const infoText = document.createElement('span');
-      infoText.textContent = 'Byte mutators emit visual pulse on mutation.';
-
-      this.feedbackEl = document.createElement('span');
-      this.feedbackEl.className = 'sysex-inspector__feedback';
-
-      this.footerEl.appendChild(infoText);
-      this.footerEl.appendChild(this.feedbackEl);
-
-      this.rootEl.appendChild(this.headerEl);
-      this.rootEl.appendChild(this.metaEl);
-      this.rootEl.appendChild(this.bodyEl);
-      this.rootEl.appendChild(this.footerEl);
-
-      this.render();
-    }
-
-    _onPointerDown(e) {
-      if (e.target.closest('button') || this.isDetached) return;
-      const rect = this.rootEl.getBoundingClientRect();
-      this._dragState = {
-        startX: e.clientX,
-        startY: e.clientY,
-        initialLeft: rect.left,
-        initialTop: rect.top,
-        width: rect.width,
-        height: rect.height,
-      };
-      window.addEventListener('pointermove', this._onPointerMove);
-      window.addEventListener('pointerup', this._onPointerUp);
-    }
-
-    _onPointerMove(e) {
-      if (!this._dragState || this.isDetached) return;
-      const dx = e.clientX - this._dragState.startX;
-      const dy = e.clientY - this._dragState.startY;
-      const winWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-      const winHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-      const rectW = this._dragState.width || this.rootEl.offsetWidth || 720;
-      const rectH = this._dragState.height || this.rootEl.offsetHeight || 420;
-
-      const margin = 8;
-      const maxLeft = Math.max(margin, winWidth - rectW - margin);
-      const maxTop = Math.max(margin, winHeight - rectH - margin);
-      const newLeft = Math.max(margin, Math.min(maxLeft, this._dragState.initialLeft + dx));
-      const newTop = Math.max(margin, Math.min(maxTop, this._dragState.initialTop + dy));
-
-      this.rootEl.style.left = `${newLeft}px`;
-      this.rootEl.style.top = `${newTop}px`;
-      this.rootEl.style.right = 'auto';
-      this.rootEl.style.bottom = 'auto';
-      this.rootEl.style.transform = 'none';
-    }
-
-    _onPointerUp() {
-      this._dragState = null;
-      window.removeEventListener('pointermove', this._onPointerMove);
-      window.removeEventListener('pointerup', this._onPointerUp);
-    }
-
-    _clampToViewport() {
-      if (!this.rootEl || !this.options.floating || !this.isOpen() || this.isDetached) return;
-      const winWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-      const winHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-      const rect = this.rootEl.getBoundingClientRect();
-      const margin = 8;
-      const maxLeft = Math.max(margin, winWidth - rect.width - margin);
-      const maxTop = Math.max(margin, winHeight - rect.height - margin);
-
-      if (this.rootEl.style.transform === 'none' || this.rootEl.style.left) {
-        const curLeft = rect.left;
-        const curTop = rect.top;
-        const clampedLeft = Math.max(margin, Math.min(maxLeft, curLeft));
-        const clampedTop = Math.max(margin, Math.min(maxTop, curTop));
-
-        if (clampedLeft !== curLeft || clampedTop !== curTop) {
-          this.rootEl.style.left = `${clampedLeft}px`;
-          this.rootEl.style.top = `${clampedTop}px`;
-          this.rootEl.style.transform = 'none';
-        }
-      }
-    }
-
-    _onWindowResize() {
-      this._clampToViewport();
-    }
-
-    togglePopout() {
-      return this.isDetached ? this.dock() : this.popout();
-    }
-
-    popout() {
-      if (this.isDetached || typeof window === 'undefined') return this;
-      const screenW = window.screen && window.screen.availWidth ? window.screen.availWidth : 1920;
-      const screenH = window.screen && window.screen.availHeight ? window.screen.availHeight : 1080;
-      const popWidth = Math.min(960, Math.max(760, screenW - 100));
-      const popHeight = Math.min(680, Math.max(500, screenH - 120));
-      const left = (window.screenX || 0) + Math.max(20, Math.round(((window.outerWidth || 1000) - popWidth) / 2));
-      const top = (window.screenY || 0) + Math.max(20, Math.round(((window.outerHeight || 700) - popHeight) / 2));
-
-      let extWindow = null;
+    if (typeof window !== 'undefined' && window.juce && typeof window.juce.getBuildInfo === 'function') {
       try {
-        extWindow = window.open(
-          '',
-          `ABDSysExPopout_${Date.now()}`,
-          `width=${popWidth},height=${popHeight},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
-        );
-      } catch (_) {
-        this.showFeedback('No se pudo abrir ventana emergente');
-        return this;
-      }
-
-      if (!extWindow) {
-        this.showFeedback('Ventana emergente bloqueada por el navegador');
-        return this;
-      }
-
-      this.externalWindow = extWindow;
-      this.isDetached = true;
-
-      const extDoc = extWindow.document;
-      extDoc.title = `${this.options.title || 'Live SysEx Inspector'} — Ventana Externa`;
-
-      extDoc.head.innerHTML = `
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${this.options.title || 'Live SysEx Inspector'}</title>
-        <style>
-          html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background: #0d1117;
-            color: #e2e8f0;
-            overflow: auto;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          }
-        </style>
-      `;
-
-      const styleNodes = document.querySelectorAll('link[rel="stylesheet"], style');
-      styleNodes.forEach((node) => {
-        try {
-          extDoc.head.appendChild(node.cloneNode(true));
-        } catch (_) {}
-      });
-
-      this._originalParent = this.rootEl.parentNode;
-      this._originalNextSibling = this.rootEl.nextSibling;
-
-      this.rootEl.classList.add('sysex-inspector--detached');
-      if (this.popoutBtnEl) {
-        this.popoutBtnEl.innerHTML = '&#x2913;'; // ⤓
-        this.popoutBtnEl.title = 'Reincorporar al sintetizador (Dock)';
-      }
-
-      extDoc.body.appendChild(this.rootEl);
-
-      extWindow.addEventListener('beforeunload', () => {
-        if (this.isDetached) {
-          this.dock();
-        }
-      });
-
-      this.showFeedback('Desacoplado a ventana externa');
-      return this;
-    }
-
-    dock() {
-      if (!this.isDetached) return this;
-      this.isDetached = false;
-
-      if (this.externalWindow && !this.externalWindow.closed) {
-        try {
-          this.externalWindow.close();
-        } catch (_) {}
-      }
-      this.externalWindow = null;
-
-      this.rootEl.classList.remove('sysex-inspector--detached');
-      if (this.popoutBtnEl) {
-        this.popoutBtnEl.innerHTML = '&#x29C9;'; // ⧉
-        this.popoutBtnEl.title = 'Abrir en ventana externa / Desacoplar a otra pantalla';
-      }
-
-      if (this._originalParent) {
-        if (this._originalNextSibling && this._originalNextSibling.parentNode === this._originalParent) {
-          this._originalParent.insertBefore(this.rootEl, this._originalNextSibling);
-        } else {
-          this._originalParent.appendChild(this.rootEl);
-        }
-      } else if (typeof document !== 'undefined') {
-        document.body.appendChild(this.rootEl);
-      }
-
-      this._clampToViewport();
-      this.showFeedback('Reincorporado al sintetizador');
-      return this;
-    }
-
-    _onKeyDown(e) {
-      if (e.key === 'Escape' && this.isOpen()) {
-        e.stopPropagation();
-        this.hide();
-      }
-    }
-
-    show() {
-      if (this.isDestroyed || !this.rootEl) return this;
-      this.rootEl.style.display = 'flex';
-      this.rootEl.classList.remove('is-hidden');
-      this._clampToViewport();
-      if (typeof this.options.onOpen === 'function') {
-        this.options.onOpen();
-      }
-      return this;
-    }
-
-    hide() {
-      if (this.isDestroyed || !this.rootEl) return this;
-      if (this.isDetached) {
-        this.dock();
-      }
-      this.rootEl.style.display = 'none';
-      this.rootEl.classList.add('is-hidden');
-      if (typeof this.options.onClose === 'function') {
-        this.options.onClose();
-      }
-      return this;
-    }
-
-    toggle() {
-      return this.isOpen() ? this.hide() : this.show();
-    }
-
-    isOpen() {
-      if (this.isDestroyed || !this.rootEl) return false;
-      return this.rootEl.style.display !== 'none' && !this.rootEl.classList.contains('is-hidden');
-    }
-
-    setBuffer(newBuffer) {
-      this.updateBuffer(newBuffer);
-      return this;
-    }
-
-    getBuffer() {
-      return new Uint8Array(this.buffer);
-    }
-
-    mount(target) {
-      if (!target || !this.rootEl) return this;
-      this.container = target;
-      target.appendChild(this.rootEl);
-      return this;
-    }
-
-    toggleMinimize() {
-      this.isMinimized = !this.isMinimized;
-      if (this.metaEl) this.metaEl.style.display = this.isMinimized ? 'none' : 'flex';
-      if (this.bodyEl) this.bodyEl.style.display = this.isMinimized ? 'none' : 'block';
-      if (this.footerEl) this.footerEl.style.display = this.isMinimized ? 'none' : 'flex';
-    }
-
-    showFeedback(msg) {
-      if (!this.feedbackEl) return;
-      this.feedbackEl.textContent = msg;
-      this.feedbackEl.classList.add('sysex-inspector__feedback--visible');
-      clearTimeout(this.feedbackTimeout);
-      this.feedbackTimeout = setTimeout(() => {
-        this.feedbackEl.classList.remove('sysex-inspector__feedback--visible');
-      }, 2000);
-    }
-
-    updateBuffer(newBuffer) {
-      if (this.isDestroyed) return;
-      const incoming = new Uint8Array(newBuffer || 0);
-
-      this.mutatedIndices.clear();
-      if (this.prevBuffer && this.prevBuffer.length === incoming.length) {
-        for (let i = 0; i < incoming.length; ++i) {
-          if (incoming[i] !== this.prevBuffer[i]) {
-            this.mutatedIndices.add(i);
-          }
-        }
-      }
-
-      this.prevBuffer = new Uint8Array(incoming);
-      this.buffer = incoming;
-
-      this.render();
-
-      if (this.mutatedIndices.size > 0) {
-        clearTimeout(this.mutationTimeout);
-        this.mutationTimeout = setTimeout(() => {
-          this.mutatedIndices.clear();
-          this._clearMutationClasses();
-        }, 800);
-      }
-    }
-
-    _clearMutationClasses() {
-      if (!this.bodyEl) return;
-      const mutatedEls = this.bodyEl.querySelectorAll('.sysex-byte--mutated');
-      mutatedEls.forEach((el) => el.classList.remove('sysex-byte--mutated'));
-    }
-
-    captureSnapshotA() {
-      this.snapshotA = new Uint8Array(this.buffer);
-      this.diffMode = true;
-      if (this.diffBtnEl) this.diffBtnEl.classList.add('sysex-inspector__btn--active');
-      this.showFeedback('Snapshot A capturado');
-      this.render();
-    }
-
-    toggleDiff(forcedState) {
-      this.diffMode = typeof forcedState === 'boolean' ? forcedState : !this.diffMode;
-      if (this.diffBtnEl) {
-        this.diffBtnEl.classList.toggle('sysex-inspector__btn--active', this.diffMode);
-      }
-      this.render();
-    }
-
-    copyHex() {
-      if (!this.buffer.length) return;
-      const hex = Array.from(this.buffer)
-        .map((b) => toHexByte(b))
-        .join(' ');
-      this._writeClipboard(hex, 'Hex copiado al portapapeles');
-    }
-
-    copyArray() {
-      if (!this.buffer.length) return;
-      const arr = `[${Array.from(this.buffer)
-        .map((b) => `0x${toHexByte(b)}`)
-        .join(', ')}]`;
-      this._writeClipboard(arr, 'Array literal copiado');
-    }
-
-    _writeClipboard(text, successMsg) {
-      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(
-          () => this.showFeedback(successMsg),
-          () => this._fallbackCopy(text, successMsg),
-        );
-      } else {
-        this._fallbackCopy(text, successMsg);
-      }
-    }
-
-    _fallbackCopy(text, successMsg) {
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        this.showFeedback(successMsg);
-      } catch {
-        this.showFeedback('Error al copiar');
-      }
-    }
-
-    exportSyx(filename) {
-      if (!this.buffer.length) {
-        this.showFeedback('Buffer vacío');
-        return;
-      }
-      const fname = filename || `${(window._lastPresetName || 'DeepMind_Patch').replace(/[^a-zA-Z0-9_\-]/g, '_')}.syx`;
-      const blob = new Blob([this.buffer], { type: 'application/octet-stream' });
-      if (typeof this.options.onExport === 'function') {
-        this.options.onExport(blob, fname);
-      } else if (typeof document !== 'undefined') {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fname;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-      this.showFeedback(`Exportado ${fname}`);
-    }
-
-    render() {
-      if (!this.rootEl || typeof document === 'undefined') return;
-
-      const len = this.buffer.length;
-      if (this.sizeBadgeEl) {
-        this.sizeBadgeEl.textContent = `${len} B`;
-      }
-
-      const header = decodeSysExHeader(this.buffer);
-      if (this.metaEl) {
-        this.metaEl.innerHTML = '';
-        if (header.valid) {
-          this.metaEl.innerHTML = `
-            <div class="sysex-inspector__meta-item"><span class="sysex-inspector__meta-label">Mfg:</span> <span class="sysex-inspector__meta-val">${header.manufacturer}</span></div>
-            <div class="sysex-inspector__meta-item"><span class="sysex-inspector__meta-label">Dev:</span> <span class="sysex-inspector__meta-val">${header.deviceId || '--'}</span></div>
-            ${header.model ? `<div class="sysex-inspector__meta-item"><span class="sysex-inspector__meta-label">Model:</span> <span class="sysex-inspector__meta-val">${header.model}</span></div>` : ''}
-            <div class="sysex-inspector__meta-item"><span class="sysex-inspector__meta-label">EOX:</span> <span class="sysex-inspector__meta-val">${header.hasEox ? 'F7 (OK)' : 'Missing'}</span></div>
-          `;
-        } else {
-          this.metaEl.innerHTML = `<span class="sysex-inspector__meta-label">Trama no reconocida o vacía</span>`;
-        }
-      }
-
-      let diffCount = 0;
-      if (this.diffMode && this.snapshotA) {
-        const maxCmp = Math.max(len, this.snapshotA.length);
-        for (let i = 0; i < maxCmp; ++i) {
-          if (i >= len || i >= this.snapshotA.length || this.buffer[i] !== this.snapshotA[i]) {
-            diffCount++;
-          }
-        }
-        if (this.diffBadgeEl) {
-          this.diffBadgeEl.textContent = `Δ ${diffCount} B`;
-          this.diffBadgeEl.style.display = 'inline-flex';
-        }
-      } else if (this.diffBadgeEl) {
-        this.diffBadgeEl.style.display = 'none';
-      }
-
-      if (!this.bodyEl) return;
-      this.bodyEl.innerHTML = '';
-
-      if (len === 0) {
-        const empty = document.createElement('div');
-        empty.style.color = 'var(--sysex-text-muted)';
-        empty.style.padding = '20px';
-        empty.style.textAlign = 'center';
-        empty.textContent = 'Búfer SysEx vacío — mueve un parámetro para inspeccionar datos en vivo.';
-        this.bodyEl.appendChild(empty);
-        return;
-      }
-
-      const table = document.createElement('table');
-      table.className = 'sysex-table';
-
-      const bpr = this.options.bytesPerRow;
-      for (let offset = 0; offset < len; offset += bpr) {
-        const row = document.createElement('tr');
-        row.className = 'sysex-row';
-
-        const tdOffset = document.createElement('td');
-        tdOffset.className = 'sysex-offset';
-        tdOffset.textContent = offset.toString(16).padStart(4, '0').toUpperCase();
-        row.appendChild(tdOffset);
-
-        const tdHex = document.createElement('td');
-        tdHex.className = 'sysex-hex-col';
-
-        let asciiChunk = '';
-
-        for (let i = 0; i < bpr; ++i) {
-          const byteIdx = offset + i;
-          if (byteIdx < len) {
-            const val = this.buffer[byteIdx];
-            const span = document.createElement('span');
-            span.className = 'sysex-byte';
-            span.textContent = toHexByte(val);
-            span.dataset.offset = byteIdx;
-
-            if (byteIdx === 0 && val === 0xf0) span.classList.add('sysex-byte--sof');
-            else if (byteIdx === len - 1 && val === 0xf7) span.classList.add('sysex-byte--eof');
-            else if (byteIdx === 1) span.classList.add('sysex-byte--mfg');
-
-            if (this.mutatedIndices.has(byteIdx)) {
-              span.classList.add('sysex-byte--mutated');
-            }
-
-            if (this.diffMode && this.snapshotA) {
-              const valA = this.snapshotA[byteIdx];
-              if (valA !== undefined && val !== valA) {
-                span.classList.add('sysex-byte--diff');
-                span.title = `Offset ${byteIdx}: A (0x${toHexByte(valA)}) → B (0x${toHexByte(val)})`;
+        const res = window.juce.getBuildInfo();
+        if (res && typeof res.then === 'function') {
+          res.then((info) => {
+            if (!info || !_aboutDialogInstance) {return;}
+            if (info.version) {
+              _aboutDialogInstance.options.version = String(info.version);
+              if (_aboutDialogInstance.versionTextEl) {
+                const v = String(info.version);
+                _aboutDialogInstance.versionTextEl.textContent = v.startsWith('v') ? v : `v${v}`;
               }
             }
-
-            tdHex.appendChild(span);
-            asciiChunk += val >= 32 && val <= 126 ? String.fromCharCode(val) : '.';
-          } else {
-            const emptySpan = document.createElement('span');
-            emptySpan.className = 'sysex-byte';
-            emptySpan.style.opacity = '0';
-            emptySpan.textContent = '  ';
-            tdHex.appendChild(emptySpan);
-          }
+            if (info.buildNumber !== undefined && _aboutDialogInstance.rootEl) {
+              _aboutDialogInstance.options.buildNumber = info.buildNumber;
+              const buildEl = _aboutDialogInstance.rootEl.querySelector('.abd-about-build');
+              if (buildEl) {
+                buildEl.textContent = `Build #${info.buildNumber}${info.buildTimestamp ? ` (${info.buildTimestamp})` : ''}`;
+              }
+            }
+          }).catch(() => {});
         }
-        row.appendChild(tdHex);
-
-        const tdAscii = document.createElement('td');
-        tdAscii.className = 'sysex-ascii-col';
-        tdAscii.textContent = asciiChunk;
-        row.appendChild(tdAscii);
-
-        table.appendChild(row);
-      }
-
-      this.bodyEl.appendChild(table);
-    }
-
-    destroy() {
-      this.isDestroyed = true;
-      if (this.isDetached) {
-        this.dock();
-      }
-      clearTimeout(this.mutationTimeout);
-      clearTimeout(this.feedbackTimeout);
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('pointermove', this._onPointerMove);
-        window.removeEventListener('pointerup', this._onPointerUp);
-        window.removeEventListener('keydown', this._onKeyDown);
-        window.removeEventListener('resize', this._onWindowResize);
-      }
-      if (this.rootEl && this.rootEl.parentNode) {
-        this.rootEl.parentNode.removeChild(this.rootEl);
-      }
-      this.rootEl = null;
+      } catch (_) { /* ignore */ }
     }
   }
+  return _aboutDialogInstance;
+}
 
-  function createLiveSysExInspector(options = {}) {
-    return new LiveSysExInspector(options);
+export function openAboutDialog(triggerCheck = false) {
+  const dlg = getAboutDialog();
+  if (!dlg) {return null;}
+  dlg.open();
+  if (triggerCheck) {
+    dlg.checkForUpdates();
   }
+  return dlg;
+}
 
-  // Helper para generar el buffer SysEx de 291 bytes de DeepMind
-  function getCurrentDeepMindSysExBuffer(overrideBytes) {
-    let bytes = overrideBytes || (typeof window !== 'undefined' ? (window._liveUnpackedBytes || window._lastUnpackedBytes) : null);
-    if (!bytes || bytes.length < 242) {
-      if (typeof window !== 'undefined' && window.loadedBanks && window.currentActiveBank) {
-        const bank = window.loadedBanks[window.currentActiveBank];
-        const patch = bank && bank[window.currentActivePatchIndex];
-        if (patch && patch.unpackedBytes) {
-          bytes = patch.unpackedBytes;
-        }
-      }
-    }
-
-    const syxMsg = new Uint8Array(291);
-    syxMsg[0] = 0xF0;
-    syxMsg[1] = 0x00;
-    syxMsg[2] = 0x20;
-    syxMsg[3] = 0x32;
-    syxMsg[4] = 0x20;
-    syxMsg[5] = 0x7F; // broadcast device ID
-    syxMsg[6] = 0x02; // Program Dump Response
-    syxMsg[7] = 0x07;
-
-    if (bytes && bytes.length >= 242 && typeof window !== 'undefined' && typeof window.pack8to7 === 'function') {
-      try {
-        const packed = window.pack8to7(bytes);
-        syxMsg.set(packed, 8);
-      } catch (_) {}
-    }
-
-    syxMsg[290] = 0xF7;
-    return syxMsg;
-  }
-
-  let _instance = null;
-  let _isVisible = false;
-
-  function getLiveSysExInspector() {
-    if (!_instance) {
-      const initialBuf = getCurrentDeepMindSysExBuffer();
-      _instance = createLiveSysExInspector({
-        title: 'DeepMind Live SysEx Inspector',
-        floating: true,
-        bytesPerRow: 16,
-        initialBuffer: initialBuf,
-        onClose: () => {
-          _isVisible = false;
-        },
-        onOpen: () => {
-          _isVisible = true;
-        },
-      });
-      _instance.hide();
-    }
-    return _instance;
-  }
-
-  function toggleLiveSysExInspector() {
-    const inspector = getLiveSysExInspector();
-    inspector.toggle();
-    _isVisible = inspector.isOpen();
-    if (_isVisible) {
-      updateLiveSysExInspector();
-    }
-  }
-
-  function updateLiveSysExInspector(rawBytes) {
-    if (!_instance || !_instance.isOpen()) return;
-    const buf = getCurrentDeepMindSysExBuffer(rawBytes);
-    _instance.updateBuffer(buf);
-  }
-
-  // Inicialización de escuchadores globales en navegador
-  if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', () => {
-      // Atajo de teclado Ctrl+I / Cmd+I
-      document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I')) {
-          e.preventDefault();
-          toggleLiveSysExInspector();
-        }
-      });
-
-      // Click en el menú View ➔ Live SysEx Inspector...
-      document.addEventListener('click', (e) => {
-        if (e.target.closest('#menu-sysex-inspector')) {
-          e.preventDefault();
-          toggleLiveSysExInspector();
-        }
-      });
-
-      // Click en el contenedor de hex del programmer
-      const sysexLog = document.getElementById('sysex-hex-log');
-      if (sysexLog) {
-        sysexLog.style.cursor = 'pointer';
-        sysexLog.title = 'Click to open Live SysEx Inspector (Ctrl+I)';
-        sysexLog.addEventListener('click', (e) => {
-          // Si no está seleccionando un byte específico con shift/ctrl, abrir el inspector
-          if (!e.shiftKey && !e.ctrlKey) {
-            toggleLiveSysExInspector();
-          }
-        });
-      }
-    });
-  }
-
-  return {
+// Exposición en window para compatibilidad con scripts clásicos de ABDEep
+if (typeof window !== 'undefined') {
+  Object.assign(window, {
     toHexByte,
     decodeSysExHeader,
     LiveSysExInspector,
     createLiveSysExInspector,
+    packDeepMind8to7,
+    unpackDeepMind7to8,
     getCurrentDeepMindSysExBuffer,
+    importDeepMindSysExBuffer,
+    importSysexBase64,
     getLiveSysExInspector,
     toggleLiveSysExInspector,
     updateLiveSysExInspector,
+    AboutDialog,
+    createAboutDialog,
+    getAboutDialog,
+    openAboutDialog,
+  });
+}
+
+// Inicialización de escuchadores globales en navegador
+if (typeof document !== 'undefined') {
+  const initInspectorListeners = () => {
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I')) {
+        e.preventDefault();
+        toggleLiveSysExInspector();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target && typeof e.target.closest === 'function' && e.target.closest('#menu-sysex-inspector')) {
+        e.preventDefault();
+        toggleLiveSysExInspector();
+      }
+    });
+
+    const sysexLog = document.getElementById('sysex-hex-log');
+    if (sysexLog) {
+      sysexLog.style.cursor = 'pointer';
+      sysexLog.title = 'Click to open Live SysEx Inspector (Ctrl+I)';
+      sysexLog.addEventListener('click', (e) => {
+        if (!e.shiftKey && !e.ctrlKey) {
+          toggleLiveSysExInspector();
+        }
+      });
+    }
   };
-});
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initInspectorListeners, { once: true });
+  } else {
+    initInspectorListeners();
+  }
+}
+
+export {
+  toHexByte,
+  decodeSysExHeader,
+  LiveSysExInspector,
+  createLiveSysExInspector,
+  AboutDialog,
+  createAboutDialog,
+};

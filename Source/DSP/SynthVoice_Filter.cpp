@@ -20,9 +20,9 @@ float SynthVoice::processFilterSection(const ModulationMatrix& matrix, float com
 
     // VCF Env Velocity Sensitivity: la velocity escala la profundidad del envelope VCF
 
-    // vcfEnvDepth es bipolar: 0.0=−100%, 0.5=0% (centro), 1.0=+100%
-    // Convertir a signed [-1,+1] antes de aplicar polarity toggle
-    const float signedEnvDepth = (params.vcfEnvDepth - 0.5f) * 2.0f;
+    // vcfEnvDepth es unipolar en hardware DeepMind 12 (0.0=0%, 1.0=100%);
+    // la polaridad la controla el botón INVERT (vcfEnvPolarity: 1=Normal +1, 0=Inverted -1).
+    const float signedEnvDepth = std::clamp(params.vcfEnvDepth, 0.0f, 1.0f);
     // Polaridad: Normal=+1, Inverted=−1 (botón INVERT del hardware)
     float polarityScale = (params.vcfEnvPolarity == 1) ? 1.0f : -1.0f;
     float effectiveEnvDepth = signedEnvDepth * polarityScale;
@@ -90,8 +90,10 @@ float SynthVoice::processFilterSection(const ModulationMatrix& matrix, float com
     // El cutoff escala por el ratio de la nota tocada frente a la referencia:
     // una octava arriba duplica el cutoff, una octava abajo lo divide. La
     // forma aditiva anterior (cutoff + Hz) subestimaba el tracking en agudos.
+    const float keyTrackMod = matrix.getModulationValue(ModDestination::kFilterKeyTrack, modSources);
+    const float effectiveKeyTrack = std::clamp(params.vcfKeyTrack + keyTrackMod, 0.0f, 1.0f);
     float keyTrackRatio = ABD::DSP::filterKeyTrackRatio(freq1, cal.keytrackRefHz,
-                                                        params.vcfKeyTrack * cal.keytrackAmountScale);
+                                                        effectiveKeyTrack * cal.keytrackAmountScale);
     float keyTrackHz = cutoffHz * (keyTrackRatio - 1.0f);
     cutoffHz = std::clamp(cutoffHz * keyTrackRatio, 10.0f, (float)(sampleRate * 0.45));
     // Almacenar cutoff modulado para el DebugPanel

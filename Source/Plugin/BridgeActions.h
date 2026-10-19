@@ -88,4 +88,8 @@ void compareAudioABRun (ABDEepAudioProcessor& audioProcessor,
                         const juce::Array<juce::var>& args,
                         juce::WebBrowserComponent::NativeFunctionCompletion completion);
 
+void runRoundTripValidator (ABDEepAudioProcessor& audioProcessor,
+                            const juce::Array<juce::var>& args,
+                            juce::WebBrowserComponent::NativeFunctionCompletion completion);
+
 } // namespace BridgeActions

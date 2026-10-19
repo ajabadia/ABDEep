@@ -74,6 +74,7 @@ private:
 
     // Petición atómica del hilo audio
     std::atomic<std::uint64_t> requestWord { 0 };
+    std::atomic<std::uint64_t> publishedSeq { 0 };
     std::uint64_t lastSeenSeq = 0;
 };
 

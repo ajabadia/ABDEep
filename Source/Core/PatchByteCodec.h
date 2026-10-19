@@ -73,7 +73,10 @@ inline int applyToApvts (const std::uint8_t* patch242,
         const float normalizado = rawToNormalized (p.byteOffset, patch242[p.byteOffset]);
         if (auto* raw = apvts.getRawParameterValue (p.id))
         {
-            raw->store (normalizado, std::memory_order_relaxed);
+            float domainVal = normalizado;
+            if (auto* param = apvts.getParameter (p.id))
+                domainVal = param->convertFrom0to1 (normalizado);
+            raw->store (domainVal, std::memory_order_relaxed);
             ++escritos;
         }
     }

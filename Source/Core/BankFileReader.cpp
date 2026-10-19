@@ -149,17 +149,22 @@ bool BankFileReader::parseBankSyxBuffer (const std::uint8_t* data, size_t size, 
 
 juce::String BankFileReader::extractPatchName (const PatchBytes& patch)
 {
-    // Bytes 223-238 = 16 caracteres ASCII (padded con 0x20/0x00)
+    // Bytes 223-238 = 16 caracteres ASCII imprimibles (0x20..0x7E, padded con 0x20/0x00)
     char buf[17] = { 0 };
+    int len = 0;
     for (int k = 0; k < 16; ++k)
     {
-        char c = static_cast<char> (patch[223 + k]);
-        buf[k] = (c == 0 || c == 0x20) ? 0 : c; // trata NUL y espacio como terminador
+        const std::uint8_t u = patch[223 + k];
+        if (u < 0x20 || u > 0x7E)
+            break;
+        buf[k] = static_cast<char> (u);
+        len = k + 1;
     }
-    // Recortar espacios finales si hubo padding con 0x20 sin NUL
-    int len = 15;
-    while (len >= 0 && buf[len] == 0) --len;
-    return juce::String (buf, len + 1);
+    // Recortar espacios finales si hubo padding con 0x20
+    while (len > 0 && buf[len - 1] == ' ')
+        --len;
+    buf[len] = '\0';
+    return juce::String (buf, static_cast<size_t> (len));
 }
 
 } // namespace ABD

@@ -1,8 +1,8 @@
-# Baseline cppcheck de ABDEep — generado midiendo HEAD (3140cc8) con el comando
-# exacto de la CI (cppcheck 2.21) ya SIN Source/Core/*.gen.* ni BuildVersion.h
-# (excluidos por --suppress; el gate sustituye a los tres pasos inline antiguos
-# sin baseline). Firma: severidad|archivo|mensaje (sin linea, paths con /). El
-# gate solo bloquea hallazgos que NO esten aqui.
+# Baseline cppcheck de ABDEep — deuda medida midiendo HEAD (3140cc8) con el
+# comando exacto de la CI (cppcheck 2.21). Exclusiones: ver
+# .github/cppcheck-excludes.txt (su unica fuente; esta cabecera no las lista
+# para que no puedan divergir). Firma: severidad|archivo|mensaje (sin linea,
+# paths con /). El gate solo bloquea hallazgos que NO esten aqui.
 performance|Source/Core/CalibrationSpec_Serialization.cpp|Function parameter 'fallback' should be passed by const reference.
 performance|Source/DSP/FX/FXHybridReverb.cpp|Variable 'reverb' is assigned in constructor body. Consider performing initialization in initialization list.
 warning|Source/Calibration/AudioABRecorder.cpp|Return value of function fileStream.release() is not used.

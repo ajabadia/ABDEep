@@ -163,6 +163,10 @@ function initMidiRouter() {
             window._lastUnpackedBytes[byteOffset] = rawVal;
         }
 
+        if (typeof window.updateLiveSysExInspector === 'function') {
+            window.updateLiveSysExInspector(window._liveUnpackedBytes);
+        }
+
         const byteEl = document.querySelector('.hex-byte[data-idx="' + byteOffset + '"]');
         if (byteEl) {
             const hex = rawVal.toString(16).toUpperCase().padStart(2, '0');

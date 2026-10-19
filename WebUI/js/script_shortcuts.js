@@ -145,8 +145,9 @@ window.initKeyboardShortcuts = function() {
             return;
         }
         
-        // PANIC
-        if (window.ShortcutConfig.matches(e, shortcuts['panic'])) {
+        // PANIC (soporta el atajo configurable por defecto Ctrl+Shift+P y también Ctrl+Q / Cmd+Q documentado en el modal de ayuda)
+        const isCtrlQ = (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key && e.key.toLowerCase() === 'q';
+        if (window.ShortcutConfig.matches(e, shortcuts['panic']) || isCtrlQ) {
             e.preventDefault();
             const panicBtn = document.getElementById('programmer-panic-btn');
             if (panicBtn) {

@@ -17,7 +17,7 @@
                 bridge.audioCtx.resume().catch(function() {});
             }
             bridge.isAudioStarted = true;
-            window._wasmUpdateAudioButtonUI(bridge, bridge.audioCtx.state === 'running');
+            window._wasmUpdateAudioButtonUI(bridge.audioCtx.state === 'running');
             return true;
         }
 
@@ -59,10 +59,10 @@
 
             if (bridge.audioCtx.state === 'suspended') {
                 bridge.audioCtx.resume().then(function() {
-                    window._wasmUpdateAudioButtonUI(bridge, true);
+                    window._wasmUpdateAudioButtonUI(true);
                 }).catch(function() {});
             } else {
-                window._wasmUpdateAudioButtonUI(bridge, true);
+                window._wasmUpdateAudioButtonUI(true);
             }
 
             // Restaurar dispositivo de salida de audio seleccionado previamente si la API lo soporta

@@ -6,7 +6,14 @@
 window.bindPanelLfoControls = function(container, state, titleEl) {
     const lfoSelectBtn = document.getElementById('lfo-select-btn');
     if (lfoSelectBtn) {
-        state.panelActiveLfo = lfoSelectBtn.innerText.includes('LFO 2') ? 2 : 1;
+        const attrUnit = typeof lfoSelectBtn.getAttribute === 'function' ? lfoSelectBtn.getAttribute('data-active-unit') : null;
+        if (attrUnit === '1' || attrUnit === '2') {
+            state.panelActiveLfo = parseInt(attrUnit, 10);
+        } else if (lfoSelectBtn.classList && (lfoSelectBtn.classList.contains('is-lfo1') || lfoSelectBtn.classList.contains('is-lfo2'))) {
+            state.panelActiveLfo = lfoSelectBtn.classList.contains('is-lfo2') ? 2 : 1;
+        } else {
+            state.panelActiveLfo = (lfoSelectBtn.innerText || '').includes('LFO 2') ? 2 : 1;
+        }
     }
 
     titleEl.innerText = `LFO ${state.panelActiveLfo} Editor`;

@@ -35,22 +35,40 @@ var Logger = globalThis.Logger || console;
         this.refreshMidiLearnIndicators();
     };
 
-    /** Persist mappings to localStorage */
+    /** Persist mappings to localStorage and DAW session state (JUCE) */
     DualMidiBridge.prototype._saveMidiLearnMappings = function() {
         try {
-            localStorage.setItem('abd-eep-midi-learn', JSON.stringify(this.midiLearnMappings));
+            const jsonStr = JSON.stringify(this.midiLearnMappings);
+            localStorage.setItem('abd-eep-midi-learn', jsonStr);
+            if (this.isJuce && window.juce && typeof window.juce.setMidiLearnState === 'function') {
+                window.juce.setMidiLearnState(jsonStr);
+            }
         } catch (e) {
             Logger.warn('[MIDI Learn] Failed to save mappings:', e);
         }
     };
 
-    /** Load mappings from localStorage */
+    /** Load mappings from localStorage and DAW session state (JUCE) */
     DualMidiBridge.prototype._loadMidiLearnMappings = function() {
         try {
             const raw = localStorage.getItem('abd-eep-midi-learn');
             if (raw) {
                 this.midiLearnMappings = JSON.parse(raw);
                 Logger.log('[MIDI Learn] 📥 Loaded ' + Object.keys(this.midiLearnMappings).length + ' mappings from storage');
+            }
+            if (this.isJuce && window.juce && typeof window.juce.getMidiLearnState === 'function') {
+                const self = this;
+                Promise.resolve(window.juce.getMidiLearnState()).then(function(hostRaw) {
+                    if (hostRaw && typeof hostRaw === 'string' && hostRaw !== '{}') {
+                        try {
+                            const hostMap = JSON.parse(hostRaw);
+                            if (hostMap && typeof hostMap === 'object' && Object.keys(hostMap).length > 0) {
+                                self.midiLearnMappings = Object.assign({}, self.midiLearnMappings, hostMap);
+                                self.refreshMidiLearnIndicators();
+                            }
+                        } catch (_err) { /* ignore invalid JSON */ }
+                    }
+                }).catch(function() {});
             }
             this.refreshMidiLearnIndicators();
         } catch (e) {

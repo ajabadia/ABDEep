@@ -21,11 +21,36 @@ namespace
     // pero que NO forman parte del registro de presets (los 235 del registry).
     // Se les asignan slots fijos justo después del registro para mantener el
     // acceso O(1) por índice. (Ver SynthEngine_Parameters.cpp / FXEngine.cpp.)
-    constexpr std::size_t kInternalParamCount = 10;
+    constexpr std::size_t kInternalParamCount = 87;
     constexpr const char* kInternalParamIds[kInternalParamCount] = {
         "global_tune", "global_volume", "hpf_bass_boost_gain", "master_softclip_bypass",
         "master_softclip_headroom", "sub_level", "transpose", "vca_mode",
-        "vcf_oversample", "vcf_voicing_mode"
+        "vcf_oversample", "vcf_voicing_mode",
+        "fx1_mix", "fx2_mix", "fx3_mix", "fx4_mix", "arp_velocity_gate",
+        "mod_matrix_slot9_src",  "mod_matrix_slot9_dst",  "mod_matrix_slot9_depth",
+        "mod_matrix_slot10_src", "mod_matrix_slot10_dst", "mod_matrix_slot10_depth",
+        "mod_matrix_slot11_src", "mod_matrix_slot11_dst", "mod_matrix_slot11_depth",
+        "mod_matrix_slot12_src", "mod_matrix_slot12_dst", "mod_matrix_slot12_depth",
+        "mod_matrix_slot13_src", "mod_matrix_slot13_dst", "mod_matrix_slot13_depth",
+        "mod_matrix_slot14_src", "mod_matrix_slot14_dst", "mod_matrix_slot14_depth",
+        "mod_matrix_slot15_src", "mod_matrix_slot15_dst", "mod_matrix_slot15_depth",
+        "mod_matrix_slot16_src", "mod_matrix_slot16_dst", "mod_matrix_slot16_depth",
+        "mod_matrix_slot17_src", "mod_matrix_slot17_dst", "mod_matrix_slot17_depth",
+        "mod_matrix_slot18_src", "mod_matrix_slot18_dst", "mod_matrix_slot18_depth",
+        "mod_matrix_slot19_src", "mod_matrix_slot19_dst", "mod_matrix_slot19_depth",
+        "mod_matrix_slot20_src", "mod_matrix_slot20_dst", "mod_matrix_slot20_depth",
+        "mod_matrix_slot21_src", "mod_matrix_slot21_dst", "mod_matrix_slot21_depth",
+        "mod_matrix_slot22_src", "mod_matrix_slot22_dst", "mod_matrix_slot22_depth",
+        "mod_matrix_slot23_src", "mod_matrix_slot23_dst", "mod_matrix_slot23_depth",
+        "mod_matrix_slot24_src", "mod_matrix_slot24_dst", "mod_matrix_slot24_depth",
+        "mod_matrix_slot25_src", "mod_matrix_slot25_dst", "mod_matrix_slot25_depth",
+        "mod_matrix_slot26_src", "mod_matrix_slot26_dst", "mod_matrix_slot26_depth",
+        "mod_matrix_slot27_src", "mod_matrix_slot27_dst", "mod_matrix_slot27_depth",
+        "mod_matrix_slot28_src", "mod_matrix_slot28_dst", "mod_matrix_slot28_depth",
+        "mod_matrix_slot29_src", "mod_matrix_slot29_dst", "mod_matrix_slot29_depth",
+        "mod_matrix_slot30_src", "mod_matrix_slot30_dst", "mod_matrix_slot30_depth",
+        "mod_matrix_slot31_src", "mod_matrix_slot31_dst", "mod_matrix_slot31_depth",
+        "mod_matrix_slot32_src", "mod_matrix_slot32_dst", "mod_matrix_slot32_depth"
     };
 
     constexpr std::size_t kValueStoreSize = ABD::Registry::kParameterCount + kInternalParamCount;
@@ -70,19 +95,19 @@ namespace juce
         if (slot < ABD::Registry::kParameterCount)
         {
             const auto& entry = ABD::Registry::kParameters[slot];
-            if (entry.codecType == 2) // Enum
+            if (entry.codecType == 2 && rawVal <= 1.0f && entry.enumMax > 1) // Enum normalized
             {
                 rawVal = std::round(rawVal * static_cast<float>(entry.enumMax));
             }
         }
         else
         {
-            // Internal parameters: desnormalize enums
-            if (id == "vcf_oversample")
+            // Internal parameters: desnormalize enums when normalized [0..1]
+            if (id == "vcf_oversample" && rawVal <= 1.0f)
             {
                 rawVal = std::round(rawVal * 2.0f);
             }
-            else if (id == "vca_mode")
+            else if (id == "vca_mode" && rawVal <= 1.0f)
             {
                 rawVal = std::round(rawVal * 1.0f);
             }
@@ -126,11 +151,36 @@ namespace
         }
     }
 
+    void setDefaultParam(const char* id, float val) noexcept
+    {
+        const std::size_t slot = resolveSlot(juce::String(id));
+        if (slot != kNoSlot)
+            gValueStore[slot].store(val, std::memory_order_release);
+    }
+
     void resetParameterStore()
     {
         for (auto& v : gValueStore) v.store(0.0f, std::memory_order_release);
         for (auto& c : gChoiceStore) c.value.store(0.0f, std::memory_order_release);
-        gParamsDirty.store(false, std::memory_order_release);
+
+        setDefaultParam("global_volume", 0.8f);
+        setDefaultParam("vca_level", 0.8f);
+        setDefaultParam("vcf_cutoff", 1.0f);
+        setDefaultParam("osc1_saw_enable", 1.0f);
+        setDefaultParam("env1_sustain", 1.0f);
+        setDefaultParam("vca_env_depth", 1.0f);
+        setDefaultParam("pitch_bend_up", 2.0f);
+        setDefaultParam("pitch_bend_down", -2.0f);
+        setDefaultParam("hpf_cutoff", 20.0f);
+        setDefaultParam("hpf_bass_boost_gain", 1.0f);
+        setDefaultParam("arp_rate", 120.0f);
+        setDefaultParam("arp_gate_time", 128.0f);
+        setDefaultParam("fx1_mix", 1.0f);
+        setDefaultParam("fx2_mix", 1.0f);
+        setDefaultParam("fx3_mix", 1.0f);
+        setDefaultParam("fx4_mix", 1.0f);
+
+        gParamsDirty.store(true, std::memory_order_release);
     }
 }
 

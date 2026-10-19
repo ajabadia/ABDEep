@@ -5,6 +5,11 @@ namespace ABD
 {
     FXRingModulator::FXRingModulator()
     {
+        paramFreq = 0.5f;
+        paramLFORate = 0.3f;
+        paramLFODepth = 0.4f;
+        paramWaveform = 0.0f;
+        paramMix = 0.5f;
         reset();
     }
 
@@ -16,12 +21,6 @@ namespace ABD
 
     void FXRingModulator::reset()
     {
-        paramFreq = 0.5f;
-        paramLFORate = 0.3f;
-        paramLFODepth = 0.4f;
-        paramWaveform = 0.0f;
-        paramMix = 0.5f;
-
         ringMod.reset();
     }
 

@@ -1,9 +1,15 @@
 cmake_minimum_required(VERSION 3.22)
+if(APPLE AND NOT DEFINED CMAKE_OSX_ARCHITECTURES)
+    set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build Universal Binary for macOS (Intel + Apple Silicon)" FORCE)
+endif()
 project(ABDEep VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(JUCE_USE_WIN_WEBVIEW2 ON CACHE BOOL "Use WebView2 on Windows" FORCE)
+if(MSVC)
+    add_compile_options(/MP4)
+endif()
 
 # ============================================================
 # JUCE Location
@@ -99,6 +105,7 @@ if(ABDEEP_NODE_EXECUTABLE)
     add_custom_command(
         OUTPUT ${REGISTRY_OUT_DATA} ${REGISTRY_OUT_JS} ${REGISTRY_OUT_H} ${REGISTRY_OUT_CPP}
         COMMAND ${ABDEEP_NODE_EXECUTABLE} ${REGISTRY_GEN}
+        COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${REGISTRY_OUT_DATA} ${REGISTRY_OUT_JS} ${REGISTRY_OUT_H} ${REGISTRY_OUT_CPP}
         DEPENDS
             ${REGISTRY_SCHEMA}
             ${REGISTRY_SPEC}
@@ -217,12 +224,12 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         PLUGIN_MANUFACTURER_CODE "Abda"
         PLUGIN_CODE "Deep"
         PLUGIN_MANUFACTURER "ABDSynths"
-        PLUGIN_MANUFACTURER_WEBSITE ""
-        PLUGIN_MANUFACTURER_EMAIL ""
+        PLUGIN_MANUFACTURER_WEBSITE "https://abdsynths.com"
+        PLUGIN_MANUFACTURER_EMAIL "info@abdsynths.com"
         PLUGIN_IS_SYNTH TRUE
         PLUGIN_PRODUCES_MIDI_OUTPUT TRUE
         PLUGIN_WANTS_MIDI_INPUT TRUE
-        PLUGIN_EDITOR_REQUIRES_KEYBOARD_FOCUS TRUE
+        PLUGIN_EDITOR_REQUIRES_KEYBOARD_FOCUS FALSE
         VERSION "0.1.0"
         VERSION_STRING "0.1.0"
         FORMATS Standalone VST3
@@ -251,6 +258,8 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         ABDShared::SynthCore
         ABDShared::DspCore
         ABDShared::DspEffects
+        ABDShared::AudioComparator
+        ABDShared::AutoUpdater
         ABDShared::WebView2Bridge
         juce::juce_audio_devices
         juce::juce_audio_utils
@@ -276,6 +285,8 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
             ABDShared::SynthCore
             ABDShared::DspCore
             ABDShared::DspEffects
+            ABDShared::AudioComparator
+            ABDShared::AutoUpdater
             ABDShared::WebView2Bridge
             juce::juce_audio_devices
             juce::juce_audio_utils
@@ -327,6 +338,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         ABDShared::SynthCore
         ABDShared::DspCore
         ABDShared::DspEffects
+        ABDShared::AudioComparator
         juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_events
@@ -378,6 +390,10 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_Transfer.cpp
         ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_RapidSweep.cpp
         ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_MIDITiming.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_ArpSeq.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_ModDestinosMecanicosAudio.cpp
+        ${SRC_ROOT}/Tools/UnitTests/SynthEngineUnitTests_VirtualParams.cpp
+        ${SRC_ROOT}/Tools/UnitTests/ParamConversionUnitTests.cpp
         ${SRC_ROOT}/Tools/UnitTests/MidiProgramUnitTests.cpp
 
         # ── Fast-math tolerance tests (Tier 3 candidates) ──
@@ -411,6 +427,7 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
         ABDShared::SynthCore
         ABDShared::DspCore
         ABDShared::DspEffects
+        ABDShared::AudioComparator
         juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_events
@@ -455,7 +472,9 @@ if(EXISTS "${JUCE_PATH}/extras/Build/CMake/JUCEUtils.cmake")
     target_link_libraries(ABDEep_Benchmarks PRIVATE
         juce::juce_dsp
         ABDShared::SynthCore
+        ABDShared::DspCore
         ABDShared::DspEffects
+        ABDShared::AudioComparator
         juce::juce_gui_basics
         juce::juce_gui_extra
         juce::juce_events

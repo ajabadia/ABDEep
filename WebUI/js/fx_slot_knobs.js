@@ -344,48 +344,93 @@
                 if (!fila || fila.conectables.indexOf(mando) < 0) {return;}
 
                 let arrastrando = false;
-                let yInicial = 0;
-                let valorInicial = 0.5;
+                let yAnterior = 0;
+                let valorEnCurso = 0.5;
+
+                const paramId = idParametro(hueco, mando);
+                const lblEl = typeof unidad.querySelector === 'function' ? unidad.querySelector('.label') : null;
+                const labelText = lblEl && lblEl.textContent ? lblEl.textContent.trim() : paramId;
+                const fxNombre = typeof nombreDelHueco === 'function' ? nombreDelHueco(hueco) : '';
+                const fxCat = 'FX ' + hueco + (fxNombre ? ' · ' + fxNombre.toUpperCase() : '');
 
                 const valorActual = () => (typeof window._readFxParamValue === 'function'
-                    ? window._readFxParamValue(idParametro(hueco, mando), BYTE_PARAM1[hueco] + mando - 1, 0.5)
+                    ? window._readFxParamValue(paramId, BYTE_PARAM1[hueco] + mando - 1, 0.5)
                     : 0.5);
 
                 const escribe = (valor) => {
-                    posicionDe(hueco, mando, valor);
+                    const clamped = Math.max(0.0, Math.min(1.0, valor));
+                    valorEnCurso = clamped;
+                    posicionDe(hueco, mando, clamped);
 
                     if (typeof getBridge === 'function') {
                         const bridge = getBridge();
 
-                        if (bridge) {bridge.setParameter(idParametro(hueco, mando), valor);}
+                        if (bridge) {bridge.setParameter(paramId, clamped);}
+                    }
+                    if (typeof window.updateParameterLcdReadout === 'function') {
+                        window.updateParameterLcdReadout(paramId, clamped, labelText, fxCat);
                     }
                 };
 
                 const alMover = (e) => {
                     if (!arrastrando) {return;}
 
+                    const deltaY = yAnterior - e.clientY;
+                    yAnterior = e.clientY;
+                    const factor = e.shiftKey ? 0.2 : 1.0;
                     const valor = Math.max(0.0, Math.min(1.0,
-                        valorInicial + ((yInicial - e.clientY) / Px_PARA_CARRERA_COMPLETA)));
+                        valorEnCurso + ((deltaY / Px_PARA_CARRERA_COMPLETA) * factor)));
 
                     escribe(valor);
                 };
 
                 const alSoltar = () => {
-                    arrastrando = false;
+                    if (arrastrando) {
+                        arrastrando = false;
+                        if (typeof getBridge === 'function' && getBridge() && typeof getBridge().endGesture === 'function') {
+                            getBridge().endGesture(paramId);
+                        }
+                    }
                     window.removeEventListener('mousemove', alMover);
                     window.removeEventListener('mouseup', alSoltar);
                 };
 
                 anillo.addEventListener('mousedown', (e) => {
                     arrastrando = true;
-                    yInicial = e.clientY;
-                    valorInicial = valorActual();
+                    yAnterior = e.clientY;
+                    valorEnCurso = valorActual();
+                    if (typeof getBridge === 'function' && getBridge() && typeof getBridge().beginGesture === 'function') {
+                        getBridge().beginGesture(paramId);
+                    }
 
                     e.preventDefault();
                     e.stopPropagation();
 
                     window.addEventListener('mousemove', alMover);
                     window.addEventListener('mouseup', alSoltar);
+                });
+
+                anillo.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const step = e.shiftKey ? (1.0 / 255.0) : (4.0 / 255.0);
+                    const dir = e.deltaY < 0 ? 1 : -1;
+                    const b = typeof getBridge === 'function' ? getBridge() : null;
+                    if (b && typeof b.beginGesture === 'function') {b.beginGesture(paramId);}
+                    escribe(valorActual() + dir * step);
+                    if (b && typeof b.endGesture === 'function') {b.endGesture(paramId);}
+                }, { passive: false });
+
+                anillo.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const defVal = typeof window.getDefaultParamValue === 'function'
+                        ? window.getDefaultParamValue(paramId)
+                        : 0.5;
+                    const b = typeof getBridge === 'function' ? getBridge() : null;
+                    if (b && typeof b.beginGesture === 'function') {b.beginGesture(paramId);}
+                    escribe(defVal);
+                    if (b && typeof b.endGesture === 'function') {b.endGesture(paramId);}
                 });
             });
         }

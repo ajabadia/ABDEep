@@ -94,7 +94,8 @@ namespace ABD
                      const float* globalLfo1Buffer = nullptr,
                      const float* globalLfo2Buffer = nullptr,
                      float engineLfo1MonoMode = -1.0f,
-                     float engineLfo2MonoMode = -1.0f);
+                     float engineLfo2MonoMode = -1.0f,
+                     const float* controlSeqBuffer = nullptr);
 
         VoiceDiagnosticSnapshot getDiagnosticSnapshot(int voiceIndex) const;
 
@@ -105,7 +106,19 @@ namespace ABD
         void setOsc2Pitch (float pitch);
         void setOsc2Level (float level);
 
+        void setDiagnosticToneConfig (int point, float freqHz, float level) noexcept
+        {
+            diagnosticTonePoint = point;
+            diagnosticToneFreqHz = freqHz;
+            diagnosticToneLevel = level;
+        }
+        float getVcfEnvelopeLevel() const noexcept { return env2VCF.getCurrentLevel(); }
+
     private:
+        int diagnosticTonePoint = 0;
+        float diagnosticToneFreqHz = 440.0f;
+        float diagnosticToneLevel = 0.25f;
+        double diagnosticTonePhase = 0.0;
         // Parámetros de calibración para el filtro (extraídos del CalibrationSpec)
         struct FilterCalibrationParams {
             float vcfMinHz, vcfCurveBase;
@@ -250,7 +263,7 @@ namespace ABD
             int vcfPoleMode = 1; // 24dB
             int vcfOversample = 1; // 1x/2x/4x oversampling
             int vcfVoicingMode = 0; // 0=DeepMind, 1=Juno106
-            float vcfEnvDepth = 0.5f;
+            float vcfEnvDepth = 0.0f;
             float vcfEnvVel = 0.0f;
             float vcfLfoDepth = 0.0f;
             int vcfLfoSelect = 0;
@@ -323,10 +336,12 @@ namespace ABD
 
         void updateModulationSources(int sampleIndex = 0,
                                       const float* globalLfo1 = nullptr,
-                                      const float* globalLfo2 = nullptr);
+                                      const float* globalLfo2 = nullptr,
+                                      const float* controlSeqBuffer = nullptr);
         float processSample(const ModulationMatrix& matrix,
                             int sampleIndex = 0,
                             const float* globalLfo1 = nullptr,
-                            const float* globalLfo2 = nullptr);
+                            const float* globalLfo2 = nullptr,
+                            const float* controlSeqBuffer = nullptr);
     };
 }

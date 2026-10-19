@@ -31,9 +31,11 @@ namespace ABD
         bool isLegato = hadPreviousNote && wasActive;       // legato si la voz sigue activa
         bool isFingeredMode = (params.portaMode == 1 || params.portaMode == 3 || params.portaMode == 5);
 
-        if (params.portaTime <= 0.0f || !hadPreviousNote)
+        bool isFixedOffsetMode = (params.portaMode >= 6 && params.portaMode <= 13);
+
+        if (params.portaTime <= 0.0f || (!hadPreviousNote && !isFixedOffsetMode))
         {
-            // Sin nota anterior: salto directo (no puede glidear hacia ningún lado)
+            // Sin nota anterior (y no es modo Fixed±N): salto directo
             currentPortaPitch = targetPortaPitch;
             portaActive = false;
         }
@@ -43,19 +45,24 @@ namespace ABD
             currentPortaPitch = targetPortaPitch;
             portaActive = false;
         }
-        else
+        else if (isFixedOffsetMode)
         {
-            // Normal / Fix-Rate / Exp / Fingered+Legato: glide desde la nota anterior
-            currentPortaPitch = previousPitch;
-            // Fixed+N pre-glide offset
-            if (params.portaMode == 6)      currentPortaPitch += 2.0f;
-            else if (params.portaMode == 7) currentPortaPitch -= 2.0f;
-            else if (params.portaMode == 8) currentPortaPitch += 5.0f;
-            else if (params.portaMode == 9) currentPortaPitch -= 5.0f;
+            // Fixed±N pre-glide offset: parte siempre de targetPortaPitch ± N semitonos
+            currentPortaPitch = targetPortaPitch;
+            if (params.portaMode == 6)       currentPortaPitch += 2.0f;
+            else if (params.portaMode == 7)  currentPortaPitch -= 2.0f;
+            else if (params.portaMode == 8)  currentPortaPitch += 5.0f;
+            else if (params.portaMode == 9)  currentPortaPitch -= 5.0f;
             else if (params.portaMode == 10) currentPortaPitch += 12.0f;
             else if (params.portaMode == 11) currentPortaPitch -= 12.0f;
             else if (params.portaMode == 12) currentPortaPitch += 24.0f;
             else if (params.portaMode == 13) currentPortaPitch -= 24.0f;
+            portaActive = true;
+        }
+        else
+        {
+            // Normal / Fix-Rate / Exp / Fingered+Legato: glide desde la nota anterior
+            currentPortaPitch = previousPitch;
             portaActive = true;
         }
 

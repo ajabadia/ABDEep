@@ -306,9 +306,9 @@ void FXEngine::processSeriesWithFeedback(juce::AudioBuffer<float>& buffer, int n
     int numCh = buffer.getNumChannels();
     ensureBuffers(numCh, numSamples);
 
-    // Asegurar buffer de feedback del tamaño correcto
+    // Asegurar buffer de feedback del tamaño correcto (inicializado con ceros si crece)
     if (fbBuffer.getNumSamples() < numSamples || fbBuffer.getNumChannels() < numCh)
-        fbBuffer.setSize(numCh, numSamples, false, false, true);
+        fbBuffer.setSize(numCh, numSamples, false, true, true);
     // NOTA: No hacer clear() aquí — el buffer se inicializa vacío al allocarse
     // y conserva la salida del bloque anterior como señal de feedback.
 

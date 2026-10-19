@@ -6,7 +6,14 @@
 window.bindPanelOscControls = function(container, state, titleEl) {
     const oscSelectBtn = document.getElementById('osc-select-btn');
     if (oscSelectBtn) {
-        state.panelActiveOsc = oscSelectBtn.innerText.includes('OSC 2') ? 2 : 1;
+        const attrUnit = typeof oscSelectBtn.getAttribute === 'function' ? oscSelectBtn.getAttribute('data-active-unit') : null;
+        if (attrUnit === '1' || attrUnit === '2') {
+            state.panelActiveOsc = parseInt(attrUnit, 10);
+        } else if (oscSelectBtn.classList && (oscSelectBtn.classList.contains('is-osc1') || oscSelectBtn.classList.contains('is-osc2'))) {
+            state.panelActiveOsc = oscSelectBtn.classList.contains('is-osc2') ? 2 : 1;
+        } else {
+            state.panelActiveOsc = (oscSelectBtn.innerText || '').includes('OSC 2') ? 2 : 1;
+        }
     }
 
     titleEl.innerText = 'OSC ' + state.panelActiveOsc + ' Editor';

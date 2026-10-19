@@ -137,3 +137,55 @@ window.lcdSafeUpdate = function(lcdEl, html, paramId, options) {
         lcdEl.innerHTML = html;
     }
 };
+
+/**
+ * Updates the central LCD (#lcd-text) in real time when any parameter control is moved.
+ */
+window.updateParameterLcdReadout = function(paramId, normalizedVal, customTitle, customCategory) {
+    if (!paramId) {return;}
+    const lcdText = document.getElementById('lcd-text');
+    if (!lcdText) {return;}
+
+    const category = customCategory
+        || (window.MIDI_NRPN_MAP && window.MIDI_NRPN_MAP[paramId] ? window.MIDI_NRPN_MAP[paramId] : 'PARAMETER');
+    const title = (customTitle || paramId).toUpperCase();
+    const displayVal = typeof window.formatParamValue === 'function'
+        ? window.formatParamValue(paramId, normalizedVal)
+        : (typeof normalizedVal === 'number' ? normalizedVal.toFixed(2) : String(normalizedVal));
+
+    const html = '<span class="lcd-label">' + category + '</span><br>'
+        + '<strong>' + title + '</strong><br>'
+        + '<span class="lcd-value">' + displayVal + '</span>';
+
+    if (typeof window.lcdFadeUpdate === 'function') {
+        window.lcdFadeUpdate(lcdText, html, paramId);
+    } else {
+        lcdText.innerHTML = html;
+    }
+};
+
+/**
+ * Returns the musical default normalized value (0..1) for a parameter on double-click reset.
+ */
+window.getDefaultParamValue = function(paramId) {
+    if (!paramId) {return 0.0;}
+    if (paramId === 'global_volume' || paramId === 'vca_level' || paramId === 'vca_env_depth' || paramId === 'fx_send_level') {
+        return 0.8;
+    }
+    if (paramId === 'vcf_cutoff' || paramId === 'env1_sustain' || paramId === 'env2_sustain' || paramId === 'env3_sustain') {
+        return 1.0;
+    }
+    if (
+        paramId === 'osc2_pitch' ||
+        paramId === 'porta_osc_bal' ||
+        paramId === 'arp_gate_time' ||
+        paramId === 'arp_swing' ||
+        paramId === 'seq_swing' ||
+        paramId.endsWith('_curve') ||
+        /^fx[1-4]_param\d+$/.test(paramId)
+    ) {
+        return 0.5;
+    }
+    return 0.0;
+};
+

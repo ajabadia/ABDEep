@@ -212,6 +212,37 @@ public:
             expect(identical, "Events at samplePosition 0 should render identically across engines");
             logMessage("Events at samplePosition 0 render identically: OK");
         }
+
+        //==============================================================================
+        beginTest("Polyphonic Aftertouch (Key Pressure) updates per-note modulation and snapshot");
+        {
+            SynthEngine engine;
+            engine.prepare(kTestSampleRate, kTestBlockSize);
+            juce::AudioBuffer<float> buffer(2, kTestBlockSize);
+            juce::MidiBuffer midi;
+
+            midi.addEvent(juce::MidiMessage::noteOn(1, 60, 0.9f), 0);
+            midi.addEvent(juce::MidiMessage::aftertouchChange(1, 60, 100), 128);
+            engine.processBlock(buffer, midi);
+
+            auto snap = engine.getDiagnosticSnapshot();
+            expectWithinAbsoluteError(snap.aftertouch, 100.0f / 127.0f, 0.01f,
+                                      "Polyphonic aftertouch must update engine aftertouch modulation");
+            logMessage("Polyphonic Aftertouch: OK");
+        }
+
+        //==============================================================================
+        beginTest("Host BPM override (setHostBpm) stores and clears host tempo cleanly");
+        {
+            SynthEngine engine;
+            engine.prepare(kTestSampleRate, kTestBlockSize);
+            expectEquals(engine.getHostBpm(), 0.0f, "Initial hostBpm must be 0.0f");
+            engine.setHostBpm(140.0f);
+            expectEquals(engine.getHostBpm(), 140.0f, "setHostBpm(140) must store 140.0f");
+            engine.setHostBpm(0.0f);
+            expectEquals(engine.getHostBpm(), 0.0f, "setHostBpm(0) must clear override");
+            logMessage("Host BPM override: OK");
+        }
     }
 };
 

@@ -33,6 +33,7 @@ export const webUiRoot = __dirname;
  * seguiria sin resolver en el bundle).
  */
 const MODULE_ENTRIES = ['js/keyboard.js', 'js/fit-stage.js'];
+const EXTRA_MODULE_ENTRIES = ['js/live_sysex_inspector.js'];
 
 /** Arbol estatico que el runtime pide por ruta (addModule, url(), <script src>). */
 const STATIC_DIRS = ['js', 'css', 'assets', 'wasm', 'data', 'resources', 'schemas'];
@@ -83,7 +84,7 @@ export function abdeepStaticCopy() {
             if (!relCand) {return true;}
             const top = relCand.split('/')[0];
             if (STATIC_EXCLUDE.includes(top)) {return false;}
-            if (MODULE_ENTRIES.includes(`${rel}/${relCand}`)) {return false;}
+            if (MODULE_ENTRIES.includes(`${rel}/${relCand}`) || EXTRA_MODULE_ENTRIES.includes(`${rel}/${relCand}`)) {return false;}
             return true;
           },
         });

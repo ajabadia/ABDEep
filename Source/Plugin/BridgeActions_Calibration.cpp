@@ -1,5 +1,6 @@
 #include "BridgeActions.h"
 #include "PluginProcessor.h"
+#include "Core/RoundTripValidator.h"
 namespace BridgeActions {
 
 #if DEEP_TARGET_MODEL >= 2
@@ -119,4 +120,80 @@ void abortAudioABRun (ABDEepAudioProcessor& audioProcessor,
     juce::DynamicObject::Ptr res = new juce::DynamicObject();
     res->setProperty ("ok", true);
     completion (juce::var (res.get()));
-}} // namespace BridgeActions
+}
+
+void runRoundTripValidator (ABDEepAudioProcessor& /*audioProcessor*/,
+                            const juce::Array<juce::var>& args,
+                            juce::WebBrowserComponent::NativeFunctionCompletion completion)
+{
+    if (args.isEmpty())
+    {
+        completion (juce::var::undefined());
+        return;
+    }
+
+    std::array<uint8_t, 242> unpackedBytes {};
+    bool validInput = false;
+
+    if (args[0].isString())
+    {
+        auto parsed = juce::JSON::parse (args[0].toString());
+        if (parsed.isArray() && parsed.getArray()->size() >= 242)
+        {
+            auto* arr = parsed.getArray();
+            for (int i = 0; i < 242; ++i)
+                unpackedBytes[(size_t) i] = static_cast<uint8_t> (juce::jlimit (0, 255, (int) (*arr)[i]));
+            validInput = true;
+        }
+    }
+    else if (args[0].isArray() && args[0].getArray()->size() >= 242)
+    {
+        auto* arr = args[0].getArray();
+        for (int i = 0; i < 242; ++i)
+            unpackedBytes[(size_t) i] = static_cast<uint8_t> (juce::jlimit (0, 255, (int) (*arr)[i]));
+        validInput = true;
+    }
+
+    if (! validInput)
+    {
+        completion (juce::var::undefined());
+        return;
+    }
+
+    RoundTripReport report = RoundTripValidator::validateUnpackedBytes (unpackedBytes);
+
+    juce::DynamicObject::Ptr out = new juce::DynamicObject();
+    out->setProperty ("transportValid", report.transportValid);
+    out->setProperty ("patchDataValid", report.patchDataValid);
+    out->setProperty ("exactMatches", report.exactMatches);
+    out->setProperty ("withinTolerance", report.withinTolerance);
+    out->setProperty ("mismatches", report.mismatches);
+    out->setProperty ("aliasSharedCount", report.aliasSharedCount);
+    out->setProperty ("nameBytesCount", report.nameBytesCount);
+    out->setProperty ("specialCaseCount", report.specialCaseCount);
+    out->setProperty ("derivedCount", report.derivedCount);
+    out->setProperty ("stubCount", report.stubCount);
+
+    juce::Array<juce::var> entriesArr;
+    for (const auto& e : report.entries)
+    {
+        juce::DynamicObject::Ptr entryObj = new juce::DynamicObject();
+        entryObj->setProperty ("byteOffset", e.byteOffset);
+        juce::Array<juce::var> pids;
+        for (const auto& pid : e.paramIds)
+            pids.add (pid);
+        entryObj->setProperty ("paramIds", pids);
+        entryObj->setProperty ("rawOriginal", (int) e.rawOriginal);
+        entryObj->setProperty ("semanticNormalized", (double) e.semanticNormalized);
+        entryObj->setProperty ("engineStateNormalized", (double) e.engineStateNormalized);
+        entryObj->setProperty ("rawRebuilt", (int) e.rawRebuilt);
+        entryObj->setProperty ("delta", e.delta);
+        entryObj->setProperty ("classification", e.classification);
+        entriesArr.add (juce::var (entryObj.get()));
+    }
+    out->setProperty ("entries", entriesArr);
+
+    completion (juce::var (out.get()));
+}
+
+} // namespace BridgeActions

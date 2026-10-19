@@ -11,8 +11,12 @@ import {
   decodeSysExHeader,
   createLiveSysExInspector,
   getCurrentDeepMindSysExBuffer,
+  importDeepMindSysExBuffer,
+  importSysexBase64,
   getLiveSysExInspector,
   toggleLiveSysExInspector,
+  updateLiveSysExInspector,
+  getAboutDialog,
 } from '../js/live_sysex_inspector.js';
 
 describe('LiveSysExInspector — ABDEep Integration', () => {
@@ -54,6 +58,13 @@ describe('LiveSysExInspector — ABDEep Integration', () => {
     const stylePath = resolve(__dirname, '../style.css');
     const styleCss = readFileSync(stylePath, 'utf8');
     expect(styleCss).toContain("css/live-sysex-inspector.css");
+
+    const fitStagePath = resolve(__dirname, '../js/fit-stage.js');
+    const fitStageJs = readFileSync(fitStagePath, 'utf8');
+    expect(fitStageJs).toContain('@abdsynths/shared/styles/tokens.css');
+    expect(fitStageJs).toContain('@abdsynths/shared/styles/themes/deepmind.css');
+    expect(fitStageJs).toContain('@abdsynths/shared/styles/components/live-sysex-inspector.css');
+    expect(fitStageJs).toContain('@abdsynths/shared/styles/components/about-dialog.css');
   });
 
   it('createLiveSysExInspector se instancia correctamente con soporte flotante y botón de popout', () => {
@@ -78,16 +89,50 @@ describe('LiveSysExInspector — ABDEep Integration', () => {
     inspector.destroy();
   });
 
-  it('toggleLiveSysExInspector alterna la visibilidad del inspector singleton', () => {
+  it('toggleLiveSysExInspector alterna la visibilidad del inspector singleton y resalta diffs reactivamente', () => {
     const inspector = getLiveSysExInspector();
     expect(inspector.isOpen()).toBe(false);
 
     toggleLiveSysExInspector();
     expect(inspector.isOpen()).toBe(true);
 
+    // Simular mutación de un parámetro en los 242 bytes desempaquetados
+    const unpacked = new Uint8Array(242);
+    unpacked[39] = 200; // vcf_cutoff con MSB activo (>127)
+    updateLiveSysExInspector(unpacked);
+
+    const mutatedSpans = inspector.rootEl.querySelectorAll('.sysex-byte--mutated');
+    expect(mutatedSpans.length).toBeGreaterThan(0);
+
+    // Verificar bidireccionalidad (importDeepMindSysExBuffer + importSysexBase64)
+    const exportedSyx = getCurrentDeepMindSysExBuffer(unpacked);
+    const reimported = importDeepMindSysExBuffer(exportedSyx);
+    expect(reimported).not.toBeNull();
+    expect(reimported.length).toBe(242);
+    expect(reimported[39]).toBe(200);
+
+    const b64 = Buffer.from(exportedSyx).toString('base64');
+    const fromB64 = importSysexBase64(b64);
+    expect(fromB64).not.toBeNull();
+    expect(fromB64[39]).toBe(200);
+
     toggleLiveSysExInspector();
     expect(inspector.isOpen()).toBe(false);
 
     inspector.destroy();
+  });
+
+  it('getAboutDialog instancia el AboutDialog compartido conectado a AutoUpdater', () => {
+    const dlg = getAboutDialog();
+    expect(dlg).not.toBeNull();
+    expect(dlg.options.appName).toBe('ABD Eep');
+    expect(dlg.options.repo).toBe('ajabadia/ABDEep');
+    dlg.renderUpdateResult({
+      currentVersion: '0.2.35',
+      latestVersion: 'v0.3.0',
+      isUpdateAvailable: true,
+      downloadUrl: 'https://github.com/ajabadia/ABDEep/releases/tag/v0.3.0',
+    });
+    expect(dlg.statusEl.textContent).toContain('v0.3.0');
   });
 });

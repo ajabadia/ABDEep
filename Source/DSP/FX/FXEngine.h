@@ -66,6 +66,18 @@ namespace ABD
         int getRoutingMode() const { return fxRouting; }
         int getFXMode() const { return fxMode; }
 
+        bool hasActiveEffects() const noexcept
+        {
+            if (fxMode == 2) // 2 = Bypass
+                return false;
+            for (int i = 0; i < kNumSlots; ++i)
+            {
+                if (slots[i].getType() != 0 && slots[i].getGain() > 0.0f)
+                    return true;
+            }
+            return false;
+        }
+
     private:
         static constexpr int kNumSlots = 4;
         FXSlot slots[kNumSlots];

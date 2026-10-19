@@ -41,8 +41,8 @@ namespace ABD
                 {
                     case 0: flanger->setParameter(0, value); break; // speed
                     case 1: flanger->setParameter(1, value); break; // depth
-                    case 2: flanger->setParameter(3, value); break; // delay -> base delay
-                    case 4: flanger->setParameter(2, value); break; // feed -> feedback
+                    case 2: flanger->setParameter(3, value); break; // base delay
+                    case 4: flanger->setParameter(2, value); break; // feed
                 }
             }
             else if (type == 24 && chorus) // chorusVerb
@@ -50,17 +50,17 @@ namespace ABD
                 switch (index)
                 {
                     case 0: chorus->setParameter(0, value); break; // speed
-                    case 1: chorus->setParameter(1, value); break; // depth
-                    case 4: chorus->setParameter(2, value); break; // wave -> feedback
+                    case 1: chorus->setParameter(1, value); break; // width
+                    case 4: chorus->setParameter(2, value); break; // wave
                 }
             }
             else if (type == 25 && delay) // delayVerb
             {
                 switch (index)
                 {
-                    case 0: // time
-                        delay->setParameter(1, value); // time left
-                        delay->setParameter(2, value); // time right
+                    case 0:
+                        delay->setParameter(1, value); // time L
+                        delay->setParameter(2, value); // time R
                         break;
                     case 3: delay->setParameter(3, value); break; // feedback
                     case 5: delay->setParameter(0, value); break; // balance -> delay mix
